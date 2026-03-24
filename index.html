@@ -1154,7 +1154,7 @@ function App({ user }) {
 
 // ── SIDEBAR ──
 function ChatPage({coachees,setCoachees,mobileChatOpen,setMobileChatOpen}) {
-  const coachee = coachees[0] || {id:"c1",name:"Diana & Rico Stämpfli",initials:"DR",color:"#a0cb7b",photo:null,online:true,topic:"Dein Coaching-Team",messages:[]};
+  const coachee = coachees[0] || {id:"c1",name:"Diana & Rico Stämpfli",initials:"DR",color:"#a0cb7b",photo:null,online:true,topic:"Diana & Rico",messages:[]};
 
   const sendMsg = text => {
     if(!text.trim()) return;
@@ -1171,20 +1171,7 @@ function ChatPage({coachees,setCoachees,mobileChatOpen,setMobileChatOpen}) {
 
   return html`
     <div style=${{flex:1,display:"flex",flexDirection:"column",overflow:"hidden",minWidth:0,background:"var(--bg)"}}>
-      <div class="topbar" style=${{padding:"14px 16px"}}>
-        <svg width="38" height="38" viewBox="0 0 100 100" style=${{flexShrink:0,borderRadius:"50%"}}>
-          <circle cx="50" cy="50" r="50" fill="#efe454"/>
-          <circle cx="57.94" cy="50.79" r="37.3" fill="#a0cb7b"/>
-          <circle cx="66.67" cy="50.79" r="20.63" fill="#68b87d"/>
-        </svg>
-        <div>
-          <div style=${{fontWeight:700,fontSize:".95rem",color:"var(--text)"}}>Diana & Rico Stämpfli</div>
-          <div style=${{fontSize:".75rem",color:"var(--teal-dark)",display:"flex",alignItems:"center",gap:4}}>
-            <span style=${{width:7,height:7,borderRadius:"50%",background:"var(--teal)",display:"inline-block"}}/>
-            Online · Dein Coaching-Team
-          </div>
-        </div>
-      </div>
+
       <${ChatWindow} coachee=${coachee} onSend=${sendMsg} onSendImg=${sendImg} onBack=${()=>setMobileChatOpen&&setMobileChatOpen(false)}/>
     </div>`;
 }
@@ -1259,14 +1246,12 @@ function ChatWindow({coachee,onSend,onSendImg,onUpdate,onBack}) {
   return html`
     <div class="chat-area" style=${{display:"flex",flexDirection:"column",flex:1,minWidth:0,overflow:"hidden"}}>
       <div class="chat-topbar">
-        <button class="mobile-back-btn" onClick=${onBack}>
-          <${Ic} name="undo" size=${16}/> Zurück
-        </button>
-        <div class="ct-avatar" style=${{background:coachee.color,cursor:'pointer'}} onClick=${()=>profileRef.current?.click()} title="Profilfoto ändern">
-          ${coachee.photo?html`<img src=${coachee.photo} alt=${coachee.name}/>`:`${coachee.initials}`}
-          ${coachee.online&&html`<span class="online-dot"/>`}
-          <input ref=${profileRef} type="file" accept="image/*" style=${{display:'none'}} onChange=${handleProfilePic}/>
-        </div>
+
+        <svg width="40" height="40" viewBox="0 0 100 100" style=${{flexShrink:0,borderRadius:"50%"}}>
+          <circle cx="50" cy="50" r="50" fill="#efe454"/>
+          <circle cx="57.94" cy="50.79" r="37.3" fill="#a0cb7b"/>
+          <circle cx="66.67" cy="50.79" r="20.63" fill="#68b87d"/>
+        </svg>
         <div>
           <div class="ct-name">${coachee.name}</div>
           <div class="ct-status">
@@ -1375,43 +1360,35 @@ function DashboardPage({coachees,library,reminders,setPage,user}) {
         <p class="quote-author">${quote.author}</p>
       </div>
       <div class="stat-grid">
-        <div class="stat-card" onClick=${()=>setPage("chat")} style=${{cursor:"pointer",borderLeft:"4px solid var(--teal)"}}>
-          <div style=${{display:"flex",alignItems:"center",gap:12,flex:1}}>
-            <div style=${{width:38,height:38,borderRadius:10,background:"var(--teal-pale)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><${Ic} name="chat" size=${18} style=${{color:"var(--teal-dark)"}}/></div>
-            <div>
-              <div class="stat-label">Nachrichten</div>
-              <div style=${{fontFamily:"'Exo 2',sans-serif",fontSize:".88rem",color:"var(--muted)"}}>Chat mit Diana & Rico</div>
+        <div class="stat-card" onClick=${()=>setPage("chat")} style=${{cursor:"pointer",borderLeft:"4px solid var(--teal)",padding:"16px 20px"}}>
+          <div style=${{display:"flex",alignItems:"center",gap:14}}>
+            <div style=${{width:42,height:42,borderRadius:12,background:"var(--teal-pale)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><${Ic} name="chat" size=${20} style=${{color:"var(--teal-dark)"}}/></div>
+            <div style=${{flex:1}}>
+              <div style=${{fontFamily:"'Manuale',serif",fontWeight:700,fontSize:"1rem",color:"var(--text)"}}>Nachrichten</div>
+              <div style=${{fontSize:".82rem",color:"var(--muted)",marginTop:1}}>Schreibe Diana & Rico</div>
             </div>
-          </div>
-          <div style=${{display:"flex",alignItems:"center",gap:8}}>
-            ${coachees.reduce((a,c)=>a+c.unread,0)>0&&html`<span style=${{background:"var(--teal)",color:"white",borderRadius:99,padding:"2px 9px",fontSize:".72rem",fontWeight:700}}>${coachees.reduce((a,c)=>a+c.unread,0)}</span>`}
-            <${Ic} name="chevron" size=${16} style=${{color:"var(--muted)"}}/>
+            ${coachees.reduce((a,c)=>a+c.unread,0)>0&&html`<span style=${{background:"var(--teal)",color:"white",borderRadius:99,padding:"3px 10px",fontSize:".75rem",fontWeight:700}}>${coachees.reduce((a,c)=>a+c.unread,0)}</span>`}
+            <${Ic} name="chevron" size=${16} style=${{color:"var(--border2)"}}/>
           </div>
         </div>
-        <div class="stat-card" onClick=${()=>setPage("reminders")} style=${{cursor:"pointer",borderLeft:"4px solid var(--sage)"}}>
-          <div style=${{display:"flex",alignItems:"center",gap:12,flex:1}}>
-            <div style=${{width:38,height:38,borderRadius:10,background:"var(--sage-pale)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><${Ic} name="bell" size=${18} style=${{color:"var(--sage-dark)"}}/></div>
-            <div>
-              <div class="stat-label">Erinnerungen</div>
-              <div style=${{fontFamily:"'Exo 2',sans-serif",fontSize:".88rem",color:"var(--muted)"}}>Meine Impulse & Routinen</div>
+        <div class="stat-card" onClick=${()=>setPage("reminders")} style=${{cursor:"pointer",borderLeft:"4px solid var(--sage)",padding:"16px 20px"}}>
+          <div style=${{display:"flex",alignItems:"center",gap:14}}>
+            <div style=${{width:42,height:42,borderRadius:12,background:"var(--sage-pale)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><${Ic} name="bell" size=${20} style=${{color:"var(--sage-dark)"}}/></div>
+            <div style=${{flex:1}}>
+              <div style=${{fontFamily:"'Manuale',serif",fontWeight:700,fontSize:"1rem",color:"var(--text)"}}>Erinnerungen</div>
+              <div style=${{fontSize:".82rem",color:"var(--muted)",marginTop:1}}>${reminders.filter(r=>r.enabled).length} aktive Impulse</div>
             </div>
-          </div>
-          <div style=${{display:"flex",alignItems:"center",gap:8}}>
-            <span style=${{color:"var(--muted)",fontSize:".82rem",fontWeight:600}}>${reminders.filter(r=>r.enabled).length} aktiv</span>
-            <${Ic} name="chevron" size=${16} style=${{color:"var(--muted)"}}/>
+            <${Ic} name="chevron" size=${16} style=${{color:"var(--border2)"}}/>
           </div>
         </div>
-        <div class="stat-card" onClick=${()=>setPage("library")} style=${{cursor:"pointer",borderLeft:"4px solid var(--lime)"}}>
-          <div style=${{display:"flex",alignItems:"center",gap:12,flex:1}}>
-            <div style=${{width:38,height:38,borderRadius:10,background:"var(--lime-pale)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><${Ic} name="library" size=${18} style=${{color:"var(--lime-dark)"}}/></div>
-            <div>
-              <div class="stat-label">Mediathek</div>
-              <div style=${{fontFamily:"'Exo 2',sans-serif",fontSize:".88rem",color:"var(--muted)"}}>Impulse & Materialien</div>
+        <div class="stat-card" onClick=${()=>setPage("library")} style=${{cursor:"pointer",borderLeft:"4px solid var(--lime)",padding:"16px 20px"}}>
+          <div style=${{display:"flex",alignItems:"center",gap:14}}>
+            <div style=${{width:42,height:42,borderRadius:12,background:"var(--lime-pale)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><${Ic} name="library" size=${20} style=${{color:"var(--lime-dark)"}}/></div>
+            <div style=${{flex:1}}>
+              <div style=${{fontFamily:"'Manuale',serif",fontWeight:700,fontSize:"1rem",color:"var(--text)"}}>Mediathek</div>
+              <div style=${{fontSize:".82rem",color:"var(--muted)",marginTop:1}}>${library.length} Impulse & Materialien</div>
             </div>
-          </div>
-          <div style=${{display:"flex",alignItems:"center",gap:8}}>
-            <span style=${{color:"var(--muted)",fontSize:".82rem",fontWeight:600}}>${library.length} Inhalte</span>
-            <${Ic} name="chevron" size=${16} style=${{color:"var(--muted)"}}/>
+            <${Ic} name="chevron" size=${16} style=${{color:"var(--border2)"}}/>
           </div>
         </div>
       </div>
@@ -1421,7 +1398,7 @@ function DashboardPage({coachees,library,reminders,setPage,user}) {
           <div style=${{width:40,height:40,borderRadius:"50%",background:"var(--sage)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:".82rem",fontWeight:700,color:"var(--forest)",flexShrink:0}}>DR</div>
           <div style=${{flex:1}}>
             <div style=${{fontWeight:700,fontSize:".9rem"}}>Diana & Rico Stämpfli</div>
-            <div style=${{fontSize:".76rem",color:"var(--muted)",marginTop:2}}>Dein persönliches Coaching-Team · tippe um zu schreiben</div>
+            <div style=${{fontSize:".76rem",color:"var(--muted)",marginTop:2}}>Dein persönliches Diana & Rico · tippe um zu schreiben</div>
           </div>
           <${Ic} name="send" size=${18} style=${{color:"var(--teal)",flexShrink:0}}/>
         </div>
@@ -1579,7 +1556,7 @@ function LibraryPage({library,setLibrary}) {
   return html`
     <div class="content-main">
       <div class="flex-between">
-        <div><h1 class="page-heading">Mediathek</h1><p class="page-sub">Hier findest du Impulse, Übungen und Inspiration für deinen Alltag — zusammengestellt von deinem Coaching-Team.</p></div>
+        <div><h1 class="page-heading">Mediathek</h1><p class="page-sub">Hier findest du Impulse, Übungen und Inspiration für deinen Alltag — zusammengestellt von deinem Diana & Rico.</p></div>
         
       </div>
       <div class="info-tip info-tip-sage"><${Ic} name="info" size=${15} style=${{flexShrink:0,marginTop:1}}/><span>Stelle deinen Coachees Audio-Übungen, Video-Inputs oder Reflexionsbögen bereit.</span></div>
@@ -1977,7 +1954,7 @@ function DoodlePage({doodles,setDoodles,coachees,events}) {
   return html`
     <div class="content-main">
       <h1 class="page-heading">Events & Termine</h1>
-      <p class="page-sub">Aktuelle Termine und Events von deinem Coaching-Team.</p>
+      <p class="page-sub">Aktuelle Termine und Events von deinem Diana & Rico.</p>
 
       <div class="sub-tabs">
         <button class=${"sub-tab"+(subTab==="admin"?" active":"")} onClick=${()=>setSubTab("admin")}>Admin — Doodle</button>
