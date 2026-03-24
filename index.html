@@ -589,7 +589,6 @@
     }
 
     /* Push content down from status bar */
-    .chat-topbar,
     .panel-header,
     .content-main > *:first-child {
       padding-top: max(16px, env(safe-area-inset-top, 16px));
@@ -597,6 +596,10 @@
 
     .topbar {
       padding-top: max(44px, calc(env(safe-area-inset-top, 0px) + 12px));
+    }
+
+    .chat-topbar {
+      padding-top: max(52px, calc(env(safe-area-inset-top, 44px) + 14px)) !important;
     }
 
     /* Hide desktop sidebar */
@@ -1474,9 +1477,16 @@ function GoalsPage({goals,setGoals}) {
               </div>
               <input type="range" min="0" max="100" value=${form.progress} onInput=${e=>setForm(f=>({...f,progress:+e.target.value}))} style=${{width:'100%',marginTop:6,accentColor:'var(--teal)'}}/>
             </div>
-            <div class="modal-actions">
-              <button class="btn btn-ghost" onClick=${()=>setShowModal(false)}>Abbrechen</button>
-              <button class="btn btn-primary" onClick=${save}>Speichern</button>
+            <div style=${{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:18}}>
+              <div>
+                ${editId&&html`<button class="btn btn-danger btn-sm" onClick=${()=>{setShowModal(false);setReminders(rs=>rs.filter(x=>x.id!==editId));}}>
+                  <${Ic} name="trash" size=${13}/> Löschen
+                </button>`}
+              </div>
+              <div style=${{display:"flex",gap:8}}>
+                <button class="btn btn-ghost" onClick=${()=>setShowModal(false)}>Abbrechen</button>
+                <button class="btn btn-primary" onClick=${save}><${Ic} name="check" size=${14}/> Speichern</button>
+              </div>
             </div>
           </div>
         </div>`}
@@ -1665,42 +1675,33 @@ function RemindersPage({reminders,setReminders}) {
     const extraTimes = r.additionalTimes||[];
     const allTimes = [r.time, ...extraTimes].join(' · ');
     return html`
-      <div style=${{
+      <div onClick=${()=>openEdit(r)} style=${{
         background:"var(--surface)",borderRadius:14,marginBottom:8,
-        padding:"13px 16px",display:"flex",alignItems:"center",gap:12,
+        padding:"14px 16px",display:"flex",alignItems:"center",gap:12,
         borderLeft:"3px solid "+ac.bar,
-        boxShadow:"0 1px 6px rgba(30,58,47,.07)",
-        opacity:r.enabled?1:.5,transition:"opacity .2s"
+        boxShadow:"0 1px 8px rgba(30,58,47,.07)",
+        cursor:"pointer"
       }}>
         <div style=${{
-          width:40,height:40,borderRadius:12,background:ac.bg,
+          width:44,height:44,borderRadius:12,background:ac.bg,
           display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0
         }}>
-          <${Ic} name=${r.icon||"bell"} size=${18} style=${{color:ac.text}}/>
+          <${Ic} name=${r.icon||"bell"} size=${20} style=${{color:ac.text}}/>
         </div>
         <div style=${{flex:1,minWidth:0}}>
-          <div style=${{fontWeight:700,fontSize:".9rem",color:"var(--text)",marginBottom:2}}>
+          <div style=${{fontWeight:700,fontSize:".92rem",color:"var(--text)",marginBottom:3,display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
             ${r.label}
-            ${r.area&&r.area!=="Allgemein"&&html`
-              <span style=${{fontSize:".62rem",fontWeight:700,padding:"1px 7px",borderRadius:99,background:ac.tag,color:ac.text,marginLeft:6,verticalAlign:"middle"}}>${r.area}</span>
-            `}
+            ${r.area&&r.area!=="Allgemein"&&html`<span style=${{fontSize:".6rem",fontWeight:700,padding:"1px 7px",borderRadius:99,background:ac.tag,color:ac.text}}>${r.area}</span>`}
           </div>
-          <div style=${{fontSize:".76rem",color:"var(--muted)"}}>
+          <div style=${{fontSize:".77rem",color:"var(--muted)"}}>
             ${allTimes} Uhr · ${recLabel(r)}
           </div>
         </div>
-        <div style=${{display:"flex",alignItems:"center",gap:6,flexShrink:0}}>
-          <button class=${"toggle"+(r.enabled?" on":"")} onClick=${()=>setReminders(rs=>rs.map(x=>x.id===r.id?{...x,enabled:!x.enabled}:x))}/>
-          <button style=${{background:"none",border:"none",cursor:"pointer",color:"var(--muted)",padding:4,borderRadius:8,display:"flex"}} onClick=${()=>openEdit(r)}>
-            <${Ic} name="edit" size=${15}/>
-          </button>
-          <button style=${{background:"none",border:"none",cursor:"pointer",color:"var(--danger)",padding:4,borderRadius:8,display:"flex"}} onClick=${()=>setReminders(rs=>rs.filter(x=>x.id!==r.id))}>
-            <${Ic} name="trash" size=${15}/>
-          </button>
-        </div>
+        <button class=${"toggle"+(r.enabled?" on":"")}
+          onClick=${e=>{e.stopPropagation();setReminders(rs=>rs.map(x=>x.id===r.id?{...x,enabled:!x.enabled}:x))}}
+          style=${{flexShrink:0}}/>
       </div>`;
-  };;
-
+  };
   return html`
     <div class="content-main">
       <div class="flex-between">
