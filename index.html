@@ -1479,8 +1479,9 @@ function GoalsPage({goals,setGoals}) {
             </div>
             <div style=${{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:18}}>
               <div>
-                ${editId&&html`<button class="btn btn-danger btn-sm" onClick=${()=>{setShowModal(false);setReminders(rs=>rs.filter(x=>x.id!==editId));}}>
-                  <${Ic} name="trash" size=${13}/> Löschen
+                ${editId&&html`<button style=${{background:"#fff0ef",border:"1.5px solid #f5c0bc",color:"var(--danger)",padding:"7px 14px",borderRadius:10,cursor:"pointer",fontFamily:"'Exo 2',sans-serif",fontWeight:700,fontSize:".82rem",display:"flex",alignItems:"center",gap:6}}
+                  onClick=${()=>{if(confirm("Erinnerung löschen?")){setShowModal(false);setReminders(rs=>rs.filter(x=>x.id!==editId));}}}>
+                  <${Ic} name="trash" size=${14}/> Löschen
                 </button>`}
               </div>
               <div style=${{display:"flex",gap:8}}>
