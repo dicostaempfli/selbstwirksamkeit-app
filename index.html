@@ -2218,17 +2218,21 @@ function LoginPage({ onLogin }) {
       const fbAuth = window._fb?.auth || window.firebase?.auth();
       const provider = window._fb?.googleProvider || new window.firebase.auth.GoogleAuthProvider();
       if(!fbAuth) throw {code:"no-auth", message:"Firebase nicht bereit"};
-      await fbAuth.signInWithPopup(provider);
+      // Use redirect on mobile, popup on desktop
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+      if(isMobile) {
+        await fbAuth.signInWithRedirect(provider);
+      } else {
+        await fbAuth.signInWithPopup(provider);
+      }
     } catch(e) {
-      if(e.code === "auth/popup-blocked") {
-        setError("Popup blockiert — bitte E-Mail/Passwort verwenden.");
-      } else if(e.code === "auth/cancelled-popup-request" || e.code === "auth/popup-closed-by-user") {
+      if(e.code === "auth/cancelled-popup-request" || e.code === "auth/popup-closed-by-user") {
         setError("");
       } else {
-        setError("Google fehlgeschlagen ("+e.code+") — bitte E-Mail/Passwort verwenden.");
+        setError("Google fehlgeschlagen: "+e.message);
       }
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return html`
@@ -2292,6 +2296,16 @@ function LoginPage({ onLogin }) {
             ${mode==="login"?"Registrieren":"Anmelden"}
           </button>
         </p>
+        ${mode==="login" && html`<p style=${{textAlign:"center",marginTop:8,fontSize:".78rem"}}>
+          <button onClick=${async()=>{
+            if(!email){setError("Bitte zuerst E-Mail eingeben.");return;}
+            const fbAuth=window._fb?.auth||window.firebase?.auth();
+            if(fbAuth){await fbAuth.sendPasswordResetEmail(email).catch(()=>{});setError("");}
+            alert("Passwort-Reset E-Mail wurde gesendet an: "+email);
+          }} style=${{background:"none",border:"none",cursor:"pointer",color:"var(--muted)",fontFamily:"'Exo 2',sans-serif",fontSize:".78rem",textDecoration:"underline"}}>
+            Passwort vergessen?
+          </button>
+        </p>`}
       </div>
     </div>`;
 }
