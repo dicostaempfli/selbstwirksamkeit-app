@@ -2297,12 +2297,17 @@ function LoginPage({ onLogin }) {
           </button>
         </p>
         ${mode==="login" && html`<p style=${{textAlign:"center",marginTop:8,fontSize:".78rem"}}>
-          <button onClick=${async()=>{
+          <button onClick=${()=>{
             if(!email){setError("Bitte zuerst E-Mail eingeben.");return;}
             const fbAuth=window._fb?.auth||window.firebase?.auth();
-            if(fbAuth){await fbAuth.sendPasswordResetEmail(email).catch(()=>{});setError("");}
-            alert("Passwort-Reset E-Mail wurde gesendet an: "+email);
-          }} style=${{background:"none",border:"none",cursor:"pointer",color:"var(--muted)",fontFamily:"'Exo 2',sans-serif",fontSize:".78rem",textDecoration:"underline"}}>
+            if(fbAuth){
+              fbAuth.sendPasswordResetEmail(email)
+                .then(()=>alert("Reset-E-Mail gesendet an: "+email))
+                .catch(e=>setError("Fehler: "+e.message));
+            } else {
+              setError("Firebase nicht bereit — bitte Seite neu laden.");
+            }
+          }} style=${{background:"none",border:"none",cursor:"pointer",color:"var(--teal-dark)",fontFamily:"'Exo 2',sans-serif",fontSize:".78rem",textDecoration:"underline",fontWeight:600}}>
             Passwort vergessen?
           </button>
         </p>`}
