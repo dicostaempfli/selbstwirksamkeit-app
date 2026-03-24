@@ -650,14 +650,13 @@
     .ct-status { font-size: .68rem; }
 
     /* Messages */
-    .messages { padding: 14px 12px; padding-bottom: calc(62px + env(safe-area-inset-bottom, 0px) + 60px); }
+    .messages { padding: 14px 12px; padding-bottom: calc(62px + env(safe-area-inset-bottom, 0px) + 80px); }
     .msg-bubble-wrap { max-width: 82%; }
     .msg-bubble { font-size: .85rem; }
 
     /* Chat input */
     .chat-window { display:flex; flex-direction:column; flex:1; overflow:hidden; }
-  .chat-input-area { padding: 8px 10px 10px; }
-    .input-box { font-size: .88rem; padding: 8px 12px; }
+  .chat-input-area { padding: 8px 10px; padding-bottom: calc(62px + env(safe-area-inset-bottom, 0px) + 4px) !important; }   .input-box { font-size: .88rem; padding: 8px 12px; }
 
     /* Quick replies */
     .quick-replies { padding: 0 12px 6px; }
@@ -762,8 +761,8 @@
 
     /* Adjust app layout for bottom nav */
     .chat-window { display:flex; flex-direction:column; flex:1; overflow:hidden; }
-  .chat-input-area { padding-bottom: 14px; }
-    .messages { padding-bottom: 80px; }
+  .chat-input-area { padding-bottom: calc(62px + env(safe-area-inset-bottom, 0px) + 4px) !important; }
+    .messages { padding-bottom: calc(62px + env(safe-area-inset-bottom, 0px) + 80px); }
     .content-main { padding-bottom: 80px; }
 
     /* Bigger area buttons on mobile */
