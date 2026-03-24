@@ -1106,7 +1106,11 @@ function App({ user }) {
           ${(i.badge||0)>0&&html`<span class="bottom-nav-badge">${i.badge}</span>`}
         </div>`)}
       <div class="bottom-nav-item" onClick=${()=>{ try{signOut(auth);}catch(e){window._fb?.auth?.signOut();} }} title="Abmelden">
-        <${Ic} name="logout" size=${22}/>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/>
+          <polyline points="16 17 21 12 16 7"/>
+          <line x1="21" y1="12" x2="9" y2="12"/>
+        </svg>
         <span class="bottom-nav-label">Logout</span>
       </div>
     </nav>`;
@@ -1138,11 +1142,13 @@ function Sidebar({page,setPage,totalUnread,user}) {
         <div class="sb-avatar" title=${user?.email||"Diana & Rico"} style=${{fontSize:".6rem"}}>
           ${user?.photoURL ? html`<img src=${user.photoURL} style=${{width:"100%",height:"100%",borderRadius:"50%",objectFit:"cover"}} alt=""/>` : "DR"}
         </div>
-        <button onClick=${()=>{ try{signOut(auth);}catch(e){window._fb?.auth?.signOut();} }} title="Abmelden"
-          style=${{background:"rgba(255,255,255,.15)",border:"1px solid rgba(255,255,255,.25)",cursor:"pointer",color:"white",display:"flex",alignItems:"center",justifyContent:"center",padding:"6px 10px",borderRadius:8,transition:"all .15s",gap:5,fontFamily:"'Exo 2',sans-serif",fontSize:".68rem",fontWeight:700}}
-          onMouseOver=${e=>e.currentTarget.style.background="rgba(220,50,50,.5)"}
-          onMouseOut=${e=>e.currentTarget.style.background="rgba(255,255,255,.15)"}>
-          <${Ic} name="logout" size=${14}/>
+        <button onClick=${()=>{ try{signOut(auth);}catch(e){window._fb?.auth?.signOut();} }}
+          style=${{background:"rgba(255,255,255,.12)",border:"1.5px solid rgba(255,255,255,.3)",cursor:"pointer",color:"rgba(255,255,255,.9)",display:"flex",alignItems:"center",justifyContent:"center",padding:"5px 8px",borderRadius:8,gap:5,fontFamily:"'Exo 2',sans-serif",fontSize:".65rem",fontWeight:700,marginTop:2}}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/>
+            <polyline points="16 17 21 12 16 7"/>
+            <line x1="21" y1="12" x2="9" y2="12"/>
+          </svg>
           <span>Logout</span>
         </button>
       </div>
