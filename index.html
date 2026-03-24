@@ -1139,10 +1139,11 @@ function Sidebar({page,setPage,totalUnread,user}) {
           ${user?.photoURL ? html`<img src=${user.photoURL} style=${{width:"100%",height:"100%",borderRadius:"50%",objectFit:"cover"}} alt=""/>` : "DR"}
         </div>
         <button onClick=${()=>{ try{signOut(auth);}catch(e){window._fb?.auth?.signOut();} }} title="Abmelden"
-          style=${{background:"none",border:"none",cursor:"pointer",color:"rgba(255,255,255,.4)",display:"flex",alignItems:"center",justifyContent:"center",padding:4,borderRadius:8,transition:"all .15s"}}
-          onMouseOver=${e=>e.currentTarget.style.color="rgba(255,255,255,.8)"}
-          onMouseOut=${e=>e.currentTarget.style.color="rgba(255,255,255,.4)"}>
+          style=${{background:"rgba(255,255,255,.15)",border:"1px solid rgba(255,255,255,.25)",cursor:"pointer",color:"white",display:"flex",alignItems:"center",justifyContent:"center",padding:"6px 10px",borderRadius:8,transition:"all .15s",gap:5,fontFamily:"'Exo 2',sans-serif",fontSize:".68rem",fontWeight:700}}
+          onMouseOver=${e=>e.currentTarget.style.background="rgba(220,50,50,.5)"}
+          onMouseOut=${e=>e.currentTarget.style.background="rgba(255,255,255,.15)"}>
           <${Ic} name="logout" size=${14}/>
+          <span>Logout</span>
         </button>
       </div>
     </div>`;
@@ -1921,7 +1922,7 @@ function DoodlePage({doodles,setDoodles,coachees,events}) {
   const removeSlot = dt => setNewSlots(s=>s.filter(x=>x!==dt));
 
   const createDoodle = () => {
-    if(!newTitle.trim()||newSlots.length<1||selRecip.length===0) return;
+    if(!newTitle.trim()||newSlots.length<1) return;
     const nd={id:Date.now(),title:newTitle.trim(),desc:newDesc.trim()||"Bitte wähle die Zeiten die dir passen.",
       status:"open",recipients:[...selRecip],slots:newSlots.map(dt=>({dt,votes:{}}))};
     setShowCreate(false); setNewTitle(""); setNewDesc(""); setNewSlots([]); setSelRecip([]);
@@ -2094,7 +2095,7 @@ function DoodlePage({doodles,setDoodles,coachees,events}) {
             </div>
             <div class="modal-actions">
               <button class="btn btn-ghost" onClick=${()=>setShowCreate(false)}>Abbrechen</button>
-              <button class="btn btn-primary" onClick=${createDoodle} disabled=${!newTitle.trim()||newSlots.length<1||selRecip.length===0}>Erstellen & Senden</button>
+              <button class="btn btn-primary" onClick=${createDoodle} disabled=${!newTitle.trim()||newSlots.length<1}>Erstellen & Senden</button>
             </div>
           </div>
         </div>`}
