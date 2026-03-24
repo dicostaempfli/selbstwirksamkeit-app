@@ -1137,6 +1137,44 @@ function App({ user }) {
 }
 
 // ── SIDEBAR ──
+function ChatPage({coachees,setCoachees,mobileChatOpen,setMobileChatOpen}) {
+  // Coachee app: single chat with Diana & Rico (first coachee)
+  const active = coachees[0] || {id:"c1",name:"Diana & Rico Stämpfli",initials:"DR",color:"#a0cb7b",photo:null,online:true,topic:"Dein Coaching-Team",messages:[]};
+
+  const sendMsg = text => {
+    if(!text.trim()) return;
+    const msg={id:Date.now(),from:"coachee",text:text.trim(),time:new Date().toLocaleTimeString('de-CH',{hour:'2-digit',minute:'2-digit'}),date:"Heute",seen:false};
+    setCoachees(cs=>cs.map(c=>c.id===active.id?{...c,messages:[...(c.messages||[]),msg],lastTime:msg.time}:c));
+  };
+
+  const sendImg = dataUrl => {
+    const msg={id:Date.now(),from:"coachee",imgSrc:dataUrl,text:"",time:new Date().toLocaleTimeString('de-CH',{hour:'2-digit',minute:'2-digit'}),date:"Heute"};
+    setCoachees(cs=>cs.map(c=>c.id===active.id?{...c,messages:[...(c.messages||[]),msg],lastTime:msg.time}:c));
+  };
+
+  return html`
+    <div class="panel">
+      <div class="panel-topbar">
+        <div style=${{display:"flex",alignItems:"center",gap:10}}>
+          <svg width="38" height="38" viewBox="0 0 100 100" style=${{flexShrink:0,borderRadius:"50%"}}>
+            <circle cx="50" cy="50" r="50" fill="#efe454"/>
+            <circle cx="57.94" cy="50.79" r="37.3" fill="#a0cb7b"/>
+            <circle cx="66.67" cy="50.79" r="20.63" fill="#68b87d"/>
+          </svg>
+          <div>
+            <div style=${{fontWeight:700,fontSize:".95rem",color:"var(--text)"}}>Diana & Rico Stämpfli</div>
+            <div style=${{fontSize:".75rem",color:"var(--teal-dark)",display:"flex",alignItems:"center",gap:4}}>
+              <span style=${{width:7,height:7,borderRadius:"50%",background:"var(--teal)",display:"inline-block"}}/>
+              Online
+            </div>
+          </div>
+        </div>
+      </div>
+      <${ChatWindow} coachee=${active} onSend=${sendMsg} onSendImg=${sendImg} onBack=${()=>setMobileChatOpen(false)}/>
+    </div>`;
+}
+
+
 function Sidebar({page,setPage,totalUnread,user}) {
   const items = [
     {id:"dashboard",icon:"home",tip:"Übersicht"},
