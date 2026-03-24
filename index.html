@@ -1105,7 +1105,7 @@ function App({ user }) {
           <span class="bottom-nav-label">${i.label}</span>
           ${(i.badge||0)>0&&html`<span class="bottom-nav-badge">${i.badge}</span>`}
         </div>`)}
-      <div class="bottom-nav-item" onClick=${()=>{ try{signOut(auth);}catch(e){window._fb?.auth?.signOut();} }} title="Abmelden">
+      <div class="bottom-nav-item" onClick=${()=>{ window._fb?.auth?.signOut().catch(()=>{}) }} title="Abmelden">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
           <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/>
           <polyline points="16 17 21 12 16 7"/>
@@ -1142,7 +1142,7 @@ function Sidebar({page,setPage,totalUnread,user}) {
         <div class="sb-avatar" title=${user?.email||"Diana & Rico"} style=${{fontSize:".6rem"}}>
           ${user?.photoURL ? html`<img src=${user.photoURL} style=${{width:"100%",height:"100%",borderRadius:"50%",objectFit:"cover"}} alt=""/>` : "DR"}
         </div>
-        <button onClick=${()=>{ try{signOut(auth);}catch(e){window._fb?.auth?.signOut();} }}
+        <button onClick=${()=>{ window._fb?.auth?.signOut().catch(()=>{}) }}
           style=${{background:"rgba(255,255,255,.12)",border:"1.5px solid rgba(255,255,255,.3)",cursor:"pointer",color:"rgba(255,255,255,.9)",display:"flex",alignItems:"center",justifyContent:"center",padding:"5px 8px",borderRadius:8,gap:5,fontFamily:"'Exo 2',sans-serif",fontSize:".65rem",fontWeight:700,marginTop:2}}>
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/>
@@ -2166,10 +2166,12 @@ function LoginPage({ onLogin }) {
     if(!email||!password){ setError("Bitte E-Mail und Passwort eingeben."); return; }
     setLoading(true); setError("");
     try {
+      const fbAuth = window._fb?.auth;
+      if(!fbAuth) throw {message:"Firebase nicht geladen. Bitte Seite neu laden."};
       if(mode==="login") {
-        await signInWithEmailAndPassword(auth, email, password);
+        await fbAuth.signInWithEmailAndPassword(email, password);
       } else {
-        await createUserWithEmailAndPassword(auth, email, password);
+        await fbAuth.createUserWithEmailAndPassword(email, password);
       }
     } catch(e) {
       const msgs = {
@@ -2188,9 +2190,17 @@ function LoginPage({ onLogin }) {
   const handleGoogle = async () => {
     setLoading(true); setError("");
     try {
-      await signInWithPopup(auth, window._fb?.googleProvider);
+      const provider = window._fb?.googleProvider || new window.firebase.auth.GoogleAuthProvider();
+      // Use popup for all browsers
+      await window._fb?.auth?.signInWithPopup(provider);
     } catch(e) {
-      setError("Google-Anmeldung fehlgeschlagen.");
+      if(e.code === "auth/popup-blocked") {
+        setError("Popup wurde blockiert. Bitte Popup-Blocker deaktivieren oder E-Mail/Passwort verwenden.");
+      } else if(e.code === "auth/cancelled-popup-request") {
+        setError("");
+      } else {
+        setError("Google-Anmeldung fehlgeschlagen. Bitte E-Mail/Passwort verwenden.");
+      }
     }
     setLoading(false);
   };
@@ -2266,11 +2276,22 @@ function Root() {
   const [authReady,setAuthReady] = useState(false);
 
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, u => {
-      setUser(u);
-      setAuthReady(true);
-    });
-    return unsub;
+    // Wait for Firebase to be ready
+    const tryAuth = () => {
+      const fbAuth = window._fb?.auth;
+      if(fbAuth) {
+        const unsub = fbAuth.onAuthStateChanged(u => {
+          setUser(u);
+          setAuthReady(true);
+        });
+        return unsub;
+      } else {
+        // Retry after short delay
+        setTimeout(tryAuth, 200);
+      }
+    };
+    const unsub = tryAuth();
+    return () => { if(typeof unsub === "function") unsub(); };
   }, []);
 
   if(!authReady) return html`
