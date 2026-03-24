@@ -650,7 +650,7 @@
     .ct-status { font-size: .68rem; }
 
     /* Messages */
-    .messages { padding: 14px 12px 70px; }
+    .messages { padding: 14px 12px; padding-bottom: calc(62px + env(safe-area-inset-bottom, 0px) + 60px); }
     .msg-bubble-wrap { max-width: 82%; }
     .msg-bubble { font-size: .85rem; }
 
@@ -711,8 +711,8 @@
       background: var(--sidebar-bg);
       border-top: 1px solid rgba(255,255,255,.1);
       z-index: 50;
-      padding: 0 4px;
-      padding-bottom: env(safe-area-inset-bottom, 0px);
+      padding: 0 4px 0;
+      padding-bottom: 0;
       box-shadow: 0 -2px 12px rgba(30,58,47,.15);
     }
     .bottom-nav-item {
@@ -1803,9 +1803,17 @@ function RemindersPage({reminders,setReminders}) {
                 </label>
               </div>
             </div>
-            <div class="modal-actions">
-              <button class="btn btn-ghost" onClick=${()=>setShowModal(false)}>Abbrechen</button>
-              <button class="btn btn-primary" onClick=${save}>Speichern</button>
+            <div class="modal-actions" style=${{justifyContent:"space-between"}}>
+              <div>
+                ${editId&&html`<button style=${{background:"#fff0ef",border:"1.5px solid #f5c0bc",color:"var(--danger)",padding:"7px 14px",borderRadius:10,cursor:"pointer",fontFamily:"'Exo 2',sans-serif",fontWeight:700,fontSize:".82rem",display:"flex",alignItems:"center",gap:6}}
+                  onClick=${()=>{if(confirm("Erinnerung löschen?")){setShowModal(false);setReminders(rs=>rs.filter(x=>x.id!==editId));}}}>
+                  <${Ic} name="trash" size=${14}/> Löschen
+                </button>`}
+              </div>
+              <div style=${{display:"flex",gap:8}}>
+                <button class="btn btn-ghost" onClick=${()=>setShowModal(false)}>Abbrechen</button>
+                <button class="btn btn-primary" onClick=${save}>Speichern</button>
+              </div>
             </div>
           </div>
         </div>`}
