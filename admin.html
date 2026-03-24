@@ -1,0 +1,1057 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Admin — Raum für Selbstwirksamkeit</title>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="theme-color" content="#1e3a2f"/>
+<link href="https://fonts.googleapis.com/css2?family=Manuale:ital,wght@0,400;0,600;0,700;1,400&family=Exo+2:wght@300;400;600;700&display=swap" rel="stylesheet"/>
+
+<!-- Firebase Compat SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
+<script>
+function initFB() {
+  try {
+    if(!firebase.apps.length) {
+      firebase.initializeApp({
+        apiKey: "AIzaSyDTopI1AenTGuXWi2ubFm1Y-U5FjOCMy9o",
+        authDomain: "selbstwirksamkeits-app.firebaseapp.com",
+        projectId: "selbstwirksamkeits-app",
+        storageBucket: "selbstwirksamkeits-app.firebasestorage.app",
+        messagingSenderId: "887832641738",
+        appId: "1:887832641738:web:283828b319d4feace03433"
+      });
+    }
+    window._fb = {
+      auth: firebase.auth(),
+      db: firebase.firestore(),
+      googleProvider: new firebase.auth.GoogleAuthProvider()
+    };
+    firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+  } catch(e) { console.error("Firebase init:", e); }
+}
+if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initFB);
+else initFB();
+</script>
+
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --lime:#efe454;--lime-pale:#fafbe0;--lime-dark:#c8c420;
+  --sage:#a0cb7b;--sage-pale:#eef7e4;--sage-dark:#7ab55e;
+  --teal:#68b87d;--teal-dark:#4ea066;--teal-pale:#c8e8d0;
+  --forest:#1e3a2f;--forest2:#2d5541;
+  --bg:#f0faf3;--surface:#fff;--surface2:#f5fbf7;
+  --border:#cce8d4;--border2:#b8ddc4;
+  --text:#1a3322;--muted:#5a7a65;
+  --danger:#c0392b;
+  --shadow:0 2px 16px rgba(30,58,47,.10);
+  --radius:14px;
+}
+body{font-family:'Exo 2',sans-serif;background:var(--bg);color:var(--text);height:100vh;overflow:hidden}
+#root{height:100vh;display:flex}
+
+/* ── LOGIN ── */
+.login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--forest);padding:24px}
+.login-card{background:var(--surface);border-radius:20px;padding:40px 36px;width:100%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.login-logo{display:flex;flex-direction:column;align-items:center;gap:10px;margin-bottom:28px}
+.login-badge{background:var(--lime-pale);color:#6b6200;font-size:.72rem;font-weight:700;padding:3px 12px;border-radius:99px;letter-spacing:.3px}
+
+/* ── LAYOUT ── */
+.app-layout{display:flex;height:100vh;overflow:hidden;width:100%}
+
+/* ── SIDEBAR ── */
+.sidebar{width:72px;background:var(--forest);display:flex;flex-direction:column;align-items:center;padding:16px 0 20px;flex-shrink:0;z-index:10}
+.sb-logo{margin-bottom:20px;cursor:pointer}
+.sb-nav{display:flex;flex-direction:column;gap:3px;width:100%;padding:0 8px;flex:1}
+.sb-item{width:100%;height:46px;border-radius:12px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .18s;color:rgba(255,255,255,.45);position:relative}
+.sb-item:hover{background:rgba(255,255,255,.1);color:rgba(255,255,255,.8)}
+.sb-item.active{background:var(--lime);color:var(--forest)}
+.sb-badge{position:absolute;top:7px;right:7px;width:14px;height:14px;border-radius:50%;background:var(--sage);font-size:.55rem;font-weight:700;color:var(--forest);display:flex;align-items:center;justify-content:center}
+.sb-bottom{padding:0 8px;display:flex;flex-direction:column;align-items:center;gap:8px}
+.sb-avatar{width:38px;height:38px;border-radius:50%;background:var(--lime);display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;color:var(--forest);border:2px solid rgba(255,255,255,.3);overflow:hidden;cursor:pointer}
+.sb-avatar img{width:100%;height:100%;object-fit:cover}
+.sb-logout{width:38px;height:28px;border-radius:8px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);cursor:pointer;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.7);transition:all .15s}
+.sb-logout:hover{background:rgba(220,50,50,.4);color:white}
+
+/* ── CONTENT ── */
+.main-content{flex:1;display:flex;overflow:hidden;min-width:0}
+.page{flex:1;overflow-y:auto;padding:28px 32px;background:var(--bg)}
+.page::-webkit-scrollbar{width:5px}
+.page::-webkit-scrollbar-thumb{background:var(--border2);border-radius:99px}
+
+/* ── TYPOGRAPHY ── */
+.page-heading{font-family:'Manuale',serif;font-size:1.6rem;font-weight:700;color:var(--text);margin-bottom:4px}
+.page-sub{font-size:.87rem;color:var(--muted);margin-bottom:22px}
+.section-title{font-family:'Manuale',serif;font-size:1.05rem;font-weight:700;color:var(--text);margin-bottom:12px}
+
+/* ── CARDS ── */
+.card{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px;margin-bottom:14px}
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+.stat-card{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;border-left:4px solid var(--teal)}
+.stat-card:nth-child(2){border-left-color:var(--lime)}
+.stat-card:nth-child(3){border-left-color:var(--sage)}
+.stat-card:nth-child(4){border-left-color:var(--sage-dark)}
+.stat-label{font-size:.68rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+.stat-value{font-family:'Manuale',serif;font-size:1.8rem;color:var(--text);line-height:1.1;margin-top:2px}
+.stat-hint{font-size:.73rem;color:var(--teal-dark);margin-top:2px}
+
+/* ── BUTTONS ── */
+.btn{padding:9px 18px;border:none;border-radius:10px;cursor:pointer;font-family:'Exo 2',sans-serif;font-weight:700;font-size:.84rem;transition:all .18s;display:inline-flex;align-items:center;gap:7px}
+.btn-primary{background:var(--teal);color:white}.btn-primary:hover{background:var(--teal-dark)}
+.btn-sage{background:var(--sage);color:var(--forest)}.btn-sage:hover{background:var(--sage-dark)}
+.btn-lime{background:var(--lime);color:var(--forest)}.btn-lime:hover{background:var(--lime-dark)}
+.btn-ghost{background:transparent;border:1.5px solid var(--border2);color:var(--muted)}.btn-ghost:hover{border-color:var(--teal);color:var(--forest)}
+.btn-danger{background:var(--danger);color:white}
+.btn-sm{padding:5px 11px;font-size:.76rem}
+.flex-between{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+
+/* ── FORMS ── */
+.label{font-size:.71rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px;display:block}
+.input,.select,.textarea{width:100%;padding:9px 13px;border:1.5px solid var(--border);border-radius:10px;font-family:'Exo 2',sans-serif;font-size:.88rem;background:var(--surface);color:var(--text);transition:border .2s}
+.input:focus,.select:focus,.textarea:focus{outline:none;border-color:var(--teal)}
+.textarea{resize:vertical;min-height:80px}
+.form-row{margin-bottom:13px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+
+/* ── MODAL ── */
+.overlay{position:fixed;inset:0;background:rgba(20,50,30,.35);z-index:200;display:flex;align-items:center;justify-content:center}
+.modal{background:var(--surface);border-radius:var(--radius);padding:28px;width:520px;max-width:95vw;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(20,60,30,.25)}
+.modal-title{font-family:'Manuale',serif;font-size:1.15rem;color:var(--text);margin-bottom:18px}
+.modal-actions{display:flex;gap:9px;justify-content:flex-end;margin-top:18px}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:99px}
+
+/* ── CHAT PANEL ── */
+.chat-layout{display:flex;width:100%;height:100%;overflow:hidden}
+.chat-list{width:300px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+.chat-list-header{padding:18px 16px 12px;border-bottom:1px solid var(--border);flex-shrink:0}
+.chat-list-title{font-family:'Manuale',serif;font-size:1.1rem;color:var(--text);margin-bottom:10px}
+.search-wrap{position:relative}
+.search-input{width:100%;padding:8px 12px 8px 34px;border:1.5px solid var(--border);border-radius:10px;font-family:'Exo 2';font-size:.82rem;background:var(--bg);color:var(--text)}
+.search-input:focus{outline:none;border-color:var(--teal)}
+.search-icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--muted)}
+.conv-list{flex:1;overflow-y:auto}
+.conv-row{display:flex;align-items:center;gap:10px;padding:11px 14px;cursor:pointer;border-bottom:1px solid var(--border);transition:background .15s}
+.conv-row:hover{background:var(--surface2)}
+.conv-row.active{background:var(--sage-pale)}
+.conv-avatar{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.78rem;font-weight:700;color:var(--forest);flex-shrink:0;overflow:hidden;position:relative}
+.conv-avatar img{width:100%;height:100%;object-fit:cover}
+.online-dot{width:10px;height:10px;border-radius:50%;background:var(--teal);border:2px solid white;position:absolute;bottom:0;right:0}
+.conv-info{flex:1;min-width:0}
+.conv-name{font-weight:700;font-size:.88rem;color:var(--text)}
+.conv-preview{font-size:.75rem;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:2px}
+.conv-meta{display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0}
+.conv-time{font-size:.69rem;color:var(--muted)}
+.conv-unread{width:18px;height:18px;border-radius:50%;background:var(--teal);color:white;font-size:.62rem;font-weight:700;display:flex;align-items:center;justify-content:center}
+
+/* ── CHAT WINDOW ── */
+.chat-window{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--bg)}
+.chat-topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:12px 20px;display:flex;align-items:center;gap:12px;flex-shrink:0}
+.ct-av{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.78rem;font-weight:700;color:var(--forest);flex-shrink:0;overflow:hidden;position:relative}
+.ct-av img{width:100%;height:100%;object-fit:cover}
+.ct-name{font-weight:700;font-size:.95rem;color:var(--text)}
+.ct-status{font-size:.72rem;color:var(--muted);display:flex;align-items:center;gap:5px;margin-top:1px}
+.status-dot{width:7px;height:7px;border-radius:50%;background:var(--teal);flex-shrink:0}
+.status-dot.off{background:var(--border2)}
+.messages-area{flex:1;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:4px}
+.date-divider{text-align:center;font-size:.7rem;color:var(--muted);margin:10px 0;position:relative}
+.date-divider::before,.date-divider::after{content:'';position:absolute;top:50%;width:calc(50% - 40px);height:1px;background:var(--border)}
+.date-divider::before{left:0}.date-divider::after{right:0}
+.msg-row{display:flex;margin-bottom:2px}
+.msg-row.out{justify-content:flex-end}
+.msg-row.in{justify-content:flex-start}
+.msg-bubble{max-width:68%;padding:8px 12px;border-radius:14px;font-size:.87rem;line-height:1.5;word-break:break-word}
+.msg-bubble.out{background:var(--forest2);color:white;border-bottom-right-radius:3px}
+.msg-bubble.in{background:var(--surface);color:var(--text);border-bottom-left-radius:3px;box-shadow:0 1px 3px rgba(0,0,0,.07)}
+.msg-img{max-width:200px;border-radius:10px;cursor:pointer;display:block}
+.msg-meta{font-size:.66rem;color:var(--muted);margin-top:2px;text-align:right}
+.msg-meta.in{text-align:left}
+.chat-input-bar{background:var(--surface);border-top:1px solid var(--border);padding:10px 16px;display:flex;align-items:flex-end;gap:9px;flex-shrink:0}
+.chat-textarea{flex:1;padding:9px 13px;border:1.5px solid var(--border);border-radius:12px;font-family:'Exo 2',sans-serif;font-size:.88rem;resize:none;background:var(--bg);color:var(--text);max-height:120px;overflow-y:auto}
+.chat-textarea:focus{outline:none;border-color:var(--teal)}
+.send-btn{width:40px;height:40px;border-radius:50%;background:var(--teal);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:white;flex-shrink:0;transition:background .15s}
+.send-btn:hover{background:var(--teal-dark)}
+.send-btn:disabled{opacity:.4;cursor:not-allowed}
+.attach-btn{width:36px;height:36px;border-radius:50%;border:none;background:transparent;cursor:pointer;color:var(--muted);display:flex;align-items:center;justify-content:center;transition:color .15s}
+.attach-btn:hover{color:var(--teal)}
+.empty-chat{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--muted);gap:12px}
+
+/* ── COACHEES ── */
+.coachee-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
+.coachee-card{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px;cursor:pointer;transition:transform .15s,box-shadow .15s;border-top:3px solid var(--teal)}
+.coachee-card:hover{transform:translateY(-2px);box-shadow:0 6px 28px rgba(30,58,47,.14)}
+.coachee-header{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.coachee-av{width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.9rem;font-weight:700;color:var(--forest);flex-shrink:0;overflow:hidden;position:relative}
+.coachee-av img{width:100%;height:100%;object-fit:cover}
+.coachee-name{font-family:'Manuale',serif;font-weight:700;font-size:1rem;color:var(--text)}
+.coachee-topic{font-size:.76rem;color:var(--muted);margin-top:2px}
+.coachee-badge{display:inline-flex;align-items:center;gap:4px;font-size:.68rem;font-weight:700;padding:2px 8px;border-radius:99px}
+.badge-online{background:var(--teal-pale);color:var(--teal-dark)}
+.badge-offline{background:#f0f0f0;color:#888}
+
+/* ── MEDIATHEK ── */
+.lib-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:13px}
+.lib-card{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;transition:transform .15s}
+.lib-card:hover{transform:translateY(-2px)}
+.lib-thumb{height:120px;display:flex;align-items:center;justify-content:center;position:relative;background:var(--lime-pale)}
+.lib-thumb.video{background:var(--sage-pale)}
+.lib-thumb.text{background:var(--teal-pale)}
+.lib-badge{position:absolute;top:8px;left:8px;font-size:.65rem;font-weight:700;padding:2px 8px;border-radius:99px}
+.badge-audio{background:var(--lime);color:var(--forest)}
+.badge-video{background:var(--sage);color:var(--forest)}
+.badge-text{background:var(--teal-pale);color:var(--teal-dark)}
+.lib-body{padding:12px}
+.lib-title{font-weight:700;font-size:.88rem;color:var(--text);margin-bottom:3px}
+.lib-desc{font-size:.74rem;color:var(--muted);line-height:1.5}
+.lib-footer{display:flex;justify-content:space-between;align-items:center;margin-top:8px;font-size:.69rem;color:var(--muted)}
+.upload-zone{border:2px dashed var(--border2);border-radius:var(--radius);padding:32px;text-align:center;cursor:pointer;transition:all .2s;color:var(--muted)}
+.upload-zone:hover{border-color:var(--teal);background:var(--teal-pale);color:var(--teal-dark)}
+
+/* ── DOODLE ── */
+.doodle-card{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px;margin-bottom:12px;border-left:4px solid var(--teal)}
+.doodle-card.closed{border-left-color:var(--border2);opacity:.7}
+.doodle-title{font-family:'Manuale',serif;font-weight:700;font-size:1rem;color:var(--text);margin-bottom:5px}
+.doodle-meta{font-size:.76rem;color:var(--muted);margin-bottom:8px;display:flex;gap:14px;flex-wrap:wrap}
+.status-pill{font-size:.7rem;font-weight:700;padding:2px 9px;border-radius:99px}
+.status-open{background:var(--lime-pale);color:#6b6200}
+.status-closed{background:#f0f0f0;color:#777}
+.recipient-chip{font-size:.7rem;font-weight:700;padding:2px 9px;border-radius:99px;background:var(--sage-pale);color:var(--forest)}
+.vote-row{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:10px;background:var(--surface2);margin-bottom:5px}
+.vote-dt{flex:1;font-size:.84rem;font-weight:600;color:var(--text)}
+.vote-chip{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.62rem;font-weight:700}
+.vc-yes{background:var(--teal);color:white}
+.vc-no{background:#ffe0de;color:var(--danger)}
+.vc-none{background:#f0f0f0;color:#999}
+.best-row{background:var(--teal-pale);border:1.5px solid var(--teal)}
+.best-badge{font-size:.6rem;font-weight:700;background:var(--teal);color:white;padding:1px 6px;border-radius:99px;margin-left:6px}
+.slot-item{display:flex;align-items:center;justify-content:space-between;background:var(--sage-pale);border-radius:8px;padding:7px 12px;font-size:.84rem;font-weight:600;color:var(--forest);margin-bottom:5px}
+.coachee-check{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:9px;cursor:pointer;border:1.5px solid transparent;margin-bottom:5px;transition:all .15s}
+.coachee-check:hover{background:var(--sage-pale)}
+.coachee-check.sel{background:var(--teal-pale);border-color:var(--teal)}
+.rec-tabs{display:flex;gap:6px;flex-wrap:wrap}
+.rec-tab{padding:6px 12px;border-radius:9px;border:1.5px solid var(--border);background:var(--surface);color:var(--muted);font-family:'Exo 2';font-weight:700;font-size:.79rem;cursor:pointer;transition:all .15s}
+.rec-tab.active{border-color:var(--teal);background:var(--sage);color:var(--text)}
+
+/* ── INFO TIP ── */
+.info-tip{border-radius:var(--radius);padding:12px 16px;margin-bottom:16px;font-size:.82rem;line-height:1.6;display:flex;align-items:flex-start;gap:10px;background:var(--lime-pale);border-left:3px solid var(--lime-dark);color:var(--text)}
+
+/* ── LIGHTBOX ── */
+.lightbox{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:999;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.lightbox img{max-width:90vw;max-height:90vh;border-radius:10px}
+.lightbox-close{position:absolute;top:20px;right:24px;color:white;font-size:1.5rem}
+
+/* ── QUICK REPLIES ── */
+.qr-wrap{display:flex;gap:6px;flex-wrap:wrap;padding:6px 16px 0}
+.qr-btn{padding:4px 10px;border-radius:14px;border:1px solid var(--border);background:var(--surface);font-size:.75rem;color:var(--muted);cursor:pointer;transition:all .15s}
+.qr-btn:hover{border-color:var(--teal);color:var(--forest)}
+
+/* ── TOAST ── */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--forest);color:white;padding:11px 20px;border-radius:10px;font-size:.84rem;font-weight:600;z-index:999;box-shadow:0 8px 24px rgba(0,0,0,.2);pointer-events:none;transition:opacity .3s}
+
+/* ── MOBILE ── */
+@media(max-width:768px){
+  .page{padding:16px 14px 80px}
+  .stat-grid{grid-template-columns:1fr 1fr}
+  .lib-grid{grid-template-columns:1fr}
+  .form-grid{grid-template-columns:1fr}
+  .modal{width:95vw;border-radius:20px 20px 0 0}
+  .overlay{align-items:flex-end}
+  .chat-list{width:100%}
+  .chat-window{display:none}
+  .chat-window.active{display:flex;position:fixed;inset:0;z-index:50}
+  .sidebar{display:none}
+  .bottom-nav{display:flex;position:fixed;bottom:0;left:0;right:0;height:60px;background:var(--forest);border-top:1px solid rgba(255,255,255,.1);z-index:40}
+  .bn-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;color:rgba(255,255,255,.45);font-size:.56rem;font-weight:700;border-radius:10px;margin:4px 2px;position:relative;transition:all .18s}
+  .bn-item.active{background:var(--lime);color:var(--forest)}
+  .bn-badge{position:absolute;top:3px;right:5px;width:13px;height:13px;border-radius:50%;background:var(--sage);font-size:.52rem;font-weight:700;color:var(--forest);display:flex;align-items:center;justify-content:center}
+}
+@media(min-width:769px){.bottom-nav{display:none}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="module">
+import { h, render, Fragment } from 'https://esm.sh/preact@10';
+import { useState, useRef, useEffect } from 'https://esm.sh/preact@10/hooks';
+import { html } from 'https://esm.sh/htm@3/preact';
+
+// ── HELPERS ──
+const nowTime = () => new Date().toLocaleTimeString('de-CH',{hour:'2-digit',minute:'2-digit'});
+const fmtDate = d => { if(!d) return ''; try { return new Date(d).toLocaleDateString('de-CH',{day:'2-digit',month:'long',year:'numeric'}); } catch(e){ return d; }};
+const fmtDt = dt => { try { const d=new Date(dt); const days=["So","Mo","Di","Mi","Do","Fr","Sa"]; const months=["Jan","Feb","Mär","Apr","Mai","Jun","Jul","Aug","Sep","Okt","Nov","Dez"]; return days[d.getDay()]+", "+d.getDate()+". "+months[d.getMonth()]+" · "+String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0")+" Uhr"; } catch(e){ return dt; }};
+const readFile = f => new Promise(res => { const r=new FileReader(); r.onload=e=>res(e.target.result); r.readAsDataURL(f); });
+const showToast = msg => { const t=document.createElement('div'); t.className='toast'; t.textContent=msg; document.body.appendChild(t); setTimeout(()=>{t.style.opacity='0';setTimeout(()=>t.remove(),300);},3000); };
+const db = () => window._fb?.db;
+const auth = () => window._fb?.auth;
+
+// ── LOGO ──
+const Logo = ({size=40}) => html`
+  <svg width=${size} height=${size} viewBox="0 0 100 100" fill="none">
+    <circle cx="50" cy="50" r="50" fill="#efe454"/>
+    <circle cx="57.94" cy="50.79" r="37.3" fill="#a0cb7b"/>
+    <circle cx="66.67" cy="50.79" r="20.63" fill="#68b87d"/>
+  </svg>`;
+
+// ── ICONS ──
+const IC = {
+  home:["M3 9.5L12 3l9 6.5V21a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z","M9 22V12h6v10"],
+  chat:["M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"],
+  users:["M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2","M9 11A4 4 0 109 3a4 4 0 000 8z","M23 21v-2a4 4 0 00-3-3.87","M16 3.13a4 4 0 010 7.75"],
+  library:["M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z","M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"],
+  calendar:["M19 4H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V6a2 2 0 00-2-2z","M16 2v4","M8 2v4","M3 10h18"],
+  plus:["M12 5v14","M5 12h14"],
+  send:["M22 2L11 13","M22 2L15 22l-4-9-9-4 22-7z"],
+  edit:["M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7","M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"],
+  trash:["M3 6h18","M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a1 1 0 011-1h4a1 1 0 011 1v2"],
+  check:["M20 6L9 17l-5-5"],
+  search:["M11 19A8 8 0 1011 3a8 8 0 000 16z","M21 21l-4.35-4.35"],
+  camera:["M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z","M12 17A4 4 0 1012 9a4 4 0 000 8z"],
+  upload:["M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4","M17 8l-5-5-5 5","M12 3v12"],
+  play:["M5 3l14 9-14 9V3z"],
+  music:["M9 18V5l12-2v13","M9 18a3 3 0 100-6 3 3 0 000 6z","M21 16a3 3 0 100-6 3 3 0 000 6z"],
+  video:["M23 7l-7 5 7 5V7z","M1 5h15a2 2 0 012 2v10a2 2 0 01-2 2H1a2 2 0 01-2-2V7a2 2 0 012-2z"],
+  file:["M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z","M14 2v6h6","M16 13H8","M16 17H8","M10 9H8"],
+  x:["M18 6L6 18","M6 6l12 12"],
+  info:["M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z","M12 16v-4","M12 8h.01"],
+  bell:["M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9","M13.73 21a2 2 0 01-3.46 0"],
+  logout:["M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4","M16 17l5-5-5-5","M21 12H9"],
+  sun:["M12 1v2","M12 21v2","M4.22 4.22l1.42 1.42","M18.36 18.36l1.42 1.42","M1 12h2","M21 12h2","M4.22 19.78l1.42-1.42","M18.36 5.64l1.42-1.42","M12 17A5 5 0 1012 7a5 5 0 000 10z"],
+  repeat:["M17 1l4 4-4 4","M3 11V9a4 4 0 014-4h14","M7 23l-4-4 4-4","M21 13v2a4 4 0 01-4 4H3"],
+  sliders:["M4 21v-7","M4 10V3","M12 21v-9","M12 8V3","M20 21v-5","M20 12V3","M1 14h6","M9 8h6","M17 16h6"],
+  leaf:["M2 22c1.25-1.25 2.9-2 4.6-2C9 20 11 22 14 22c3.63 0 6.51-2.44 7-6C14 16 10.5 14 8 10c-1.85-2.78-2-5.5-2-8 0 0-5 4.5-5 10 0 2.76 1.12 5.25 2 8z"],
+  heart:["M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"],
+  image:["M21 19V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2z","M8.5 10A1.5 1.5 0 1010 8.5 1.5 1.5 0 008.5 10z","M21 15l-5-5L5 21"],
+  attach:["M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"],
+};
+const Ic = ({name,size=16,style={}}) => {
+  const d=IC[name]; if(!d) return null;
+  return html`<svg width=${size} height=${size} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style=${{flexShrink:0,display:'block',...style}}>
+    ${Array.isArray(d)?d.map((p,i)=>html`<path key=${i} d=${p}/>`):html`<path d=${d}/>`}
+  </svg>`;
+};
+
+// ── SEED DATA ──
+const AVATAR_BG = ["#9dd979","#eaed53","#62ba7a","#bfe9cb","#a0cb7b","#c4e8d0"];
+const INIT_COACHEES = [
+  {id:"c1",name:"Lena Müller",initials:"LM",color:AVATAR_BG[0],photo:null,online:true,topic:"Paarbeziehung & Kommunikation",unread:2,lastTime:"09:14",messages:[
+    {id:"m1",from:"coachee",text:"Guten Morgen! Das Gespräch gestern war viel ruhiger als erwartet.",time:"09:10",date:"Heute"},
+    {id:"m2",from:"coachee",text:"Ich habe die Atemtechnik ausprobiert — es hat geholfen!",time:"09:11",date:"Heute"},
+    {id:"m3",from:"admin",text:"Das klingt wunderbar! Wie hast du dich dabei gefühlt?",time:"09:12",date:"Heute",seen:true},
+    {id:"m4",from:"coachee",text:"Leichter. Ich habe erst geatmet, bevor ich reagiert habe.",time:"09:14",date:"Heute"},
+  ]},
+  {id:"c2",name:"Thomas Brändle",initials:"TB",color:AVATAR_BG[1],photo:null,online:false,topic:"Mann zu Mann / Sinn & Potenzial",unread:0,lastTime:"Gestern",messages:[
+    {id:"m1",from:"admin",text:"Hallo Thomas, wie war deine Woche?",time:"18:30",date:"Gestern",seen:true},
+    {id:"m2",from:"coachee",text:"Ehrlich gesagt anstrengend. Die Arbeit frisst mich gerade auf.",time:"18:45",date:"Gestern"},
+  ]},
+  {id:"c3",name:"Sandra & Markus Frei",initials:"SF",color:AVATAR_BG[2],photo:null,online:true,topic:"Coaching-Package für Paare",unread:1,lastTime:"10:02",messages:[
+    {id:"m1",from:"coachee",text:"Wir haben die Hausaufgabe gemacht! Die Check-ins jeden Abend.",time:"10:00",date:"Heute"},
+    {id:"m2",from:"coachee",text:"Tag 5 — es fühlt sich schon natürlicher an.",time:"10:02",date:"Heute"},
+  ]},
+  {id:"c4",name:"Vera Hofer",initials:"VH",color:AVATAR_BG[4],photo:null,online:false,topic:"Elternschaft & Selbstfürsorge",unread:0,lastTime:"Mo",messages:[
+    {id:"m1",from:"coachee",text:"Die Situation mit meiner Tochter hat sich entspannt.",time:"14:20",date:"Montag"},
+    {id:"m2",from:"admin",text:"Das freut mich sehr. Was hat sich verändert?",time:"14:35",date:"Montag",seen:true},
+  ]},
+];
+const INIT_LIBRARY = [
+  {id:"l1",type:"audio",title:"Atemübung — 5 Minuten",desc:"Geführte Atemübung zur täglichen Zentrierung.",uploadedAt:"20.03.2026"},
+  {id:"l2",type:"video",title:"Einführung: Selbstwirksamkeit",desc:"Was bedeutet Selbstwirksamkeit im Alltag?",uploadedAt:"18.03.2026"},
+  {id:"l3",type:"text",title:"Reflexionsbogen — Woche 1",desc:"Leitfragen für deine erste Coaching-Woche.",uploadedAt:"15.03.2026"},
+  {id:"l4",type:"audio",title:"Körper-Scan Entspannung",desc:"Geführte Körperwahrnehmung für abends.",uploadedAt:"10.03.2026"},
+  {id:"l5",type:"text",title:"Werte-Kompass Übung",desc:"Finde und verankere deine persönlichen Werte.",uploadedAt:"05.03.2026"},
+];
+const INIT_DOODLES = [
+  {id:"d1",title:"Coaching-Session April",desc:"Nächstes Gespräch — wähle bitte 2–3 Zeiten.",status:"open",recipients:["c1","c3"],
+   slots:[{dt:"2026-04-07T10:00",votes:{c1:"yes",c3:"yes"}},{dt:"2026-04-07T14:00",votes:{c1:"no",c3:"yes"}},{dt:"2026-04-08T09:00",votes:{c1:"yes",c3:"no"}}]},
+];
+const QUICK_REPLIES = ["Wie geht es dir heute?","Danke für dein Update.","Sehr gut — das ist ein wichtiger Schritt.","Ich freue mich auf unsere nächste Session.","Was hat sich diese Woche verändert?"];
+const REC_TYPES = [{id:"daily",label:"Täglich"},{id:"weekly",label:"Wöchentlich"},{id:"monthly",label:"Monatlich"}];
+
+// ── LOGIN PAGE ──
+function LoginPage() {
+  const [mode,setMode] = useState("login");
+  const [email,setEmail] = useState("");
+  const [pw,setPw] = useState("");
+  const [error,setError] = useState("");
+  const [loading,setLoading] = useState(false);
+
+  const doLogin = () => {
+    if(!email||!pw){setError("Bitte E-Mail und Passwort eingeben.");return;}
+    setLoading(true);setError("");
+    const fbAuth = window._fb?.auth||window.firebase?.auth();
+    if(!fbAuth){setError("App wird geladen... kurz warten.");setLoading(false);return;}
+    const p = mode==="login"
+      ? fbAuth.signInWithEmailAndPassword(email,pw)
+      : fbAuth.createUserWithEmailAndPassword(email,pw);
+    p.catch(e=>{
+      const msgs={"auth/user-not-found":"E-Mail nicht gefunden.","auth/wrong-password":"Falsches Passwort.","auth/invalid-credential":"E-Mail oder Passwort falsch.","auth/email-already-in-use":"E-Mail bereits registriert.","auth/weak-password":"Passwort zu kurz (min. 6 Zeichen).","auth/invalid-email":"Ungültige E-Mail."};
+      setError(msgs[e.code]||"Fehler: "+e.message);
+      setLoading(false);
+    });
+  };
+
+  const doGoogle = () => {
+    setLoading(true);setError("");
+    const fbAuth=window._fb?.auth||window.firebase?.auth();
+    const prov=window._fb?.googleProvider||new window.firebase.auth.GoogleAuthProvider();
+    if(!fbAuth){setError("App wird geladen...");setLoading(false);return;}
+    const isMobile=/iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    const p=isMobile?fbAuth.signInWithRedirect(prov):fbAuth.signInWithPopup(prov);
+    if(p&&p.catch) p.catch(e=>{if(e.code!=="auth/popup-closed-by-user")setError("Google fehlgeschlagen: "+e.message);setLoading(false);});
+  };
+
+  const doReset = () => {
+    if(!email){setError("Bitte zuerst E-Mail eingeben.");return;}
+    const fbAuth=window._fb?.auth||window.firebase?.auth();
+    if(fbAuth) fbAuth.sendPasswordResetEmail(email).then(()=>alert("Reset-E-Mail gesendet an: "+email)).catch(e=>setError(e.message));
+  };
+
+  return html`
+    <div class="login-wrap">
+      <div class="login-card">
+        <div class="login-logo">
+          <${Logo} size=${64}/>
+          <div style=${{textAlign:"center"}}>
+            <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.3rem",fontWeight:700,color:"var(--text)"}}>Raum für Selbstwirksamkeit</div>
+            <div style=${{marginTop:6}}><span class="login-badge">Admin-Portal</span></div>
+          </div>
+        </div>
+
+        ${error&&html`<div style=${{background:"#fff0ef",border:"1px solid #f5c0bc",borderRadius:10,padding:"10px 14px",fontSize:".83rem",color:"var(--danger)",marginBottom:14}}>${error}</div>`}
+
+        <button onClick=${doGoogle} disabled=${loading}
+          style=${{width:"100%",padding:"11px",borderRadius:10,border:"1.5px solid var(--border)",background:"var(--surface)",cursor:"pointer",fontFamily:"'Exo 2',sans-serif",fontWeight:700,fontSize:".88rem",color:"var(--text)",display:"flex",alignItems:"center",justifyContent:"center",gap:10,marginBottom:14}}>
+          <svg width="18" height="18" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+          Mit Google anmelden
+        </button>
+
+        <div style=${{display:"flex",alignItems:"center",gap:10,marginBottom:14}}>
+          <div style=${{flex:1,height:1,background:"var(--border)"}}/>
+          <span style=${{fontSize:".74rem",color:"var(--muted)"}}>oder</span>
+          <div style=${{flex:1,height:1,background:"var(--border)"}}/>
+        </div>
+
+        <div class="form-row"><label class="label">E-Mail</label><input class="input" type="email" value=${email} onInput=${e=>setEmail(e.target.value)} placeholder="deine@email.ch"/></div>
+        <div class="form-row"><label class="label">Passwort</label><input class="input" type="password" value=${pw} onInput=${e=>setPw(e.target.value)} placeholder="••••••••" onKeyDown=${e=>e.key==="Enter"&&doLogin()}/></div>
+
+        <button onClick=${doLogin} disabled=${loading}
+          style=${{width:"100%",padding:"12px",borderRadius:10,border:"none",background:"var(--teal)",color:"white",cursor:"pointer",fontFamily:"'Exo 2',sans-serif",fontWeight:700,fontSize:".92rem",opacity:loading?.6:1}}>
+          ${loading?"Wird geladen…":mode==="login"?"Anmelden":"Registrieren"}
+        </button>
+
+        <div style=${{display:"flex",justifyContent:"space-between",marginTop:12,fontSize:".78rem"}}>
+          <button onClick=${()=>{setMode(mode==="login"?"register":"login");setError("");}} style=${{background:"none",border:"none",cursor:"pointer",color:"var(--teal-dark)",fontWeight:700,fontFamily:"'Exo 2',sans-serif",fontSize:".78rem"}}>
+            ${mode==="login"?"Konto erstellen":"Anmelden"}
+          </button>
+          ${mode==="login"&&html`<button onClick=${doReset} style=${{background:"none",border:"none",cursor:"pointer",color:"var(--muted)",fontFamily:"'Exo 2',sans-serif",fontSize:".78rem",textDecoration:"underline"}}>Passwort vergessen?</button>`}
+        </div>
+      </div>
+    </div>`;
+}
+
+// ── MAIN APP ──
+function AdminApp({user}) {
+  const [page,setPage] = useState("chat");
+  const [coachees,setCoachees] = useState(INIT_COACHEES);
+  const [library,setLibrary] = useState(INIT_LIBRARY);
+  const [doodles,setDoodles] = useState(INIT_DOODLES);
+  const [lightbox,setLightbox] = useState(null);
+
+  const totalUnread = coachees.reduce((a,c)=>a+(c.unread||0),0);
+
+  const NAV = [
+    {id:"dashboard",icon:"home",label:"Home"},
+    {id:"chat",icon:"chat",label:"Chat",badge:totalUnread},
+    {id:"coachees",icon:"users",label:"Coachees"},
+    {id:"library",icon:"library",label:"Mediathek"},
+    {id:"doodle",icon:"calendar",label:"Termine"},
+  ];
+
+  const doLogout = () => { (window._fb?.auth||window.firebase?.auth())?.signOut().catch(()=>{}); };
+
+  return html`
+    <div class="app-layout">
+      <!-- Sidebar (desktop) -->
+      <div class="sidebar">
+        <div class="sb-logo" onClick=${()=>setPage("dashboard")}><${Logo} size=${40}/></div>
+        <div class="sb-nav">
+          ${NAV.map(n=>html`
+            <div key=${n.id} class=${"sb-item"+(page===n.id?" active":"")} onClick=${()=>setPage(n.id)} title=${n.label}>
+              <${Ic} name=${n.icon} size=${20}/>
+              ${(n.badge||0)>0&&html`<span class="sb-badge">${n.badge}</span>`}
+            </div>`)}
+        </div>
+        <div class="sb-bottom">
+          <div class="sb-avatar" title=${user?.email||"Admin"}>
+            ${user?.photoURL?html`<img src=${user.photoURL} alt=""/>`:user?.email?.[0]?.toUpperCase()||"A"}
+          </div>
+          <button class="sb-logout" onClick=${doLogout} title="Abmelden">
+            <${Ic} name="logout" size=${14}/>
+          </button>
+        </div>
+      </div>
+
+      <!-- Main -->
+      <div class="main-content">
+        ${page==="dashboard"&&html`<${DashboardPage} coachees=${coachees} library=${library} doodles=${doodles} setPage=${setPage}/>`}
+        ${page==="chat"&&html`<${ChatPage} coachees=${coachees} setCoachees=${setCoachees} setLightbox=${setLightbox}/>`}
+        ${page==="coachees"&&html`<${CoacheesPage} coachees=${coachees} setCoachees=${setCoachees} setPage=${setPage}/>`}
+        ${page==="library"&&html`<${LibraryPage} library=${library} setLibrary=${setLibrary}/>`}
+        ${page==="doodle"&&html`<${DoodlePage} doodles=${doodles} setDoodles=${setDoodles} coachees=${coachees}/>`}
+      </div>
+
+      <!-- Bottom nav (mobile) -->
+      <nav class="bottom-nav">
+        ${NAV.map(n=>html`
+          <div key=${n.id} class=${"bn-item"+(page===n.id?" active":"")} onClick=${()=>setPage(n.id)}>
+            <${Ic} name=${n.icon} size=${20}/>
+            <span>${n.label}</span>
+            ${(n.badge||0)>0&&html`<span class="bn-badge">${n.badge}</span>`}
+          </div>`)}
+        <div class="bn-item" onClick=${doLogout}>
+          <${Ic} name="logout" size=${20}/>
+          <span>Logout</span>
+        </div>
+      </nav>
+
+      ${lightbox&&html`<div class="lightbox" onClick=${()=>setLightbox(null)}><img src=${lightbox} alt=""/><div class="lightbox-close">✕</div></div>`}
+    </div>`;
+}
+
+// ── DASHBOARD ──
+function DashboardPage({coachees,library,doodles,setPage}) {
+  const hour = new Date().getHours();
+  const greeting = hour<12?"Guten Morgen":hour<18?"Guten Tag":"Guten Abend";
+  const openDoodles = doodles.filter(d=>d.status==="open").length;
+  const totalUnread = coachees.reduce((a,c)=>a+(c.unread||0),0);
+
+  return html`
+    <div class="page">
+      <div style=${{marginBottom:24,display:"flex",alignItems:"center",gap:14}}>
+        <${Logo} size=${52}/>
+        <div>
+          <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.3rem",fontWeight:700,color:"var(--text)"}}>${greeting}</div>
+          <div style=${{fontSize:".88rem",color:"var(--muted)",marginTop:2}}>Diana & Rico · Admin-Portal</div>
+        </div>
+      </div>
+
+      <div class="stat-grid">
+        <div class="stat-card"><div class="stat-label">Coachees</div><div class="stat-value">${coachees.length}</div><div class="stat-hint">${coachees.filter(c=>c.online).length} online</div></div>
+        <div class="stat-card"><div class="stat-label">Ungelesen</div><div class="stat-value">${totalUnread}</div><div class="stat-hint">Nachrichten</div></div>
+        <div class="stat-card"><div class="stat-label">Mediathek</div><div class="stat-value">${library.length}</div><div class="stat-hint">Materialien</div></div>
+        <div class="stat-card"><div class="stat-label">Doodles</div><div class="stat-value">${openDoodles}</div><div class="stat-hint">offen</div></div>
+      </div>
+
+      <div class="card">
+        <div class="flex-between">
+          <div class="section-title">Letzte Gespräche</div>
+          <button class="btn btn-ghost btn-sm" onClick=${()=>setPage("chat")}>Alle anzeigen</button>
+        </div>
+        ${coachees.slice(0,4).map(c=>html`
+          <div key=${c.id} style=${{display:"flex",alignItems:"center",gap:12,padding:"9px 0",borderBottom:"1px solid var(--border)",cursor:"pointer"}} onClick=${()=>setPage("chat")}>
+            <div class="conv-avatar" style=${{width:36,height:36,background:c.color}}>
+              ${c.photo?html`<img src=${c.photo} alt=""/>`:c.initials}
+              ${c.online&&html`<span class="online-dot"/>`}
+            </div>
+            <div style=${{flex:1,minWidth:0}}>
+              <div style=${{fontWeight:700,fontSize:".88rem"}}>${c.name}</div>
+              <div style=${{fontSize:".74rem",color:"var(--muted)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>${c.messages?.at(-1)?.text||c.topic}</div>
+            </div>
+            <div style=${{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:3}}>
+              <span style=${{fontSize:".69rem",color:"var(--muted)"}}>${c.lastTime}</span>
+              ${(c.unread||0)>0&&html`<span class="conv-unread">${c.unread}</span>`}
+            </div>
+          </div>`)}
+      </div>
+
+      ${openDoodles>0&&html`
+        <div class="card">
+          <div class="flex-between">
+            <div class="section-title">Offene Terminvorschläge</div>
+            <button class="btn btn-ghost btn-sm" onClick=${()=>setPage("doodle")}>Alle anzeigen</button>
+          </div>
+          ${doodles.filter(d=>d.status==="open").map(d=>html`
+            <div key=${d.id} style=${{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"8px 0",borderBottom:"1px solid var(--border)"}}>
+              <div>
+                <div style=${{fontWeight:700,fontSize:".88rem"}}>${d.title}</div>
+                <div style=${{fontSize:".73rem",color:"var(--muted)"}}>${d.slots?.length} Zeitvorschläge · ${d.recipients?.length} Coachees</div>
+              </div>
+              <span class="status-pill status-open">Offen</span>
+            </div>`)}
+        </div>`}
+    </div>`;
+}
+
+// ── CHAT PAGE ──
+function ChatPage({coachees,setCoachees,setLightbox}) {
+  const [activeId,setActiveId] = useState(null);
+  const [search,setSearch] = useState("");
+  const [mobileOpen,setMobileOpen] = useState(false);
+
+  const filtered = coachees.filter(c=>c.name.toLowerCase().includes(search.toLowerCase())||c.topic.toLowerCase().includes(search.toLowerCase()));
+  const active = coachees.find(c=>c.id===activeId);
+
+  const selectCoachee = id => {
+    setCoachees(cs=>cs.map(c=>c.id===id?{...c,unread:0}:c));
+    setActiveId(id);
+    setMobileOpen(true);
+  };
+
+  const sendMsg = text => {
+    if(!text.trim()||!active) return;
+    const msg={id:Date.now(),from:"admin",text:text.trim(),time:nowTime(),date:"Heute",seen:false};
+    setCoachees(cs=>cs.map(c=>c.id===activeId?{...c,messages:[...(c.messages||[]),msg],lastTime:nowTime()}:c));
+  };
+
+  const sendImg = dataUrl => {
+    if(!active) return;
+    const msg={id:Date.now(),from:"admin",imgSrc:dataUrl,text:"",time:nowTime(),date:"Heute"};
+    setCoachees(cs=>cs.map(c=>c.id===activeId?{...c,messages:[...(c.messages||[]),msg],lastTime:nowTime()}:c));
+  };
+
+  return html`
+    <div class="chat-layout">
+      <!-- Coachee list -->
+      <div class="chat-list">
+        <div class="chat-list-header">
+          <div class="chat-list-title">Nachrichten</div>
+          <div class="search-wrap">
+            <span class="search-icon"><${Ic} name="search" size=${14}/></span>
+            <input class="search-input" value=${search} onInput=${e=>setSearch(e.target.value)} placeholder="Coachee suchen…"/>
+          </div>
+        </div>
+        <div class="conv-list">
+          ${filtered.map(c=>html`
+            <div key=${c.id} class=${"conv-row"+(activeId===c.id?" active":"")} onClick=${()=>selectCoachee(c.id)}>
+              <div class="conv-avatar" style=${{background:c.color}}>
+                ${c.photo?html`<img src=${c.photo} alt=""/>`:c.initials}
+                ${c.online&&html`<span class="online-dot"/>`}
+              </div>
+              <div class="conv-info">
+                <div class="conv-name">${c.name}</div>
+                <div class="conv-preview">${c.messages?.length?c.messages.at(-1).from==="admin"?"Du: "+c.messages.at(-1).text:c.messages.at(-1).text:c.topic}</div>
+              </div>
+              <div class="conv-meta">
+                <span class="conv-time">${c.lastTime}</span>
+                ${(c.unread||0)>0&&html`<span class="conv-unread">${c.unread}</span>`}
+              </div>
+            </div>`)}
+        </div>
+      </div>
+
+      <!-- Chat window -->
+      ${active
+        ? html`<${ChatWindow} coachee=${active} onSend=${sendMsg} onSendImg=${sendImg} setLightbox=${setLightbox} onBack=${()=>setMobileOpen(false)} mobileOpen=${mobileOpen}/>`
+        : html`<div class="empty-chat">
+            <${Logo} size=${72}/>
+            <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.1rem",color:"var(--muted)"}}>Wähle ein Gespräch</div>
+            <div style=${{fontSize:".83rem",color:"var(--muted)",opacity:.6}}>aus der Liste links</div>
+          </div>`}
+    </div>`;
+}
+
+function ChatWindow({coachee,onSend,onSendImg,setLightbox,onBack,mobileOpen}) {
+  const [input,setInput] = useState("");
+  const bottomRef = useRef(null);
+  const imgRef = useRef(null);
+
+  useEffect(()=>{ bottomRef.current?.scrollIntoView({behavior:"smooth"}); },[coachee?.messages?.length]);
+
+  const groups = (coachee.messages||[]).reduce((acc,msg)=>{ const d=msg.date||"Heute"; if(!acc[d])acc[d]=[]; acc[d].push(msg); return acc; },{});
+
+  const handleSend = () => { if(!input.trim()) return; onSend(input); setInput(""); };
+  const handleKey = e => { if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();handleSend();} };
+  const handleImg = async e => { const f=e.target.files[0]; if(!f) return; onSendImg(await readFile(f)); };
+
+  const lastIsCoachee = coachee.messages?.length>0&&coachee.messages.at(-1).from==="coachee";
+
+  return html`
+    <div class=${"chat-window"+(mobileOpen?" active":"")}>
+      <div class="chat-topbar">
+        <button onClick=${onBack} style=${{background:"none",border:"none",cursor:"pointer",color:"var(--text)",display:"flex",alignItems:"center",gap:5,fontSize:".83rem",fontWeight:700,fontFamily:"'Exo 2',sans-serif",padding:0,marginRight:4}}>
+          <${Ic} name="x" size=${14}/> <span style=${{display:"none"}} class="mobile-back">Zurück</span>
+        </button>
+        <div class="ct-av" style=${{background:coachee.color}}>
+          ${coachee.photo?html`<img src=${coachee.photo} alt=""/>`:coachee.initials}
+          ${coachee.online&&html`<span class="online-dot" style=${{position:"absolute",bottom:0,right:0}}/>`}
+        </div>
+        <div>
+          <div class="ct-name">${coachee.name}</div>
+          <div class="ct-status">
+            <span class=${"status-dot"+(coachee.online?"":" off")}/>
+            ${coachee.online?"Online":"Zuletzt: "+coachee.lastTime} · ${coachee.topic}
+          </div>
+        </div>
+      </div>
+
+      <div class="messages-area">
+        ${Object.entries(groups).map(([date,msgs])=>html`
+          <div key=${date}>
+            <div class="date-divider">${date}</div>
+            ${msgs.map((msg,i)=>{
+              const isOut=msg.from==="admin";
+              return html`
+                <div key=${msg.id} class=${"msg-row "+(isOut?"out":"in")}>
+                  <div>
+                    <div class=${"msg-bubble "+(isOut?"out":"in")}>
+                      ${msg.imgSrc&&html`<img src=${msg.imgSrc} class="msg-img" alt="Foto" onClick=${()=>setLightbox(msg.imgSrc)}/>`}
+                      ${msg.text&&html`<span>${msg.text}</span>`}
+                    </div>
+                    <div class=${"msg-meta"+(isOut?"":" in")}>${msg.time}${isOut?" ✓":""}</div>
+                  </div>
+                </div>`;
+            })}
+          </div>`)}
+        ${lastIsCoachee&&html`
+          <div class="qr-wrap">
+            ${QUICK_REPLIES.map(q=>html`<button key=${q} class="qr-btn" onClick=${()=>{setInput(q);}}>${q}</button>`)}
+          </div>`}
+        <div ref=${bottomRef}/>
+      </div>
+
+      <div class="chat-input-bar">
+        <button class="attach-btn" onClick=${()=>imgRef.current?.click()}><${Ic} name="camera" size=${18}/></button>
+        <input ref=${imgRef} type="file" accept="image/*" style=${{display:"none"}} onChange=${handleImg}/>
+        <textarea class="chat-textarea" rows=${1} value=${input} onInput=${e=>setInput(e.target.value)} onKeyDown=${handleKey} placeholder=${"Nachricht an "+coachee.name.split(" ")[0]+"…"}/>
+        <button class="send-btn" onClick=${handleSend} disabled=${!input.trim()}><${Ic} name="send" size=${16}/></button>
+      </div>
+    </div>`;
+}
+
+// ── COACHEES PAGE ──
+function CoacheesPage({coachees,setCoachees,setPage}) {
+  const [showAdd,setShowAdd] = useState(false);
+  const [form,setForm] = useState({name:"",topic:""});
+
+  const addCoachee = () => {
+    if(!form.name.trim()) return;
+    const initials=form.name.trim().split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase();
+    const nc={id:"c"+Date.now(),name:form.name.trim(),initials,color:AVATAR_BG[coachees.length%AVATAR_BG.length],photo:null,online:false,topic:form.topic.trim()||"Coaching",unread:0,lastTime:"Jetzt",messages:[]};
+    setCoachees(cs=>[...cs,nc]);
+    setShowAdd(false);setForm({name:"",topic:""});
+    showToast("✓ Coachee hinzugefügt");
+  };
+
+  return html`
+    <div class="page">
+      <div class="flex-between">
+        <div><div class="page-heading">Coachees</div><div class="page-sub">Alle aktiven und ehemaligen Coachees.</div></div>
+        <button class="btn btn-primary" onClick=${()=>setShowAdd(true)}><${Ic} name="plus" size=${15}/> Hinzufügen</button>
+      </div>
+      <div class="coachee-grid">
+        ${coachees.map(c=>html`
+          <div key=${c.id} class="coachee-card">
+            <div class="coachee-header">
+              <div class="coachee-av" style=${{background:c.color}}>
+                ${c.photo?html`<img src=${c.photo} alt=""/>`:c.initials}
+                ${c.online&&html`<span class="online-dot" style=${{position:"absolute",bottom:0,right:0}}/>`}
+              </div>
+              <div>
+                <div class="coachee-name">${c.name}</div>
+                <div class="coachee-topic">${c.topic}</div>
+              </div>
+            </div>
+            <div style=${{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <span class=${"coachee-badge "+(c.online?"badge-online":"badge-offline")}>${c.online?"Online":"Offline"}</span>
+              <div style=${{display:"flex",gap:6}}>
+                <button class="btn btn-ghost btn-sm" onClick=${()=>setPage("chat")}><${Ic} name="chat" size=${13}/> Chat</button>
+                <button class="btn btn-danger btn-sm" onClick=${()=>setCoachees(cs=>cs.filter(x=>x.id!==c.id))}><${Ic} name="trash" size=${13}/></button>
+              </div>
+            </div>
+          </div>`)}
+      </div>
+
+      ${showAdd&&html`
+        <div class="overlay" onClick=${e=>{if(e.target===e.currentTarget)setShowAdd(false);}}>
+          <div class="modal">
+            <h2 class="modal-title">Neuen Coachee hinzufügen</h2>
+            <div class="form-row"><label class="label">Name</label><input class="input" value=${form.name} onInput=${e=>setForm(f=>({...f,name:e.target.value}))} placeholder="z.B. Anna Meier"/></div>
+            <div class="form-row"><label class="label">Thema</label><input class="input" value=${form.topic} onInput=${e=>setForm(f=>({...f,topic:e.target.value}))} placeholder="z.B. Paarbeziehung"/></div>
+            <div class="modal-actions">
+              <button class="btn btn-ghost" onClick=${()=>setShowAdd(false)}>Abbrechen</button>
+              <button class="btn btn-primary" onClick=${addCoachee}>Erstellen</button>
+            </div>
+          </div>
+        </div>`}
+    </div>`;
+}
+
+// ── LIBRARY PAGE ──
+function LibraryPage({library,setLibrary}) {
+  const [filter,setFilter] = useState("all");
+  const [showUpload,setShowUpload] = useState(false);
+  const [form,setForm] = useState({title:"",desc:"",type:"audio"});
+  const [drag,setDrag] = useState(false);
+  const fileRef = useRef(null);
+  const TYPES=[{id:"all",label:"Alle"},{id:"audio",label:"Audio"},{id:"video",label:"Video"},{id:"text",label:"Text"}];
+  const filtered = filter==="all"?library:library.filter(i=>i.type===filter);
+  const ThumbBg={audio:"",video:"video",text:"text"};
+  const TypeIc={audio:"music",video:"video",text:"file"};
+  const BadgeCls={audio:"badge-audio",video:"badge-video",text:"badge-text"};
+
+  const save = () => {
+    if(!form.title.trim()) return;
+    setShowUpload(false);
+    setLibrary(l=>[{id:"l"+Date.now(),...form,uploadedAt:new Date().toLocaleDateString("de-CH")},...l]);
+    setForm({title:"",desc:"",type:"audio"});
+    showToast("✓ Material hochgeladen");
+  };
+
+  return html`
+    <div class="page">
+      <div class="flex-between">
+        <div><div class="page-heading">Mediathek</div><div class="page-sub">Materialien für deine Coachees.</div></div>
+        <button class="btn btn-primary" onClick=${()=>setShowUpload(true)}><${Ic} name="upload" size=${15}/> Hochladen</button>
+      </div>
+      <div style=${{display:"flex",gap:7,marginBottom:18,flexWrap:"wrap"}}>
+        ${TYPES.map(t=>html`<button key=${t.id} class=${"btn btn-ghost btn-sm"+(filter===t.id?" btn-sage":"")} onClick=${()=>setFilter(t.id)}>${t.label}</button>`)}
+      </div>
+      <div class="lib-grid">
+        ${filtered.map(item=>html`
+          <div key=${item.id} class="lib-card">
+            <div class=${"lib-thumb "+ThumbBg[item.type]}>
+              <${Ic} name=${TypeIc[item.type]} size=${32} style=${{opacity:.3}}/>
+              <span class=${"lib-badge "+BadgeCls[item.type]}>${item.type==="audio"?"Audio":item.type==="video"?"Video":"Text"}</span>
+            </div>
+            <div class="lib-body">
+              <div class="lib-title">${item.title}</div>
+              <div class="lib-desc">${item.desc}</div>
+              <div class="lib-footer">
+                <span>${item.uploadedAt}</span>
+                <button class="btn btn-danger btn-sm" style=${{padding:"3px 8px"}} onClick=${()=>setLibrary(l=>l.filter(x=>x.id!==item.id))}><${Ic} name="trash" size=${11}/></button>
+              </div>
+            </div>
+          </div>`)}
+      </div>
+      ${filtered.length===0&&html`<div style=${{textAlign:"center",padding:"48px",color:"var(--muted)"}}><p>Keine Inhalte.</p></div>`}
+
+      ${showUpload&&html`
+        <div class="overlay" onClick=${e=>{if(e.target===e.currentTarget)setShowUpload(false);}}>
+          <div class="modal">
+            <h2 class="modal-title">Material hochladen</h2>
+            <div class="upload-zone" onDragOver=${e=>{e.preventDefault();setDrag(true);}} onDragLeave=${()=>setDrag(false)} onDrop=${e=>{e.preventDefault();setDrag(false);}} onClick=${()=>fileRef.current?.click()}>
+              <div style=${{display:"flex",justifyContent:"center",opacity:.4,marginBottom:8}}><${Ic} name="upload" size=${28}/></div>
+              <p style=${{fontSize:".87rem"}}>Datei hierher ziehen oder klicken</p>
+              <span style=${{fontSize:".74rem"}}>Audio · Video · PDF · Dokument</span>
+              <input ref=${fileRef} type="file" style=${{display:"none"}} accept="audio/*,video/*,.pdf,.docx"/>
+            </div>
+            <div class="form-row" style=${{marginTop:12}}>
+              <label class="label">Typ</label>
+              <div style=${{display:"flex",gap:7}}>
+                ${["audio","video","text"].map(t=>html`
+                  <button key=${t} class=${"btn btn-ghost btn-sm"+(form.type===t?" btn-sage":"")} onClick=${()=>setForm(f=>({...f,type:t}))}>
+                    <${Ic} name=${TypeIc[t]} size=${13}/>${t==="audio"?"Audio":t==="video"?"Video":"Text"}
+                  </button>`)}
+              </div>
+            </div>
+            <div class="form-row"><label class="label">Titel</label><input class="input" value=${form.title} onInput=${e=>setForm(f=>({...f,title:e.target.value}))} placeholder="z.B. Atemübung 5 Min."/></div>
+            <div class="form-row"><label class="label">Beschreibung</label><textarea class="textarea" rows=${2} value=${form.desc} onInput=${e=>setForm(f=>({...f,desc:e.target.value}))} placeholder="Kurze Beschreibung…"/></div>
+            <div class="modal-actions">
+              <button class="btn btn-ghost" onClick=${()=>setShowUpload(false)}>Abbrechen</button>
+              <button class="btn btn-primary" onClick=${save}><${Ic} name="upload" size=${13}/> Speichern</button>
+            </div>
+          </div>
+        </div>`}
+    </div>`;
+}
+
+// ── DOODLE PAGE ──
+function DoodlePage({doodles,setDoodles,coachees}) {
+  const [showCreate,setShowCreate] = useState(false);
+  const [showResults,setShowResults] = useState(null);
+  const [showConfirmed,setShowConfirmed] = useState(false);
+  const [newTitle,setNewTitle] = useState("");
+  const [newDesc,setNewDesc] = useState("");
+  const [newSlots,setNewSlots] = useState([]);
+  const [newSlotDt,setNewSlotDt] = useState("");
+  const [selRecip,setSelRecip] = useState([]);
+
+  const defaultDt = () => { const d=new Date(); d.setDate(d.getDate()+1); d.setHours(10,0,0,0); return d.toISOString().slice(0,16); };
+
+  const addSlot = () => {
+    if(!newSlotDt) return;
+    if(newSlots.includes(newSlotDt)) return;
+    setNewSlots(s=>[...s,newSlotDt].sort());
+    const d=new Date(newSlotDt); d.setHours(d.getHours()+2);
+    setNewSlotDt(d.toISOString().slice(0,16));
+  };
+
+  const createDoodle = () => {
+    if(!newTitle.trim()||newSlots.length<1) return;
+    const nd={id:"d"+Date.now(),title:newTitle.trim(),desc:newDesc.trim()||"Bitte wähle die Zeiten die dir passen.",status:"open",recipients:[...selRecip],slots:newSlots.map(dt=>({dt,votes:{}}))};
+    setShowCreate(false);setNewTitle("");setNewDesc("");setNewSlots([]);setSelRecip([]);
+    setDoodles(ds=>[nd,...ds]);
+    showToast("✓ Terminvorschlag erstellt");
+  };
+
+  const bestSlotIdx = d => {
+    let best=-1,bestCount=-1;
+    (d.slots||[]).forEach((s,i)=>{
+      const yes=Object.values(s.votes||{}).filter(v=>v==="yes").length;
+      if(yes>bestCount){bestCount=yes;best=i;}
+    });
+    return best;
+  };
+
+  const confirmSlot = did => {
+    setDoodles(ds=>ds.map(x=>x.id===did?{...x,status:"closed"}:x));
+    setShowResults(null);setShowConfirmed(true);
+  };
+
+  const resultDoodle = doodles.find(d=>d.id===showResults);
+
+  return html`
+    <div class="page">
+      <div class="flex-between">
+        <div><div class="page-heading">Termine & Doodle</div><div class="page-sub">Terminvorschläge mit Coachees koordinieren.</div></div>
+        <button class="btn btn-primary" onClick=${()=>{setNewSlotDt(defaultDt());setShowCreate(true);}}><${Ic} name="plus" size=${15}/> Neuer Doodle</button>
+      </div>
+
+      ${doodles.length===0&&html`<div style=${{textAlign:"center",padding:"48px",color:"var(--muted)"}}><p>Noch kein Terminvorschlag erstellt.</p></div>`}
+
+      ${doodles.map(d=>{
+        const votedCount=(d.recipients||[]).filter(rid=>(d.slots||[]).some(s=>s.votes?.[rid])).length;
+        return html`
+          <div key=${d.id} class=${"doodle-card"+(d.status==="closed"?" closed":"")}>
+            <div style=${{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:6}}>
+              <div class="doodle-title">${d.title}</div>
+              <span class=${"status-pill "+(d.status==="open"?"status-open":"status-closed")}>${d.status==="open"?"Offen":"Abgeschlossen"}</span>
+            </div>
+            <div class="doodle-meta">
+              <span>${(d.slots||[]).length} Zeitvorschläge</span>
+              <span>${votedCount}/${(d.recipients||[]).length} abgestimmt</span>
+            </div>
+            <div style=${{display:"flex",gap:5,flexWrap:"wrap",marginBottom:10}}>
+              ${(d.recipients||[]).map(rid=>{
+                const c=coachees.find(x=>x.id===rid);if(!c)return null;
+                return html`<span key=${rid} class="recipient-chip">${c.name}</span>`;
+              })}
+            </div>
+            <div style=${{display:"flex",gap:7,flexWrap:"wrap"}}>
+              <button class="btn btn-sage btn-sm" onClick=${()=>setShowResults(d.id)}>Ergebnisse</button>
+              ${d.status==="open"&&html`<button class="btn btn-ghost btn-sm" onClick=${()=>setDoodles(ds=>ds.map(x=>x.id===d.id?{...x,status:"closed"}:x))}>Schliessen</button>`}
+              <button class="btn btn-danger btn-sm" onClick=${()=>setDoodles(ds=>ds.filter(x=>x.id!==d.id))}><${Ic} name="trash" size=${12}/></button>
+            </div>
+          </div>`;
+      })}
+
+      ${/* CREATE MODAL */showCreate&&html`
+        <div class="overlay" onClick=${e=>{if(e.target===e.currentTarget)setShowCreate(false);}}>
+          <div class="modal">
+            <h2 class="modal-title">Neuer Terminvorschlag</h2>
+            <div class="form-row"><label class="label">Titel</label><input class="input" value=${newTitle} onInput=${e=>setNewTitle(e.target.value)} placeholder="z.B. Coaching-Session April"/></div>
+            <div class="form-row"><label class="label">Beschreibung (optional)</label><textarea class="textarea" rows=${2} value=${newDesc} onInput=${e=>setNewDesc(e.target.value)} placeholder="z.B. Wähle bitte 2–3 Zeiten die dir passen."/></div>
+            <div class="form-row">
+              <label class="label">Zeitvorschläge</label>
+              ${newSlots.map(dt=>html`
+                <div key=${dt} class="slot-item">
+                  ${fmtDt(dt)}
+                  <button style=${{background:"none",border:"none",cursor:"pointer",color:"var(--danger)",fontSize:"1rem"}} onClick=${()=>setNewSlots(s=>s.filter(x=>x!==dt))}>✕</button>
+                </div>`)}
+              <div style=${{display:"flex",gap:8,alignItems:"flex-end"}}>
+                <input class="input" type="datetime-local" value=${newSlotDt} onInput=${e=>setNewSlotDt(e.target.value)} style=${{flex:1}}/>
+                <button class="btn btn-sage btn-sm" onClick=${addSlot}>+ Hinzufügen</button>
+              </div>
+            </div>
+            <div class="form-row">
+              <label class="label">Senden an (optional)</label>
+              ${coachees.map(c=>html`
+                <div key=${c.id} class=${"coachee-check"+(selRecip.includes(c.id)?" sel":"")} onClick=${()=>setSelRecip(r=>r.includes(c.id)?r.filter(x=>x!==c.id):[...r,c.id])}>
+                  <input type="checkbox" checked=${selRecip.includes(c.id)} onClick=${e=>e.stopPropagation()} style=${{width:16,height:16,accentColor:"var(--teal)",cursor:"pointer"}}/>
+                  <div style=${{width:28,height:28,borderRadius:"50%",background:c.color,display:"flex",alignItems:"center",justifyContent:"center",fontSize:".68rem",fontWeight:700,color:"var(--forest)",flexShrink:0}}>${c.initials}</div>
+                  <span style=${{fontSize:".88rem",fontWeight:600}}>${c.name}</span>
+                </div>`)}
+            </div>
+            <div class="modal-actions">
+              <button class="btn btn-ghost" onClick=${()=>setShowCreate(false)}>Abbrechen</button>
+              <button class="btn btn-primary" onClick=${createDoodle} disabled=${!newTitle.trim()||newSlots.length<1}>Erstellen & Senden</button>
+            </div>
+          </div>
+        </div>`}
+
+      ${/* RESULTS MODAL */showResults&&resultDoodle&&html`
+        <div class="overlay" onClick=${e=>{if(e.target===e.currentTarget)setShowResults(null);}}>
+          <div class="modal">
+            <h2 class="modal-title">${resultDoodle.title} — Ergebnisse</h2>
+            ${(resultDoodle.slots||[]).map((s,i)=>{
+              const best=bestSlotIdx(resultDoodle);
+              const isBest=i===best&&Object.values(s.votes||{}).some(v=>v==="yes");
+              return html`
+                <div key=${i} class=${"vote-row"+(isBest?" best-row":"")}>
+                  <div class="vote-dt">
+                    ${fmtDt(s.dt)}
+                    ${isBest&&html`<span class="best-badge">Bester Termin</span>`}
+                  </div>
+                  <div style=${{display:"flex",gap:4}}>
+                    ${(resultDoodle.recipients||[]).map(rid=>{
+                      const c=coachees.find(x=>x.id===rid);if(!c)return null;
+                      const v=s.votes?.[rid];
+                      return html`<div key=${rid} class=${"vote-chip "+(v==="yes"?"vc-yes":v==="no"?"vc-no":"vc-none")} title=${c.name}>${c.initials}</div>`;
+                    })}
+                  </div>
+                  <span style=${{fontSize:".75rem",color:"var(--muted)",minWidth:40}}>
+                    ${Object.values(s.votes||{}).filter(v=>v==="yes").length}/${(resultDoodle.recipients||[]).length} Ja
+                  </span>
+                </div>`;
+            })}
+            <div class="modal-actions">
+              <button class="btn btn-ghost" onClick=${()=>setShowResults(null)}>Schliessen</button>
+              <button class="btn btn-primary" onClick=${()=>confirmSlot(resultDoodle.id)}>✓ Termin bestätigen</button>
+            </div>
+          </div>
+        </div>`}
+
+      ${showConfirmed&&html`
+        <div class="overlay" onClick=${()=>setShowConfirmed(false)}>
+          <div class="modal" style=${{textAlign:"center",padding:"40px 28px"}}>
+            <div style=${{fontSize:"2.5rem",marginBottom:12}}>🎉</div>
+            <h2 style=${{fontFamily:"'Manuale',serif",fontSize:"1.2rem",color:"var(--forest)",marginBottom:10}}>Termin bestätigt!</h2>
+            <p style=${{color:"var(--muted)",fontSize:".88rem",marginBottom:20}}>Die Coachees werden benachrichtigt.</p>
+            <button class="btn btn-primary" onClick=${()=>setShowConfirmed(false)}>Fertig</button>
+          </div>
+        </div>`}
+    </div>`;
+}
+
+// ── ROOT ──
+function Root() {
+  const [user,setUser] = useState(null);
+  const [ready,setReady] = useState(false);
+
+  useEffect(()=>{
+    let unsub = null;
+    const tryAuth = (n=0) => {
+      const fbAuth = window._fb?.auth||window.firebase?.auth();
+      if(fbAuth) {
+        fbAuth.getRedirectResult().catch(()=>{});
+        unsub = fbAuth.onAuthStateChanged(u=>{ setUser(u); setReady(true); });
+      } else if(n<25) {
+        setTimeout(()=>tryAuth(n+1), 200);
+      } else {
+        setReady(true);
+      }
+    };
+    tryAuth();
+    return ()=>{ if(unsub) unsub(); };
+  },[]);
+
+  if(!ready) return html`
+    <div style=${{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:16,background:"var(--forest)"}}>
+      <${Logo} size=${64}/>
+      <div style=${{width:36,height:36,borderRadius:"50%",border:"3px solid rgba(255,255,255,.2)",borderTopColor:"var(--lime)",animation:"spin .8s linear infinite"}}/>
+      <p style=${{color:"rgba(255,255,255,.5)",fontSize:".84rem"}}>Admin-Portal wird geladen…</p>
+      <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+    </div>`;
+
+  if(!user) return html`<${LoginPage}/>`;
+  return html`<${AdminApp} user=${user}/>`;
+}
+
+render(h(Root,null), document.getElementById('root'));
+</script>
+</body>
+</html>
