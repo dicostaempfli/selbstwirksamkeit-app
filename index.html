@@ -1207,48 +1207,21 @@ function Sidebar({page,setPage,totalUnread,user}) {
           </div>`)}
       </div>
       <div class="sb-bottom" style=${{display:"flex",flexDirection:"column",alignItems:"center",gap:8}}>
-        <div class="sb-avatar" title=${user?.email||"Diana & Rico"} style=${{fontSize:".6rem"}}>
+        <div class="sb-avatar" title=${user?.email||"Coach"} style=${{fontSize:".6rem"}}>
           ${user?.photoURL ? html`<img src=${user.photoURL} style=${{width:"100%",height:"100%",borderRadius:"50%",objectFit:"cover"}} alt=""/>` : "DR"}
         </div>
-        
-      </div>
-      <div class="panel-list">
-        <div class="conv-row active" style=${{background:"var(--sage-pale)",cursor:"default"}}>
-          <svg width="40" height="40" viewBox="0 0 100 100" style=${{flexShrink:0,borderRadius:"50%"}}>
-            <circle cx="50" cy="50" r="50" fill="#efe454"/>
-            <circle cx="57.94" cy="50.79" r="37.3" fill="#a0cb7b"/>
-            <circle cx="66.67" cy="50.79" r="20.63" fill="#68b87d"/>
+        <button style=${{background:"rgba(255,255,255,.12)",border:"1.5px solid rgba(255,255,255,.3)",cursor:"pointer",color:"rgba(255,255,255,.9)",display:"flex",alignItems:"center",justifyContent:"center",padding:"5px 8px",borderRadius:8,gap:5,fontFamily:"'Exo 2',sans-serif",fontSize:".65rem",fontWeight:700}} onClick=${()=>{ (window._fb?.auth||window.firebase?.auth())?.signOut().catch(()=>{}); }}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/>
+            <polyline points="16 17 21 12 16 7"/>
+            <line x1="21" y1="12" x2="9" y2="12"/>
           </svg>
-          <div class="conv-info">
-            <div class="conv-name">Diana & Rico Stämpfli</div>
-            <div class="conv-preview">Dein Coaching-Team · online</div>
-          </div>
-          <span style=${{width:8,height:8,borderRadius:"50%",background:"var(--teal)",flexShrink:0,display:"inline-block"}}/>
-        </div>
+          <span>Logout</span>
+        </button>
       </div>
-    </div>
-
-    ${active
-      ? html`<${ChatWindow} key=${active.id} coachee=${active} onSend=${sendMsg} onSendImg=${sendImg} onUpdate=${updateCoachee} onBack=${()=>setMobileChatOpen&&setMobileChatOpen(false)}/>`
-      : html`<div class=${"chat-area"+(!mobileChatOpen?" hidden-mobile":"")} style=${{display:'flex',alignItems:'center',justifyContent:'center',flexDirection:'column',gap:14,color:'var(--muted)',flex:1}}>
-          <${Logo} size=${80}/>
-          <div style=${{marginTop:8}}><${Wordmark} dark=${true}/></div>
-          <p style=${{marginTop:6,fontSize:'.85rem',opacity:.5}}>Wähle ein Gespräch aus der Liste</p>
-        </div>`}
-
-    ${showNew&&html`
-      <div class="overlay" onClick=${()=>setShowNew(false)}>
-        <div class="modal" onClick=${e=>e.stopPropagation()}>
-          <h2 class="modal-title">Neuen Coachee hinzufügen</h2>
-          <div class="form-row"><label class="label">Name</label><input class="input" value=${newName} onInput=${e=>setNewName(e.target.value)} placeholder="z.B. Anna Meier"/></div>
-          <div class="form-row"><label class="label">Thema</label><input class="input" value=${newTopic} onInput=${e=>setNewTopic(e.target.value)} placeholder="z.B. Paarbeziehung"/></div>
-          <div class="modal-actions">
-            <button class="btn btn-ghost" onClick=${()=>setShowNew(false)}>Abbrechen</button>
-            <button class="btn btn-primary" onClick=${addCoachee}>Erstellen</button>
-          </div>
-        </div>
-      </div>`}`;
+    </div>`;
 }
+
 
 // ── CHAT WINDOW ──
 function ChatWindow({coachee,onSend,onSendImg,onUpdate,onBack}) {
