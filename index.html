@@ -850,6 +850,7 @@ const IC = {
   play:    ["M5 3l14 9-14 9V3z"],
   notes:   ["M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z","M14 2v6h6","M16 13H8","M16 17H8","M10 9H8"],
   x:       ["M18 6L6 18","M6 6l12 12"],
+  logout:  ["M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4","M16 17l5-5-5-5","M21 12H9"],
 };
 
 const Ic = ({ name, size=16, style={} }) => {
@@ -1105,7 +1106,7 @@ function App({ user }) {
           ${(i.badge||0)>0&&html`<span class="bottom-nav-badge">${i.badge}</span>`}
         </div>`)}
       <div class="bottom-nav-item" onClick=${()=>{ try{signOut(auth);}catch(e){window._fb?.auth?.signOut();} }} title="Abmelden">
-        <${Ic} name="x" size=${22}/>
+        <${Ic} name="logout" size=${22}/>
         <span class="bottom-nav-label">Logout</span>
       </div>
     </nav>`;
@@ -1141,7 +1142,7 @@ function Sidebar({page,setPage,totalUnread,user}) {
           style=${{background:"none",border:"none",cursor:"pointer",color:"rgba(255,255,255,.4)",display:"flex",alignItems:"center",justifyContent:"center",padding:4,borderRadius:8,transition:"all .15s"}}
           onMouseOver=${e=>e.currentTarget.style.color="rgba(255,255,255,.8)"}
           onMouseOut=${e=>e.currentTarget.style.color="rgba(255,255,255,.4)"}>
-          <${Ic} name="x" size=${14}/>
+          <${Ic} name="logout" size=${14}/>
         </button>
       </div>
     </div>`;
@@ -1920,7 +1921,7 @@ function DoodlePage({doodles,setDoodles,coachees,events}) {
   const removeSlot = dt => setNewSlots(s=>s.filter(x=>x!==dt));
 
   const createDoodle = () => {
-    if(!newTitle.trim()||newSlots.length<2||selRecip.length===0) return;
+    if(!newTitle.trim()||newSlots.length<1||selRecip.length===0) return;
     const nd={id:Date.now(),title:newTitle.trim(),desc:newDesc.trim()||"Bitte wähle die Zeiten die dir passen.",
       status:"open",recipients:[...selRecip],slots:newSlots.map(dt=>({dt,votes:{}}))};
     setShowCreate(false); setNewTitle(""); setNewDesc(""); setNewSlots([]); setSelRecip([]);
@@ -2093,7 +2094,7 @@ function DoodlePage({doodles,setDoodles,coachees,events}) {
             </div>
             <div class="modal-actions">
               <button class="btn btn-ghost" onClick=${()=>setShowCreate(false)}>Abbrechen</button>
-              <button class="btn btn-primary" onClick=${createDoodle} disabled=${!newTitle.trim()||newSlots.length<2||selRecip.length===0}>Erstellen & Senden</button>
+              <button class="btn btn-primary" onClick=${createDoodle} disabled=${!newTitle.trim()||newSlots.length<1||selRecip.length===0}>Erstellen & Senden</button>
             </div>
           </div>
         </div>`}
