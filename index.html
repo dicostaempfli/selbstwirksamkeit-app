@@ -273,6 +273,7 @@
   .msg-img-wrap { margin-bottom:4px; }
 
   /* Chat input */
+  .chat-window { display:flex; flex-direction:column; flex:1; overflow:hidden; }
   .chat-input-area {
     background:var(--surface); border-top:1px solid var(--border);
     padding:11px 16px; display:flex; align-items:flex-end; gap:8px; flex-shrink:0;
@@ -651,7 +652,8 @@
     .msg-bubble { font-size: .85rem; }
 
     /* Chat input */
-    .chat-input-area { padding: 8px 10px 10px; }
+    .chat-window { display:flex; flex-direction:column; flex:1; overflow:hidden; }
+  .chat-input-area { padding: 8px 10px 10px; }
     .input-box { font-size: .88rem; padding: 8px 12px; }
 
     /* Quick replies */
@@ -756,7 +758,8 @@
     }
 
     /* Adjust app layout for bottom nav */
-    .chat-input-area { padding-bottom: 14px; }
+    .chat-window { display:flex; flex-direction:column; flex:1; overflow:hidden; }
+  .chat-input-area { padding-bottom: 14px; }
     .messages { padding-bottom: 80px; }
     .content-main { padding-bottom: 80px; }
 
@@ -790,6 +793,13 @@
 <div id="app"></div>
 
 <script type="module">
+// Global error handler to catch and display runtime errors
+window.onerror = (msg, src, line, col, err) => {
+  const div = document.createElement('div');
+  div.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#c0392b;color:white;padding:12px;font-size:13px;z-index:9999;font-family:monospace';
+  div.textContent = 'JS Error: ' + msg + ' (line ' + line + ')';
+  document.body.appendChild(div);
+};
 import { h, render, Fragment } from 'https://esm.sh/preact@10';
 import { useState, useRef, useEffect } from 'https://esm.sh/preact@10/hooks';
 import { html } from 'https://esm.sh/htm@3/preact';
