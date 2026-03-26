@@ -1070,6 +1070,13 @@ function App({ user }) {
     const libRef = fbDb.collection("library");
     const doodleRef = fbDb.collection("doodles");
 
+    const restorePhotos = (items) => items.map(r => {
+      try {
+        const stored = localStorage.getItem('rem_photos_'+r.id);
+        if(stored) return {...r, photos:JSON.parse(stored)};
+      } catch(e){}
+      return r;
+    });
     const syncCollection = async (ref, initData, setter, idField) => {
       try {
         const snap = await ref.get();
@@ -1109,7 +1116,7 @@ function App({ user }) {
       const newRems = typeof newRemsOrFn === "function" ? newRemsOrFn(prev) : newRemsOrFn;
       const fbDb = window._fb?.db;
       if(fbDb) {
-        newRems.forEach(r => fbDb.collection("reminders").doc(String(r.id)).set({...r,uid}).catch(()=>{}));
+        newRems.forEach(r => { const {photos,...rNoPhotos}=r; fbDb.collection("reminders").doc(String(r.id)).set({...rNoPhotos,uid}).catch(()=>{}); });
         fbDb.collection("reminders").get().then(snap => {
           const ids = newRems.map(r=>String(r.id));
           snap.docs.forEach(d => { if(!ids.includes(d.id)) d.ref.delete().catch(()=>{}); });
@@ -1879,10 +1886,8 @@ const REM_AREA_COLOR = {
   "Ich-Sein":   {bg:"#d8f0e0",tag:"#b0dfc0",text:"#1a5530",bar:"#68b87d"},
   "Paar-Sein":  {bg:"#eef7e4",tag:"#c8e8a8",text:"#2d5a18",bar:"#a0cb7b"},
   "Eltern-Sein":{bg:"#fafbe0",tag:"#f0ec90",text:"#6b6200",bar:"#efe454"},
-  "Allgemein":  {bg:"#f0ede8",tag:"#d8d4cc",text:"#5a5248",bar:"#a09688"}
+  "Allgemein":  {bg:"#f0ede8",tag:"#e0d8d0",text:"#5a5248",bar:"#c4b8a8"},
 };
-const BLANK_FORM = {label:"",icon:"sunrise",sacredSymbol:"",time:"08:00",recurrence:"daily",weekdays:[1],monthDays:[1],customInterval:1,customUnit:"Tagen",customWeekdays:[],photos:[],area:"Allgemein",timesPerDay:1,additionalTimes:[]};
-
 function RemindersPage({reminders,setReminders}) {
   const [showModal,setShowModal] = useState(false);
   const [editId,setEditId]       = useState(null);
@@ -1891,7 +1896,16 @@ function RemindersPage({reminders,setReminders}) {
 
   const [showSymbolPicker,setShowSymbolPicker] = useState(false);
   const openNew  = () => { setForm(BLANK_FORM); setEditId(null); setShowModal(true); };
-  const openEdit = r  => { setForm({...BLANK_FORM,...r,photos:r.photos||[],additionalTimes:r.additionalTimes||[],area:r.area||'Allgemein'}); setEditId(r.id); setShowModal(true); };
+  const openEdit = r  => {
+    // Restore photos from localStorage if not in Firestore data
+    let photos = r.photos||[];
+    if(photos.length===0) {
+      try { const stored=localStorage.getItem('rem_photos_'+r.id); if(stored)photos=JSON.parse(stored); } catch(e){}
+    }
+    setForm({...BLANK_FORM,...r,photos,additionalTimes:r.additionalTimes||[],area:r.area||'Allgemein'});
+    setEditId(r.id);
+    setShowModal(true);
+  };
   const togWD = d => setForm(f=>({...f,weekdays:f.weekdays.includes(d)?f.weekdays.filter(x=>x!==d):[...f.weekdays,d]}));
   const togMD = d => setForm(f=>({...f,monthDays:f.monthDays.includes(d)?f.monthDays.filter(x=>x!==d):[...f.monthDays,d]}));
   const togCD = d => setForm(f=>({...f,customWeekdays:f.customWeekdays.includes(d)?f.customWeekdays.filter(x=>x!==d):[...f.customWeekdays,d]}));
@@ -1912,7 +1926,14 @@ function RemindersPage({reminders,setReminders}) {
 
   const save = () => {
     if(!form.label.trim())return;
-    const entry={...form,id:editId||Date.now(),enabled:true,area:form.area||'Allgemein',additionalTimes:form.additionalTimes||[]};
+    const id = editId||Date.now();
+    const entry={...form,id,enabled:true,area:form.area||'Allgemein',additionalTimes:form.additionalTimes||[]};
+    // Store photos in localStorage separately (too large for Firestore)
+    if(entry.photos&&entry.photos.length>0) {
+      try { localStorage.setItem('rem_photos_'+id, JSON.stringify(entry.photos)); } catch(e){}
+    } else {
+      try { localStorage.removeItem('rem_photos_'+id); } catch(e){}
+    }
     setShowModal(false);
     setReminders(rs=>editId?rs.map(r=>r.id===editId?entry:r):[...rs,entry]);
   };
@@ -2166,7 +2187,6 @@ const INIT_EVENTS = [
    desc:"Rico Stämpfli spricht über Selbstwirksamkeit im Familienalltag.",
    spots:50,registered:28},
 ];
-
 function fmtDt(dt) {
   const d=new Date(dt);
   const days=["So","Mo","Di","Mi","Do","Fr","Sa"];
