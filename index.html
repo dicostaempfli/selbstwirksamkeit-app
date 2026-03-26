@@ -335,9 +335,9 @@
     gap:3px; cursor:pointer; color:var(--muted); transition:all .15s; font-size:.65rem; font-weight:700;
   }
   .photo-add:hover { border-color:var(--teal); color:var(--teal-dark); background:var(--teal-pale); }
-  .lightbox { position:fixed; inset:0; background:rgba(0,0,0,.82); z-index:300; display:flex; align-items:center; justify-content:center; }
+  .lightbox { position:fixed; inset:0; background:rgba(0,0,0,.9); z-index:99999; display:flex; align-items:center; justify-content:center; }
   .lightbox img { max-width:90vw; max-height:85vh; border-radius:12px; object-fit:contain; }
-  .lightbox-close { position:absolute; top:18px; right:22px; color:#fff; cursor:pointer; opacity:.7; }
+  .lightbox-close { z-index:99999; position:absolute; top:18px; right:22px; color:#fff; cursor:pointer; opacity:.7; }
   .lightbox-close:hover { opacity:1; }
 
   /* ══════════════════════════════
@@ -448,7 +448,7 @@
   .overlay { position:fixed; inset:0; background:rgba(20,50,30,.3); z-index:9999; display:flex; align-items:center; justify-content:center; }
   .modal { background:var(--surface); border-radius:var(--radius); padding:20px; box-sizing:border-box; width:calc(100vw - 32px); max-width:460px; min-width:0; max-height:calc(100dvh - 80px); overflow-y:auto; overflow-x:hidden; box-shadow:0 20px 60px rgba(20,60,30,.2); }
   .modal-title { font-family:'Manuale',serif; font-size:1.15rem; color:var(--text); margin-bottom:16px; }
-  .modal-actions { display:flex; gap:8px; justify-content:flex-end; margin-top:16px; flex-shrink:0; position:sticky; bottom:0; background:var(--surface); padding-top:12px; padding-bottom:4px; z-index:1; }
+  .modal-actions { display:flex; gap:8px; justify-content:space-between; margin-top:16px; flex-shrink:0; position:sticky; bottom:-1px; background:var(--surface); padding-top:12px; padding-bottom:env(safe-area-inset-bottom,4px); z-index:10; border-top:1px solid var(--border); }
 
   /* Dashboard stats */
   .stat-grid { display:flex; flex-direction:column; gap:10px; margin-bottom:18px; }
@@ -1920,9 +1920,8 @@ const REC_TABS = [
   {id:"daily",   icon:"sun",    label:"Täglich"},
   {id:"weekly",  icon:"repeat", label:"Wöchentlich"},
   {id:"monthly", icon:"calendar",label:"Monatlich"},
-  {id:"custom",  icon:"sliders",label:"Benutzerdefiniert"},
+  {id:"custom",  icon:"sliders", label:"Benutzerdefiniert"},
 ];
-
 
 
 function RemindersPage({reminders,setReminders}) {
@@ -1961,8 +1960,14 @@ function RemindersPage({reminders,setReminders}) {
   };
   const removeModalPhoto = idx => setForm(f=>({...f, photos:(f.photos||[]).filter((_,i)=>i!==idx)}));
 
+  const [saveError,setSaveError] = useState(false);
   const save = () => {
-    if(!form.label.trim())return;
+    if(!form.label.trim()){
+      setSaveError(true);
+      setTimeout(()=>setSaveError(false),2000);
+      return;
+    }
+    setSaveError(false);
     const id = editId||Date.now();
     const entry={...form,id,enabled:true,area:form.area||'Allgemein',additionalTimes:form.additionalTimes||[]};
     // Store photos in localStorage separately (too large for Firestore)
@@ -2059,7 +2064,7 @@ function RemindersPage({reminders,setReminders}) {
               </button>
             </div>
             <div class="form-grid" style=${{gridTemplateColumns:'1fr 115px'}}>
-              <div class="form-row" style=${{marginBottom:0}}><label class="label">Bezeichnung</label><input class="input" value=${form.label} onInput=${e=>setForm(f=>({...f,label:e.target.value}))} placeholder="z.B. Morgenroutine"/></div>
+              <div class="form-row" style=${{marginBottom:0}}><label class="label">Bezeichnung</label><input class="input" value=${form.label} onInput=${e=>setForm(f=>({...f,label:e.target.value}))} placeholder="z.B. Morgenroutine" style=${{borderColor:saveError&&!form.label.trim()?"var(--danger)":undefined}}/></div>
               <div class="form-row" style=${{marginBottom:0}}><label class="label">Uhrzeit</label><input class="input" type="time" value=${form.time} onInput=${e=>setForm(f=>({...f,time:e.target.value}))} style=${{width:"110px",maxWidth:"110px",fontSize:".82rem",padding:"6px 8px"}}/></div>
             </div>
             <div class="form-row" style=${{marginTop:12}}>
@@ -2155,7 +2160,10 @@ function RemindersPage({reminders,setReminders}) {
               </div>
               <div style=${{display:"flex",gap:8}}>
                 <button class="btn btn-ghost" onClick=${()=>setShowModal(false)}>Abbrechen</button>
-                <button class="btn btn-primary" onClick=${save}>Speichern</button>
+                <button class="btn btn-primary" onClick=${save}
+                  style=${{background:saveError?"var(--danger)":undefined}}>
+                  ${saveError?"Bitte Bezeichnung eingeben!":"Speichern"}
+                </button>
               </div>
             </div>
           </div>
