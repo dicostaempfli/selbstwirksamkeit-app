@@ -2026,11 +2026,15 @@ function RemindersPage({reminders,setReminders}) {
   };
   return html`
     <div class="content-main">
-      <div class="flex-between">
-        <div><h1 class="page-heading">Erinnerungen</h1><p class="page-sub">Richte Erinnerungs-Impulse für deinen Alltag ein.</p></div>
-        <button class="btn btn-primary" onClick=${openNew}><${Ic} name="plus" size=${15}/> Neue Erinnerung</button>
+      <div style=${{marginBottom:20}}>
+        <div style=${{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4}}>
+          <h1 class="page-heading" style=${{marginBottom:0}}>Erinnerungen</h1>
+          <button class="btn btn-primary" onClick=${openNew} style=${{flexShrink:0}}>
+            <${Ic} name="plus" size=${15}/> Neu
+          </button>
+        </div>
+        <p class="page-sub" style=${{marginBottom:0,marginTop:4}}>Richte Erinnerungs-Impulse für deinen Alltag ein.</p>
       </div>
-      <div class="info-tip info-tip-lime"><${Ic} name="info" size=${15} style=${{flexShrink:0,marginTop:1}}/><span>Wähle zwischen täglichen, wöchentlichen, monatlichen oder individuellen Erinnerungen. Füge Fotos als visuelle Anker hinzu.</span></div>
       ${REM_AREAS.map(area=>{
         const areaRems = reminders.filter(r=>(r.area||"Allgemein")===area);
         if(!areaRems.length) return null;
