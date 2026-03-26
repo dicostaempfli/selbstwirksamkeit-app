@@ -2096,14 +2096,47 @@ function RemindersPage({reminders,setReminders}) {
             ${form.recurrence==="weekly"&&html`<div class="form-row"><label class="label">Wochentage</label><div class="day-picker">${DAYS_SHORT.map((d,i)=>html`<button key=${d} class=${"day-btn"+(form.weekdays.includes(i)?" sel":"")} onClick=${()=>togWD(i)}>${d}</button>`)}</div></div>`}
             ${form.recurrence==="monthly"&&html`<div class="form-row"><label class="label">Tag im Monat</label><div class="mday-grid">${MONTH_DAYS.map(d=>html`<button key=${d} class=${"mday-btn"+(form.monthDays.includes(d)?" sel":"")} onClick=${()=>togMD(d)}>${d}</button>`)}</div></div>`}
             ${form.recurrence==="custom"&&html`
-              `}
+              <div class="form-row">
+                <label class="label">Intervall</label>
+                <div style=${{display:"flex",alignItems:"center",gap:8}}>
+                  <input class="input" type="number" min="1" max="99"
+                    value=${form.customInterval}
+                    onInput=${e=>setForm(f=>({...f,customInterval:e.target.value===''?'':(Math.max(1,+e.target.value)||1)}))}
+                    onBlur=${e=>{if(!e.target.value||+e.target.value<1)setForm(f=>({...f,customInterval:1}))}}
+                    style=${{width:68,fontSize:".85rem",padding:"6px 8px"}}/>
+                  <select class="select" value=${form.customUnit} style=${{flex:1}}
+                    onInput=${e=>setForm(f=>({...f,customUnit:e.target.value}))}>
+                    <option>Tagen</option>
+                    <option>Wochen</option>
+                    <option>Monaten</option>
+                  </select>
+                </div>
+              </div>`}
             <div class="rec-preview">${preview()}</div>
             <div class="form-row" style=${{marginTop:16}}>
               <label class="label">Foto-Anker</label>
               <p style=${{fontSize:'.78rem',color:'var(--muted)',marginBottom:8}}>Ein inspirierendes Bild als visuellen Impuls.</p>
               <div style=${{display:'flex',gap:7,flexWrap:'wrap',alignItems:'center'}}>
-                
-                <label style=${{width:68,height:68,borderRadius:9,border:'2px dashed var(--border2)',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:3,cursor:'pointer',color:'var(--muted)',fontSize:'.62rem',fontWeight:700}}>
+                ${(form.photos||[]).map((src,i)=>html`
+                  <div key=${i} style=${{position:'relative',flexShrink:0}}>
+                    <img src=${src} style=${{width:68,height:68,borderRadius:9,objectFit:'cover',border:'2px solid var(--border)'}}/>
+                    <button onClick=${e=>{e.stopPropagation();removeModalPhoto(i);}}
+                      style=${{position:'absolute',top:-5,right:-5,width:18,height:18,
+                        background:'var(--danger)',border:'none',borderRadius:'50%',
+                        color:'white',cursor:'pointer',display:'flex',alignItems:'center',
+                        justifyContent:'center',fontSize:10,padding:0,lineHeight:1}}>✕</button>
+                  </div>`)}
+                <input ref=${modalPhotoRef} type="file" accept="image/*" multiple
+                  style=${{opacity:0,position:'fixed',top:0,left:0,width:'1px',height:'1px',zIndex:-1}}
+                  onChange=${handleModalPhotos} onInput=${handleModalPhotos}/>
+                <button type="button" onClick=${e=>{e.preventDefault();e.stopPropagation();modalPhotoRef.current&&modalPhotoRef.current.click();}}
+                  style=${{width:68,height:68,borderRadius:9,border:'2px dashed var(--border2)',
+                    display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',
+                    gap:3,cursor:'pointer',color:'var(--muted)',fontSize:'.62rem',fontWeight:700,
+                    background:'none',fontFamily:"'Exo 2',sans-serif"}}>
+                  <${Ic} name="camera" size=${18}/>
+                  <span>Foto</span>
+                </button>
               </div>
             </div>
             <div class="modal-actions" style=${{justifyContent:"space-between"}}>
@@ -2126,33 +2159,6 @@ function RemindersPage({reminders,setReminders}) {
       ${showSymbolPicker&&html`
         <div class="overlay" onClick=${e=>{if(e.target===e.currentTarget)setShowSymbolPicker(false);}}>
           <div class="modal" style=${{maxHeight:"85vh",overflowY:"auto"}}>
-            <div class="form-row">
-              <label class="label">Fotos</label>
-              <div style=${{display:"flex",gap:8,flexWrap:"wrap",alignItems:"center"}}>
-                ${(form.photos||[]).map((src,i)=>html`
-                  <div key=${i} style=${{position:"relative",width:52,height:52}}>
-                    <img src=${src} style=${{width:52,height:52,borderRadius:8,objectFit:"cover"}}/>
-                    <button onClick=${e=>{e.stopPropagation();removeModalPhoto(i);}}
-                      style=${{position:"absolute",top:-6,right:-6,background:"var(--danger)",border:"none",
-                        borderRadius:"50%",width:18,height:18,cursor:"pointer",color:"white",
-                        display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,padding:0}}>✕</button>
-                  </div>`)}
-                <div>
-                  <input ref=${modalPhotoRef} type="file" accept="image/*" multiple
-                    style=${{opacity:0,position:"fixed",top:0,left:0,width:1,height:1,zIndex:-1}}
-                    onChange=${handleModalPhotos} onInput=${handleModalPhotos}/>
-                  <button type="button"
-                    style=${{display:"flex",alignItems:"center",gap:6,padding:"7px 12px",
-                      background:"var(--surface2)",border:"1.5px solid var(--border)",borderRadius:10,
-                      cursor:"pointer",fontSize:".8rem",fontWeight:700,color:"var(--teal-dark)",
-                      fontFamily:"'Exo 2',sans-serif"}}
-                    onClick=${e=>{e.preventDefault();e.stopPropagation();modalPhotoRef.current&&modalPhotoRef.current.click();}}>
-                    <${Ic} name="camera" size=${16}/>
-                    <span>Foto hinzufügen</span>
-                  </button>
-                </div>
-              </div>
-            </div>
             <div style=${{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
               <h2 style=${{fontFamily:"'Manuale',serif",fontSize:"1.1rem",color:"var(--text)"}}>Symbol wählen</h2>
               <button style=${{background:"none",border:"none",cursor:"pointer",color:"var(--muted)",display:"flex"}} onClick=${()=>setShowSymbolPicker(false)}><${Ic} name="x" size=${18}/></button>
