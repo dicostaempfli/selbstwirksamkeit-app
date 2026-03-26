@@ -440,7 +440,7 @@
   .mday-btn.sel { border-color:var(--teal); background:var(--sage); color:var(--text); }
 
   /* Modal */
-  .overlay { position:fixed; top:0; left:0; right:0; bottom:0; width:100%; height:100%; background:rgba(20,50,30,.3); z-index:200; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+  .overlay { position:fixed; inset:0; background:rgba(20,50,30,.3); z-index:9999; display:flex; align-items:center; justify-content:center; }
   .modal { background:var(--surface); border-radius:var(--radius); padding:20px; box-sizing:border-box; width:calc(100vw - 32px); max-width:460px; min-width:0; max-height:calc(100dvh - 80px); overflow-y:auto; overflow-x:hidden; box-shadow:0 20px 60px rgba(20,60,30,.2); }
   .modal-title { font-family:'Manuale',serif; font-size:1.15rem; color:var(--text); margin-bottom:16px; }
   .modal-actions { display:flex; gap:8px; justify-content:flex-end; margin-top:16px; flex-shrink:0; position:sticky; bottom:0; background:var(--surface); padding-top:12px; padding-bottom:4px; z-index:1; }
@@ -575,7 +575,7 @@
   @keyframes spin { to { transform: rotate(360deg); } }
   *, *::before, *::after { box-sizing: border-box; }
   html { overflow: hidden; max-width: 100vw; }
-  body { margin: 0; overflow: hidden; position: fixed; width: 100%; max-width: 100vw; touch-action: pan-y; }
+  body { margin: 0; overflow: hidden; width: 100%; touch-action: pan-y; }
   #app { height: 100vh; display: flex; overflow: hidden; }
   input[type=range] { cursor: pointer; }
   textarea { font-family: inherit; }
