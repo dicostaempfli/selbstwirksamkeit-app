@@ -2069,7 +2069,7 @@ function RemindersPage({reminders,setReminders}) {
       ${reminders.length===0&&html`<div style=${{textAlign:'center',padding:'44px',color:'var(--muted)'}}><p>Noch keine Erinnerungen. Leg jetzt eine an.</p></div>`}
 
       ${showModal&&html`
-        <div class="overlay" onClick=${()=>setShowModal(false)}>
+        <div class="overlay" onClick=${e=>{if(e.target===e.currentTarget)setShowModal(false);}}>
           <div class="modal" onClick=${e=>e.stopPropagation()}>
             <h2 class="modal-title">${editId?"Erinnerung bearbeiten":"Neue Erinnerung"}</h2>
             <div class="form-row"><label class="label">Symbole</label>
@@ -2160,10 +2160,10 @@ function RemindersPage({reminders,setReminders}) {
                   </div>`)}
                 <input ref=${modalPhotoRef} type="file" accept="image/*,video/*" multiple
                   style=${{opacity:0,position:'fixed',top:0,left:0,width:'1px',height:'1px',zIndex:-1}}
-                  onChange=${handleModalPhotos}/>
+                  onChange=${e=>{e.stopPropagation();handleModalPhotos(e);}}/>
                 <input ref=${modalFileRef} type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,application/*,image/*,video/*,audio/*" multiple
                   style=${{opacity:0,position:'fixed',top:0,left:0,width:'1px',height:'1px',zIndex:-1}}
-                  onChange=${handleModalFiles}/>
+                  onChange=${e=>{e.stopPropagation();handleModalFiles(e);}}/>
                 <button type="button" onClick=${e=>{e.preventDefault();e.stopPropagation();modalPhotoRef.current&&modalPhotoRef.current.click();}}
                   style=${{width:68,height:68,borderRadius:9,border:'2px dashed var(--border2)',
                     display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',
