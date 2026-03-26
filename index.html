@@ -2186,9 +2186,18 @@ function RemindersPage({reminders,setReminders}) {
                   ${(form.files||[]).map((f,i)=>html`
                     <div key=${i} style=${{display:'flex',alignItems:'center',gap:6,
                       background:'var(--surface2)',borderRadius:8,padding:'5px 10px',
-                      border:'1px solid var(--border)',maxWidth:'100%'}}>
+                      border:'1px solid var(--border)',maxWidth:'100%',cursor:'pointer'}}
+                      onClick=${()=>{
+                        const a=document.createElement('a');
+                        a.href=f.url||f;
+                        a.download=f.name||('Datei_'+(i+1));
+                        a.target='_blank';
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                      }}>
                       <${Ic} name="attach" size=${14} style=${{flexShrink:0,color:'var(--teal-dark)'}}/>
-                      <span style=${{fontSize:'.72rem',color:'var(--text)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:140}}>${f.name||'Datei '+(i+1)}</span>
+                      <span style=${{fontSize:'.72rem',color:'var(--teal-dark)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:140,textDecoration:'underline'}}>${f.name||'Datei '+(i+1)}</span>
                       <button onClick=${e=>{e.stopPropagation();setForm(ff=>({...ff,files:(ff.files||[]).filter((_,j)=>j!==i)}));}}
                         style=${{background:'none',border:'none',cursor:'pointer',color:'var(--danger)',padding:'0 2px',fontSize:13,lineHeight:1,flexShrink:0}}>✕</button>
                     </div>`)}
