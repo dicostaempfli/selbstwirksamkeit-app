@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
   <title>Raum für Selbstwirksamkeit</title>
   <meta name="description" content="Deine persönliche Coaching-App"/>
   <meta name="apple-mobile-web-app-capable" content="yes"/>
@@ -440,8 +440,8 @@
   .mday-btn.sel { border-color:var(--teal); background:var(--sage); color:var(--text); }
 
   /* Modal */
-  .overlay { position:fixed; inset:0; background:rgba(20,50,30,.3); z-index:100; display:flex; align-items:center; justify-content:center; overflow-y:auto; overflow-x:hidden; -webkit-overflow-scrolling:touch; }
-  .modal { background:var(--surface); border-radius:var(--radius); padding:26px; width:470px; max-width:95vw; max-height:90vh; overflow-y:auto; overflow-x:hidden; box-shadow:0 20px 60px rgba(20,60,30,.2); }
+  .overlay { position:fixed; top:0; left:0; right:0; bottom:0; width:100%; height:100%; background:rgba(20,50,30,.3); z-index:100; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+  .modal { background:var(--surface); border-radius:var(--radius); padding:20px; box-sizing:border-box; width:calc(100vw - 32px); max-width:460px; min-width:0; max-height:calc(100dvh - 80px); overflow-y:auto; overflow-x:hidden; box-shadow:0 20px 60px rgba(20,60,30,.2); }
   .modal-title { font-family:'Manuale',serif; font-size:1.15rem; color:var(--text); margin-bottom:16px; }
   .modal-actions { display:flex; gap:8px; justify-content:flex-end; margin-top:16px; }
 
@@ -564,8 +564,9 @@
 
   /* Extra fixes */
   @keyframes spin { to { transform: rotate(360deg); } }
-  * { box-sizing: border-box; }
-  body { margin: 0; overflow: hidden; position: fixed; width: 100%; }
+  *, *::before, *::after { box-sizing: border-box; }
+  html { overflow: hidden; max-width: 100vw; }
+  body { margin: 0; overflow: hidden; position: fixed; width: 100%; max-width: 100vw; touch-action: pan-y; }
   #app { height: 100vh; display: flex; overflow: hidden; }
   input[type=range] { cursor: pointer; }
   textarea { font-family: inherit; }
