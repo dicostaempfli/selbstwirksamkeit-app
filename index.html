@@ -446,9 +446,9 @@
 
   /* Modal */
   .overlay { position:fixed; inset:0; background:rgba(20,50,30,.3); z-index:9999; display:flex; align-items:center; justify-content:center; }
-  .modal { background:var(--surface); border-radius:var(--radius); padding:20px; box-sizing:border-box; width:calc(100vw - 32px); max-width:460px; min-width:0; max-height:calc(100dvh - 80px); overflow-y:auto; overflow-x:hidden; box-shadow:0 20px 60px rgba(20,60,30,.2); }
+  .modal { background:var(--surface); border-radius:var(--radius); padding:20px; padding-bottom:0; box-sizing:border-box; width:calc(100vw - 32px); max-width:460px; min-width:0; max-height:calc(100dvh - 80px); overflow-y:auto; overflow-x:hidden; box-shadow:0 20px 60px rgba(20,60,30,.2); display:flex; flex-direction:column; }
   .modal-title { font-family:'Manuale',serif; font-size:1.15rem; color:var(--text); margin-bottom:16px; }
-  .modal-actions { display:flex; gap:8px; justify-content:space-between; margin-top:16px; flex-shrink:0; position:sticky; bottom:-1px; background:var(--surface); padding:14px 0 env(safe-area-inset-bottom,8px); z-index:10; border-top:1px solid var(--border); box-shadow:0 -4px 16px rgba(255,255,255,.95); }
+  .modal-actions { display:flex; gap:8px; justify-content:space-between; flex-shrink:0; background:var(--surface); padding:14px 20px calc(env(safe-area-inset-bottom,0px) + 16px); border-top:2px solid var(--border); margin:0 -20px -0px; margin-top:16px; }
 
   /* Dashboard stats */
   .stat-grid { display:flex; flex-direction:column; gap:10px; margin-bottom:18px; }
