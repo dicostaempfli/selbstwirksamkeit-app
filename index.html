@@ -1888,6 +1888,23 @@ const REM_AREA_COLOR = {
   "Eltern-Sein":{bg:"#fafbe0",tag:"#f0ec90",text:"#6b6200",bar:"#efe454"},
   "Allgemein":  {bg:"#f0ede8",tag:"#e0d8d0",text:"#5a5248",bar:"#c4b8a8"},
 };
+const BLANK_FORM = {
+  label:"", icon:"sunrise", sacredSymbol:"", time:"08:00",
+  recurrence:"daily", weekdays:[1], monthDays:[1],
+  customInterval:1, customUnit:"Tagen", customWeekdays:[],
+  photos:[], area:"Allgemein", timesPerDay:1, additionalTimes:[]
+};
+
+
+const REC_TABS = [
+  {id:"daily",   icon:"sun",    label:"Täglich"},
+  {id:"weekly",  icon:"repeat", label:"Wöchentlich"},
+  {id:"monthly", icon:"calendar",label:"Monatlich"},
+  {id:"custom",  icon:"sliders",label:"Benutzerdefiniert"},
+];
+
+
+
 function RemindersPage({reminders,setReminders}) {
   const [showModal,setShowModal] = useState(false);
   const [editId,setEditId]       = useState(null);
@@ -2072,9 +2089,6 @@ function RemindersPage({reminders,setReminders}) {
               <div style=${{display:'flex',gap:7,flexWrap:'wrap',alignItems:'center'}}>
                 
                 <label style=${{width:68,height:68,borderRadius:9,border:'2px dashed var(--border2)',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:3,cursor:'pointer',color:'var(--muted)',fontSize:'.62rem',fontWeight:700}}>
-                  <${Ic} name="camera" size=${18}/><span>Hochladen</span>
-                  <input type="file" accept="image/*" multiple style=${{display:'none'}} onChange=${handleModalPhotos}/>
-                </label>
               </div>
             </div>
             <div class="modal-actions" style=${{justifyContent:"space-between"}}>
@@ -2110,7 +2124,7 @@ function RemindersPage({reminders,setReminders}) {
                   </div>`)}
                 <div>
                   <input ref=${modalPhotoRef} type="file" accept="image/*" multiple
-                    style=${{display:"none",position:"absolute",left:"-9999px"}}
+                    style=${{opacity:0,position:"fixed",top:0,left:0,width:1,height:1,zIndex:-1}}
                     onChange=${handleModalPhotos}/>
                   <button type="button"
                     style=${{display:"flex",alignItems:"center",gap:6,padding:"7px 12px",
