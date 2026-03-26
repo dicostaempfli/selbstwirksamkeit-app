@@ -448,7 +448,7 @@
   .overlay { position:fixed; inset:0; background:rgba(20,50,30,.3); z-index:9999; display:flex; align-items:center; justify-content:center; }
   .modal { background:var(--surface); border-radius:var(--radius); padding:20px; box-sizing:border-box; width:calc(100vw - 32px); max-width:460px; min-width:0; max-height:calc(100dvh - 80px); overflow-y:auto; overflow-x:hidden; box-shadow:0 20px 60px rgba(20,60,30,.2); }
   .modal-title { font-family:'Manuale',serif; font-size:1.15rem; color:var(--text); margin-bottom:16px; }
-  .modal-actions { display:flex; gap:8px; justify-content:space-between; margin-top:16px; flex-shrink:0; position:sticky; bottom:-1px; background:var(--surface); padding-top:12px; padding-bottom:env(safe-area-inset-bottom,4px); z-index:10; border-top:1px solid var(--border); }
+  .modal-actions { display:flex; gap:8px; justify-content:space-between; margin-top:16px; flex-shrink:0; position:sticky; bottom:-1px; background:var(--surface); padding:14px 0 env(safe-area-inset-bottom,8px); z-index:10; border-top:1px solid var(--border); box-shadow:0 -4px 16px rgba(255,255,255,.95); }
 
   /* Dashboard stats */
   .stat-grid { display:flex; flex-direction:column; gap:10px; margin-bottom:18px; }
@@ -2026,14 +2026,17 @@ function RemindersPage({reminders,setReminders}) {
   };
   return html`
     <div class="content-main">
-      <div style=${{marginBottom:20}}>
-        <div style=${{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4}}>
-          <h1 class="page-heading" style=${{marginBottom:0}}>Erinnerungen</h1>
-          <button class="btn btn-primary" onClick=${openNew} style=${{flexShrink:0}}>
-            <${Ic} name="plus" size=${15}/> Neu
+      <div style=${{marginBottom:24}}>
+        <div style=${{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:12,marginBottom:8}}>
+          <div>
+            <h1 class="page-heading" style=${{marginBottom:4}}>Erinnerungen</h1>
+            <p class="page-sub" style=${{marginBottom:0}}>Richte Erinnerungs-Impulse für deinen Alltag ein.</p>
+          </div>
+          <button class="btn btn-primary" onClick=${openNew} style=${{flexShrink:0,marginTop:2}}>
+            <${Ic} name="plus" size=${15}/> Neue Erinnerung
           </button>
         </div>
-        <p class="page-sub" style=${{marginBottom:0,marginTop:4}}>Richte Erinnerungs-Impulse für deinen Alltag ein.</p>
+        <p style=${{fontSize:".8rem",color:"var(--muted)",lineHeight:1.5,marginTop:8,padding:"10px 14px",background:"var(--sage-pale)",borderRadius:10,borderLeft:"3px solid var(--sage)"}}>Wähle zwischen täglichen, wöchentlichen, monatlichen oder individuellen Erinnerungen. Füge Fotos als visuelle Anker hinzu.</p>
       </div>
       ${REM_AREAS.map(area=>{
         const areaRems = reminders.filter(r=>(r.area||"Allgemein")===area);
