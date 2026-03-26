@@ -954,7 +954,22 @@ const Ic = ({ name, size=16, style={} }) => {
 const today = () => new Date().toISOString().split('T')[0];
 const fmtDate = d => new Date(d).toLocaleDateString('de-CH',{day:'2-digit',month:'long',year:'numeric'});
 const nowTime = () => new Date().toLocaleTimeString('de-CH',{hour:'2-digit',minute:'2-digit'});
-const readFile = f => new Promise(res => { const r = new FileReader(); r.onload = e => res(e.target.result); r.readAsDataURL(f); });
+const readFile = f => new Promise(res => {
+  const r = new FileReader();
+  r.onload = ev => {
+    const img = new Image();
+    img.onload = () => {
+      const MAX=800, canvas=document.createElement('canvas');
+      let w=img.width, h=img.height;
+      if(w>MAX||h>MAX){ if(w>h){h=Math.round(h*MAX/w);w=MAX;}else{w=Math.round(w*MAX/h);h=MAX;} }
+      canvas.width=w; canvas.height=h;
+      canvas.getContext('2d').drawImage(img,0,0,w,h);
+      res(canvas.toDataURL('image/jpeg',0.75));
+    };
+    img.src = ev.target.result;
+  };
+  r.readAsDataURL(f);
+});
 
 // ── SEED DATA ──
 const AVATAR_BG = ["#9dd979","#eaed53","#62ba7a","#bfe9cb","#d4f0c4","#c4e8cf","#b8ddc4","#f5f9cc"];
@@ -2040,7 +2055,7 @@ function RemindersPage({reminders,setReminders}) {
             </div>
             <div class="form-grid" style=${{gridTemplateColumns:'1fr 115px'}}>
               <div class="form-row" style=${{marginBottom:0}}><label class="label">Bezeichnung</label><input class="input" value=${form.label} onInput=${e=>setForm(f=>({...f,label:e.target.value}))} placeholder="z.B. Morgenroutine"/></div>
-              <div class="form-row" style=${{marginBottom:0}}><label class="label">Uhrzeit</label><input class="input" type="time" value=${form.time} onInput=${e=>setForm(f=>({...f,time:e.target.value}))} style=${{maxWidth:140,fontSize:".85rem"}}/></div>
+              <div class="form-row" style=${{marginBottom:0}}><label class="label">Uhrzeit</label><input class="input" type="time" value=${form.time} onInput=${e=>setForm(f=>({...f,time:e.target.value}))} style=${{width:"110px",maxWidth:"110px",fontSize:".82rem",padding:"6px 8px"}}/></div>
             </div>
             <div class="form-row" style=${{marginTop:12}}>
               <label class="label">Bereich</label>
@@ -2125,7 +2140,7 @@ function RemindersPage({reminders,setReminders}) {
                 <div>
                   <input ref=${modalPhotoRef} type="file" accept="image/*" multiple
                     style=${{opacity:0,position:"fixed",top:0,left:0,width:1,height:1,zIndex:-1}}
-                    onChange=${handleModalPhotos}/>
+                    onChange=${handleModalPhotos} onInput=${handleModalPhotos}/>
                   <button type="button"
                     style=${{display:"flex",alignItems:"center",gap:6,padding:"7px 12px",
                       background:"var(--surface2)",border:"1.5px solid var(--border)",borderRadius:10,
