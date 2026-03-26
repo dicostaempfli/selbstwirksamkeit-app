@@ -2188,13 +2188,25 @@ function RemindersPage({reminders,setReminders}) {
                       background:'var(--surface2)',borderRadius:8,padding:'5px 10px',
                       border:'1px solid var(--border)',maxWidth:'100%',cursor:'pointer'}}
                       onClick=${()=>{
-                        const a=document.createElement('a');
-                        a.href=f.url||f;
-                        a.download=f.name||('Datei_'+(i+1));
-                        a.target='_blank';
-                        document.body.appendChild(a);
-                        a.click();
-                        document.body.removeChild(a);
+                        const url = f.url||f;
+                        const name = f.name||('Datei_'+(i+1));
+                        const type = f.type||'';
+                        // Convert data URL to blob for iOS compatibility
+                        try {
+                          const arr = url.split(',');
+                          const mime = arr[0].match(/:(.*?);/)[1];
+                          const bstr = atob(arr[1]);
+                          let n = bstr.length;
+                          const u8 = new Uint8Array(n);
+                          while(n--) u8[n] = bstr.charCodeAt(n);
+                          const blob = new Blob([u8], {type: mime});
+                          const blobUrl = URL.createObjectURL(blob);
+                          window.open(blobUrl, '_blank');
+                          setTimeout(()=>URL.revokeObjectURL(blobUrl), 10000);
+                        } catch(e) {
+                          // Fallback: direct open
+                          window.open(url, '_blank');
+                        }
                       }}>
                       <${Ic} name="attach" size=${14} style=${{flexShrink:0,color:'var(--teal-dark)'}}/>
                       <span style=${{fontSize:'.72rem',color:'var(--teal-dark)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:140,textDecoration:'underline'}}>${f.name||'Datei '+(i+1)}</span>
