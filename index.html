@@ -2190,38 +2190,13 @@ function RemindersPage({reminders,setReminders}) {
                       onClick=${()=>{
                         const url = f.url||f;
                         const name = f.name||('Datei_'+(i+1));
-                        const type = f.type||'';
-                        // Convert data URL to blob for iOS compatibility
-                        try {
-                          const arr = url.split(',');
-                          const mime = arr[0].match(/:(.*?);/)[1];
-                          const bstr = atob(arr[1]);
-                          let n = bstr.length;
-                          const u8 = new Uint8Array(n);
-                          while(n--) u8[n] = bstr.charCodeAt(n);
-                          const blob = new Blob([u8], {type: mime});
-                          const blobUrl = URL.createObjectURL(blob);
-                          const a = document.createElement('a');
-                          a.href = blobUrl;
-                          // Viewable in browser: open in new tab; others: download
-                          const viewable = ['application/pdf','image/','video/','audio/','text/'];
-                          const canView = viewable.some(t=>mime.startsWith(t));
-                          if(!canView) a.download = name;
-                          else a.target = '_blank';
-                          a.rel = 'noopener';
-                          document.body.appendChild(a);
-                          a.click();
-                          document.body.removeChild(a);
-                          setTimeout(()=>URL.revokeObjectURL(blobUrl), 30000);
-                        } catch(e) {
-                          const a = document.createElement('a');
-                          a.href = url;
-                          a.download = name;
-                          a.target = '_blank';
-                          document.body.appendChild(a);
-                          a.click();
-                          document.body.removeChild(a);
-                        }
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = name;
+                        a.style.display = 'none';
+                        document.body.appendChild(a);
+                        a.click();
+                        setTimeout(()=>document.body.removeChild(a), 100);
                       }}>
                       <${Ic} name="attach" size=${14} style=${{flexShrink:0,color:'var(--teal-dark)'}}/>
                       <span style=${{fontSize:'.72rem',color:'var(--teal-dark)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:140,textDecoration:'underline'}}>${f.name||'Datei '+(i+1)}</span>
