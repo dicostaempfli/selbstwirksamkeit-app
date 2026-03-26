@@ -1912,7 +1912,7 @@ const BLANK_FORM = {
   label:"", icon:"sunrise", sacredSymbol:"", time:"08:00",
   recurrence:"daily", weekdays:[1], monthDays:[1],
   customInterval:1, customUnit:"Tagen", customWeekdays:[],
-  photos:[], area:"Allgemein", timesPerDay:1, additionalTimes:[]
+  photos:[], files:[], area:"Allgemein", timesPerDay:1, additionalTimes:[]
 };
 
 
@@ -1935,10 +1935,11 @@ function RemindersPage({reminders,setReminders}) {
   const openEdit = r  => {
     // Restore photos from localStorage if not in Firestore data
     let photos = r.photos||[];
+    let files = r.files||[];
     if(photos.length===0) {
       try { const stored=localStorage.getItem('rem_photos_'+r.id); if(stored)photos=JSON.parse(stored); } catch(e){}
     }
-    setForm({...BLANK_FORM,...r,photos,additionalTimes:r.additionalTimes||[],area:r.area||'Allgemein'});
+    setForm({...BLANK_FORM,...r,photos,files,additionalTimes:r.additionalTimes||[],area:r.area||'Allgemein'});
     setEditId(r.id);
     setShowModal(true);
   };
@@ -2145,18 +2146,41 @@ function RemindersPage({reminders,setReminders}) {
                         color:'white',cursor:'pointer',display:'flex',alignItems:'center',
                         justifyContent:'center',fontSize:10,padding:0,lineHeight:1}}>✕</button>
                   </div>`)}
-                <input ref=${modalPhotoRef} type="file" accept="image/*" multiple
+                <input ref=${modalPhotoRef} type="file" accept="image/*,video/*" multiple
                   style=${{opacity:0,position:'fixed',top:0,left:0,width:'1px',height:'1px',zIndex:-1}}
                   onChange=${handleModalPhotos}/>
+                <input ref=${modalFileRef} type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,application/*,image/*,video/*,audio/*" multiple
+                  style=${{opacity:0,position:'fixed',top:0,left:0,width:'1px',height:'1px',zIndex:-1}}
+                  onChange=${handleModalFiles}/>
                 <button type="button" onClick=${e=>{e.preventDefault();e.stopPropagation();modalPhotoRef.current&&modalPhotoRef.current.click();}}
                   style=${{width:68,height:68,borderRadius:9,border:'2px dashed var(--border2)',
                     display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',
                     gap:3,cursor:'pointer',color:'var(--muted)',fontSize:'.62rem',fontWeight:700,
                     background:'none',fontFamily:"'Exo 2',sans-serif"}}>
                   <${Ic} name="camera" size=${18}/>
-                  <span>Foto</span>
+                  <span>Foto/Video</span>
+                </button>
+                <button type="button" onClick=${e=>{e.preventDefault();e.stopPropagation();modalFileRef.current&&modalFileRef.current.click();}}
+                  style=${{width:68,height:68,borderRadius:9,border:'2px dashed var(--border2)',
+                    display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',
+                    gap:3,cursor:'pointer',color:'var(--muted)',fontSize:'.62rem',fontWeight:700,
+                    background:'none',fontFamily:"'Exo 2',sans-serif"}}>
+                  <${Ic} name="attach" size=${18}/>
+                  <span>Datei</span>
                 </button>
               </div>
+              ${(form.files||[]).length>0&&html`
+                <div style=${{marginTop:8,display:'flex',flexWrap:'wrap',gap:6}}>
+                  ${(form.files||[]).map((f,i)=>html`
+                    <div key=${i} style=${{display:'flex',alignItems:'center',gap:6,
+                      background:'var(--surface2)',borderRadius:8,padding:'5px 10px',
+                      border:'1px solid var(--border)',maxWidth:'100%'}}>
+                      <${Ic} name="attach" size=${14} style=${{flexShrink:0,color:'var(--teal-dark)'}}/>
+                      <span style=${{fontSize:'.72rem',color:'var(--text)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:140}}>${f.name||'Datei '+(i+1)}</span>
+                      <button onClick=${e=>{e.stopPropagation();setForm(ff=>({...ff,files:(ff.files||[]).filter((_,j)=>j!==i)}));}}
+                        style=${{background:'none',border:'none',cursor:'pointer',color:'var(--danger)',padding:'0 2px',fontSize:13,lineHeight:1,flexShrink:0}}>✕</button>
+                    </div>`)}
+                </div>`}
             </div>
             <div class="modal-actions" style=${{justifyContent:"space-between"}}>
               <div>
