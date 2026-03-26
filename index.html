@@ -1953,6 +1953,7 @@ function RemindersPage({reminders,setReminders}) {
   };
   const removeReminderPhoto = (remId,photoIdx) => setReminders(rs=>rs.map(r=>r.id===remId?{...r,photos:(r.photos||[]).filter((_,i)=>i!==photoIdx)}:r));
   const modalPhotoRef = useRef(null);
+  const modalFileRef  = useRef(null);
   const handleModalPhotos = async e => {
     if(!e.target.files||!e.target.files.length) return;
     const urls = await Promise.all(Array.from(e.target.files).map(readFile));
