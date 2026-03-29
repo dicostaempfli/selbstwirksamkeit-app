@@ -477,22 +477,24 @@
   /* Library */
   .lib-filter { display:flex; gap:7px; margin-bottom:18px; flex-wrap:wrap; }
   .lib-filter-btn { padding:6px 14px; border-radius:99px; border:1.5px solid var(--border); background:var(--surface); color:var(--muted); font-family:'Exo 2'; font-weight:700; font-size:.79rem; cursor:pointer; display:flex; align-items:center; gap:6px; transition:all .15s; }
-  .lib-filter-btn.sel { border-color:var(--forest); background:var(--forest); color:white; }
+  .lib-filter-btn.sel               { border-color:#c4b8a8; background:#c4b8a8; color:#3a3028; }
+  .lib-filter-btn[data-type="audio"].sel { border-color:#68b87d; background:#68b87d; color:white; }
+  .lib-filter-btn[data-type="video"].sel { border-color:#a0cb7b; background:#a0cb7b; color:#1e3a2f; }
+  .lib-filter-btn[data-type="dokus"].sel { border-color:#efe454; background:#efe454; color:#5a4800; }
   /* All filter buttons use same forest color when selected */
   .lib-filter-btn:hover { border-color:var(--teal); }
-  .lib-filter-btn.sel { border-color:var(--sage-dark); background:var(--sage); color:var(--text); }
   .lib-grid { display:grid; grid-template-columns:1fr 1fr; gap:13px; margin-bottom:20px; }
   .lib-card { background:var(--surface); border-radius:var(--radius); box-shadow:var(--shadow); overflow:hidden; cursor:pointer; transition:transform .15s,box-shadow .15s; }
   .lib-card:hover { transform:translateY(-2px); box-shadow:var(--shadow2); }
   .lib-thumb { width:100%; height:130px; display:flex; align-items:center; justify-content:center; color:var(--muted); position:relative; }
   .lib-thumb img { width:100%; height:100%; object-fit:cover; }
   .lib-type-badge { position:absolute; top:9px; left:9px; padding:3px 9px; border-radius:99px; font-size:.67rem; font-weight:700; display:flex; align-items:center; gap:4px; }
-  .badge-audio { background:var(--teal); color:white; }
-  .badge-video { background:var(--sage); color:var(--forest); }
-  .badge-dokus { background:var(--lime); color:var(--forest); }
+  .badge-audio { background:#68b87d; color:white; }
+  .badge-video { background:#a0cb7b; color:#1e3a2f; }
+  .badge-dokus { background:#efe454; color:#3a3000; }
   .lib-play-overlay { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(30,60,35,.2); }
   .lib-play-btn { width:40px; height:40px; border-radius:50%; background:#fff; display:flex; align-items:center; justify-content:center; color:var(--text); box-shadow:0 2px 8px rgba(0,0,0,.2); }
-  .lib-card-body { padding:12px; }
+  .lib-card-body { padding:12px; border-left-width:3px; border-left-style:solid; }
   .lib-card-title { font-weight:700; font-size:.88rem; margin-bottom:3px; color:var(--text); }
   .lib-card-desc { font-size:.76rem; color:var(--muted); line-height:1.5; }
   .lib-card-meta { display:flex; justify-content:space-between; align-items:center; margin-top:9px; font-size:.71rem; color:var(--muted); }
@@ -1629,7 +1631,7 @@ function LibraryPage({library,setLibrary}) {
   const save = () => { if(!form.title.trim())return; setShowUpload(false); setForm({title:"",desc:"",type:"audio"}); setLibrary(l=>[{id:Date.now(),...form,uploadedAt:new Date().toLocaleDateString("de-CH")},...l]); };
   const del  = id => setLibrary(l=>l.filter(i=>i.id!==id));
   const BadgeCls = {audio:"badge-audio",video:"badge-video",dokus:"badge-dokus"};
-  const ThumbBg  = {audio:"#d8f0e0",video:"#eef7e4",dokus:"#fafbe0"};
+  const ThumbBg  = {audio:"#d8f0e0",video:"#eef7e4",dokus:"#fafbe0",all:"#f0ede8"};
   const TypeIc   = ({type}) => html`<${Ic} name=${type==="audio"?"music":type==="video"?"video":"file"} size=${30}/>`;
 
   return html`
@@ -1650,7 +1652,7 @@ function LibraryPage({library,setLibrary}) {
       <div class="lib-grid">
         ${filtered.map(item=>html`
           <div key=${item.id} class="lib-card">
-            <div class="lib-thumb" style=${{background:ThumbBg[item.type]}}>
+            <div class="lib-thumb" style=${{background:ThumbBg[item.type]||"#f0ede8",borderBottom:"2px solid "+(item.type==="audio"?"#68b87d":item.type==="video"?"#a0cb7b":item.type==="dokus"?"#efe454":"#c4b8a8")}}>
               <div style=${{color:'var(--muted)',opacity:.45}}><${TypeIc} type=${item.type}/></div>
               ${(item.type==="audio"||item.type==="video")&&html`
               <div class="lib-play-overlay" style=${{cursor:"pointer"}} onClick=${()=>{
@@ -1672,9 +1674,9 @@ function LibraryPage({library,setLibrary}) {
               </div>`}
               <span class=${"lib-type-badge "+BadgeCls[item.type]}><${Ic} name=${item.type==="audio"?"music":item.type==="video"?"video":"file"} size=${10}/>${item.type==="audio"?"Audio":item.type==="video"?"Video":"Text"}</span>
             </div>
-            <div class="lib-card-body">
-              <div class="lib-card-title">${item.title}</div>
-              <div class="lib-card-desc">${item.desc}</div>
+            <div class="lib-card-body" style=${{borderLeft:"3px solid "+(item.type==="audio"?"#68b87d":item.type==="video"?"#a0cb7b":item.type==="dokus"?"#efe454":"#c4b8a8")}}>
+              <div class="lib-card-title" style=${{color:"#1a1a1a"}}>${item.title}</div>
+              <div class="lib-card-desc" style=${{color:"#444"}}>${item.desc}</div>
               ${item.keywords&&html`<div style=${{marginTop:5,display:'flex',flexWrap:'wrap',gap:4}}>
                 ${item.keywords.split(',').map(k=>k.trim()).filter(k=>k).map(k=>html`
                   <span key=${k} style=${{fontSize:'.62rem',background:'var(--sage-pale)',color:'var(--forest)',
@@ -1940,6 +1942,16 @@ const BLANK_FORM = {
 
 
 const REC_TABS = [
+  {id:"daily",   icon:"sun",    label:"Täglich"},
+  {id:"weekly",  icon:"repeat", label:"Wöchentlich"},
+  {id:"monthly", icon:"calendar",label:"Monatlich"},
+  {id:"custom",  icon:"sliders", label:"Benutzerdefiniert"},
+];
+
+
+
+
+BS = [
   {id:"daily",   icon:"sun",    label:"Täglich"},
   {id:"weekly",  icon:"repeat", label:"Wöchentlich"},
   {id:"monthly", icon:"calendar",label:"Monatlich"},
