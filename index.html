@@ -1613,13 +1613,14 @@ function JournalPage({journal,setJournal}) {
 
 // ── LIBRARY PAGE ──
 function LibraryPage({library,setLibrary}) {
+  const [searchQ,setSearchQ] = useState('');
   const [filter,setFilter]     = useState("all");
   const [showUpload,setShowUpload] = useState(false);
   const [drag,setDrag]         = useState(false);
   const [form,setForm]         = useState({title:"",desc:"",type:"audio"});
   const fileRef = useRef(null);
 
-  const filtered = filter==="all"?library:library.filter(i=>i.type===filter);
+  const filtered = (filter==="all"?library:library.filter(i=>i.type===filter)).filter(i=>!searchQ||i.title.toLowerCase().includes(searchQ.toLowerCase())||(i.desc&&i.desc.toLowerCase().includes(searchQ.toLowerCase())))
   const TYPES = [{id:"all",label:"Alle",icon:"library"},{id:"audio",label:"Audio",icon:"music"},{id:"video",label:"Video",icon:"video"},{id:"text",label:"Text",icon:"file"}];
 
   const handleFile = e => { const f=e.target.files[0]; if(!f)return; const t=f.type.startsWith("audio")?"audio":f.type.startsWith("video")?"video":"text"; setForm(v=>({...v,type:t})); };
@@ -1633,10 +1634,15 @@ function LibraryPage({library,setLibrary}) {
   return html`
     <div class="content-main">
       <div class="flex-between">
-        <div><h1 class="page-heading">Mediathek</h1><p class="page-sub">Hier findest du Impulse, Übungen und Inspiration für deinen Alltag — zusammengestellt von deinem Diana & Rico.</p></div>
+        <div><h1 class="page-heading">Mediathek</h1><p class="page-sub">Hier findest du Impulse, Übungen und Inspiration für deinen Alltag — zusammengestellt von Diana & Rico.</p></div>
         
       </div>
-      <div class="info-tip info-tip-sage"><${Ic} name="info" size=${15} style=${{flexShrink:0,marginTop:1}}/><span>Stelle deinen Coachees Audio-Übungen, Video-Inputs oder Reflexionsbögen bereit.</span></div>
+      
+      <div style=${{marginBottom:12}}>
+        <input class="input" type="text" placeholder="Inhalte suchen…"
+          value=${searchQ} onInput=${e=>setSearchQ(e.target.value)}
+          style=${{width:'100%',fontSize:'.88rem',padding:'9px 14px'}}/>
+      </div>
       <div class="lib-filter">
         ${TYPES.map(t=>html`<button key=${t.id} class=${"lib-filter-btn"+(filter===t.id?" sel":"")} onClick=${()=>setFilter(t.id)}><${Ic} name=${t.icon} size=${13}/>${t.label}</button>`)}
       </div>
@@ -1647,8 +1653,19 @@ function LibraryPage({library,setLibrary}) {
               <div style=${{color:'var(--muted)',opacity:.45}}><${TypeIc} type=${item.type}/></div>
               ${(item.type==="audio"||item.type==="video")&&html`
               <div class="lib-play-overlay" style=${{cursor:"pointer"}} onClick=${()=>{
-                if(item.fileUrl) window.open(item.fileUrl,'_blank');
-                else alert("Kein Video/Audio hochgeladen — nur Demo-Daten.");
+                if(item.fileUrl) {
+                  try {
+                    const arr=item.fileUrl.split(',');
+                    const mime=arr[0].match(/:(.*?);/)[1];
+                    const bstr=atob(arr[1]); let n=bstr.length;
+                    const u8=new Uint8Array(n); while(n--)u8[n]=bstr.charCodeAt(n);
+                    const blob=new Blob([u8],{type:mime});
+                    const url=URL.createObjectURL(blob);
+                    const a=document.createElement('a'); a.href=url; a.target='_blank'; a.rel='noopener';
+                    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+                    setTimeout(()=>URL.revokeObjectURL(url),30000);
+                  } catch(e){ window.open(item.fileUrl,'_blank'); }
+                }
               }}>
                 <div class="lib-play-btn"><${Ic} name="play" size=${17}/></div>
               </div>`}
@@ -1661,7 +1678,6 @@ function LibraryPage({library,setLibrary}) {
                 <span>${item.duration||""}</span>
                 <div style=${{display:'flex',gap:6,alignItems:'center'}}>
                   <span>${item.uploadedAt}</span>
-                  <button class="btn btn-danger btn-sm" style=${{padding:'3px 7px'}} onClick=${()=>del(item.id)}><${Ic} name="trash" size=${11}/></button>
                 </div>
               </div>
             </div>
