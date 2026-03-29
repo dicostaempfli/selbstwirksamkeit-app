@@ -213,7 +213,7 @@
   }
   .chat-topbar {
     background:var(--surface); border-bottom:1px solid var(--border);
-    padding:12px 20px; display:flex; align-items:center; gap:12px;
+    padding:0 16px; height:60px; display:flex; align-items:center; gap:12px;
     flex-shrink:0; box-shadow:0 1px 6px rgba(62,122,74,.07);
   }
   .ct-avatar {
@@ -665,7 +665,7 @@
     }
 
     /* Chat topbar */
-    .chat-topbar { padding: 10px 14px; padding-top: max(54px, calc(env(safe-area-inset-top, 44px) + 14px)) !important; }
+    .chat-topbar { padding: 0 14px; padding-top: env(safe-area-inset-top, 0px); height: calc(60px + env(safe-area-inset-top, 0px)); }
     .ct-name { font-size: .88rem; }
     .ct-status { font-size: .68rem; }
 
@@ -1310,8 +1310,13 @@ function ChatWindow({coachee,onSend,onSendImg,onUpdate,onBack}) {
   const profileRef = useRef(null);
   const galleryRef = useRef(null);
   const chatImgRef = useRef(null);
-  const attachRef   = useRef(null);
-  const handleAttach = async e => { const f=e.target.files[0]; if(!f)return; const r=new FileReader(); r.onload=ev=>{onSendImg(ev.target.result);}; r.readAsDataURL(f); e.target.value=""; };
+  const attachRef  = useRef(null);
+  const handleAttach = async e => {
+    const f=e.target.files[0]; if(!f)return;
+    const r=new FileReader();
+    r.onload=ev=>{ onSendImg(ev.target.result); };
+    r.readAsDataURL(f); e.target.value="";
+  };
 
   useEffect(()=>{ bottomRef.current?.scrollIntoView({behavior:"smooth"}); },[coachee.messages.length]);
 
@@ -1321,13 +1326,11 @@ function ChatWindow({coachee,onSend,onSendImg,onUpdate,onBack}) {
 
   const handleSend = () => { if(!input.trim())return; onSend(input); setInput(""); };
   const handleKey  = e => { if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();handleSend();} };
-
-  const handleProfilePic = async e => { const f=e.target.files[0]; if(!f)return; onUpdate({photo:await readFile(f)}); };
-  const handleGallery    = async e => { const urls=await Promise.all(Array.from(e.target.files).map(readFile)); onUpdate({photos:[...(coachee.photos||[]),...urls]}); };
-  const handleChatImg    = async e => { const f=e.target.files[0]; if(!f)return; onSendImg(await readFile(f)); setTimeout(()=>bottomRef.current?.scrollIntoView({behavior:"smooth"}),50); };
-
-  const QUICK = ["Wie geht es dir heute?","Danke für dein Update.","Sehr gut — das ist ein wichtiger Schritt.","Ich freue mich auf unsere nächste Session."];
-  const lastIsCoachee = coachee.messages.length>0&&coachee.messages.at(-1).from==="coachee";
+  const handleChatImg = async e => {
+    const f=e.target.files[0]; if(!f)return;
+    onSendImg(await readFile(f));
+    setTimeout(()=>bottomRef.current?.scrollIntoView({behavior:"smooth"}),50);
+  };
 
   return html`
     <div class="chat-area" style=${{display:"flex",flexDirection:"column",flex:1,minWidth:0,overflow:"hidden"}}>
@@ -1341,16 +1344,60 @@ function ChatWindow({coachee,onSend,onSendImg,onUpdate,onBack}) {
           <div class="ct-name">Diana & Rico Stämpfli</div>
           <div class="ct-status" style=${{display:"flex",alignItems:"center",gap:5}}>
             <span class="status-dot"/>
-            <span>Online</span>
-            <span style=${{opacity:.35,margin:"0 3px"}}>·</span>
-            <span>Dein Coaching-Team</span>
+            <span>Online · Dein Coaching-Team</span>
           </div>
         </div>
-      </div>`;
+      </div>
+
+      <div class="messages" ref=${bottomRef} style=${{flex:1,overflowY:"auto",padding:"16px"}}>
+        ${Object.entries(groups).map(([date,msgs])=>html`
+          <div key=${date}>
+            <div class="date-divider">${date}</div>
+            ${msgs.map((msg,i)=>{
+              const isOut = msg.from==="coachee";
+              const prevSame = i>0&&msgs[i-1].from===msg.from;
+              return html`
+                <div key=${msg.id} class=${"msg-row "+(isOut?"out":"in")} style=${{marginBottom:prevSame?1:8}}>
+                  <div class="msg-bubble-wrap">
+                    ${!isOut&&!prevSame&&html`<div class="msg-sender">${msg.sender||"Diana"}</div>`}
+                    <div class="msg-bubble">
+                      ${msg.imgSrc&&html`<div class="msg-img-wrap"><img src=${msg.imgSrc} class="msg-img" alt="Foto" onClick=${()=>setLightbox(msg.imgSrc)}/></div>`}
+                      ${msg.text&&html`<span>${msg.text}</span>`}
+                    </div>
+                    <div class="msg-meta">
+                      <span class="msg-time-small">${msg.time}</span>
+                      ${isOut&&msg.seen&&html`<span style=${{color:"var(--teal)",fontSize:".65rem"}}>✓✓</span>`}
+                    </div>
+                  </div>
+                </div>`;
+            })}
+          </div>`)}
+        <div ref=${bottomRef}/>
+      </div>
+
+      <div class="chat-input-area">
+        <input ref=${chatImgRef} type="file" accept="image/*,video/*" capture="environment"
+          style=${{display:"none"}} onChange=${handleChatImg}/>
+        <input ref=${attachRef} type="file"
+          accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,application/*"
+          style=${{display:"none"}} onChange=${handleAttach}/>
+        <button class="attach-btn" onClick=${()=>chatImgRef.current?.click()}><${Ic} name="camera" size=${18}/></button>
+        <button class="attach-btn" onClick=${()=>attachRef.current?.click()}><${Ic} name="attach" size=${18}/></button>
+        <textarea ref=${textRef} class="input-box" rows=${1} value=${input}
+          onInput=${e=>setInput(e.target.value)} onKeyDown=${handleKey}
+          placeholder=${"Nachricht an Diana & Rico…"}/>
+        <button class="send-btn" onClick=${handleSend} disabled=${!input.trim()}><${Ic} name="send" size=${17}/></button>
+      </div>
+
+      ${lightbox&&html`
+        <div class="lightbox" onClick=${()=>setLightbox(null)}>
+          <img src=${lightbox} alt="Foto"/>
+          <div class="lightbox-close"><${Ic} name="x" size=${26}/></div>
+        </div>`}
+    </div>`;
 }
 
 
-// ── DASHBOARD ──
 function DashboardPage({coachees,library,reminders,setPage,user}) {
   const avgProg = 0; // goals removed
   const hour = new Date().getHours();
@@ -2349,12 +2396,8 @@ function DoodlePage({doodles,setDoodles,coachees,events}) {
       <p class="page-sub">Deine Terminvorschläge und Events von Diana & Rico.</p>
 
       <div class="sub-tabs">
-        <button class=${"sub-tab"+(subTab==="coachee"?" active":"")} onClick=${()=>setSubTab("coachee")}>
-          <${Ic} name="calendar" size=${14}/> Terminvorschläge
-        </button>
-        <button class=${"sub-tab"+(subTab==="events"?" active":"")} onClick=${()=>setSubTab("events")}>
-          <${Ic} name="star" size=${14}/> Events
-        </button>
+        <button class=${"sub-tab"+(subTab==="coachee"?" active":"")} onClick=${()=>setSubTab("coachee")}>Terminvorschläge</button>
+        <button class=${"sub-tab"+(subTab==="events"?" active":"")} onClick=${()=>setSubTab("events")}>Events</button>
       </div>
 
       ${subTab==="coachee" && html`
