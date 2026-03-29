@@ -360,9 +360,9 @@ const INIT_COACHEES = [
 const INIT_LIBRARY = [
   {id:"l1",type:"audio",title:"Atemübung — 5 Minuten",desc:"Geführte Atemübung zur täglichen Zentrierung.",uploadedAt:"20.03.2026"},
   {id:"l2",type:"video",title:"Einführung: Selbstwirksamkeit",desc:"Was bedeutet Selbstwirksamkeit im Alltag?",uploadedAt:"18.03.2026"},
-  {id:"l3",type:"text",title:"Reflexionsbogen — Woche 1",desc:"Leitfragen für deine erste Coaching-Woche.",uploadedAt:"15.03.2026"},
+  {id:"l3",type:"dokus",title:"Reflexionsbogen — Woche 1",desc:"Leitfragen für deine erste Coaching-Woche.",uploadedAt:"15.03.2026"},
   {id:"l4",type:"audio",title:"Körper-Scan Entspannung",desc:"Geführte Körperwahrnehmung für abends.",uploadedAt:"10.03.2026"},
-  {id:"l5",type:"text",title:"Werte-Kompass Übung",desc:"Finde und verankere deine persönlichen Werte.",uploadedAt:"05.03.2026"},
+  {id:"l5",type:"dokus",title:"Werte-Kompass Übung",desc:"Finde und verankere deine persönlichen Werte.",uploadedAt:"05.03.2026"},
 ];
 const INIT_DOODLES = [
   {id:"d1",title:"Coaching-Session April",desc:"Nächstes Gespräch — wähle bitte 2–3 Zeiten.",status:"open",recipients:["c1","c3"],
@@ -816,7 +816,7 @@ function CoacheesPage({coachees,setCoachees,setPage}) {
       ${showAdd&&html`
         <div class="overlay" onClick=${e=>{if(e.target===e.currentTarget)setShowAdd(false);}}>
           <div class="modal">
-            <h2 class="modal-title">Neuen Coachee hinzufügen</h2>
+            <div style=${{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4}}><h2 class="modal-title" style=${{marginBottom:0}}>Neuen Coachee hinzufügen</h2><button style=${{background:"none",border:"none",cursor:"pointer",color:"var(--muted)",padding:4,borderRadius:8,display:"flex"}} onClick=${()=>{const o=document.querySelector(".overlay");if(o)o.click();}}><\${Ic} name="x" size=\${20}/></button></div>
             <div class="form-row"><label class="label">Name</label><input class="input" value=${form.name} onInput=${e=>setForm(f=>({...f,name:e.target.value}))} placeholder="z.B. Anna Meier"/></div>
             <div class="form-row"><label class="label">Thema</label><input class="input" value=${form.topic} onInput=${e=>setForm(f=>({...f,topic:e.target.value}))} placeholder="z.B. Paarbeziehung"/></div>
             <div class="modal-actions">
@@ -835,9 +835,9 @@ function LibraryPage({library,setLibrary}) {
   const [form,setForm] = useState({title:"",desc:"",type:"audio"});
   const [drag,setDrag] = useState(false);
   const fileRef = useRef(null);
-  const TYPES=[{id:"all",label:"Alle"},{id:"audio",label:"Audio"},{id:"video",label:"Video"},{id:"text",label:"Text"}];
+  const TYPES=[{id:"all",label:"Alle"},{id:"audio",label:"Audio"},{id:"video",label:"Video"},{id:"dokus",label:"Dokus"}];
   const filtered = filter==="all"?library:library.filter(i=>i.type===filter);
-  const ThumbBg={audio:"",video:"video",text:"text"};
+  const ThumbBg={audio:"",video:"video",text:"dokus"};
   const TypeIc={audio:"music",video:"video",text:"file"};
   const BadgeCls={audio:"badge-audio",video:"badge-video",text:"badge-text"};
 
@@ -863,7 +863,7 @@ function LibraryPage({library,setLibrary}) {
           <div key=${item.id} class="lib-card">
             <div class=${"lib-thumb "+ThumbBg[item.type]}>
               <${Ic} name=${TypeIc[item.type]} size=${32} style=${{opacity:.3}}/>
-              <span class=${"lib-badge "+BadgeCls[item.type]}>${item.type==="audio"?"Audio":item.type==="video"?"Video":"Text"}</span>
+              <span class=${"lib-badge "+BadgeCls[item.type]}>${item.type==="audio"?"Audio":item.type==="video"?"Video":"Dokus"}</span>
             </div>
             <div class="lib-body">
               <div class="lib-title">${item.title}</div>
@@ -880,7 +880,7 @@ function LibraryPage({library,setLibrary}) {
       ${showUpload&&html`
         <div class="overlay" onClick=${e=>{if(e.target===e.currentTarget)setShowUpload(false);}}>
           <div class="modal">
-            <h2 class="modal-title">Material hochladen</h2>
+            <div style=${{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4}}><h2 class="modal-title" style=${{marginBottom:0}}>Material hochladen</h2><button style=${{background:"none",border:"none",cursor:"pointer",color:"var(--muted)",padding:4,borderRadius:8,display:"flex"}} onClick=${()=>setShowUpload(false)}><${Ic} name="x" size=${20}/></button></div>
             <div class="upload-zone" onDragOver=${e=>{e.preventDefault();setDrag(true);}} onDragLeave=${()=>setDrag(false)} onDrop=${e=>{e.preventDefault();setDrag(false);}} onClick=${()=>fileRef.current?.click()}>
               <div style=${{display:"flex",justifyContent:"center",opacity:.4,marginBottom:8}}><${Ic} name="upload" size=${28}/></div>
               <p style=${{fontSize:".87rem"}}>Datei hierher ziehen oder klicken</p>
@@ -890,9 +890,9 @@ function LibraryPage({library,setLibrary}) {
             <div class="form-row" style=${{marginTop:12}}>
               <label class="label">Typ</label>
               <div style=${{display:"flex",gap:7}}>
-                ${["audio","video","text"].map(t=>html`
+                ${["audio","video","dokus"].map(t=>html`
                   <button key=${t} class=${"btn btn-ghost btn-sm"+(form.type===t?" btn-sage":"")} onClick=${()=>setForm(f=>({...f,type:t}))}>
-                    <${Ic} name=${TypeIc[t]} size=${13}/>${t==="audio"?"Audio":t==="video"?"Video":"Text"}
+                    <${Ic} name=${TypeIc[t]} size=${13}/>${t==="audio"?"Audio":t==="video"?"Video":"Dokus"}
                   </button>`)}
               </div>
             </div>
@@ -994,7 +994,7 @@ function DoodlePage({doodles,setDoodles,coachees}) {
       ${/* CREATE MODAL */showCreate&&html`
         <div class="overlay" onClick=${e=>{if(e.target===e.currentTarget)setShowCreate(false);}}>
           <div class="modal">
-            <h2 class="modal-title">Neuer Terminvorschlag</h2>
+            <div style=${{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4}}><h2 class="modal-title" style=${{marginBottom:0}}>Neuer Terminvorschlag</h2><button style=${{background:"none",border:"none",cursor:"pointer",color:"var(--muted)",padding:4,borderRadius:8,display:"flex"}} onClick=${()=>{const o=document.querySelector(".overlay");if(o)o.click();}}><\${Ic} name="x" size=\${20}/></button></div>
             <div class="form-row"><label class="label">Titel</label><input class="input" value=${newTitle} onInput=${e=>setNewTitle(e.target.value)} placeholder="z.B. Coaching-Session April"/></div>
             <div class="form-row"><label class="label">Beschreibung (optional)</label><textarea class="textarea" rows=${2} value=${newDesc} onInput=${e=>setNewDesc(e.target.value)} placeholder="z.B. Wähle bitte 2–3 Zeiten die dir passen."/></div>
             <div class="form-row">
@@ -1028,7 +1028,7 @@ function DoodlePage({doodles,setDoodles,coachees}) {
       ${/* RESULTS MODAL */showResults&&resultDoodle&&html`
         <div class="overlay" onClick=${e=>{if(e.target===e.currentTarget)setShowResults(null);}}>
           <div class="modal">
-            <h2 class="modal-title">${resultDoodle.title} — Ergebnisse</h2>
+            <div style=${{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4}}><h2 class="modal-title" style=${{marginBottom:0}}>${resultDoodle.title} — Ergebnisse</h2><button style=${{background:"none",border:"none",cursor:"pointer",color:"var(--muted)",padding:4,borderRadius:8,display:"flex"}} onClick=${()=>{const o=document.querySelector(".overlay");if(o)o.click();}}><\${Ic} name="x" size=\${20}/></button></div>
             ${(resultDoodle.slots||[]).map((s,i)=>{
               const best=bestSlotIdx(resultDoodle);
               const isBest=i===best&&Object.values(s.votes||{}).some(v=>v==="yes");
