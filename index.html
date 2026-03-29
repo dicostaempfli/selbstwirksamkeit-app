@@ -213,7 +213,7 @@
   }
   .chat-topbar {
     background:var(--surface); border-bottom:1px solid var(--border);
-    padding:12px 20px; padding-top:max(12px,env(safe-area-inset-top,12px)); display:flex; align-items:center; gap:12px;
+    padding:12px 20px; display:flex; align-items:center; gap:12px;
     flex-shrink:0; box-shadow:0 1px 6px rgba(62,122,74,.07);
   }
   .ct-avatar {
@@ -665,7 +665,7 @@
     }
 
     /* Chat topbar */
-    .chat-topbar { padding: 10px 14px; }
+    .chat-topbar { padding: 10px 14px; padding-top: max(54px, calc(env(safe-area-inset-top, 44px) + 14px)) !important; }
     .ct-name { font-size: .88rem; }
     .ct-status { font-size: .68rem; }
 
@@ -1339,76 +1339,16 @@ function ChatWindow({coachee,onSend,onSendImg,onUpdate,onBack}) {
         </svg>
         <div style=${{flex:1,minWidth:0}}>
           <div class="ct-name">Diana & Rico Stämpfli</div>
-          <div class="ct-status">
+          <div class="ct-status" style=${{display:"flex",alignItems:"center",gap:5}}>
             <span class="status-dot"/>
-            <span>Online · Dein Coaching-Team</span>
+            <span>Online</span>
+            <span style=${{opacity:.35,margin:"0 3px"}}>·</span>
+            <span>Dein Coaching-Team</span>
           </div>
         </div>
-        </div>
-${showInfo&&html`
-        <div class="info-bar">
-          <span><strong>Thema:</strong> ${coachee.topic}</span>
-          <span><strong>Nachrichten:</strong> ${coachee.messages.length}</span>
-          <span><strong>Fotos:</strong> ${(coachee.photos||[]).length}</span>
-        </div>`}
-
-      <div class="messages">
-        ${Object.entries(groups).map(([date,msgs])=>html`
-          <div key=${date}>
-            <div class="date-divider">${date}</div>
-            ${msgs.map((msg,i)=>{
-              const isOut=msg.from==="coach";
-              const prevSame=i>0&&msgs[i-1].from===msg.from;
-              return html`
-                <div key=${msg.id} class=${"msg-row "+(isOut?"out":"in")} style=${{marginBottom:prevSame?1:8}}>
-                  <div class="msg-bubble-wrap">
-                    ${!isOut&&!prevSame&&html`<div class="msg-sender">${msg.sender||coachee.name.split(" ")[0]}</div>`}
-                    <div class="msg-bubble">
-                      ${msg.imgSrc&&html`<div class="msg-img-wrap"><img src=${msg.imgSrc} class="msg-img" alt="Foto" onClick=${()=>setLightbox(msg.imgSrc)}/></div>`}
-                      ${msg.text&&html`<span>${msg.text}</span>`}
-                    </div>
-                    <div class="msg-meta">
-                      <span class="msg-time-small">${msg.time}</span>
-                      ${isOut&&html`<span class="tick"><${Ic} name="check" size=${11}/></span>`}
-                    </div>
-                  </div>
-                </div>`;
-            })}
-          </div>`)}
-        <div ref=${bottomRef}/>
-      </div>
-
-      ${showPhotos&&html`
-        <div class="photo-panel">
-          <div class="photo-panel-title">Foto-Galerie — ${coachee.name.split(" ")[0]}</div>
-          <div class="photo-grid">
-            ${(coachee.photos||[]).map((src,i)=>html`
-              <img key=${i} src=${src} class="photo-thumb" alt=${"Foto "+(i+1)} onClick=${()=>setLightbox(src)}/>`)}
-            <div class="photo-add" onClick=${()=>galleryRef.current?.click()}>
-              <${Ic} name="plus" size=${18}/><span>Foto</span>
-              <input ref=${galleryRef} type="file" accept="image/*" multiple style=${{display:'none'}} onChange=${handleGallery}/>
-            </div>
-          </div>
-        </div>`}
-
-      <div class="chat-input-area">
-        <button class="attach-btn" onClick=${()=>chatImgRef.current?.click()}><${Ic} name="camera" size=${18}/></button>
-        <button class="attach-btn" onClick=${()=>attachRef.current?.click()}><${Ic} name="attach" size=${18}/></button>
-        <input ref=${attachRef} type="file" accept="image/*,video/*,.pdf,.doc,.docx" style=${{display:'none'}} onChange=${handleAttach}/>
-        <input ref=${chatImgRef} type="file" accept="image/*" style=${{display:'none'}} onChange=${handleChatImg}/>
-        <textarea ref=${textRef} class="input-box" rows=${1} value=${input}
-          onInput=${e=>setInput(e.target.value)} onKeyDown=${handleKey}
-          placeholder=${"Nachricht an "+coachee.name.split(" ")[0]+"…"}/>
-        <button class="send-btn" onClick=${handleSend} disabled=${!input.trim()}><${Ic} name="send" size=${17}/></button>
-      </div>
-
-      ${lightbox&&html`
-        <div class="lightbox" onClick=${()=>setLightbox(null)}>
-          <img src=${lightbox} alt="Foto"/>
-          <div class="lightbox-close"><${Ic} name="x" size=${26}/></div>
-        </div>`}
-    </div>`;
+      </div>`;
 }
+
 
 // ── DASHBOARD ──
 function DashboardPage({coachees,library,reminders,setPage,user}) {
@@ -2344,7 +2284,7 @@ function showToastMsg(msg) {
 
 // ── DOODLE PAGE ──
 function DoodlePage({doodles,setDoodles,coachees,events}) {
-  const [subTab,setSubTab]       = useState("admin");
+  const [subTab,setSubTab]       = useState("coachee");
   const [showCreate,setShowCreate] = useState(false);
   const [showResults,setShowResults] = useState(null);
   const [newTitle,setNewTitle]   = useState("");
@@ -2405,55 +2345,19 @@ function DoodlePage({doodles,setDoodles,coachees,events}) {
 
   return html`
     <div class="content-main">
-      <h1 class="page-heading">Events & Termine</h1>
-      <p class="page-sub">Aktuelle Termine und Events von deinem Diana & Rico.</p>
+      <h1 class="page-heading">Termine & Events</h1>
+      <p class="page-sub">Deine Terminvorschläge und Events von Diana & Rico.</p>
 
       <div class="sub-tabs">
-        <button class=${"sub-tab"+(subTab==="admin"?" active":"")} onClick=${()=>setSubTab("admin")}>Admin — Doodle</button>
-        <button class=${"sub-tab"+(subTab==="coachee"?" active":"")} onClick=${()=>setSubTab("coachee")}>Coachee-Ansicht</button>
-        <button class=${"sub-tab"+(subTab==="events"?" active":"")} onClick=${()=>setSubTab("events")}>Events</button>
+        <button class=${"sub-tab"+(subTab==="coachee"?" active":"")} onClick=${()=>setSubTab("coachee")}>
+          <${Ic} name="calendar" size=${14}/> Terminvorschläge
+        </button>
+        <button class=${"sub-tab"+(subTab==="events"?" active":"")} onClick=${()=>setSubTab("events")}>
+          <${Ic} name="star" size=${14}/> Events
+        </button>
       </div>
 
-      ${subTab==="admin" && html`
-        <div class="flex-between">
-          <span style=${{fontSize:".84rem",color:"var(--muted)"}}>${doodles.length} Terminvorschläge</span>
-          
-        </div>
-        
-        ${doodles.length===0 && html`<div style=${{textAlign:"center",padding:"48px",color:"var(--muted)"}}><p>Noch kein Terminvorschlag erstellt.</p></div>`}
-        ${doodles.map(d=>{
-          const best=bestSlotIdx(d);
-          const votedCount=d.recipients.filter(rid=>d.slots.some(s=>s.votes[rid])).length;
-          return html`
-            <div class=${"doodle-card"+(d.status==="closed"?" closed":"")} key=${d.id}>
-              <div style=${{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
-                <div class="doodle-title">${d.title}</div>
-                <span class=${"status-pill "+(d.status==="open"?"status-open":"status-closed")}>${d.status==="open"?"Offen":"Abgeschlossen"}</span>
-              </div>
-              <div class="doodle-meta">
-                <span>${d.slots.length} Zeitvorschläge</span>
-                <span>${votedCount}/${d.recipients.length} abgestimmt</span>
-              </div>
-              <div class="doodle-recipients">
-                ${d.recipients.map(rid=>{
-                  const c=coachees.find(x=>x.id===rid);if(!c)return null;
-                  return html`<span key=${rid} class="recipient-chip" style=${{background:c.color+"33"}}>${c.name}</span>`;
-                })}
-              </div>
-              <div class="doodle-actions">
-                <button class="btn btn-sage btn-sm" onClick=${()=>setShowResults(d.id)}>Ergebnisse</button>
-                ${d.status==="open"&&html`<button class="btn btn-ghost btn-sm" onClick=${()=>setDoodles(ds=>ds.map(x=>x.id===d.id?{...x,status:"closed"}:x))}>Schliessen</button>`}
-                <button class="btn btn-danger btn-sm" onClick=${()=>setDoodles(ds=>ds.filter(x=>x.id!==d.id))}><${Ic} name="trash" size=${12}/></button>
-              </div>
-            </div>`;
-        })}
-      `}
-
       ${subTab==="coachee" && html`
-        <div class="info-tip" style=${{background:"var(--teal-pale)",borderLeftColor:"var(--teal-dark)"}}>
-          <${Ic} name="info" size=${15} style=${{flexShrink:0,marginTop:1}}/>
-          <span>So sieht es ein Coachee — hier als Beispiel mit Lena Müller.</span>
-        </div>
         ${doodles.filter(d=>d.recipients.includes(1)).map(d=>html`
           <div key=${d.id} style=${{background:"var(--surface)",borderRadius:"var(--radius)",boxShadow:"var(--shadow)",padding:24,marginBottom:14}}>
             ${submitted[d.id]
