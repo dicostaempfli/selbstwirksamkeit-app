@@ -2482,14 +2482,10 @@ function DoodlePage({doodles,setDoodles,coachees,events}) {
               <div class="event-title-c">${e.title}</div>
               <div class="event-meta-c">${e.time} · ${e.location}</div>
               <div class="event-desc-c">${e.desc}</div>
-              <div style=${{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                <span style=${{fontSize:".74rem",color:"var(--muted)"}}>${e.registered} von ${e.spots} Plätzen belegt</span>
-                <a href="https://www.selbstwirksamkeit.ch/events" target="_blank"
-                  style=${{fontSize:".78rem",fontWeight:700,color:"var(--teal-dark)",textDecoration:"none",display:"flex",alignItems:"center",gap:4}}>
-                  Anmelden →
-                </a>
-              </div>
-              <div class="event-bar"><div class="event-bar-fill" style=${{background:'#68b87d',width:Math.round(e.registered/e.spots*100)+"%"}}/></div>
+              <a href="https://www.selbstwirksamkeit.ch/events" target="_blank"
+                style=${{fontSize:".78rem",fontWeight:700,color:"var(--teal-dark)",textDecoration:"none",display:"inline-flex",alignItems:"center",gap:4,marginTop:4}}>
+                Anmelden →
+              </a>
             </div>
           </div>`)}
       `}
