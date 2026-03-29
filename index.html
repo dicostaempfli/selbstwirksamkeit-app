@@ -672,7 +672,7 @@
 
     /* Chat input */
     .chat-window { display:flex; flex-direction:column; flex:1; overflow:hidden; max-width:100%; }
-  .chat-input-area { padding: 8px 10px; padding-bottom: calc(62px + env(safe-area-inset-bottom, 0px) + 4px) !important; }   .input-box { font-size: .88rem; padding: 8px 12px; }
+  .chat-input-area { padding: 8px 10px; padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px) + 4px) !important; }   .input-box { font-size: .88rem; padding: 8px 12px; }
 
     /* Quick replies */
     .quick-replies { padding: 0 12px 6px; }
@@ -722,11 +722,11 @@
       display: flex;
       position: fixed;
       bottom: 0; left: 0; right: 0;
-      height: 62px;
+      height: 72px;
       background: var(--sidebar-bg);
-      border-top: 1px solid rgba(255,255,255,.1);
+      border-top: 1px solid rgba(255,255,255,.15);
       z-index: 50;
-      padding: 0 4px 0;
+      padding: 0 2px 0;
       padding-bottom: 0;
       box-shadow: 0 -2px 12px rgba(30,58,47,.15);
     }
@@ -736,8 +736,9 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 3px;
+      gap: 4px;
       cursor: pointer;
+      padding: 0 4px;
       color: rgba(255,255,255,.45);
       border-radius: 12px;
       transition: all .18s;
@@ -777,7 +778,7 @@
 
     /* Adjust app layout for bottom nav */
     .chat-window { display:flex; flex-direction:column; flex:1; overflow:hidden; max-width:100%; }
-  .chat-input-area { padding-bottom: calc(62px + env(safe-area-inset-bottom, 0px) + 4px) !important; }
+  .chat-input-area { padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px) + 4px) !important; }
     .messages { padding-bottom: calc(62px + env(safe-area-inset-bottom, 0px) + 80px); }
     .content-main { padding-bottom: 80px; }
 
@@ -810,13 +811,13 @@
     /* ── Bottom nav safe area ── */
     .bottom-nav {
       padding-bottom: env(safe-area-inset-bottom, 0px);
-      height: calc(58px + env(safe-area-inset-bottom, 0px));
+      height: calc(72px + env(safe-area-inset-bottom, 0px));
     }
-    .bottom-nav-item { height: 58px; }
+    .bottom-nav-item { height: 72px; min-height: 72px; }
     /* ── Content padding ── */
-    .content-main { padding: 16px 12px calc(58px + env(safe-area-inset-bottom, 0px) + 16px); }
+    .content-main { padding: 16px 12px calc(72px + env(safe-area-inset-bottom, 0px) + 16px); }
     /* ── Chat ── */
-    .messages { padding-bottom: calc(58px + env(safe-area-inset-bottom, 0px) + 70px); }
+    .messages { padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px) + 70px); }
     .chat-input-area { padding-bottom: calc(58px + env(safe-area-inset-bottom, 0px) + 8px) !important; }
     /* ── Small phone (< 375px) ── */
 
@@ -1216,7 +1217,7 @@ function App({ user }) {
     <nav class="bottom-nav">
       ${NAV_ITEMS.map(i=>html`
         <div key=${i.id} class=${"bottom-nav-item"+(page===i.id?" active":"")} onClick=${()=>navTo(i.id)}>
-          <${Ic} name=${i.icon} size=${22}/>
+          <${Ic} name=${i.icon} size=${24}/>
           <span class="bottom-nav-label">${i.label}</span>
           ${(i.badge||0)>0&&html`<span class="bottom-nav-badge">${i.badge}</span>`}
         </div>`)}
