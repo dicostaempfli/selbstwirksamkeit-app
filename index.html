@@ -2395,23 +2395,7 @@ function DoodlePage({doodles,setDoodles,coachees,events}) {
       <h1 class="page-heading">Termine & Events</h1>
       <p class="page-sub">Deine Terminvorschläge und Events von Diana & Rico.</p>
 
-      <div style=${{display:"flex",gap:0,marginBottom:20,borderRadius:12,overflow:"hidden",border:"2px solid var(--forest)",width:"100%"}}>
-        <button onClick=${()=>setSubTab("coachee")} style=${{
-          flex:1,padding:"11px 8px",border:"none",cursor:"pointer",
-          fontFamily:"'Exo 2',sans-serif",fontWeight:700,fontSize:".85rem",
-          transition:"all .18s",
-          background:subTab==="coachee"?"var(--forest)":"var(--surface)",
-          color:subTab==="coachee"?"white":"var(--forest)",
-          borderRight:"1px solid var(--forest)"
-        }}>📅 Terminvorschläge</button>
-        <button onClick=${()=>setSubTab("events")} style=${{
-          flex:1,padding:"11px 8px",border:"none",cursor:"pointer",
-          fontFamily:"'Exo 2',sans-serif",fontWeight:700,fontSize:".85rem",
-          transition:"all .18s",
-          background:subTab==="events"?"var(--teal)":"var(--surface)",
-          color:subTab==="events"?"white":"var(--teal-dark)"
-        }}>⭐ Events</button>
-      </div>
+
 
       ${subTab==="coachee" && html`
         ${doodles.filter(d=>d.recipients.includes(1)).map(d=>html`
