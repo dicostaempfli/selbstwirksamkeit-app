@@ -583,6 +583,54 @@ function DashboardPage({coachees,library,doodles,setPage}) {
               <span class="status-pill status-open">Offen</span>
             </div>`)}
         </div>`}
+
+      <${QuoteEditor}/>
+    </div>`;
+}
+
+// ── QUOTE EDITOR (admin) ──
+function QuoteEditor() {
+  const [text,setText] = useState("");
+  const [author,setAuthor] = useState("");
+  const [saved,setSaved] = useState(false);
+  const [current,setCurrent] = useState(null);
+
+  useEffect(()=>{
+    const fbDb=window._fb?.db;
+    if(!fbDb) return;
+    fbDb.collection("settings").doc("quote").get()
+      .then(doc=>{ if(doc.exists){ const d=doc.data(); setText(d.text||""); setAuthor(d.author||""); setCurrent(d); }})
+      .catch(()=>{});
+  },[]);
+
+  const saveQuote = () => {
+    if(!text.trim()) return;
+    const fbDb=window._fb?.db;
+    if(fbDb){
+      fbDb.collection("settings").doc("quote").set({text:text.trim(),author:author.trim()})
+        .then(()=>{ setSaved(true); setTimeout(()=>setSaved(false),3000); })
+        .catch(e=>alert("Fehler: "+e.message));
+    }
+  };
+
+  return html`
+    <div class="card">
+      <div class="section-title"><${Ic} name="sun" size=${16}/> Zitat auf der Coachee-App</div>
+      <p style=${{fontSize:".81rem",color:"var(--muted)",marginBottom:14}}>Dieses Zitat erscheint auf der Startseite der Coachee-App. Änderungen sind sofort sichtbar.</p>
+      ${current&&html`<div style=${{background:"var(--sage-pale)",borderRadius:10,padding:"10px 14px",marginBottom:12,fontSize:".82rem",fontStyle:"italic",color:"var(--text)"}}>
+        Aktuell: «${current.text}» — ${current.author}
+      </div>`}
+      <div class="form-row">
+        <label class="label">Zitat-Text</label>
+        <textarea class="textarea" rows=${3} value=${text} onInput=${e=>setText(e.target.value)} placeholder="z.B. Selbstwirksamkeit ist der Glaube an deine Fähigkeit…"/>
+      </div>
+      <div class="form-row">
+        <label class="label">Autor</label>
+        <input class="input" value=${author} onInput=${e=>setAuthor(e.target.value)} placeholder="z.B. Diana & Rico Stämpfli"/>
+      </div>
+      <button class="btn btn-primary" onClick=${saveQuote}>
+        ${saved?"✓ Gespeichert!":"Zitat aktualisieren"}
+      </button>
     </div>`;
 }
 
@@ -850,6 +898,10 @@ function LibraryPage({library,setLibrary}) {
             </div>
             <div class="form-row"><label class="label">Titel</label><input class="input" value=${form.title} onInput=${e=>setForm(f=>({...f,title:e.target.value}))} placeholder="z.B. Atemübung 5 Min."/></div>
             <div class="form-row"><label class="label">Beschreibung</label><textarea class="textarea" rows=${2} value=${form.desc} onInput=${e=>setForm(f=>({...f,desc:e.target.value}))} placeholder="Kurze Beschreibung…"/></div>
+            <div class="form-row"><label class="label">Keywords</label>
+              <input class="input" value=${form.keywords||''} onInput=${e=>setForm(f=>({...f,keywords:e.target.value}))} placeholder="z.B. Atem, Stress, Paar — kommagetrennt"/>
+              <p style=${{fontSize:'.74rem',color:'var(--muted)',marginTop:4}}>Coachees können über diese Stichwörter suchen.</p>
+            </div>
             <div class="modal-actions">
               <button class="btn btn-ghost" onClick=${()=>setShowUpload(false)}>Abbrechen</button>
               <button class="btn btn-primary" onClick=${save}><${Ic} name="upload" size=${13}/> Speichern</button>
