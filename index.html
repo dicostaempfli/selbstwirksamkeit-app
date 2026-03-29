@@ -2393,9 +2393,40 @@ function DoodlePage({doodles,setDoodles,coachees,events}) {
   return html`
     <div class="content-main">
       <h1 class="page-heading">Termine & Events</h1>
-      <p class="page-sub">Deine Terminvorschläge und Events von Diana & Rico.</p>
+      <p class="page-sub" style=${{marginBottom:16}}>Deine Terminvorschläge und Events von Diana & Rico.</p>
 
-
+      <div style=${{display:"flex",flexDirection:"column",gap:10,marginBottom:20}}>
+        <div class="stat-card" onClick=${()=>setSubTab("coachee")}
+          style=${{cursor:"pointer",borderLeft:"4px solid var(--forest)",padding:"16px 20px",
+            background:subTab==="coachee"?"#f0f5f1":"var(--surface)"}}>
+          <div style=${{display:"flex",alignItems:"center",gap:14}}>
+            <div style=${{width:42,height:42,borderRadius:12,background:"#d8ead8",
+              display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+              <${Ic} name="calendar" size=${20} style=${{color:"var(--forest)"}}/>
+            </div>
+            <div style=${{flex:1}}>
+              <div style=${{fontFamily:"'Manuale',serif",fontWeight:700,fontSize:"1rem",color:"var(--text)"}}>Terminvorschläge</div>
+              <div style=${{fontSize:".82rem",color:"var(--muted)",marginTop:1}}>${doodles.filter(d=>d.recipients.includes(1)&&!submitted[d.id]).length} offen</div>
+            </div>
+            <${Ic} name="chevron" size=${16} style=${{color:"var(--border2)"}}/>
+          </div>
+        </div>
+        <div class="stat-card" onClick=${()=>setSubTab("events")}
+          style=${{cursor:"pointer",borderLeft:"4px solid var(--teal)",padding:"16px 20px",
+            background:subTab==="events"?"#f0f8f5":"var(--surface)"}}>
+          <div style=${{display:"flex",alignItems:"center",gap:14}}>
+            <div style=${{width:42,height:42,borderRadius:12,background:"var(--teal-pale)",
+              display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+              <${Ic} name="star" size=${20} style=${{color:"var(--teal-dark)"}}/>
+            </div>
+            <div style=${{flex:1}}>
+              <div style=${{fontFamily:"'Manuale',serif",fontWeight:700,fontSize:"1rem",color:"var(--text)"}}>Events</div>
+              <div style=${{fontSize:".82rem",color:"var(--muted)",marginTop:1}}>${events.length} bevorstehend</div>
+            </div>
+            <${Ic} name="chevron" size=${16} style=${{color:"var(--border2)"}}/>
+          </div>
+        </div>
+      </div>
 
       ${subTab==="coachee" && html`
         ${doodles.filter(d=>d.recipients.includes(1)).map(d=>html`
