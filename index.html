@@ -950,7 +950,7 @@ const IC = {
   x:       ["M18 6L6 18","M6 6l12 12"],
   logout:  ["M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4","M16 17l5-5-5-5","M21 12H9"],
   chevron: ["M9 18l6-6-6-6"],
-  ticket:  ["M15 5H7a2 2 0 00-2 2v2a2 2 0 010 4v2a2 2 0 002 2h8a2 2 0 002-2v-2a2 2 0 010-4V7a2 2 0 00-2-2z","M11 5v14","M11 5v14"],
+  ticket:  ["M2 9a1 1 0 01-1-1V5a2 2 0 012-2h18a2 2 0 012 2v3a1 1 0 01-1 1 2 2 0 000 4 1 1 0 011 1v3a2 2 0 01-2 2H3a2 2 0 01-2-2v-3a1 1 0 011-1 2 2 0 000-4","M13 5v2","M13 11v2","M13 17v2"],
 };
 
 const Ic = ({ name, size=16, style={} }) => {
@@ -2424,7 +2424,7 @@ function DoodlePage({doodles,setDoodles,coachees,events}) {
             <div style=${{width:36,height:36,borderRadius:10,
               background:"rgba(255,255,255,.35)",
               display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-              <${Ic} name="ticket" size=${18} style=${{color:subTab==="events"?"white":"#1e3a2f"}}/>
+              <${Ic} name="ticket" size=${20} style=${{color:subTab==="events"?"white":"#1e3a2f"}}/>
             </div>
             <div style=${{flex:1}}>
               <div style=${{fontFamily:"'Manuale',serif",fontWeight:700,fontSize:"1rem",
