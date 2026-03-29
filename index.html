@@ -2328,8 +2328,6 @@ function showToastMsg(msg) {
 }
 
 
-
-// ── DOODLE PAGE ──
 function DoodlePage({doodles,setDoodles,coachees,events}) {
   const [subTab,setSubTab]       = useState("coachee");
   const [showCreate,setShowCreate] = useState(false);
@@ -2397,14 +2395,14 @@ function DoodlePage({doodles,setDoodles,coachees,events}) {
 
       <div style=${{display:"flex",flexDirection:"column",gap:10,marginBottom:20}}>
         <div class="stat-card" onClick=${()=>setSubTab("coachee")}
-          style=${{cursor:"pointer",padding:"16px 20px",transition:"all .2s",
+          style=${{cursor:"pointer",padding:"12px 16px",transition:"all .2s",
             borderLeft:"4px solid #68b87d",
             background:subTab==="coachee"?"#68b87d":"#dff0cc"}}>
-          <div style=${{display:"flex",alignItems:"center",gap:14}}>
-            <div style=${{width:42,height:42,borderRadius:12,
+          <div style=${{display:"flex",alignItems:"center",gap:12}}>
+            <div style=${{width:36,height:36,borderRadius:10,
               background:"rgba(255,255,255,.35)",
               display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-              <${Ic} name="calendar" size=${20} style=${{color:subTab==="coachee"?"white":"#1e3a2f"}}/>
+              <${Ic} name="calendar" size=${18} style=${{color:subTab==="coachee"?"white":"#1e3a2f"}}/>
             </div>
             <div style=${{flex:1}}>
               <div style=${{fontFamily:"'Manuale',serif",fontWeight:700,fontSize:"1rem",
@@ -2417,14 +2415,14 @@ function DoodlePage({doodles,setDoodles,coachees,events}) {
           </div>
         </div>
         <div class="stat-card" onClick=${()=>setSubTab("events")}
-          style=${{cursor:"pointer",padding:"16px 20px",transition:"all .2s",
+          style=${{cursor:"pointer",padding:"12px 16px",transition:"all .2s",
             borderLeft:"4px solid #68b87d",
             background:subTab==="events"?"#68b87d":"#dff0cc"}}>
-          <div style=${{display:"flex",alignItems:"center",gap:14}}>
-            <div style=${{width:42,height:42,borderRadius:12,
+          <div style=${{display:"flex",alignItems:"center",gap:12}}>
+            <div style=${{width:36,height:36,borderRadius:10,
               background:"rgba(255,255,255,.35)",
               display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-              <${Ic} name="map-pin" size=${20} style=${{color:subTab==="events"?"white":"#1e3a2f"}}/>
+              <${Ic} name="ticket" size=${18} style=${{color:subTab==="events"?"white":"#1e3a2f"}}/>
             </div>
             <div style=${{flex:1}}>
               <div style=${{fontFamily:"'Manuale',serif",fontWeight:700,fontSize:"1rem",
@@ -2438,7 +2436,7 @@ function DoodlePage({doodles,setDoodles,coachees,events}) {
         </div>
       </div>
 
-      <div style=${{marginBottom:8}}></div>
+      <div style=${{marginBottom:20}}></div>
 
       ${subTab==="coachee" && html`
         ${doodles.filter(d=>d.recipients.includes(1)).map(d=>html`
@@ -2473,9 +2471,9 @@ function DoodlePage({doodles,setDoodles,coachees,events}) {
       `}
 
       ${subTab==="events" && html`
-        ${events.map(e=>html`
+        ${events.map((e,ei)=>html`
           <div key=${e.id} class="event-card-row">
-            <div class="event-date-blk" style=${{background:e.color}}>
+            <div class="event-date-blk" style=${{background:evColor}}>
               <div class="event-day-big">${e.day}</div>
               <div class="event-month-sm">${e.month}</div>
             </div>
