@@ -478,10 +478,7 @@
   .lib-filter { display:flex; gap:7px; margin-bottom:18px; flex-wrap:wrap; }
   .lib-filter-btn { padding:6px 14px; border-radius:99px; border:1.5px solid var(--border); background:var(--surface); color:var(--muted); font-family:'Exo 2'; font-weight:700; font-size:.79rem; cursor:pointer; display:flex; align-items:center; gap:6px; transition:all .15s; }
   .lib-filter-btn.sel { border-color:var(--forest); background:var(--forest); color:white; }
-  /* Type-specific sel colors */
-  .lib-filter-btn[data-type='audio'].sel { background:var(--teal); border-color:var(--teal); }
-  .lib-filter-btn[data-type='video'].sel { background:var(--sage); border-color:var(--sage); color:var(--forest); }
-  .lib-filter-btn[data-type='text'].sel  { background:var(--lime); border-color:var(--lime); color:var(--forest); }
+  /* All filter buttons use same forest color when selected */
   .lib-filter-btn:hover { border-color:var(--teal); }
   .lib-filter-btn.sel { border-color:var(--sage-dark); background:var(--sage); color:var(--text); }
   .lib-grid { display:grid; grid-template-columns:1fr 1fr; gap:13px; margin-bottom:20px; }
@@ -492,7 +489,7 @@
   .lib-type-badge { position:absolute; top:9px; left:9px; padding:3px 9px; border-radius:99px; font-size:.67rem; font-weight:700; display:flex; align-items:center; gap:4px; }
   .badge-audio { background:var(--teal); color:white; }
   .badge-video { background:var(--sage); color:var(--forest); }
-  .badge-text  { background:var(--lime); color:var(--forest); }
+  .badge-dokus { background:var(--lime); color:var(--forest); }
   .lib-play-overlay { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(30,60,35,.2); }
   .lib-play-btn { width:40px; height:40px; border-radius:50%; background:#fff; display:flex; align-items:center; justify-content:center; color:var(--text); box-shadow:0 2px 8px rgba(0,0,0,.2); }
   .lib-card-body { padding:12px; }
@@ -1048,9 +1045,9 @@ const INIT_REMINDERS = [
 const INIT_LIBRARY = [
   {id:1,type:"audio",title:"Atemübung — 5 Minuten",desc:"Geführte Atemübung zur täglichen Zentrierung.",duration:"5:12",uploadedAt:"20.03.2026"},
   {id:2,type:"video",title:"Einführung: Selbstwirksamkeit",desc:"Was bedeutet Selbstwirksamkeit im Alltag?",duration:"12:44",uploadedAt:"18.03.2026"},
-  {id:3,type:"text",title:"Reflexionsbogen — Woche 1",desc:"Leitfragen für deine erste Coaching-Woche.",uploadedAt:"15.03.2026"},
+  {id:3,type:"dokus",title:"Reflexionsbogen — Woche 1",desc:"Leitfragen für deine erste Coaching-Woche.",uploadedAt:"15.03.2026"},
   {id:4,type:"audio",title:"Körper-Scan Entspannung",desc:"Geführte Körperwahrnehmung für abends.",duration:"8:30",uploadedAt:"10.03.2026"},
-  {id:5,type:"text",title:"Werte-Kompass Übung",desc:"Finde und verankere deine persönlichen Werte.",uploadedAt:"05.03.2026"},
+  {id:5,type:"dokus",title:"Werte-Kompass Übung",desc:"Finde und verankere deine persönlichen Werte.",uploadedAt:"05.03.2026"},
 ];
 
 const REC_TYPES = [
@@ -1205,8 +1202,8 @@ function App({ user }) {
   const NAV_ITEMS = [
     {id:"dashboard", icon:"home",     label:"Home"},
     {id:"chat",      icon:"chat",     label:"Chat",      badge:totalUnreadVal},
-    {id:"library",   icon:"library",  label:"Mediathek"},
     {id:"reminders", icon:"bell",     label:"Erinnerungen"},
+    {id:"library",   icon:"library",  label:"Mediathek"},
     {id:"doodle",    icon:"calendar", label:"Termine"},
   ];
 
@@ -1266,8 +1263,8 @@ function Sidebar({page,setPage,totalUnread,user}) {
   const items = [
     {id:"dashboard",icon:"home",tip:"Übersicht"},
     {id:"chat",icon:"chat",tip:"Nachrichten",badge:totalUnread},
-    {id:"library",icon:"library",tip:"Mediathek"},
     {id:"reminders",icon:"bell",tip:"Erinnerungen"},
+    {id:"library",icon:"library",tip:"Mediathek"},
     {id:"doodle",   icon:"calendar",tip:"Termine & Events"},
   ];
   return html`
@@ -1539,7 +1536,7 @@ function GoalsPage({goals,setGoals}) {
       ${showModal&&html`
         <div class="overlay" onClick=${()=>setShowModal(false)}>
           <div class="modal" onClick=${e=>e.stopPropagation()}>
-            <h2 class="modal-title">${editId?"Ziel bearbeiten":"Neues Ziel"}</h2>
+            <div style=${{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4}}><h2 class="modal-title" style=${{marginBottom:0}}>${editId?"Ziel bearbeiten":"Neues Ziel"}</h2><button style=${{background:"none",border:"none",cursor:"pointer",color:"var(--muted)",padding:4,borderRadius:8,display:"flex"}} onClick=${()=>setShowModal(false)}><${Ic} name="x" size=${20}/></button></div>
             <div class="form-row"><label class="label">Ziel</label><input class="input" value=${form.title} onInput=${e=>setForm(f=>({...f,title:e.target.value}))} placeholder="Was möchtest du erreichen?"/></div>
             <div class="form-grid">
               <div class="form-row"><label class="label">Bereich</label>
@@ -1625,14 +1622,14 @@ function LibraryPage({library,setLibrary}) {
   const fileRef = useRef(null);
 
   const filtered = (filter==="all"?library:library.filter(i=>i.type===filter)).filter(i=>!searchQ||i.title.toLowerCase().includes(searchQ.toLowerCase())||(i.desc&&i.desc.toLowerCase().includes(searchQ.toLowerCase()))||(i.keywords&&i.keywords.toLowerCase().includes(searchQ.toLowerCase())))
-  const TYPES = [{id:"all",label:"Alle",icon:"library"},{id:"audio",label:"Audio",icon:"music"},{id:"video",label:"Video",icon:"video"},{id:"text",label:"Text",icon:"file"}];
+  const TYPES = [{id:"all",label:"Alle",icon:"library"},{id:"audio",label:"Audio",icon:"music"},{id:"video",label:"Video",icon:"video"},{id:"dokus",label:"Dokus",icon:"file"}];
 
-  const handleFile = e => { const f=e.target.files[0]; if(!f)return; const t=f.type.startsWith("audio")?"audio":f.type.startsWith("video")?"video":"text"; setForm(v=>({...v,type:t})); };
-  const handleDrop = e => { e.preventDefault(); setDrag(false); const f=e.dataTransfer.files[0]; if(!f)return; const t=f.type.startsWith("audio")?"audio":f.type.startsWith("video")?"video":"text"; setForm(v=>({...v,type:t})); };
+  const handleFile = e => { const f=e.target.files[0]; if(!f)return; const t=f.type.startsWith("audio")?"audio":f.type.startsWith("video")?"video":"dokus"; setForm(v=>({...v,type:t})); };
+  const handleDrop = e => { e.preventDefault(); setDrag(false); const f=e.dataTransfer.files[0]; if(!f)return; const t=f.type.startsWith("audio")?"audio":f.type.startsWith("video")?"video":"dokus"; setForm(v=>({...v,type:t})); };
   const save = () => { if(!form.title.trim())return; setShowUpload(false); setForm({title:"",desc:"",type:"audio"}); setLibrary(l=>[{id:Date.now(),...form,uploadedAt:new Date().toLocaleDateString("de-CH")},...l]); };
   const del  = id => setLibrary(l=>l.filter(i=>i.id!==id));
-  const BadgeCls = {audio:"badge-audio",video:"badge-video",text:"badge-text"};
-  const ThumbBg  = {audio:"#d8f0e0",video:"#eef7e4",text:"#fafbe0"};
+  const BadgeCls = {audio:"badge-audio",video:"badge-video",dokus:"badge-dokus"};
+  const ThumbBg  = {audio:"#d8f0e0",video:"#eef7e4",dokus:"#fafbe0"};
   const TypeIc   = ({type}) => html`<${Ic} name=${type==="audio"?"music":type==="video"?"video":"file"} size=${30}/>`;
 
   return html`
@@ -1707,7 +1704,7 @@ function LibraryPage({library,setLibrary}) {
             </div>
             <div class="form-row"><label class="label">Typ</label>
               <div style=${{display:'flex',gap:7}}>
-                ${["audio","video","text"].map(t=>html`
+                ${["audio","video","dokus"].map(t=>html`
                   <button key=${t} onClick=${()=>setForm(f=>({...f,type:t}))}
                     style=${{padding:'7px 14px',borderRadius:10,border:'1.5px solid',fontFamily:"'Exo 2',sans-serif",fontWeight:700,fontSize:'.81rem',cursor:'pointer',display:'flex',alignItems:'center',gap:6,borderColor:form.type===t?'var(--teal)':'var(--border)',background:form.type===t?'var(--sage)':'var(--surface)',color:'var(--text)'}}>
                     <${Ic} name=${t==="audio"?"music":t==="video"?"video":"file"} size=${13}/>
@@ -2069,16 +2066,14 @@ function RemindersPage({reminders,setReminders}) {
   return html`
     <div class="content-main">
       <div style=${{marginBottom:24}}>
-        <div style=${{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:12,marginBottom:8}}>
-          <div>
-            <h1 class="page-heading" style=${{marginBottom:4}}>Erinnerungen</h1>
-            <p class="page-sub" style=${{marginBottom:0}}>Richte Erinnerungs-Impulse für deinen Alltag ein.</p>
-          </div>
-          <button class="btn btn-primary" onClick=${openNew} style=${{flexShrink:0,marginTop:2}}>
+        <div style=${{display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,marginBottom:8}}>
+          <h1 class="page-heading" style=${{marginBottom:0}}>Erinnerungen</h1>
+          <button class="btn btn-primary" onClick=${openNew} style=${{flexShrink:0}}>
             <${Ic} name="plus" size=${15}/> Neue Erinnerung
           </button>
         </div>
-        <p style=${{fontSize:".8rem",color:"var(--muted)",lineHeight:1.5,marginTop:8,padding:"10px 14px",background:"var(--sage-pale)",borderRadius:10,borderLeft:"3px solid var(--sage)"}}>Wähle zwischen täglichen, wöchentlichen, monatlichen oder individuellen Erinnerungen. Füge Fotos als visuelle Anker hinzu.</p>
+        <p class="page-sub" style=${{marginBottom:8}}>Richte Erinnerungs-Impulse für deinen Alltag ein.</p>
+        <p style=${{fontSize:".8rem",color:"var(--muted)",lineHeight:1.5,padding:"10px 14px",background:"var(--sage-pale)",borderRadius:10,borderLeft:"3px solid var(--sage)"}}>Wähle zwischen täglichen, wöchentlichen, monatlichen oder individuellen Erinnerungen. Füge Fotos als visuelle Anker hinzu.</p>
       </div>
       ${REM_AREAS.map(area=>{
         const areaRems = reminders.filter(r=>(r.area||"Allgemein")===area);
@@ -2100,7 +2095,7 @@ function RemindersPage({reminders,setReminders}) {
       ${showModal&&html`
         <div class="overlay" onClick=${e=>{if(e.target===e.currentTarget)setShowModal(false);}}>
           <div class="modal" onClick=${e=>e.stopPropagation()}>
-            <h2 class="modal-title">${editId?"Erinnerung bearbeiten":"Neue Erinnerung"}</h2>
+            <div style=${{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4}}><h2 class="modal-title" style=${{marginBottom:0}}>${editId?"Erinnerung bearbeiten":"Neue Erinnerung"}</h2><button style=${{background:"none",border:"none",cursor:"pointer",color:"var(--muted)",padding:4,borderRadius:8,display:"flex"}} onClick=${()=>setShowModal(false)}><${Ic} name="x" size=${20}/></button></div>
             <div class="form-row"><label class="label">Symbole</label>
               <p style=${{fontSize:".76rem",color:"var(--muted)",marginBottom:8,marginTop:2}}>Wähle hier dein stimmiges Symbol aus</p>
               <button class="btn btn-ghost btn-sm" onClick=${()=>setShowSymbolPicker(true)} style=${{display:"flex",alignItems:"center",gap:8,padding:"8px 14px"}}>
@@ -2517,7 +2512,7 @@ function DoodlePage({doodles,setDoodles,coachees,events}) {
       ${/* CREATE MODAL */showCreate&&html`
         <div class="overlay" onClick=${e=>{if(e.target===e.currentTarget)setShowCreate(false);}}>
           <div class="modal">
-            <h2 class="modal-title">Neuer Terminvorschlag</h2>
+            <div style=${{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4}}><h2 class="modal-title" style=${{marginBottom:0}}>Neuer Terminvorschlag</h2><button style=${{background:"none",border:"none",cursor:"pointer",color:"var(--muted)",padding:4,borderRadius:8,display:"flex"}} onClick=${()=>setShowCreate(false)}><${Ic} name="x" size=${20}/></button></div>
             <div class="form-row"><label class="label">Titel</label><input class="input" value=${newTitle} onInput=${e=>setNewTitle(e.target.value)} placeholder="z.B. Coaching-Session April"/></div>
             <div class="form-row"><label class="label">Beschreibung (optional)</label><textarea class="textarea" rows=${2} value=${newDesc} onInput=${e=>setNewDesc(e.target.value)} placeholder="z.B. Wähle bitte 2–3 Zeiten die dir passen."/></div>
             <div class="form-row">
@@ -2552,7 +2547,7 @@ function DoodlePage({doodles,setDoodles,coachees,events}) {
         return html`
           <div class="overlay" onClick=${e=>{if(e.target===e.currentTarget)setShowResults(null);}}>
             <div class="modal">
-              <h2 class="modal-title">${d.title} — Ergebnisse</h2>
+              <div style=${{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4}}><h2 class="modal-title" style=${{marginBottom:0}}>${d.title} — Ergebnisse</h2><button style=${{background:"none",border:"none",cursor:"pointer",color:"var(--muted)",padding:4,borderRadius:8,display:"flex"}} onClick=${()=>setShowResults(null)}><${Ic} name="x" size=${20}/></button></div>
               <p style=${{fontSize:".83rem",color:"var(--muted)",marginBottom:14}}>${d.desc}</p>
               ${d.slots.map((s,i)=>{
                 const yesV=d.recipients.filter(rid=>s.votes[rid]==="yes");
