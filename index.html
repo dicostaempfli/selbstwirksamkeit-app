@@ -2398,47 +2398,47 @@ function DoodlePage({doodles,setDoodles,coachees,events}) {
       <div style=${{display:"flex",flexDirection:"column",gap:10,marginBottom:20}}>
         <div class="stat-card" onClick=${()=>setSubTab("coachee")}
           style=${{cursor:"pointer",padding:"16px 20px",transition:"all .2s",
-            borderLeft:subTab==="coachee"?"6px solid var(--forest)":"4px solid #ccc",
-            background:subTab==="coachee"?"var(--forest)":"var(--surface)"}}>
+            borderLeft:"4px solid #68b87d",
+            background:subTab==="coachee"?"#68b87d":"#dff0cc"}}>
           <div style=${{display:"flex",alignItems:"center",gap:14}}>
             <div style=${{width:42,height:42,borderRadius:12,
-              background:subTab==="coachee"?"rgba(255,255,255,.2)":"#d8ead8",
+              background:"rgba(255,255,255,.35)",
               display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-              <${Ic} name="calendar" size=${20} style=${{color:subTab==="coachee"?"white":"var(--forest)"}}/>
+              <${Ic} name="calendar" size=${20} style=${{color:subTab==="coachee"?"white":"#1e3a2f"}}/>
             </div>
             <div style=${{flex:1}}>
               <div style=${{fontFamily:"'Manuale',serif",fontWeight:700,fontSize:"1rem",
-                color:subTab==="coachee"?"white":"var(--text)"}}>Terminvorschläge</div>
+                color:subTab==="coachee"?"white":"#1e3a2f"}}>Terminvorschläge</div>
               <div style=${{fontSize:".82rem",marginTop:1,
-                color:subTab==="coachee"?"rgba(255,255,255,.75)":"var(--muted)"}}>
+                color:subTab==="coachee"?"rgba(255,255,255,.85)":"#3a6040"}}>
                 ${doodles.filter(d=>d.recipients.includes(1)&&!submitted[d.id]).length} offen
               </div>
             </div>
-            <${Ic} name="chevron" size=${16} style=${{color:subTab==="coachee"?"rgba(255,255,255,.6)":"var(--border2)"}}/>
           </div>
         </div>
         <div class="stat-card" onClick=${()=>setSubTab("events")}
           style=${{cursor:"pointer",padding:"16px 20px",transition:"all .2s",
-            borderLeft:subTab==="events"?"6px solid var(--teal)":"4px solid #ccc",
-            background:subTab==="events"?"var(--teal)":"var(--surface)"}}>
+            borderLeft:"4px solid #68b87d",
+            background:subTab==="events"?"#68b87d":"#dff0cc"}}>
           <div style=${{display:"flex",alignItems:"center",gap:14}}>
             <div style=${{width:42,height:42,borderRadius:12,
-              background:subTab==="events"?"rgba(255,255,255,.2)":"var(--teal-pale)",
+              background:"rgba(255,255,255,.35)",
               display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-              <${Ic} name="star" size=${20} style=${{color:subTab==="events"?"white":"var(--teal-dark)"}}/>
+              <${Ic} name="map-pin" size=${20} style=${{color:subTab==="events"?"white":"#1e3a2f"}}/>
             </div>
             <div style=${{flex:1}}>
               <div style=${{fontFamily:"'Manuale',serif",fontWeight:700,fontSize:"1rem",
-                color:subTab==="events"?"white":"var(--text)"}}>Events</div>
+                color:subTab==="events"?"white":"#1e3a2f"}}>Events</div>
               <div style=${{fontSize:".82rem",marginTop:1,
-                color:subTab==="events"?"rgba(255,255,255,.75)":"var(--muted)"}}>
+                color:subTab==="events"?"rgba(255,255,255,.85)":"#3a6040"}}>
                 ${events.length} bevorstehend
               </div>
             </div>
-            <${Ic} name="chevron" size=${16} style=${{color:subTab==="events"?"rgba(255,255,255,.6)":"var(--border2)"}}/>
           </div>
         </div>
       </div>
+
+      <div style=${{marginBottom:8}}></div>
 
       ${subTab==="coachee" && html`
         ${doodles.filter(d=>d.recipients.includes(1)).map(d=>html`
