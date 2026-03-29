@@ -2473,7 +2473,7 @@ function DoodlePage({doodles,setDoodles,coachees,events}) {
       ${subTab==="events" && html`
         ${events.map((e,ei)=>html`
           <div key=${e.id} class="event-card-row">
-            <div class="event-date-blk" style=${{background:['#efe454','#a0cb7b','#68b87d'][ei%3]}}>
+            <div class="event-date-blk" style=${{background:ei%3===0?'#efe454':ei%3===1?'#a0cb7b':'#68b87d'}}>
               <div class="event-day-big">${e.day}</div>
               <div class="event-month-sm">${e.month}</div>
             </div>
