@@ -2446,10 +2446,6 @@ function DoodlePage({doodles,setDoodles,coachees,events}) {
       `}
 
       ${subTab==="events" && html`
-        <div class="info-tip" style=${{background:"var(--teal-pale)",borderLeftColor:"var(--teal-dark)"}}>
-          <${Ic} name="info" size=${15} style=${{flexShrink:0,marginTop:1}}/>
-          <span>Diese Events kommen automatisch von eurer Wix-Website sobald ihr Firebase verbunden habt.</span>
-        </div>
         ${events.map(e=>html`
           <div key=${e.id} class="event-card-row">
             <div class="event-date-blk" style=${{background:e.color}}>
