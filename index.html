@@ -1310,6 +1310,8 @@ function ChatWindow({coachee,onSend,onSendImg,onUpdate,onBack}) {
   const profileRef = useRef(null);
   const galleryRef = useRef(null);
   const chatImgRef = useRef(null);
+  const attachRef   = useRef(null);
+  const handleAttach = async e => { const f=e.target.files[0]; if(!f)return; const r=new FileReader(); r.onload=ev=>{onSendImg(ev.target.result);}; r.readAsDataURL(f); e.target.value=""; };
 
   useEffect(()=>{ bottomRef.current?.scrollIntoView({behavior:"smooth"}); },[coachee.messages.length]);
 
@@ -1330,18 +1332,16 @@ function ChatWindow({coachee,onSend,onSendImg,onUpdate,onBack}) {
   return html`
     <div class="chat-area" style=${{display:"flex",flexDirection:"column",flex:1,minWidth:0,overflow:"hidden"}}>
       <div class="chat-topbar">
-
-        <svg width="40" height="40" viewBox="0 0 100 100" style=${{flexShrink:0,borderRadius:"50%"}}>
+        <svg width="42" height="42" viewBox="0 0 100 100" style=${{flexShrink:0,borderRadius:"50%"}}>
           <circle cx="50" cy="50" r="50" fill="#efe454"/>
           <circle cx="57.94" cy="50.79" r="37.3" fill="#a0cb7b"/>
           <circle cx="66.67" cy="50.79" r="20.63" fill="#68b87d"/>
         </svg>
-        <div>
-          <div class="ct-name">${coachee.name}</div>
+        <div style=${{flex:1,minWidth:0}}>
+          <div class="ct-name">Diana & Rico Stämpfli</div>
           <div class="ct-status">
-            <span class=${"status-dot"+(coachee.online?"":" off")}/>
-            ${coachee.online?"Online":"Zuletzt: "+coachee.lastTime}
-            <span style=${{opacity:.4}}>·</span>${coachee.topic}
+            <span class="status-dot"/>
+            <span>Online · Dein Coaching-Team</span>
           </div>
         </div>
         </div>
@@ -1362,7 +1362,7 @@ ${showInfo&&html`
               return html`
                 <div key=${msg.id} class=${"msg-row "+(isOut?"out":"in")} style=${{marginBottom:prevSame?1:8}}>
                   <div class="msg-bubble-wrap">
-                    ${!isOut&&!prevSame&&html`<div class="msg-sender">${coachee.name.split(" ")[0]}</div>`}
+                    ${!isOut&&!prevSame&&html`<div class="msg-sender">${msg.sender||coachee.name.split(" ")[0]}</div>`}
                     <div class="msg-bubble">
                       ${msg.imgSrc&&html`<div class="msg-img-wrap"><img src=${msg.imgSrc} class="msg-img" alt="Foto" onClick=${()=>setLightbox(msg.imgSrc)}/></div>`}
                       ${msg.text&&html`<span>${msg.text}</span>`}
@@ -1393,7 +1393,8 @@ ${showInfo&&html`
 
       <div class="chat-input-area">
         <button class="attach-btn" onClick=${()=>chatImgRef.current?.click()}><${Ic} name="camera" size=${18}/></button>
-        <button class="attach-btn"><${Ic} name="attach" size=${18}/></button>
+        <button class="attach-btn" onClick=${()=>attachRef.current?.click()}><${Ic} name="attach" size=${18}/></button>
+        <input ref=${attachRef} type="file" accept="image/*,video/*,.pdf,.doc,.docx" style=${{display:'none'}} onChange=${handleAttach}/>
         <input ref=${chatImgRef} type="file" accept="image/*" style=${{display:'none'}} onChange=${handleChatImg}/>
         <textarea ref=${textRef} class="input-box" rows=${1} value=${input}
           onInput=${e=>setInput(e.target.value)} onKeyDown=${handleKey}
