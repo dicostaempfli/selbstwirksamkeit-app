@@ -392,8 +392,7 @@
   .photo-add:hover { border-color:var(--teal); color:var(--teal-dark); background:var(--teal-pale); }
   .lightbox { position:fixed; inset:0; background:rgba(0,0,0,.9); z-index:99999; display:flex; align-items:center; justify-content:center; }
   .lightbox img { max-width:90vw; max-height:85vh; border-radius:12px; object-fit:contain; }
-  .lightbox-close { z-index:99999; position:absolute; top:16px; right:16px; width:40px; height:40px; border-radius:50%; background:rgba(0,0,0,.5); display:flex; align-items:center; justify-content:center; color:#fff; cursor:pointer; border:2px solid rgba(255,255,255,.3); }
-  .lightbox-close:hover { background:rgba(0,0,0,.8); }
+  /* lightbox-close now inline */
 
   /* ══════════════════════════════
      CONTENT PAGES (right side)
@@ -1508,9 +1507,18 @@ function ChatWindow({coachee,onSend,onSendImg,onSendFile,onUpdate,onBack}) {
       </div>
 
       ${lightbox&&html`
-        <div class="lightbox" onClick=${()=>setLightbox(null)}>
-          <img src=${lightbox} alt="Foto"/>
-          <div class="lightbox-close"><${Ic} name="x" size=${26}/></div>
+        <div class="lightbox" onClick=${e=>{if(e.target===e.currentTarget)setLightbox(null);}}>
+          <div style=${{position:"relative",display:"inline-block",maxWidth:"95vw",maxHeight:"90vh"}}>
+            <button onClick=${()=>setLightbox(null)}
+              style=${{position:"absolute",top:-14,right:-14,width:32,height:32,
+                borderRadius:"50%",background:"white",border:"none",cursor:"pointer",
+                display:"flex",alignItems:"center",justifyContent:"center",
+                boxShadow:"0 2px 8px rgba(0,0,0,.3)",zIndex:1,color:"var(--text)"}}>
+              <${Ic} name="x" size=${16}/>
+            </button>
+            <img src=${lightbox} alt="Foto"
+              style=${{maxWidth:"95vw",maxHeight:"85vh",borderRadius:12,display:"block"}}/>
+          </div>
         </div>`}
     </div>`;
 }
