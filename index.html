@@ -94,7 +94,7 @@
 
     /* ── Chat bubbles ── */
     --bubble-out:  #3d7a4a;    /* outgoing: dark teal-green */
-    --bubble-in:   #ffffff;
+    --bubble-in:   #e8f5ec;
 
     /* ── Accents ── */
     --accent:      #62ba7a;
@@ -261,7 +261,6 @@
     position:relative; display:inline-block; max-width:100%; word-break:break-word;
   }
   .msg-row.in  .msg-bubble { background:var(--bubble-in); color:var(--text); border-bottom-left-radius:4px; box-shadow:0 1px 5px rgba(62,122,74,.10); }
-  .msg-row.in  .msg-bubble { background:var(--surface2); color:var(--text); border-bottom-left-radius:4px; }
   .msg-row.out .msg-bubble { background:var(--bubble-out); color:#fff; border-bottom-right-radius:4px; }
   .msg-meta { display:flex; align-items:center; gap:4px; margin-top:3px; justify-content:flex-end; }
   .msg-time-small { font-size:.65rem; color:var(--muted); }
@@ -667,7 +666,7 @@
     }
 
     /* Chat topbar */
-    .chat-topbar { padding: 0 14px; padding-top: env(safe-area-inset-top, 0px); height: calc(64px + env(safe-area-inset-top, 0px)); display:flex; align-items:center; }
+    .chat-topbar { padding: 0 14px; height: 64px; display:flex; align-items:center; }
     .ct-name { font-size: .88rem; }
     .ct-status { font-size: .68rem; }
 
