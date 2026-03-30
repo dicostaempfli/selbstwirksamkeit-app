@@ -675,7 +675,7 @@
 
     /* Chat input */
     .chat-window { display:flex; flex-direction:column; flex:1; overflow:hidden; max-width:100%; }
-  .chat-input-area { padding: 8px 10px; padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px) + 4px) !important; }   .input-box { font-size: .88rem; padding: 8px 12px; }
+     .input-box { font-size: .88rem; padding: 8px 12px; }
 
     /* Quick replies */
     .quick-replies { padding: 0 12px 6px; }
@@ -781,9 +781,9 @@
 
     /* Adjust app layout for bottom nav */
     .chat-window { display:flex; flex-direction:column; flex:1; overflow:hidden; max-width:100%; }
-  .chat-input-area { padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px) + 4px) !important; }
-    .chat-input-area { padding: 10px 12px !important; padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 10px) !important; }
-    .messages { padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px) + 20px); }
+  
+    
+    
     .content-main { padding-bottom: 80px; }
 
 
@@ -821,15 +821,15 @@
     /* ── Content padding ── */
     .content-main { padding: 16px 12px calc(72px + env(safe-area-inset-bottom, 0px) + 16px); }
     /* ── Chat ── */
-    .messages { padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px) + 20px); }
+    
 
     /* ── PWA standalone mode ── */
     @media all and (display-mode: standalone) {
       .chat-input-area {
-        position: sticky;
-        bottom: 0;
-        padding-bottom: max(16px, env(safe-area-inset-bottom, 16px)) !important;
-        z-index: 100;
+        padding-bottom: max(20px, env(safe-area-inset-bottom, 20px)) !important;
+      }
+      #app {
+        height: 100dvh;
       }
     }
     /* ── Small phone (< 375px) ── */
@@ -856,6 +856,23 @@
     font-size: .84rem;
     font-weight: 700;
     flex-shrink: 0;
+  
+    /* ── Chat (mobile) ── */
+    .chat-topbar { padding: 0 14px; height: 64px; display:flex; align-items:center; }
+    .ct-name { font-size: .88rem; }
+    .ct-status { font-size: .68rem; }
+    .messages {
+      padding: 12px 10px;
+      padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+    }
+    .msg-bubble-wrap { max-width: 82%; }
+    .msg-bubble { font-size: .85rem; }
+    .chat-input-area {
+      padding: 8px 10px;
+      padding-bottom: max(8px, env(safe-area-inset-bottom, 8px));
+    }
+    .input-box { font-size: .88rem; padding: 8px 12px; }
+
   }
 
   </style>
