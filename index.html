@@ -2438,7 +2438,7 @@ function DoodlePage({doodles,setDoodles,coachees,events}) {
         </div>
       </div>
 
-      <div style=${{marginBottom:20}}></div>
+      <div style=${{marginBottom:28}}></div>
 
       ${subTab==="coachee" && html`
         ${doodles.filter(d=>d.recipients.includes(1)).map(d=>html`
@@ -2460,9 +2460,8 @@ function DoodlePage({doodles,setDoodles,coachees,events}) {
                         <div style=${{fontWeight:700,fontSize:".88rem",color:"var(--text)"}}>${fmtDt(s.dt).split("·")[0].trim()}</div>
                         <div style=${{fontSize:".74rem",color:"var(--muted)"}}>${fmtDt(s.dt).split("·")[1]?.trim()}</div>
                       </div>
-                      <div style=${{display:"flex",gap:6}}>
-                        <button class=${"vbtn yes"+(v==="yes"?" on":"")} onClick=${()=>castVote(d.id,i,"yes")}>✓</button>
-                        <button class=${"vbtn no"+(v==="no"?" on":"")} onClick=${()=>castVote(d.id,i,"no")}>✕</button>
+                      <div>
+                        <button class=${"vbtn yes"+(v==="yes"?" on":"")} onClick=${()=>castVote(d.id,i,v==="yes"?"":"yes")}>✓</button>
                       </div>
                     </div>`;
                 })}
