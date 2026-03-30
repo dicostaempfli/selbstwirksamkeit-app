@@ -276,24 +276,15 @@
   .msg-bubble {
     padding:9px 13px; border-radius:16px;
     font-size:.87rem; line-height:1.52;
-    position:relative; display:inline-block; max-width:100%; word-break:break-word;
+    display:inline-block; max-width:100%; word-break:break-word;
   }
-  .msg-row.in  .msg-bubble { background:#ffffff; color:var(--text); border-bottom-left-radius:4px; border:1px solid rgba(0,0,0,.08); box-shadow:0 1px 4px rgba(0,0,0,.08); }
-  .msg-row.out .msg-bubble { background:var(--bubble-out); color:#fff; border-bottom-right-radius:4px; }
+  .msg-row.in  .msg-bubble { background:#ffffff; color:var(--text); border:1px solid rgba(0,0,0,.08); box-shadow:0 1px 4px rgba(0,0,0,.08); }
+  .msg-row.out .msg-bubble { background:var(--bubble-out); color:#fff; }
   .msg-meta { display:flex; align-items:center; gap:4px; margin-top:3px; justify-content:flex-end; }
   .msg-time-small { font-size:.65rem; color:var(--muted); }
   .msg-row.out .msg-time-small { color:rgba(255,255,255,.55); }
-  .tick { color:var(--sage); display:flex; align-items:center; }
 
-  /* bubble tails */
-  .msg-row.in  .msg-bubble::before { content:''; position:absolute; left:-5px; bottom:0; border:7px solid transparent; border-right-color:var(--bubble-in); border-bottom:0; border-left:0; filter:drop-shadow(-1px 1px 2px rgba(62,122,74,.08)); }
-  .msg-row.out .msg-bubble::after  { content:''; position:absolute; right:-5px; bottom:0; border:7px solid transparent; border-left-color:var(--bubble-out); border-bottom:0; border-right:0; }
-  .msg-row.in  + .msg-row.in  .msg-bubble { border-top-left-radius:4px; }
-  .msg-row.out + .msg-row.out .msg-bubble { border-top-right-radius:4px; }
-  .msg-row.in  + .msg-row.in  .msg-bubble::before { display:none; }
-  .msg-row.out + .msg-row.out .msg-bubble::after  { display:none; }
-
-  /* image in message */
+    /* image in message */
   .msg-img { width:220px; height:155px; object-fit:cover; border-radius:11px; display:block; cursor:pointer; }
   .msg-img-wrap { margin-bottom:4px; }
 
@@ -401,8 +392,8 @@
   .photo-add:hover { border-color:var(--teal); color:var(--teal-dark); background:var(--teal-pale); }
   .lightbox { position:fixed; inset:0; background:rgba(0,0,0,.9); z-index:99999; display:flex; align-items:center; justify-content:center; }
   .lightbox img { max-width:90vw; max-height:85vh; border-radius:12px; object-fit:contain; }
-  .lightbox-close { z-index:99999; position:absolute; top:18px; right:22px; color:#fff; cursor:pointer; opacity:.7; }
-  .lightbox-close:hover { opacity:1; }
+  .lightbox-close { z-index:99999; position:absolute; top:16px; right:16px; width:40px; height:40px; border-radius:50%; background:rgba(0,0,0,.5); display:flex; align-items:center; justify-content:center; color:#fff; cursor:pointer; border:2px solid rgba(255,255,255,.3); }
+  .lightbox-close:hover { background:rgba(0,0,0,.8); }
 
   /* ══════════════════════════════
      CONTENT PAGES (right side)
@@ -1810,7 +1801,7 @@ function LibraryPage({library,setLibrary}) {
       ${showUpload&&html`
         <div class="overlay" onClick=${()=>setShowUpload(false)}>
           <div class="modal" style=${{width:500}} onClick=${e=>e.stopPropagation()}>
-            <h2 class="modal-title">Material hochladen</h2>
+<div style=${{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4}}><h2 class="modal-title" style=${{marginBottom:0}}>Material hochladen</h2><button style=${{background:"none",border:"none",cursor:"pointer",color:"var(--muted)",padding:4,borderRadius:8,display:"flex"}} onClick=${()=>setShowUpload(false)}><${Ic} name="x" size=${20}/></button></div>
             <div class="form-row">
               <div class=${"upload-zone"+(drag?" drag":"")} onDragOver=${e=>{e.preventDefault();setDrag(true);}} onDragLeave=${()=>setDrag(false)} onDrop=${handleDrop} onClick=${()=>fileRef.current?.click()}>
                 <div style=${{display:'flex',justifyContent:'center',opacity:.5}}><${Ic} name="upload" size=${30}/></div>
