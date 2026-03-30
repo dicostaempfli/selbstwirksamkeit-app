@@ -94,7 +94,7 @@
 
     /* ── Chat bubbles ── */
     --bubble-out:  #3d7a4a;    /* outgoing: dark teal-green */
-    --bubble-in:   #e8f5ec;
+    --bubble-in:   #ffffff;
 
     /* ── Accents ── */
     --accent:      #62ba7a;
@@ -260,7 +260,7 @@
     font-size:.87rem; line-height:1.52;
     position:relative; display:inline-block; max-width:100%; word-break:break-word;
   }
-  .msg-row.in  .msg-bubble { background:var(--bubble-in); color:var(--text); border-bottom-left-radius:4px; box-shadow:0 1px 5px rgba(62,122,74,.10); }
+  .msg-row.in  .msg-bubble { background:#ffffff; color:var(--text); border-bottom-left-radius:4px; border:1px solid rgba(0,0,0,.08); box-shadow:0 1px 4px rgba(0,0,0,.08); }
   .msg-row.out .msg-bubble { background:var(--bubble-out); color:#fff; border-bottom-right-radius:4px; }
   .msg-meta { display:flex; align-items:center; gap:4px; margin-top:3px; justify-content:flex-end; }
   .msg-time-small { font-size:.65rem; color:var(--muted); }
@@ -619,9 +619,7 @@
       padding-top: max(44px, calc(env(safe-area-inset-top, 0px) + 12px));
     }
 
-    .chat-topbar {
-      padding-top: max(52px, calc(env(safe-area-inset-top, 44px) + 14px)) !important;
-    }
+
 
     /* Hide desktop sidebar */
     .sidebar { display: none !important; }
@@ -671,7 +669,7 @@
     .ct-status { font-size: .68rem; }
 
     /* Messages */
-    .messages { padding: 14px 12px; padding-bottom: calc(62px + env(safe-area-inset-bottom, 0px) + 80px); }
+    .messages { padding: 14px 12px; padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px) + 20px); }
     .msg-bubble-wrap { max-width: 82%; }
     .msg-bubble { font-size: .85rem; }
 
@@ -784,8 +782,8 @@
     /* Adjust app layout for bottom nav */
     .chat-window { display:flex; flex-direction:column; flex:1; overflow:hidden; max-width:100%; }
   .chat-input-area { padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px) + 4px) !important; }
-    .chat-input-area { padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 10px) !important; }
-    .messages { padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px) + 80px); }
+    .chat-input-area { padding: 10px 12px !important; padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 10px) !important; }
+    .messages { padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px) + 20px); }
     .content-main { padding-bottom: 80px; }
 
 
@@ -823,7 +821,7 @@
     /* ── Content padding ── */
     .content-main { padding: 16px 12px calc(72px + env(safe-area-inset-bottom, 0px) + 16px); }
     /* ── Chat ── */
-    .messages { padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px) + 70px); }
+    .messages { padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px) + 20px); }
 
     /* ── Small phone (< 375px) ── */
 
