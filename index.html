@@ -214,7 +214,7 @@
   }
   .chat-topbar {
     background:var(--surface); border-bottom:1px solid var(--border);
-    padding:0 16px; height:60px; display:flex; align-items:center; gap:12px;
+    padding:0 16px; height:64px; display:flex; align-items:center; gap:12px;
     flex-shrink:0; box-shadow:0 1px 6px rgba(62,122,74,.07);
   }
   .ct-avatar {
@@ -261,6 +261,7 @@
     position:relative; display:inline-block; max-width:100%; word-break:break-word;
   }
   .msg-row.in  .msg-bubble { background:var(--bubble-in); color:var(--text); border-bottom-left-radius:4px; box-shadow:0 1px 5px rgba(62,122,74,.10); }
+  .msg-row.in  .msg-bubble { background:var(--surface2); color:var(--text); border-bottom-left-radius:4px; }
   .msg-row.out .msg-bubble { background:var(--bubble-out); color:#fff; border-bottom-right-radius:4px; }
   .msg-meta { display:flex; align-items:center; gap:4px; margin-top:3px; justify-content:flex-end; }
   .msg-time-small { font-size:.65rem; color:var(--muted); }
@@ -283,7 +284,7 @@
   .chat-window { display:flex; flex-direction:column; flex:1; overflow:hidden; max-width:100%; }
   .chat-input-area {
     background:var(--surface); border-top:1px solid var(--border);
-    padding:11px 16px; padding-bottom:max(11px,calc(env(safe-area-inset-bottom,0px) + 11px)); display:flex; align-items:flex-end; gap:8px; flex-shrink:0;
+    padding:10px 14px; padding-bottom:max(10px,calc(env(safe-area-inset-bottom,0px) + 11px)); display:flex; align-items:flex-end; gap:8px; flex-shrink:0;
   }
   .input-box {
     flex:1; background:var(--bg); border:1.5px solid var(--border);
@@ -666,7 +667,7 @@
     }
 
     /* Chat topbar */
-    .chat-topbar { padding: 0 14px; padding-top: env(safe-area-inset-top, 0px); height: calc(60px + env(safe-area-inset-top, 0px)); }
+    .chat-topbar { padding: 0 14px; padding-top: env(safe-area-inset-top, 0px); height: calc(64px + env(safe-area-inset-top, 0px)); display:flex; align-items:center; }
     .ct-name { font-size: .88rem; }
     .ct-status { font-size: .68rem; }
 
@@ -784,7 +785,8 @@
     /* Adjust app layout for bottom nav */
     .chat-window { display:flex; flex-direction:column; flex:1; overflow:hidden; max-width:100%; }
   .chat-input-area { padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px) + 4px) !important; }
-    .messages { padding-bottom: calc(62px + env(safe-area-inset-bottom, 0px) + 80px); }
+    .chat-input-area { padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 10px) !important; }
+    .messages { padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px) + 80px); }
     .content-main { padding-bottom: 80px; }
 
 
@@ -823,7 +825,7 @@
     .content-main { padding: 16px 12px calc(72px + env(safe-area-inset-bottom, 0px) + 16px); }
     /* ── Chat ── */
     .messages { padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px) + 70px); }
-    .chat-input-area { padding-bottom: calc(58px + env(safe-area-inset-bottom, 0px) + 8px) !important; }
+
     /* ── Small phone (< 375px) ── */
 
         /* Bigger area buttons on mobile */
@@ -2495,7 +2497,7 @@ function DoodlePage({doodles,setDoodles,coachees,events}) {
           <div class="modal">
             <div style=${{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4}}><h2 class="modal-title" style=${{marginBottom:0}}>Neuer Terminvorschlag</h2><button style=${{background:"none",border:"none",cursor:"pointer",color:"var(--muted)",padding:4,borderRadius:8,display:"flex"}} onClick=${()=>setShowCreate(false)}><${Ic} name="x" size=${20}/></button></div>
             <div class="form-row"><label class="label">Titel</label><input class="input" value=${newTitle} onInput=${e=>setNewTitle(e.target.value)} placeholder="z.B. Coaching-Session April"/></div>
-            <div class="form-row"><label class="label">Beschreibung (optional)</label><textarea class="textarea" rows=${2} value=${newDesc} onInput=${e=>setNewDesc(e.target.value)} placeholder="z.B. Wähle bitte 2–3 Zeiten die dir passen."/></div>
+            <div class="form-row"><label class="label">Beschreibung (optional)</label><textarea class="textarea" rows=${2} value=${newDesc} onInput=${e=>setNewDesc(e.target.value)} placeholder="Unser nächster Termin - wähle bitte alle Zeitfenster, die dir passen."/></div>
             <div class="form-row">
               <label class="label">Zeitvorschläge</label>
               <div class="slot-list-build">
