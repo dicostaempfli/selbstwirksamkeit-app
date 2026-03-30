@@ -654,7 +654,8 @@
     /* Chat area full screen */
     .chat-area {
       width: 100%;
-      height: 100%;
+      flex: 1;
+      min-height: 0;
     }
     .chat-area.hidden-mobile { display: none !important; }
 
@@ -826,7 +827,7 @@
     /* ── PWA standalone mode ── */
     @media all and (display-mode: standalone) {
       .chat-input-area {
-        padding-bottom: max(20px, env(safe-area-inset-bottom, 20px)) !important;
+        padding-bottom: max(24px, env(safe-area-inset-bottom, 24px)) !important;
       }
       #app {
         height: 100dvh;
@@ -863,13 +864,15 @@
     .ct-status { font-size: .68rem; }
     .messages {
       padding: 12px 10px;
-      padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+      padding-bottom: 16px;
     }
     .msg-bubble-wrap { max-width: 82%; }
     .msg-bubble { font-size: .85rem; }
     .chat-input-area {
       padding: 8px 10px;
-      padding-bottom: max(8px, env(safe-area-inset-bottom, 8px));
+      padding-bottom: max(10px, env(safe-area-inset-bottom, 10px));
+      position: relative;
+      z-index: 10;
     }
     .input-box { font-size: .88rem; padding: 8px 12px; }
 
@@ -1376,7 +1379,7 @@ function ChatWindow({coachee,onSend,onSendImg,onUpdate,onBack}) {
         </div>
       </div>
 
-      <div class="messages" ref=${bottomRef} style=${{flex:1,overflowY:"auto",padding:"16px"}}>
+      <div class="messages" ref=${bottomRef} style=${{flex:1,overflowY:"auto",padding:"12px 14px",minHeight:0,WebkitOverflowScrolling:"touch"}}>
         ${Object.entries(groups).map(([date,msgs])=>html`
           <div key=${date}>
             <div class="date-divider">${date}</div>
