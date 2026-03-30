@@ -1345,10 +1345,16 @@ function ChatPage({coachees,setCoachees,mobileChatOpen,setMobileChatOpen}) {
     setCoachees(cs=>cs.map(c=>c.id===coachee.id?{...c,messages:[...(c.messages||[]),msg],lastTime:t}:c));
   };
 
+  const sendFile = file => {
+    const t = new Date().toLocaleTimeString('de-CH',{hour:'2-digit',minute:'2-digit'});
+    const msg = {id:Date.now(),from:"coachee",file:file,text:"",time:t,date:"Heute"};
+    setCoachees(cs=>cs.map(c=>c.id===coachee.id?{...c,messages:[...(c.messages||[]),msg],lastTime:t}:c));
+  };
+
   return html`
     <div style=${{flex:1,display:"flex",flexDirection:"column",overflow:"hidden",minWidth:0,background:"var(--bg)"}}>
 
-      <${ChatWindow} coachee=${coachee} onSend=${sendMsg} onSendImg=${sendImg} onBack=${()=>setMobileChatOpen&&setMobileChatOpen(false)}/>
+      <${ChatWindow} coachee=${coachee} onSend=${sendMsg} onSendImg=${sendImg} onSendFile=${sendFile} onBack=${()=>setMobileChatOpen&&setMobileChatOpen(false)}/>
     </div>`;
 }
 
@@ -1392,7 +1398,7 @@ function Sidebar({page,setPage,totalUnread,user}) {
 
 
 // ── CHAT WINDOW ──
-function ChatWindow({coachee,onSend,onSendImg,onUpdate,onBack}) {
+function ChatWindow({coachee,onSend,onSendImg,onSendFile,onUpdate,onBack}) {
   const [input,setInput]         = useState("");
   const [showInfo,setShowInfo]   = useState(false);
   const [showPhotos,setShowPhotos] = useState(false);
@@ -1406,7 +1412,7 @@ function ChatWindow({coachee,onSend,onSendImg,onUpdate,onBack}) {
   const handleAttach = async e => {
     const f=e.target.files[0]; if(!f)return;
     const r=new FileReader();
-    r.onload=ev=>{ onSendImg(ev.target.result); };
+    r.onload=ev=>{ onSendFile({url:ev.target.result, name:f.name, type:f.type, size:f.size}); };
     r.readAsDataURL(f); e.target.value="";
   };
 
@@ -1454,6 +1460,28 @@ function ChatWindow({coachee,onSend,onSendImg,onUpdate,onBack}) {
                     ${!isOut&&!prevSame&&html`<div class="msg-sender">${msg.sender||"Diana"}</div>`}
                     <div class="msg-bubble">
                       ${msg.imgSrc&&html`<div class="msg-img-wrap"><img src=${msg.imgSrc} class="msg-img" alt="Foto" onClick=${()=>setLightbox(msg.imgSrc)}/></div>`}
+                      ${msg.file&&html`
+                        <div onClick=${()=>{
+                          try {
+                            const arr=msg.file.url.split(','); const mime=arr[0].match(/:(.*?);/)[1];
+                            const bstr=atob(arr[1]); let n=bstr.length; const u8=new Uint8Array(n);
+                            while(n--)u8[n]=bstr.charCodeAt(n);
+                            const blob=new Blob([u8],{type:mime});
+                            const blobUrl=URL.createObjectURL(blob);
+                            const a=document.createElement('a'); a.href=blobUrl; a.target='_blank'; a.rel='noopener';
+                            document.body.appendChild(a); a.click(); document.body.removeChild(a);
+                            setTimeout(()=>URL.revokeObjectURL(blobUrl),30000);
+                          } catch(e){ window.open(msg.file.url,'_blank'); }
+                        }}
+                        style=${{display:'flex',alignItems:'center',gap:8,cursor:'pointer',
+                          padding:'6px 10px',background:'rgba(255,255,255,.15)',borderRadius:8,minWidth:160}}>
+                          <${Ic} name="file" size=${20} style=${{flexShrink:0,opacity:.8}}/>
+                          <div style=${{minWidth:0}}>
+                            <div style=${{fontSize:'.8rem',fontWeight:700,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:160}}>${msg.file.name}</div>
+                            <div style=${{fontSize:'.68rem',opacity:.7}}>${msg.file.type.split('/')[1]?.toUpperCase()||'Datei'}</div>
+                          </div>
+                          <${Ic} name="chevron" size=${14} style=${{flexShrink:0,opacity:.6}}/>
+                        </div>`}
                       ${msg.text&&html`<span>${msg.text}</span>`}
                     </div>
                     <div class="msg-meta">
