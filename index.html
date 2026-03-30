@@ -56,7 +56,18 @@
     } else {
       window.addEventListener('load', initFB);
     }
-  </script>
+  
+    // PWA height fix for iOS
+    function setVH() {
+      const vh = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+      const navH = 72; // bottom nav height
+      document.documentElement.style.setProperty('--chat-h', (vh - navH) + 'px');
+    }
+    setVH();
+    if(window.visualViewport) window.visualViewport.addEventListener('resize', setVH);
+    window.addEventListener('resize', setVH);
+    window.addEventListener('orientationchange', ()=>setTimeout(setVH,100));
+</script>
   <style>
 
   @import url('https://fonts.googleapis.com/css2?family=Manuale:ital,wght@0,400;0,600;0,700;1,400&family=Exo+2:wght@300;400;600;700&display=swap');
@@ -700,10 +711,11 @@
     /* Chat — mobile */
     .chat-area {
       width: 100%;
-      flex: 1;
-      min-height: 0;
       display: flex;
       flex-direction: column;
+      height: var(--chat-h, calc(100dvh - 72px));
+      max-height: var(--chat-h, calc(100dvh - 72px));
+      flex: none;
     }
     .chat-area.hidden-mobile { display: none !important; }
     .mobile-back-btn { display: flex !important; }
@@ -713,10 +725,15 @@
     .messages {
       padding: 10px;
       padding-bottom: 12px;
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
     }
     .msg-bubble-wrap { max-width: 82%; }
     .msg-bubble { font-size: .85rem; }
     .chat-input-area {
+      flex-shrink: 0;
       padding: 8px 10px;
       padding-bottom: max(8px, env(safe-area-inset-bottom, 8px));
     }
