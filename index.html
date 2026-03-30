@@ -57,16 +57,23 @@
       window.addEventListener('load', initFB);
     }
   
-    // PWA height fix for iOS
+    // PWA + keyboard height fix for iOS
     function setVH() {
-      const vh = window.visualViewport ? window.visualViewport.height : window.innerHeight;
-      const navH = 72; // bottom nav height
+      const vp = window.visualViewport;
+      const vh = vp ? vp.height : window.innerHeight;
+      const navH = 72;
       document.documentElement.style.setProperty('--chat-h', (vh - navH) + 'px');
+      // When keyboard is open, also shift chat area up by viewport offset
+      const offsetY = vp ? vp.offsetTop : 0;
+      document.documentElement.style.setProperty('--vp-offset', offsetY + 'px');
     }
     setVH();
-    if(window.visualViewport) window.visualViewport.addEventListener('resize', setVH);
+    if(window.visualViewport) {
+      window.visualViewport.addEventListener('resize', setVH);
+      window.visualViewport.addEventListener('scroll', setVH);
+    }
     window.addEventListener('resize', setVH);
-    window.addEventListener('orientationchange', ()=>setTimeout(setVH,100));
+    window.addEventListener('orientationchange', ()=>setTimeout(setVH, 150));
 </script>
   <style>
 
@@ -716,6 +723,8 @@
       height: var(--chat-h, calc(100dvh - 72px));
       max-height: var(--chat-h, calc(100dvh - 72px));
       flex: none;
+      transform: translateY(calc(-1 * var(--vp-offset, 0px)));
+      transition: transform 0s;
     }
     .chat-area.hidden-mobile { display: none !important; }
     .mobile-back-btn { display: flex !important; }
@@ -1468,6 +1477,13 @@ function ChatWindow({coachee,onSend,onSendImg,onUpdate,onBack}) {
         <button class="attach-btn" onClick=${()=>attachRef.current?.click()}><${Ic} name="attach" size=${18}/></button>
         <textarea ref=${textRef} class="input-box" rows=${1} value=${input}
           onInput=${e=>setInput(e.target.value)} onKeyDown=${handleKey}
+          onFocus=${()=>{
+            // iOS: scroll input into view when keyboard opens
+            setTimeout(()=>{
+              if(textRef.current) textRef.current.scrollIntoView({block:'nearest',behavior:'smooth'});
+              if(bottomRef.current) bottomRef.current.scrollIntoView({behavior:'smooth'});
+            }, 350);
+          }}
           placeholder=${"Nachricht an Diana & Rico…"}/>
         <button class="send-btn" onClick=${handleSend} disabled=${!input.trim()}><${Ic} name="send" size=${17}/></button>
       </div>
