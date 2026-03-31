@@ -1398,6 +1398,7 @@ function ChatWindow({coachee,recipient,setRecipient,onSend,onSendImg,onSendFile,
   const [videoLightbox,setVideoLightbox] = useState(null);
   const [recording,setRecording]   = useState(false);
   const [fileViewer,setFileViewer]   = useState(null);
+  const [showCamMenu,setShowCamMenu] = useState(false);
   const bottomRef  = useRef(null);
   const textRef    = useRef(null);
   const chatImgRef = useRef(null);
@@ -1574,12 +1575,16 @@ function ChatWindow({coachee,recipient,setRecipient,onSend,onSendImg,onSendFile,
       </div>
 
       <div class="chat-input-area">
-        <input ref=${chatImgRef} type="file" accept="image/*,video/*" capture="environment"
+        <input ref=${chatImgRef} type="file" accept="image/*" capture="environment"
+          style=${{display:"none"}} onChange=${handleChatImg}/>
+        <input id="vid-cap" type="file" accept="video/*" capture="environment"
+          style=${{display:"none"}} onChange=${handleChatImg}/>
+        <input id="lib-pick" type="file" accept="image/*,video/*"
           style=${{display:"none"}} onChange=${handleChatImg}/>
         <input ref=${attachRef} type="file"
           accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,application/*"
           style=${{display:"none"}} onChange=${handleAttach}/>
-        <button class="attach-btn" onClick=${()=>chatImgRef.current?.click()}><${Ic} name="camera" size=${18}/></button>
+        <button class="attach-btn" onClick=${()=>setShowCamMenu(true)}><${Ic} name="camera" size=${18}/></button>
         <button class="attach-btn" onClick=${()=>attachRef.current?.click()}><${Ic} name="attach" size=${18}/></button>
         <button class="attach-btn"
           onClick=${recording?stopRecording:startRecording}
@@ -1600,6 +1605,29 @@ function ChatWindow({coachee,recipient,setRecipient,onSend,onSendImg,onSendFile,
         <button class="send-btn" onClick=${handleSend} disabled=${!input.trim()}><${Ic} name="send" size=${17}/></button>
       </div>
 
+      ${showCamMenu&&html`
+        <div style=${{position:"fixed",inset:0,zIndex:99998,background:"rgba(0,0,0,.4)"}}
+          onClick=${()=>setShowCamMenu(false)}>
+          <div style=${{position:"fixed",bottom:0,left:0,right:0,background:"var(--surface)",
+            borderRadius:"16px 16px 0 0",padding:"8px 0 32px",boxShadow:"0 -4px 24px rgba(0,0,0,.15)"}}
+            onClick=${e=>e.stopPropagation()}>
+            <div style=${{width:36,height:4,borderRadius:2,background:"var(--border)",margin:"0 auto 16px"}}/>
+            ${[
+              {label:"Foto aufnehmen", action:()=>{setShowCamMenu(false);chatImgRef.current?.click();},
+                icon:html`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>`},
+              {label:"Video aufnehmen", action:()=>{setShowCamMenu(false);document.getElementById("vid-cap")?.click();},
+                icon:html`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>`},
+              {label:"Aus Mediathek wählen", action:()=>{setShowCamMenu(false);document.getElementById("lib-pick")?.click();},
+                icon:html`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>`},
+            ].map((item,i)=>html`
+              <div key=${i} onClick=${item.action}
+                style=${{display:"flex",alignItems:"center",gap:14,padding:"13px 22px",
+                  cursor:"pointer",borderTop:i>0?"0.5px solid var(--border)":"none"}}>
+                ${item.icon}
+                <span style=${{fontSize:".95rem",color:"var(--text)"}}>${item.label}</span>
+              </div>`)}
+          </div>
+        </div>`}
       ${lightbox&&html`
         <div class="lightbox" onClick=${e=>{if(e.target===e.currentTarget)setLightbox(null);}}>
           <div style=${{position:"relative",display:"inline-block"}}>
@@ -1648,13 +1676,17 @@ function ChatWindow({coachee,recipient,setRecipient,onSend,onSendImg,onSendFile,
           zIndex:99999,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
           <div style=${{position:"relative",width:"90vw",height:"82vh",background:"white",borderRadius:12,overflow:"hidden",display:"flex",flexDirection:"column"}}>
             <div style=${{display:"flex",alignItems:"center",justifyContent:"space-between",
-              padding:"10px 14px",borderBottom:"1px solid #eee",flexShrink:0}}>
-              <span style=${{fontSize:".85rem",fontWeight:700,color:"#1e3a2f",overflow:"hidden",
-                textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"80%"}}>${fileViewer.name}</span>
+              padding:"10px 14px",background:"#1e3a2f",flexShrink:0}}>
+              <div style=${{display:"flex",alignItems:"center",gap:8,minWidth:0}}>
+                <${Ic} name="file" size=${16} style=${{color:"rgba(255,255,255,.7)",flexShrink:0}}/>
+                <span style=${{fontSize:".85rem",fontWeight:600,color:"white",overflow:"hidden",
+                  textOverflow:"ellipsis",whiteSpace:"nowrap"}}>${fileViewer.name}</span>
+              </div>
               <button onClick=${()=>{URL.revokeObjectURL(fileViewer.url);setFileViewer(null);}}
-                style=${{background:"none",border:"none",cursor:"pointer",color:"var(--muted)",
-                  padding:4,borderRadius:8,display:"flex"}}>
-                <${Ic} name="x" size=${20}/>
+                style=${{background:"rgba(255,255,255,.2)",border:"none",cursor:"pointer",color:"white",
+                  width:30,height:30,borderRadius:"50%",display:"flex",alignItems:"center",
+                  justifyContent:"center",flexShrink:0,marginLeft:8}}>
+                <${Ic} name="x" size=${16}/>
               </button>
             </div>
             <iframe src=${fileViewer.url} style=${{flex:1,border:"none",width:"100%"}}></iframe>
