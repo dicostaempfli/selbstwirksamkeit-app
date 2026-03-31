@@ -1574,7 +1574,7 @@ function ChatWindow({coachee,recipient,setRecipient,onSend,onSendImg,onSendFile,
       </div>
 
       <div class="chat-input-area">
-        <input ref=${chatImgRef} type="file" accept="image/*,video/*"
+        <input ref=${chatImgRef} type="file" accept="image/*,video/*" capture="environment"
           style=${{display:"none"}} onChange=${handleChatImg}/>
         <input ref=${attachRef} type="file"
           accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,application/*"
@@ -1615,8 +1615,10 @@ function ChatWindow({coachee,recipient,setRecipient,onSend,onSendImg,onSendFile,
           </div>
         </div>`}
       ${videoLightbox&&html`
-        <div class="lightbox" onClick=${e=>{if(e.target===e.currentTarget)setVideoLightbox(null);}}>
-          <div style=${{position:"relative",display:"inline-block",maxWidth:"95vw"}}>
+        <div style=${{position:"fixed",inset:0,background:"rgba(0,0,0,.92)",
+          zIndex:99999,display:"flex",alignItems:"center",justifyContent:"center"}}
+          onClick=${e=>{if(e.target===e.currentTarget)setVideoLightbox(null);}}>
+          <div style=${{position:"relative",maxWidth:"95vw",maxHeight:"90vh"}}>
             <button onClick=${()=>setVideoLightbox(null)}
               style=${{position:"absolute",top:-14,right:-14,width:32,height:32,
                 borderRadius:"50%",background:"white",border:"none",cursor:"pointer",
@@ -1624,8 +1626,21 @@ function ChatWindow({coachee,recipient,setRecipient,onSend,onSendImg,onSendFile,
                 boxShadow:"0 2px 8px rgba(0,0,0,.3)",zIndex:1,color:"var(--text)"}}>
               <${Ic} name="x" size=${16}/>
             </button>
-            <video src=${videoLightbox} controls=${true} autoplay=${true}
-              style=${{maxWidth:"90vw",maxHeight:"80vh",borderRadius:12,display:"block"}}></video>
+            <video controls=${true} autoplay=${true} playsinline=${true}
+              style=${{maxWidth:"90vw",maxHeight:"80vh",borderRadius:12,display:"block"}}
+              ref=${el=>{
+                if(el && videoLightbox) {
+                  try {
+                    const arr=videoLightbox.split(",");
+                    const mime=arr[0].match(/:(.*?);/)[1];
+                    const bstr=atob(arr[1]);
+                    const u8=new Uint8Array(bstr.length);
+                    for(let i=0;i<bstr.length;i++) u8[i]=bstr.charCodeAt(i);
+                    const blob=new Blob([u8],{type:mime});
+                    el.src=URL.createObjectURL(blob);
+                  } catch(e){ el.src=videoLightbox; }
+                }
+              }}></video>
           </div>
         </div>`}
       ${fileViewer&&html`
