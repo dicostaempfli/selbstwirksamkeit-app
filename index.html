@@ -1030,6 +1030,8 @@ const IC = {
   x:       ["M18 6L6 18","M6 6l12 12"],
   logout:  ["M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4","M16 17l5-5-5-5","M21 12H9"],
   chevron: ["M9 18l6-6-6-6"],
+  mic:     ["M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z","M19 10v2a7 7 0 01-14 0v-2","M12 19v4","M8 23h8"],
+  stop:    ["M18 3H6a3 3 0 00-3 3v12a3 3 0 003 3h12a3 3 0 003-3V6a3 3 0 00-3-3z"],
   ticket:  ["M2 9a1 1 0 01-1-1V5a2 2 0 012-2h18a2 2 0 012 2v3a1 1 0 01-1 1 2 2 0 000 4 1 1 0 011 1v3a2 2 0 01-2 2H3a2 2 0 01-2-2v-3a1 1 0 011-1 2 2 0 000-4","M12 5v2","M12 11v2","M12 17v2"],
 };
 
@@ -1331,15 +1333,18 @@ function ChatPage({coachees,setCoachees,mobileChatOpen,setMobileChatOpen}) {
 
   const sendImg = dataUrl => {
     const t = new Date().toLocaleTimeString('de-CH',{hour:'2-digit',minute:'2-digit'});
-    const msg = {id:Date.now(),from:"coachee",imgSrc:dataUrl,text:"",time:t,date:"Heute"};
+    const isVideo = dataUrl.startsWith('data:video');
+    const msg = {id:Date.now(),from:"coachee",imgSrc:dataUrl,isVideo,text:"",time:t,date:"Heute"};
     setCoachees(cs=>cs.map(c=>c.id===coachee.id?{...c,messages:[...(c.messages||[]),msg],lastTime:t}:c));
   };
 
   const sendFile = file => {
     const t = new Date().toLocaleTimeString('de-CH',{hour:'2-digit',minute:'2-digit'});
-    const msg = {id:Date.now(),from:"coachee",file:file,text:"",time:t,date:"Heute"};
+    const msg = {id:Date.now(),from:"coachee",file,text:"",time:t,date:"Heute"};
     setCoachees(cs=>cs.map(c=>c.id===coachee.id?{...c,messages:[...(c.messages||[]),msg],lastTime:t}:c));
   };
+
+
 
   return html`
     <div style=${{flex:1,display:"flex",flexDirection:"column",overflow:"hidden",minWidth:0,background:"var(--bg)"}}>
@@ -1377,34 +1382,17 @@ function Sidebar({page,setPage,totalUnread,user}) {
         <button style=${{background:"rgba(255,255,255,.12)",border:"1.5px solid rgba(255,255,255,.3)",cursor:"pointer",color:"rgba(255,255,255,.9)",display:"flex",alignItems:"center",justifyContent:"center",padding:"5px 8px",borderRadius:8,gap:5,fontFamily:"'Exo 2',sans-serif",fontSize:".65rem",fontWeight:700}} onClick=${()=>{ (window._fb?.auth||window.firebase?.auth())?.signOut().catch(()=>{}); }}>
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/>
-            <polyline points="16 17 21 12 16 7"/>
-            <line x1="21" y1="12" x2="9" y2="12"/>
-          </svg>
-          <span>Logout</span>
-        </button>
-      </div>
-    </div>`;
-}
-
-
-// ── CHAT WINDOW ──
+            <polyli
 function ChatWindow({coachee,onSend,onSendImg,onSendFile,onUpdate,onBack}) {
   const [input,setInput]         = useState("");
-  const [showInfo,setShowInfo]   = useState(false);
-  const [showPhotos,setShowPhotos] = useState(false);
   const [lightbox,setLightbox]   = useState(null);
+  const [recording,setRecording] = useState(false);
   const bottomRef  = useRef(null);
   const textRef    = useRef(null);
-  const profileRef = useRef(null);
-  const galleryRef = useRef(null);
   const chatImgRef = useRef(null);
   const attachRef  = useRef(null);
-  const handleAttach = async e => {
-    const f=e.target.files[0]; if(!f)return;
-    const r=new FileReader();
-    r.onload=ev=>{ onSendFile({url:ev.target.result, name:f.name, type:f.type, size:f.size}); };
-    r.readAsDataURL(f); e.target.value="";
-  };
+  const mediaRecRef = useRef(null);
+  const chunksRef  = useRef([]);
 
   useEffect(()=>{ bottomRef.current?.scrollIntoView({behavior:"smooth"}); },[coachee.messages.length]);
 
@@ -1414,10 +1402,54 @@ function ChatWindow({coachee,onSend,onSendImg,onSendFile,onUpdate,onBack}) {
 
   const handleSend = () => { if(!input.trim())return; onSend(input); setInput(""); };
   const handleKey  = e => { if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();handleSend();} };
+
   const handleChatImg = async e => {
     const f=e.target.files[0]; if(!f)return;
     onSendImg(await readFile(f));
     setTimeout(()=>bottomRef.current?.scrollIntoView({behavior:"smooth"}),50);
+  };
+
+  const handleAttach = async e => {
+    const f=e.target.files[0]; if(!f)return;
+    const r=new FileReader();
+    r.onload=ev=>{ onSendFile({url:ev.target.result,name:f.name,type:f.type,size:f.size,isAudio:false}); };
+    r.readAsDataURL(f); e.target.value="";
+  };
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({audio:true});
+      const mr = new MediaRecorder(stream);
+      mediaRecRef.current = mr; chunksRef.current = [];
+      mr.ondataavailable = ev => chunksRef.current.push(ev.data);
+      mr.onstop = () => {
+        const blob = new Blob(chunksRef.current,{type:"audio/webm"});
+        const rdr = new FileReader();
+        rdr.onload = ev2 => {
+          onSendFile({url:ev2.target.result,name:"Sprachmemo.webm",type:"audio/webm",isAudio:true});
+        };
+        rdr.readAsDataURL(blob);
+        stream.getTracks().forEach(t=>t.stop());
+      };
+      mr.start(); setRecording(true);
+    } catch(err) { alert("Mikrofon-Zugriff nicht möglich."); }
+  };
+
+  const stopRecording = () => {
+    if(mediaRecRef.current&&recording){ mediaRecRef.current.stop(); setRecording(false); }
+  };
+
+  const openFile = file => {
+    try {
+      const arr=file.url.split(","); const mime=arr[0].match(/:(.*?);/)[1];
+      const bstr=atob(arr[1]); let n=bstr.length; const u8=new Uint8Array(n);
+      while(n--)u8[n]=bstr.charCodeAt(n);
+      const blob=new Blob([u8],{type:mime});
+      const blobUrl=URL.createObjectURL(blob);
+      const a=document.createElement("a"); a.href=blobUrl; a.target="_blank"; a.rel="noopener";
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(()=>URL.revokeObjectURL(blobUrl),30000);
+    } catch(e){ window.open(file.url,"_blank"); }
   };
 
   return html`
@@ -1449,26 +1481,26 @@ function ChatWindow({coachee,onSend,onSendImg,onSendFile,onUpdate,onBack}) {
                   <div class="msg-bubble-wrap">
                     ${!isOut&&!prevSame&&html`<div class="msg-sender">${msg.sender||"Diana"}</div>`}
                     <div class="msg-bubble">
-                      ${msg.imgSrc&&html`<div class="msg-img-wrap"><img src=${msg.imgSrc} class="msg-img" alt="Foto" onClick=${()=>setLightbox(msg.imgSrc)}/></div>`}
-                      ${msg.file&&html`
-                        <div onClick=${()=>{
-                          try {
-                            const arr=msg.file.url.split(','); const mime=arr[0].match(/:(.*?);/)[1];
-                            const bstr=atob(arr[1]); let n=bstr.length; const u8=new Uint8Array(n);
-                            while(n--)u8[n]=bstr.charCodeAt(n);
-                            const blob=new Blob([u8],{type:mime});
-                            const blobUrl=URL.createObjectURL(blob);
-                            const a=document.createElement('a'); a.href=blobUrl; a.target='_blank'; a.rel='noopener';
-                            document.body.appendChild(a); a.click(); document.body.removeChild(a);
-                            setTimeout(()=>URL.revokeObjectURL(blobUrl),30000);
-                          } catch(e){ window.open(msg.file.url,'_blank'); }
-                        }}
-                        style=${{display:'flex',alignItems:'center',gap:8,cursor:'pointer',
-                          padding:'6px 10px',background:'rgba(255,255,255,.15)',borderRadius:8,minWidth:160}}>
+                      ${msg.imgSrc&&html`<div class="msg-img-wrap">${
+                        msg.isVideo
+                          ? html`<video src=${msg.imgSrc} controls style=${{width:220,maxHeight:180,borderRadius:11,display:"block"}}></video>`
+                          : html`<img src=${msg.imgSrc} class="msg-img" alt="Foto" onClick=${()=>setLightbox(msg.imgSrc)}/>`
+                      }</div>`}
+                      ${msg.file&&msg.file.isAudio&&html`
+                        <div style=${{padding:"2px 0"}}>
+                          <audio controls src=${msg.file.url}
+                            style=${{height:34,maxWidth:220,borderRadius:20,display:"block"}}></audio>
+                          <div style=${{fontSize:".68rem",opacity:.6,marginTop:3}}>Sprachmemo</div>
+                        </div>`}
+                      ${msg.file&&!msg.file.isAudio&&html`
+                        <div onClick=${()=>openFile(msg.file)}
+                          style=${{display:"flex",alignItems:"center",gap:8,cursor:"pointer",
+                            padding:"6px 10px",background:"rgba(255,255,255,.15)",borderRadius:8,minWidth:160}}>
                           <${Ic} name="file" size=${20} style=${{flexShrink:0,opacity:.8}}/>
                           <div style=${{minWidth:0}}>
-                            <div style=${{fontSize:'.8rem',fontWeight:700,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:160}}>${msg.file.name}</div>
-                            <div style=${{fontSize:'.68rem',opacity:.7}}>${msg.file.type.split('/')[1]?.toUpperCase()||'Datei'}</div>
+                            <div style=${{fontSize:".8rem",fontWeight:700,overflow:"hidden",
+                              textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:160}}>${msg.file.name}</div>
+                            <div style=${{fontSize:".68rem",opacity:.7}}>${(msg.file.type||"").split("/")[1]?.toUpperCase()||"Datei"}</div>
                           </div>
                           <${Ic} name="chevron" size=${14} style=${{flexShrink:0,opacity:.6}}/>
                         </div>`}
@@ -1486,21 +1518,27 @@ function ChatWindow({coachee,onSend,onSendImg,onSendFile,onUpdate,onBack}) {
       </div>
 
       <div class="chat-input-area">
-        <input ref=${chatImgRef} type="file" accept="image/*,video/*" capture="environment"
+        <input ref=${chatImgRef} type="file" accept="image/*,video/*"
           style=${{display:"none"}} onChange=${handleChatImg}/>
         <input ref=${attachRef} type="file"
           accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,application/*"
           style=${{display:"none"}} onChange=${handleAttach}/>
         <button class="attach-btn" onClick=${()=>chatImgRef.current?.click()}><${Ic} name="camera" size=${18}/></button>
         <button class="attach-btn" onClick=${()=>attachRef.current?.click()}><${Ic} name="attach" size=${18}/></button>
+        <button class="attach-btn"
+          onClick=${recording?stopRecording:startRecording}
+          style=${{color:recording?"#e53e3e":"var(--muted)",position:"relative"}}>
+          <${Ic} name=${recording?"stop":"mic"} size=${18}/>
+          ${recording&&html`<span style=${{position:"absolute",top:1,right:1,width:7,height:7,
+            borderRadius:"50%",background:"#e53e3e",border:"2px solid var(--surface)"}}/>`}
+        </button>
         <textarea ref=${textRef} class="input-box" rows=${1} value=${input}
           onInput=${e=>setInput(e.target.value)} onKeyDown=${handleKey}
           onFocus=${()=>{
-            // iOS: scroll input into view when keyboard opens
             setTimeout(()=>{
-              if(textRef.current) textRef.current.scrollIntoView({block:'nearest',behavior:'smooth'});
-              if(bottomRef.current) bottomRef.current.scrollIntoView({behavior:'smooth'});
-            }, 350);
+              if(textRef.current) textRef.current.scrollIntoView({block:"nearest",behavior:"smooth"});
+              if(bottomRef.current) bottomRef.current.scrollIntoView({behavior:"smooth"});
+            },350);
           }}
           placeholder=${"Nachricht an Diana & Rico…"}/>
         <button class="send-btn" onClick=${handleSend} disabled=${!input.trim()}><${Ic} name="send" size=${17}/></button>
@@ -1508,7 +1546,7 @@ function ChatWindow({coachee,onSend,onSendImg,onSendFile,onUpdate,onBack}) {
 
       ${lightbox&&html`
         <div class="lightbox" onClick=${e=>{if(e.target===e.currentTarget)setLightbox(null);}}>
-          <div style=${{position:"relative",display:"inline-block",maxWidth:"95vw",maxHeight:"90vh"}}>
+          <div style=${{position:"relative",display:"inline-block"}}>
             <button onClick=${()=>setLightbox(null)}
               style=${{position:"absolute",top:-14,right:-14,width:32,height:32,
                 borderRadius:"50%",background:"white",border:"none",cursor:"pointer",
