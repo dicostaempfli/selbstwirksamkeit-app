@@ -1489,14 +1489,11 @@ function ChatWindow({coachee,onSend,onSendImg,onSendFile,onUpdate,onBack}) {
                   <div class="msg-bubble-wrap">
                     ${!isOut&&!prevSame&&html`<div class="msg-sender">${msg.sender||"Diana"}</div>`}
                     <div class="msg-bubble">
-                      ${msg.imgSrc&&html`<div class="msg-img-wrap">${
-                        msg.isVideo
-                          ? html`<video src=${msg.imgSrc} controls style=${{width:220,maxHeight:180,borderRadius:11,display:"block"}}></video>`
-                          : html`<img src=${msg.imgSrc} class="msg-img" alt="Foto" onClick=${()=>setLightbox(msg.imgSrc)}/>`
-                      }</div>`}
+                      ${msg.imgSrc&&!msg.isVideo&&html`<div class="msg-img-wrap"><img src=${msg.imgSrc} class="msg-img" alt="Foto" onClick=${()=>setLightbox(msg.imgSrc)}/></div>`}
+                      ${msg.imgSrc&&msg.isVideo&&html`<div class="msg-img-wrap"><video src=${msg.imgSrc} controls=${true} style=${{width:220,maxHeight:180,borderRadius:11,display:"block"}}></video></div>`}
                       ${msg.file&&msg.file.isAudio&&html`
                         <div style=${{padding:"2px 0"}}>
-                          <audio controls src=${msg.file.url}
+                          <audio controls=${true} src=${msg.file.url}
                             style=${{height:34,maxWidth:220,borderRadius:20,display:"block"}}></audio>
                           <div style=${{fontSize:".68rem",opacity:.6,marginTop:3}}>Sprachmemo</div>
                         </div>`}
