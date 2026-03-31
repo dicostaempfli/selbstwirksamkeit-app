@@ -1,8 +1,8 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="de">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover.0"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
 <title>Admin — Raum für Selbstwirksamkeit</title>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="theme-color" content="#1e3a2f"/>
@@ -171,7 +171,7 @@ body{font-family:'Exo 2',sans-serif;background:var(--bg);color:var(--text);heigh
 .msg-row{display:flex;margin-bottom:2px}
 .msg-row.out{justify-content:flex-end}
 .msg-row.in{justify-content:flex-start}
-.msg-bubble{max-width:68%;padding:8px 12px;border-radius:14px;font-size:.87rem;line-height:1.5;word-break:break-word}
+.msg-bubble{max-width:68%;padding:8px 12px;border-radius:14px;font-size:.87rem;overflow:hidden;overflow:hidden;line-height:1.5;word-break:break-word}
 .msg-bubble.out{background:var(--forest2);color:white;border-bottom-right-radius:3px}
 .msg-bubble.in{background:var(--surface);color:var(--text);border-bottom-left-radius:3px;box-shadow:0 1px 3px rgba(0,0,0,.07)}
 .msg-img{max-width:200px;border-radius:10px;cursor:pointer;display:block}
@@ -827,7 +827,7 @@ function ChatWindow({coachee,onSend,onSendImg,onSendFile,setLightbox,onBack,mobi
                   <div>
                     ${!isOut&&!prevSame&&html`<div style=${{fontSize:".67rem",fontWeight:700,color:avatarColor,marginBottom:2}}>${sndr}</div>`}
                     <div class=${"msg-bubble "+(isOut?"out":"in")}>
-                      ${msg.imgSrc&&!msg.isVideo&&html`<img src=${msg.imgSrc} class="msg-img" alt="Foto" onClick=${()=>setLightbox(msg.imgSrc)}/>`}
+                      ${msg.imgSrc&&!msg.isVideo&&html`<div style=${{margin:"-8px -12px -8px -12px"}}><img src=${msg.imgSrc} style=${{width:"100%",maxHeight:200,objectFit:"cover",display:"block",cursor:"pointer",borderRadius:14}} alt="Foto" onClick=${()=>setLightbox(msg.imgSrc)}/></div>`}
                       ${msg.imgSrc&&msg.isVideo&&html`<div onClick=${()=>setVideoLightbox(msg.imgSrc)}
                         style=${{width:200,height:130,borderRadius:9,background:"#1e3a2f",cursor:"pointer",
                           position:"relative",display:"flex",alignItems:"center",justifyContent:"center"}}>
