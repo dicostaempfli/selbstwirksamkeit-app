@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover.0"/>
 <title>Admin — Raum für Selbstwirksamkeit</title>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="theme-color" content="#1e3a2f"/>
@@ -15,6 +15,10 @@
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
 <script>
 function initFB() {
+  if(typeof firebase === 'undefined') {
+    setTimeout(initFB, 200);
+    return;
+  }
   try {
     if(!firebase.apps.length) {
       firebase.initializeApp({
@@ -28,14 +32,17 @@ function initFB() {
     }
     window._fb = {
       auth: firebase.auth(),
-      db: firebase.firestore(),
+      db:   firebase.firestore(),
       googleProvider: new firebase.auth.GoogleAuthProvider()
     };
     firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL);
-  } catch(e) { console.error("Firebase init:", e); }
+  } catch(e) {
+    console.error("Firebase init:", e);
+    setTimeout(initFB, 500);
+  }
 }
-if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initFB);
-else initFB();
+if(document.readyState === 'complete') initFB();
+else window.addEventListener('load', initFB);
 </script>
 
 <style>
@@ -326,7 +333,12 @@ const IC = {
   leaf:["M2 22c1.25-1.25 2.9-2 4.6-2C9 20 11 22 14 22c3.63 0 6.51-2.44 7-6C14 16 10.5 14 8 10c-1.85-2.78-2-5.5-2-8 0 0-5 4.5-5 10 0 2.76 1.12 5.25 2 8z"],
   heart:["M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"],
   image:["M21 19V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2z","M8.5 10A1.5 1.5 0 1010 8.5 1.5 1.5 0 008.5 10z","M21 15l-5-5L5 21"],
-  attach:["M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"],
+  attach:  ["M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"],
+  mic:     ["M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z","M19 10v2a7 7 0 01-14 0v-2","M12 19v4","M8 23h8"],
+  stop:    ["M18 3H6a3 3 0 00-3 3v12a3 3 0 003 3h12a3 3 0 003-3V6a3 3 0 00-3-3z"],
+  file:    ["M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z","M14 2v6h6"],
+  user:    ["M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2","M12 11a4 4 0 100-8 4 4 0 000 8z"],
+  chevron: ["M9 18l6-6-6-6"],
 };
 const Ic = ({name,size=16,style={}}) => {
   const d=IC[name]; if(!d) return null;
@@ -649,13 +661,13 @@ function ChatPage({coachees,setCoachees,setLightbox}) {
     setMobileOpen(true);
   };
 
-  const sendMsg = text => {
+  const sendMsg = (text, sender="Diana") => {
     if(!text.trim()||!active) return;
     const msg={id:Date.now(),from:"admin",sender:sender,text:text.trim(),time:nowTime(),date:"Heute",seen:false};
     setCoachees(cs=>cs.map(c=>c.id===activeId?{...c,messages:[...(c.messages||[]),msg],lastTime:nowTime()}:c));
   };
 
-  const sendImg = dataUrl => {
+  const sendImg = (dataUrl, isVideo=false, sender="Diana") => {
     if(!active) return;
     const msg={id:Date.now(),from:"admin",imgSrc:dataUrl,text:"",time:nowTime(),date:"Heute"};
     setCoachees(cs=>cs.map(c=>c.id===activeId?{...c,messages:[...(c.messages||[]),msg],lastTime:nowTime()}:c));
@@ -693,7 +705,7 @@ function ChatPage({coachees,setCoachees,setLightbox}) {
 
       <!-- Chat window -->
       ${active
-        ? html`<${ChatWindow} coachee=${active} onSend=${sendMsg} onSendImg=${sendImg} setLightbox=${setLightbox} onBack=${()=>setMobileOpen(false)} mobileOpen=${mobileOpen}/>`
+        ? html`<${ChatWindow} coachee=${active} onSend=${sendMsg} onSendImg=${sendImg} onSendFile=${sendFile} setLightbox=${setLightbox} onBack=${()=>setMobileOpen(false)} mobileOpen=${mobileOpen}/>`
         : html`<div class="empty-chat">
             <${Logo} size=${72}/>
             <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.1rem",color:"var(--muted)"}}>Wähle ein Gespräch</div>
@@ -701,20 +713,80 @@ function ChatPage({coachees,setCoachees,setLightbox}) {
           </div>`}
     </div>`;
 }
+  const sendFile = (file, sender="Diana") => {
+    const t = new Date().toLocaleTimeString('de-CH',{hour:'2-digit',minute:'2-digit'});
+    const msg = {id:Date.now(),from:"admin",sender,file,text:"",time:t,date:"Heute"};
+    setCoachees(cs=>cs.map(c=>c.id===sel?{...c,messages:[...(c.messages||[]),msg]}:c));
+  };
 
-function ChatWindow({coachee,onSend,onSendImg,setLightbox,onBack,mobileOpen}) {
-  const [input,setInput] = useState("");
-  const [sender,setSender] = useState("Diana");
-  const bottomRef = useRef(null);
-  const imgRef = useRef(null);
+
+function ChatWindow({coachee,onSend,onSendImg,onSendFile,setLightbox,onBack,mobileOpen}) {
+  const [input,setInput]           = useState("");
+  const [sender,setSender]         = useState("Diana");
+  const [recording,setRecording]   = useState(false);
+  const [videoLightbox,setVideoLightbox] = useState(null);
+  const [fileViewer,setFileViewer] = useState(null);
+  const bottomRef  = useRef(null);
+  const imgRef     = useRef(null);
+  const attachRef  = useRef(null);
+  const vidRef     = useRef(null);
+  const mediaRecRef = useRef(null);
+  const chunksRef  = useRef([]);
 
   useEffect(()=>{ bottomRef.current?.scrollIntoView({behavior:"smooth"}); },[coachee?.messages?.length]);
 
   const groups = (coachee.messages||[]).reduce((acc,msg)=>{ const d=msg.date||"Heute"; if(!acc[d])acc[d]=[]; acc[d].push(msg); return acc; },{});
 
-  const handleSend = () => { if(!input.trim()) return; onSend(input); setInput(""); };
-  const handleKey = e => { if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();handleSend();} };
-  const handleImg = async e => { const f=e.target.files[0]; if(!f) return; onSendImg(await readFile(f)); };
+  const handleSend = () => { if(!input.trim()) return; onSend(input, sender); setInput(""); };
+  const handleKey  = e => { if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();handleSend();} };
+
+  const handleImg = async e => {
+    const f=e.target.files[0]; if(!f) return;
+    if(f.type.startsWith("video/")) {
+      const blobUrl = URL.createObjectURL(f);
+      onSendImg(blobUrl, true, sender);
+    } else {
+      onSendImg(await readFile(f), false, sender);
+    }
+  };
+
+  const handleAttach = async e => {
+    const f=e.target.files[0]; if(!f) return;
+    const r=new FileReader();
+    r.onload=ev=>{ onSendFile({url:ev.target.result,name:f.name,type:f.type,size:f.size,isAudio:false}, sender); };
+    r.readAsDataURL(f); e.target.value="";
+  };
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({audio:true});
+      const mr = new MediaRecorder(stream);
+      mediaRecRef.current = mr; chunksRef.current = [];
+      mr.ondataavailable = ev => chunksRef.current.push(ev.data);
+      mr.onstop = () => {
+        const blob = new Blob(chunksRef.current,{type:"audio/webm"});
+        const rdr = new FileReader();
+        rdr.onload = ev2 => { onSendFile({url:ev2.target.result,name:"Sprachmemo.webm",type:"audio/webm",isAudio:true}, sender); };
+        rdr.readAsDataURL(blob);
+        stream.getTracks().forEach(t=>t.stop());
+      };
+      mr.start(); setRecording(true);
+    } catch(err) { alert("Mikrofon-Zugriff nicht möglich."); }
+  };
+
+  const stopRecording = () => {
+    if(mediaRecRef.current&&recording){ mediaRecRef.current.stop(); setRecording(false); }
+  };
+
+  const openFile = file => {
+    try {
+      const arr=file.url.split(","); const mime=arr[0].match(/:(.*?);/)[1];
+      const bstr=atob(arr[1]); const u8=new Uint8Array(bstr.length);
+      for(let i=0;i<bstr.length;i++) u8[i]=bstr.charCodeAt(i);
+      const blob=new Blob([u8],{type:mime});
+      setFileViewer({url:URL.createObjectURL(blob),name:file.name,type:mime});
+    } catch(ex){ window.open(file.url,"_blank"); }
+  };
 
   const lastIsCoachee = coachee.messages?.length>0&&coachee.messages.at(-1).from==="coachee";
 
@@ -743,18 +815,52 @@ function ChatWindow({coachee,onSend,onSendImg,setLightbox,onBack,mobileOpen}) {
             <div class="date-divider">${date}</div>
             ${msgs.map((msg,i)=>{
               const isOut=msg.from==="admin";
+              const sndr=msg.sender||(isOut?"Diana":"Coachee");
+              const avatarColor = sndr==="Rico"?"#a0cb7b":"#68b87d";
+              const prevSame = i>0&&msgs[i-1].from===msg.from&&(msgs[i-1].sender||"Diana")===(msg.sender||"Diana");
               return html`
-                <div key=${msg.id} class=${"msg-row "+(isOut?"out":"in")}>
+                <div key=${msg.id} class=${"msg-row "+(isOut?"out":"in")} style=${{alignItems:"flex-end"}}>
+                  ${!isOut&&html`<div style=${{width:26,height:26,borderRadius:"50%",flexShrink:0,
+                    background:prevSame?"transparent":avatarColor,
+                    display:"flex",alignItems:"center",justifyContent:"center",
+                    marginRight:5,marginBottom:2,fontSize:".68rem",fontWeight:700,color:"white"}}>${prevSame?"":sndr[0]}</div>`}
                   <div>
+                    ${!isOut&&!prevSame&&html`<div style=${{fontSize:".67rem",fontWeight:700,color:avatarColor,marginBottom:2}}>${sndr}</div>`}
                     <div class=${"msg-bubble "+(isOut?"out":"in")}>
-                      ${msg.imgSrc&&html`<img src=${msg.imgSrc} class="msg-img" alt="Foto" onClick=${()=>setLightbox(msg.imgSrc)}/>`}
+                      ${msg.imgSrc&&!msg.isVideo&&html`<img src=${msg.imgSrc} class="msg-img" alt="Foto" onClick=${()=>setLightbox(msg.imgSrc)}/>`}
+                      ${msg.imgSrc&&msg.isVideo&&html`<div onClick=${()=>setVideoLightbox(msg.imgSrc)}
+                        style=${{width:200,height:130,borderRadius:9,background:"#1e3a2f",cursor:"pointer",
+                          position:"relative",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                          <div style=${{width:44,height:44,borderRadius:"50%",background:"rgba(255,255,255,.9)",
+                            display:"flex",alignItems:"center",justifyContent:"center"}}>
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="#1e3a2f"><polygon points="6,3 20,12 6,21"/></svg>
+                          </div>
+                          <div style=${{position:"absolute",bottom:6,left:8,fontSize:".68rem",color:"rgba(255,255,255,.7)",fontWeight:600}}>Video</div>
+                        </div>`}
+                      ${msg.file&&msg.file.isAudio&&html`
+                        <div style=${{padding:"2px 0"}}>
+                          <audio controls=${true} src=${msg.file.url}
+                            style=${{height:32,maxWidth:200,borderRadius:20,display:"block"}}></audio>
+                          <div style=${{fontSize:".65rem",opacity:.6,marginTop:2}}>Sprachmemo</div>
+                        </div>`}
+                      ${msg.file&&!msg.file.isAudio&&html`
+                        <div onClick=${()=>openFile(msg.file)}
+                          style=${{display:"flex",alignItems:"center",gap:7,cursor:"pointer",
+                            padding:"5px 9px",background:"rgba(255,255,255,.15)",borderRadius:7,minWidth:140}}>
+                          <${Ic} name="file" size=${18} style=${{flexShrink:0,opacity:.8}}/>
+                          <div style=${{minWidth:0}}>
+                            <div style=${{fontSize:".78rem",fontWeight:700,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:140}}>${msg.file.name}</div>
+                            <div style=${{fontSize:".65rem",opacity:.7}}>${(msg.file.type||"").split("/")[1]?.toUpperCase()||"Datei"}</div>
+                          </div>
+                        </div>`}
                       ${msg.text&&html`<span>${msg.text}</span>`}
                     </div>
                     <div class=${"msg-meta"+(isOut?"":" in")}>${msg.time}${isOut?" ✓":""}</div>
                   </div>
                 </div>`;
             })}
-          </div>`)}
+          </div>`)
+        }
         ${lastIsCoachee&&html`
           <div class="qr-wrap">
             ${QUICK_REPLIES.map(q=>html`<button key=${q} class="qr-btn" onClick=${()=>{setInput(q);}}>${q}</button>`)}
@@ -763,8 +869,19 @@ function ChatWindow({coachee,onSend,onSendImg,setLightbox,onBack,mobileOpen}) {
       </div>
 
       <div class="chat-input-bar">
+        <input ref=${imgRef} type="file" accept="image/*,video/*" capture="environment"
+          style=${{display:"none"}} onChange=${handleImg}/>
+        <input ref=${attachRef} type="file"
+          accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,application/*"
+          style=${{display:"none"}} onChange=${handleAttach}/>
         <button class="attach-btn" onClick=${()=>imgRef.current?.click()}><${Ic} name="camera" size=${18}/></button>
-        <input ref=${imgRef} type="file" accept="image/*" style=${{display:"none"}} onChange=${handleImg}/>
+        <button class="attach-btn" onClick=${()=>attachRef.current?.click()}><${Ic} name="attach" size=${18}/></button>
+        <button class="attach-btn" onClick=${recording?stopRecording:startRecording}
+          style=${{color:recording?"#e53e3e":"var(--muted)",position:"relative"}}>
+          <${Ic} name=${recording?"stop":"mic"} size=${18}/>
+          ${recording&&html`<span style=${{position:"absolute",top:1,right:1,width:7,height:7,
+            borderRadius:"50%",background:"#e53e3e",border:"2px solid var(--surface)"}}/>`}
+        </button>
         <div style=${{display:"flex",flexDirection:"column",flex:1,gap:4}}>
           <div style=${{display:"flex",gap:6,alignItems:"center"}}>
             <select value=${sender} onInput=${e=>setSender(e.target.value)}
@@ -775,14 +892,57 @@ function ChatWindow({coachee,onSend,onSendImg,setLightbox,onBack,mobileOpen}) {
             </select>
             <span style=${{fontSize:".72rem",color:"var(--muted)"}}>schreibt als Coach</span>
           </div>
-          <textarea class="chat-textarea" rows=${1} value=${input} onInput=${e=>setInput(e.target.value)} onKeyDown=${handleKey} placeholder=${"Nachricht an "+coachee.name.split(" ")[0]+"…"}/>
+          <textarea class="chat-textarea" rows=${1} value=${input}
+            onInput=${e=>setInput(e.target.value)} onKeyDown=${handleKey}
+            placeholder=${"Nachricht an "+coachee.name.split(" ")[0]+"…"}/>
         </div>
         <button class="send-btn" onClick=${handleSend} disabled=${!input.trim()}><${Ic} name="send" size=${16}/></button>
       </div>
+
+      ${videoLightbox&&html`
+        <div style=${{position:"fixed",inset:0,background:"rgba(0,0,0,.92)",zIndex:99999,
+          display:"flex",alignItems:"center",justifyContent:"center"}}
+          onClick=${e=>{if(e.target===e.currentTarget)setVideoLightbox(null);}}>
+          <div style=${{position:"relative",maxWidth:"95vw"}}>
+            <button onClick=${()=>setVideoLightbox(null)}
+              style=${{position:"absolute",top:-14,right:-14,width:32,height:32,borderRadius:"50%",
+                background:"white",border:"none",cursor:"pointer",display:"flex",alignItems:"center",
+                justifyContent:"center",boxShadow:"0 2px 8px rgba(0,0,0,.3)",zIndex:1,color:"var(--text)"}}>
+              <${Ic} name="x" size=${16}/>
+            </button>
+            <video src=${videoLightbox} controls=${true} autoplay=${true} playsinline=${true}
+              style=${{maxWidth:"90vw",maxHeight:"80vh",borderRadius:12,display:"block"}}></video>
+          </div>
+        </div>`}
+
+      ${fileViewer&&html`
+        <div style=${{position:"fixed",inset:0,background:"rgba(0,0,0,.85)",zIndex:99999,
+          display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
+          <div style=${{width:"90vw",height:"82vh",background:"white",borderRadius:12,
+            display:"flex",flexDirection:"column",overflow:"hidden"}}>
+            <div style=${{display:"flex",alignItems:"center",justifyContent:"space-between",
+              padding:"10px 14px",background:"#1e3a2f",flexShrink:0,gap:10}}>
+              <div style=${{display:"flex",alignItems:"center",gap:8,minWidth:0,flex:1,overflow:"hidden"}}>
+                <${Ic} name="file" size=${16} style=${{color:"rgba(255,255,255,.7)",flexShrink:0}}/>
+                <span style=${{fontSize:".85rem",fontWeight:600,color:"white",overflow:"hidden",
+                  textOverflow:"ellipsis",whiteSpace:"nowrap"}}>${fileViewer.name}</span>
+              </div>
+              <div onClick=${()=>{URL.revokeObjectURL(fileViewer.url);setFileViewer(null);}}
+                style=${{background:"white",border:"none",cursor:"pointer",
+                  width:36,height:36,borderRadius:"50%",display:"flex",alignItems:"center",
+                  justifyContent:"center",flexShrink:0}}>
+                <svg width="16" height="16" viewBox="0 0 24 24" stroke="#1e3a2f" stroke-width="2.5" fill="none">
+                  <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+              </div>
+            </div>
+            <iframe src=${fileViewer.url} style=${{flex:1,border:"none",width:"100%"}}></iframe>
+          </div>
+        </div>`}
     </div>`;
 }
 
-// ── COACHEES PAGE ──
+
 function CoacheesPage({coachees,setCoachees,setPage}) {
   const [showAdd,setShowAdd] = useState(false);
   const [form,setForm] = useState({name:"",topic:""});
