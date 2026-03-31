@@ -1669,20 +1669,22 @@ function ChatWindow({coachee,recipient,setRecipient,onSend,onSendImg,onSendFile,
       ${fileViewer&&html`
         <div style=${{position:"fixed",inset:0,background:"rgba(0,0,0,.85)",
           zIndex:99999,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
-          <div style=${{position:"relative",width:"90vw",height:"82vh",background:"white",borderRadius:12,overflow:"hidden",display:"flex",flexDirection:"column"}}>
+          <div style=${{width:"90vw",height:"82vh",background:"white",borderRadius:12,display:"flex",flexDirection:"column",overflow:"hidden"}}>
             <div style=${{display:"flex",alignItems:"center",justifyContent:"space-between",
               padding:"10px 14px",background:"#1e3a2f",flexShrink:0,gap:10}}>
-              <div style=${{display:"flex",alignItems:"center",gap:8,minWidth:0,flex:1}}>
+              <div style=${{display:"flex",alignItems:"center",gap:8,minWidth:0,flex:1,overflow:"hidden"}}>
                 <${Ic} name="file" size=${16} style=${{color:"rgba(255,255,255,.7)",flexShrink:0}}/>
                 <span style=${{fontSize:".85rem",fontWeight:600,color:"white",overflow:"hidden",
                   textOverflow:"ellipsis",whiteSpace:"nowrap"}}>${fileViewer.name}</span>
               </div>
-              <button onClick=${()=>{URL.revokeObjectURL(fileViewer.url);setFileViewer(null);}}
-                style=${{background:"white",border:"none",cursor:"pointer",color:"#1e3a2f",
-                  width:34,height:34,borderRadius:"50%",display:"flex",alignItems:"center",
-                  justifyContent:"center",flexShrink:0,boxShadow:"0 1px 4px rgba(0,0,0,.2)"}}>
-                <${Ic} name="x" size=${18}/>
-              </button>
+              <div onClick=${()=>{URL.revokeObjectURL(fileViewer.url);setFileViewer(null);}}
+                style=${{background:"white",border:"none",cursor:"pointer",
+                  width:36,height:36,borderRadius:"50%",display:"flex",alignItems:"center",
+                  justifyContent:"center",flexShrink:0}}>
+                <svg width="16" height="16" viewBox="0 0 24 24" stroke="#1e3a2f" stroke-width="2.5" fill="none">
+                  <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+              </div>
             </div>
             <iframe src=${fileViewer.url} style=${{flex:1,border:"none",width:"100%"}}></iframe>
           </div>
