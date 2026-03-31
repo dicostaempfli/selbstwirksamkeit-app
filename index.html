@@ -1395,7 +1395,8 @@ function ChatWindow({coachee,onSend,onSendImg,onSendFile,onUpdate,onBack}) {
   const [input,setInput]         = useState("");
   const [lightbox,setLightbox]   = useState(null);
   const [videoLightbox,setVideoLightbox] = useState(null);
-  const [recording,setRecording] = useState(false);
+  const [recording,setRecording]   = useState(false);
+  const [fileViewer,setFileViewer]   = useState(null);
   const bottomRef  = useRef(null);
   const textRef    = useRef(null);
   const chatImgRef = useRef(null);
