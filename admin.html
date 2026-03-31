@@ -784,7 +784,13 @@ function ChatWindow({coachee,onSend,onSendImg,onSendFile,setLightbox,onBack,mobi
       const bstr=atob(arr[1]); const u8=new Uint8Array(bstr.length);
       for(let i=0;i<bstr.length;i++) u8[i]=bstr.charCodeAt(i);
       const blob=new Blob([u8],{type:mime});
-      setFileViewer({url:URL.createObjectURL(blob),name:file.name,type:mime});
+      const blobUrl=URL.createObjectURL(blob);
+      // PDFs: open in new tab; others: show in overlay
+      if(mime==="application/pdf") {
+        window.open(blobUrl,"_blank");
+      } else {
+        setFileViewer({url:blobUrl,name:file.name,type:mime});
+      }
     } catch(ex){ window.open(file.url,"_blank"); }
   };
 
@@ -844,9 +850,10 @@ function ChatWindow({coachee,onSend,onSendImg,onSendFile,setLightbox,onBack,mobi
                           <div style=${{fontSize:".65rem",opacity:.6,marginTop:2}}>Sprachmemo</div>
                         </div>`}
                       ${msg.file&&!msg.file.isAudio&&html`
-                        <div onClick=${()=>openFile(msg.file)}
+                        <div onClick=${e=>{e.stopPropagation();openFile(msg.file);}}
                           style=${{display:"flex",alignItems:"center",gap:7,cursor:"pointer",
-                            padding:"5px 9px",background:"rgba(255,255,255,.15)",borderRadius:7,minWidth:140}}>
+                            padding:"8px 10px",background:"rgba(255,255,255,.15)",borderRadius:7,
+                            minWidth:140,userSelect:"none"}}>
                           <${Ic} name="file" size=${18} style=${{flexShrink:0,opacity:.8}}/>
                           <div style=${{minWidth:0}}>
                             <div style=${{fontSize:".78rem",fontWeight:700,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:140}}>${msg.file.name}</div>
