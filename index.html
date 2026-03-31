@@ -1382,7 +1382,15 @@ function Sidebar({page,setPage,totalUnread,user}) {
         <button style=${{background:"rgba(255,255,255,.12)",border:"1.5px solid rgba(255,255,255,.3)",cursor:"pointer",color:"rgba(255,255,255,.9)",display:"flex",alignItems:"center",justifyContent:"center",padding:"5px 8px",borderRadius:8,gap:5,fontFamily:"'Exo 2',sans-serif",fontSize:".65rem",fontWeight:700}} onClick=${()=>{ (window._fb?.auth||window.firebase?.auth())?.signOut().catch(()=>{}); }}>
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/>
-            <polyli
+            <polyline points="15 3 21 3 21 9"/>
+            <polyline points="21 15 21 21 15 21"/>
+          </svg>
+          Logout
+        </button>
+      </div>
+    </div>\`;
+}
+
 function ChatWindow({coachee,onSend,onSendImg,onSendFile,onUpdate,onBack}) {
   const [input,setInput]         = useState("");
   const [lightbox,setLightbox]   = useState(null);
