@@ -1480,16 +1480,22 @@ function ChatWindow({coachee,recipient,setRecipient,onSend,onSendImg,onSendFile,
             </div>
           </div>
         </div>
-        <div style=${{display:"flex",gap:6}}>
+        <div style=${{display:"flex",gap:8}}>
           ${["Diana","Rico"].map(name=>html`
-            <button key=${name} onClick=${()=>setRecipient(name)}
-              style=${{flex:1,padding:"5px 0",borderRadius:20,border:"none",cursor:"pointer",
-                fontFamily:"'Exo 2',sans-serif",fontSize:".78rem",fontWeight:700,
-                transition:"all .15s",
-                background:recipient===name?"#1e3a2f":"rgba(255,255,255,.2)",
-                color:recipient===name?"white":"rgba(255,255,255,.85)"}}>
-              ${name}
-            </button>`)}
+            <div key=${name} class="stat-card" onClick=${()=>setRecipient(name)}
+              style=${{cursor:"pointer",flex:"1 1 0",minWidth:0,padding:"9px 12px",transition:"all .2s",
+                borderLeft:"4px solid "+(recipient===name?"#1e3a2f":"#68b87d"),
+                background:recipient===name?"#68b87d":"#dff0cc"}}>
+              <div style=${{display:"flex",alignItems:"center",gap:9}}>
+                <div style=${{width:28,height:28,borderRadius:8,flexShrink:0,
+                  display:"flex",alignItems:"center",justifyContent:"center",
+                  background:recipient===name?"rgba(255,255,255,.3)":"rgba(104,184,125,.2)"}}>
+                  <${Ic} name="user" size=${15} style=${{color:recipient===name?"white":"#1e3a2f"}}/>
+                </div>
+                <div style=${{fontFamily:"'Manuale',serif",fontWeight:700,fontSize:".85rem",
+                  color:recipient===name?"white":"#1e3a2f"}}>${name}</div>
+              </div>
+            </div>`)}
         </div>
       </div>
 
