@@ -66,7 +66,7 @@
         // Check if page was hidden for more than 5 minutes
         const now = Date.now();
         const lastVisible = parseInt(sessionStorage.getItem('lastVisible') || now);
-        if(now - lastVisible > 5 * 60 * 1000) {
+        if(now - lastVisible > 1 * 60 * 1000) {
           window.location.reload(true);
         }
         sessionStorage.setItem('lastVisible', now);
