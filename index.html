@@ -1323,6 +1323,7 @@ function App({ user }) {
 // ── SIDEBAR ──
 function ChatPage({coachees,setCoachees,mobileChatOpen,setMobileChatOpen}) {
   const coachee = coachees[0] || {id:"c1",name:"Diana & Rico Stämpfli",initials:"DR",color:"#a0cb7b",photo:null,online:true,topic:"Diana & Rico",messages:[]};
+  const [recipient,setRecipient] = useState("Diana");
 
   const sendMsg = text => {
     if(!text.trim()) return;
@@ -1349,7 +1350,7 @@ function ChatPage({coachees,setCoachees,mobileChatOpen,setMobileChatOpen}) {
   return html`
     <div style=${{flex:1,display:"flex",flexDirection:"column",overflow:"hidden",minWidth:0,background:"var(--bg)"}}>
 
-      <${ChatWindow} coachee=${coachee} onSend=${sendMsg} onSendImg=${sendImg} onSendFile=${sendFile} onBack=${()=>setMobileChatOpen&&setMobileChatOpen(false)}/>
+      <${ChatWindow} coachee=${coachee} recipient=${recipient} setRecipient=${setRecipient} onSend=${sendMsg} onSendImg=${sendImg} onSendFile=${sendFile} onBack=${()=>setMobileChatOpen&&setMobileChatOpen(false)}/>
     </div>`;
 }
 
@@ -1391,7 +1392,7 @@ function Sidebar({page,setPage,totalUnread,user}) {
     </div>`;
 }
 
-function ChatWindow({coachee,onSend,onSendImg,onSendFile,onUpdate,onBack}) {
+function ChatWindow({coachee,recipient,setRecipient,onSend,onSendImg,onSendFile,onUpdate,onBack}) {
   const [input,setInput]         = useState("");
   const [lightbox,setLightbox]   = useState(null);
   const [videoLightbox,setVideoLightbox] = useState(null);
@@ -1464,18 +1465,31 @@ function ChatWindow({coachee,onSend,onSendImg,onSendFile,onUpdate,onBack}) {
 
   return html`
     <div class="chat-area">
-      <div class="chat-topbar">
-        <svg width="42" height="42" viewBox="0 0 100 100" style=${{flexShrink:0,borderRadius:"50%"}}>
-          <circle cx="50" cy="50" r="50" fill="#efe454"/>
-          <circle cx="57.94" cy="50.79" r="37.3" fill="#a0cb7b"/>
-          <circle cx="66.67" cy="50.79" r="20.63" fill="#68b87d"/>
-        </svg>
-        <div style=${{flex:1,minWidth:0}}>
-          <div class="ct-name">Diana & Rico Stämpfli</div>
-          <div class="ct-status" style=${{display:"flex",alignItems:"center",gap:5}}>
-            <span class="status-dot"/>
-            <span>Online · Dein Coaching-Team</span>
+      <div class="chat-topbar" style=${{flexDirection:"column",alignItems:"stretch",height:"auto",padding:"10px 14px",gap:8}}>
+        <div style=${{display:"flex",alignItems:"center",gap:10}}>
+          <svg width="36" height="36" viewBox="0 0 100 100" style=${{flexShrink:0,borderRadius:"50%"}}>
+            <circle cx="50" cy="50" r="50" fill="#efe454"/>
+            <circle cx="57.94" cy="50.79" r="37.3" fill="#a0cb7b"/>
+            <circle cx="66.67" cy="50.79" r="20.63" fill="#68b87d"/>
+          </svg>
+          <div style=${{flex:1,minWidth:0}}>
+            <div class="ct-name">${recipient} Stämpfli</div>
+            <div class="ct-status" style=${{display:"flex",alignItems:"center",gap:5}}>
+              <span class="status-dot"/>
+              <span>Online · Dein Coaching-Team</span>
+            </div>
           </div>
+        </div>
+        <div style=${{display:"flex",gap:6}}>
+          ${["Diana","Rico"].map(name=>html`
+            <button key=${name} onClick=${()=>setRecipient(name)}
+              style=${{flex:1,padding:"5px 0",borderRadius:20,border:"none",cursor:"pointer",
+                fontFamily:"'Exo 2',sans-serif",fontSize:".78rem",fontWeight:700,
+                transition:"all .15s",
+                background:recipient===name?"#1e3a2f":"rgba(255,255,255,.2)",
+                color:recipient===name?"white":"rgba(255,255,255,.85)"}}>
+              ${name}
+            </button>`)}
         </div>
       </div>
 
@@ -1567,7 +1581,7 @@ function ChatWindow({coachee,onSend,onSendImg,onSendFile,onUpdate,onBack}) {
               if(bottomRef.current) bottomRef.current.scrollIntoView({behavior:"smooth"});
             },350);
           }}
-          placeholder=${"Nachricht schreiben…"}/>
+          placeholder=${"Nachricht an "+recipient+"…"}/>
         <button class="send-btn" onClick=${handleSend} disabled=${!input.trim()}><${Ic} name="send" size=${17}/></button>
       </div>
 
