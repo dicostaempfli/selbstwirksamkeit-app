@@ -1535,7 +1535,11 @@ function ChatWindow({coachee,recipient,setRecipient,onSend,onSendImg,onSendFile,
                           style=${{width:220,borderRadius:11,overflow:"hidden",cursor:"pointer",
                             position:"relative",display:"inline-block"}}>
                           <video src=${msg.imgSrc} muted=${true} playsinline=${true}
-                            preload="metadata"
+                            preload="auto"
+                            onLoadedData=${e=>{
+                              const v=e.target;
+                              v.currentTime=0.1;
+                            }}
                             style=${{width:220,maxHeight:160,borderRadius:11,display:"block",
                               objectFit:"cover",pointerEvents:"none"}}></video>
                           <div style=${{position:"absolute",inset:0,display:"flex",
@@ -1584,9 +1588,7 @@ function ChatWindow({coachee,recipient,setRecipient,onSend,onSendImg,onSendFile,
       </div>
 
       <div class="chat-input-area">
-        <input ref=${chatImgRef} type="file" accept="image/*" capture="environment"
-          style=${{display:"none"}} onChange=${handleChatImg}/>
-        <input id="vid-cap" type="file" accept="video/*" capture="environment"
+        <input ref=${chatImgRef} type="file" accept="image/*,video/*" capture="environment"
           style=${{display:"none"}} onChange=${handleChatImg}/>
         <input id="lib-pick" type="file" accept="image/*,video/*"
           style=${{display:"none"}} onChange=${handleChatImg}/>
@@ -1622,11 +1624,9 @@ function ChatWindow({coachee,recipient,setRecipient,onSend,onSendImg,onSendFile,
             onClick=${e=>e.stopPropagation()}>
             <div style=${{width:36,height:4,borderRadius:2,background:"var(--border)",margin:"0 auto 16px"}}/>
             ${[
-              {label:"Foto aufnehmen", action:()=>{setShowCamMenu(false);chatImgRef.current?.click();},
+              {label:"Foto oder Video aufnehmen", action:()=>{setShowCamMenu(false);chatImgRef.current?.click();},
                 icon:html`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>`},
-              {label:"Video aufnehmen", action:()=>{setShowCamMenu(false);document.getElementById("vid-cap")?.click();},
-                icon:html`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>`},
-              {label:"Aus Mediathek wählen", action:()=>{setShowCamMenu(false);document.getElementById("lib-pick")?.click();},
+              {label:"Aus Fotomediathek wählen", action:()=>{setShowCamMenu(false);document.getElementById("lib-pick")?.click();},
                 icon:html`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>`},
             ].map((item,i)=>html`
               <div key=${i} onClick=${item.action}
