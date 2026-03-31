@@ -1722,7 +1722,7 @@ function DashboardPage({coachees,library,reminders,doodles,setPage,user}) {
             <div style=${{width:42,height:42,borderRadius:12,background:"var(--teal-pale)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><${Ic} name="bell" size=${20} style=${{color:"var(--teal-dark)"}}/></div>
             <div style=${{flex:1}}>
               <div style=${{fontFamily:"'Manuale',serif",fontWeight:700,fontSize:"1rem",color:"var(--text)"}}>Erinnerungen</div>
-              <div style=${{fontSize:".82rem",color:"var(--muted)",marginTop:1}}>${reminders.filter(r=>r.enabled).length} aktive Impulse</div>
+              <div style=${{fontSize:".82rem",color:"var(--muted)",marginTop:1}}>${(n=>n===1?"1 aktiver Impuls":n+" aktive Impulse")(reminders.filter(r=>r.enabled).length)}</div>
             </div>
             <${Ic} name="chevron" size=${16} style=${{color:"var(--border2)"}}/>
           </div>
@@ -1732,7 +1732,7 @@ function DashboardPage({coachees,library,reminders,doodles,setPage,user}) {
             <div style=${{width:42,height:42,borderRadius:12,background:"var(--sage-pale)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><${Ic} name="library" size=${20} style=${{color:"var(--sage-dark)"}}/></div>
             <div style=${{flex:1}}>
               <div style=${{fontFamily:"'Manuale',serif",fontWeight:700,fontSize:"1rem",color:"var(--text)"}}>Mediathek</div>
-              <div style=${{fontSize:".82rem",color:"var(--muted)",marginTop:1}}>${library.length} neue Impulse</div>
+              <div style=${{fontSize:".82rem",color:"var(--muted)",marginTop:1}}>${(n=>n===1?"1 neuer Impuls":n+" neue Impulse")(library.length)}</div>
             </div>
             <${Ic} name="chevron" size=${16} style=${{color:"var(--border2)"}}/>
           </div>
@@ -1742,7 +1742,7 @@ function DashboardPage({coachees,library,reminders,doodles,setPage,user}) {
             <div style=${{width:42,height:42,borderRadius:12,background:"var(--lime-pale)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><${Ic} name="calendar" size=${20} style=${{color:"var(--lime-dark)"}}/></div>
             <div style=${{flex:1}}>
               <div style=${{fontFamily:"'Manuale',serif",fontWeight:700,fontSize:"1rem",color:"var(--text)"}}>Termine & Events</div>
-              <div style=${{fontSize:".82rem",color:"var(--muted)",marginTop:1}}>${doodles.filter(d=>d.recipients.includes(1)&&!d.submitted).length} offene Terminvorschläge</div>
+              <div style=${{fontSize:".82rem",color:"var(--muted)",marginTop:1}}>${(n=>n===1?"1 offener Terminvorschlag":n===0?"Keine offenen Termine":n+" offene Terminvorschläge")(doodles.filter(d=>d.recipients.includes(1)&&!d.submitted).length)}</div>
             </div>
             <${Ic} name="chevron" size=${16} style=${{color:"var(--border2)"}}/>
           </div>
