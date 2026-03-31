@@ -1296,7 +1296,7 @@ function App({ user }) {
   return html`
     <${Sidebar} page=${page} setPage=${navTo} totalUnread=${totalUnreadVal} user=${user}/>
     <div style=${{flex:1,display:'flex',overflow:'hidden',minWidth:0}}>
-      ${page==="dashboard" && html`<${DashboardPage} coachees=${coachees} library=${library} reminders=${reminders} setPage=${navTo} user=${user}/>`}
+      ${page==="dashboard" && html`<${DashboardPage} coachees=${coachees} library=${library} reminders=${reminders} doodles=${doodles} setPage=${navTo} user=${user}/>`}
       ${page==="chat"      && html`<${ChatPage} coachees=${coachees} setCoachees=${setCoachees} mobileChatOpen=${mobileChatOpen} setMobileChatOpen=${setMobileChatOpen}/>`}
       ${page==="library"   && html`<${LibraryPage} library=${library} setLibrary=${saveLibrary}/>`}
       ${page==="reminders" && html`<${RemindersPage} reminders=${reminders} setReminders=${saveReminders}/>`}
@@ -1694,7 +1694,7 @@ function ChatWindow({coachee,recipient,setRecipient,onSend,onSendImg,onSendFile,
 }
 
 
-function DashboardPage({coachees,library,reminders,setPage,user}) {
+function DashboardPage({coachees,library,reminders,doodles,setPage,user}) {
   const avgProg = 0; // goals removed
   const hour = new Date().getHours();
   const greeting = hour<12?"Guten Morgen":hour<18?"Guten Tag":"Guten Abend";
@@ -1717,20 +1717,9 @@ function DashboardPage({coachees,library,reminders,setPage,user}) {
         <p class="quote-author">${quote.author}</p>
       </div>
       <div class="stat-grid">
-        <div class="stat-card" onClick=${()=>setPage("chat")} style=${{cursor:"pointer",borderLeft:"4px solid var(--teal)",padding:"16px 20px"}}>
+        <div class="stat-card" onClick=${()=>setPage("reminders")} style=${{cursor:"pointer",borderLeft:"4px solid var(--teal)",padding:"16px 20px"}}>
           <div style=${{display:"flex",alignItems:"center",gap:14}}>
-            <div style=${{width:42,height:42,borderRadius:12,background:"var(--teal-pale)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><${Ic} name="chat" size=${20} style=${{color:"var(--teal-dark)"}}/></div>
-            <div style=${{flex:1}}>
-              <div style=${{fontFamily:"'Manuale',serif",fontWeight:700,fontSize:"1rem",color:"var(--text)"}}>Nachrichten</div>
-              <div style=${{fontSize:".82rem",color:"var(--muted)",marginTop:1}}>Schreibe Diana & Rico</div>
-            </div>
-            ${coachees.reduce((a,c)=>a+c.unread,0)>0&&html`<span style=${{background:"var(--teal)",color:"white",borderRadius:99,padding:"3px 10px",fontSize:".75rem",fontWeight:700}}>${coachees.reduce((a,c)=>a+c.unread,0)}</span>`}
-            <${Ic} name="chevron" size=${16} style=${{color:"var(--border2)"}}/>
-          </div>
-        </div>
-        <div class="stat-card" onClick=${()=>setPage("reminders")} style=${{cursor:"pointer",borderLeft:"4px solid var(--sage)",padding:"16px 20px"}}>
-          <div style=${{display:"flex",alignItems:"center",gap:14}}>
-            <div style=${{width:42,height:42,borderRadius:12,background:"var(--sage-pale)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><${Ic} name="bell" size=${20} style=${{color:"var(--sage-dark)"}}/></div>
+            <div style=${{width:42,height:42,borderRadius:12,background:"var(--teal-pale)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><${Ic} name="bell" size=${20} style=${{color:"var(--teal-dark)"}}/></div>
             <div style=${{flex:1}}>
               <div style=${{fontFamily:"'Manuale',serif",fontWeight:700,fontSize:"1rem",color:"var(--text)"}}>Erinnerungen</div>
               <div style=${{fontSize:".82rem",color:"var(--muted)",marginTop:1}}>${reminders.filter(r=>r.enabled).length} aktive Impulse</div>
@@ -1738,24 +1727,34 @@ function DashboardPage({coachees,library,reminders,setPage,user}) {
             <${Ic} name="chevron" size=${16} style=${{color:"var(--border2)"}}/>
           </div>
         </div>
-        <div class="stat-card" onClick=${()=>setPage("library")} style=${{cursor:"pointer",borderLeft:"4px solid var(--lime)",padding:"16px 20px"}}>
+        <div class="stat-card" onClick=${()=>setPage("library")} style=${{cursor:"pointer",borderLeft:"4px solid var(--sage)",padding:"16px 20px"}}>
           <div style=${{display:"flex",alignItems:"center",gap:14}}>
-            <div style=${{width:42,height:42,borderRadius:12,background:"var(--lime-pale)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><${Ic} name="library" size=${20} style=${{color:"var(--lime-dark)"}}/></div>
+            <div style=${{width:42,height:42,borderRadius:12,background:"var(--sage-pale)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><${Ic} name="library" size=${20} style=${{color:"var(--sage-dark)"}}/></div>
             <div style=${{flex:1}}>
               <div style=${{fontFamily:"'Manuale',serif",fontWeight:700,fontSize:"1rem",color:"var(--text)"}}>Mediathek</div>
-              <div style=${{fontSize:".82rem",color:"var(--muted)",marginTop:1}}>${library.length} Impulse & Materialien</div>
+              <div style=${{fontSize:".82rem",color:"var(--muted)",marginTop:1}}>${library.length} neue Impulse</div>
+            </div>
+            <${Ic} name="chevron" size=${16} style=${{color:"var(--border2)"}}/>
+          </div>
+        </div>
+        <div class="stat-card" onClick=${()=>setPage("doodle")} style=${{cursor:"pointer",borderLeft:"4px solid var(--lime)",padding:"16px 20px"}}>
+          <div style=${{display:"flex",alignItems:"center",gap:14}}>
+            <div style=${{width:42,height:42,borderRadius:12,background:"var(--lime-pale)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><${Ic} name="calendar" size=${20} style=${{color:"var(--lime-dark)"}}/></div>
+            <div style=${{flex:1}}>
+              <div style=${{fontFamily:"'Manuale',serif",fontWeight:700,fontSize:"1rem",color:"var(--text)"}}>Termine & Events</div>
+              <div style=${{fontSize:".82rem",color:"var(--muted)",marginTop:1}}>${doodles.filter(d=>d.recipients.includes(1)&&!d.submitted).length} offene Terminvorschläge</div>
             </div>
             <${Ic} name="chevron" size=${16} style=${{color:"var(--border2)"}}/>
           </div>
         </div>
       </div>
       <div class="card" onClick=${()=>setPage("chat")} style=${{cursor:"pointer",transition:"transform .15s"}} onMouseOver=${e=>e.currentTarget.style.transform="translateY(-2px)"} onMouseOut=${e=>e.currentTarget.style.transform="none"}>
-        <div class="card-title"><${Ic} name="chat" size=${17}/> Nachricht an Diana & Rico</div>
+        <div class="card-title"><${Ic} name="chat" size=${17}/> Nachricht an Diana oder Rico</div>
         <div style=${{display:"flex",alignItems:"center",gap:12,padding:"10px 0"}}>
           <div style=${{width:40,height:40,borderRadius:"50%",background:"var(--sage)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:".82rem",fontWeight:700,color:"var(--forest)",flexShrink:0}}>DR</div>
           <div style=${{flex:1}}>
             <div style=${{fontWeight:700,fontSize:".9rem"}}>Diana & Rico Stämpfli</div>
-            <div style=${{fontSize:".76rem",color:"var(--muted)",marginTop:2}}>Dein persönliches Diana & Rico · tippe um zu schreiben</div>
+            <div style=${{fontSize:".76rem",color:"var(--muted)",marginTop:2}}>Tippe um zu schreiben</div>
           </div>
           <${Ic} name="send" size=${18} style=${{color:"var(--teal)",flexShrink:0}}/>
         </div>
