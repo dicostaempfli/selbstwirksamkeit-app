@@ -60,6 +60,21 @@
       window.addEventListener('load', initFB);
     }
   
+    // Auto-reload when app comes back to foreground (gets latest version)
+    document.addEventListener('visibilitychange', function() {
+      if(document.visibilityState === 'visible') {
+        // Check if page was hidden for more than 5 minutes
+        const now = Date.now();
+        const lastVisible = parseInt(sessionStorage.getItem('lastVisible') || now);
+        if(now - lastVisible > 5 * 60 * 1000) {
+          window.location.reload(true);
+        }
+        sessionStorage.setItem('lastVisible', now);
+      } else {
+        sessionStorage.setItem('lastVisible', Date.now());
+      }
+    });
+
     // PWA + keyboard height fix for iOS
     function setVH() {
       const vp = window.visualViewport;
