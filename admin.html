@@ -669,7 +669,7 @@ function ChatPage({coachees,setCoachees,setLightbox}) {
 
   const sendImg = (dataUrl, isVideo=false, sender="Diana") => {
     if(!active) return;
-    const msg={id:Date.now(),from:"admin",imgSrc:dataUrl,text:"",time:nowTime(),date:"Heute"};
+    const msg={id:Date.now(),from:"admin",sender,imgSrc:dataUrl,isVideo,text:"",time:nowTime(),date:"Heute"};
     setCoachees(cs=>cs.map(c=>c.id===activeId?{...c,messages:[...(c.messages||[]),msg],lastTime:nowTime()}:c));
   };
 
@@ -872,7 +872,7 @@ function ChatWindow({coachee,onSend,onSendImg,onSendFile,setLightbox,onBack,mobi
         <input ref=${imgRef} type="file" accept="image/*,video/*" capture="environment"
           style=${{display:"none"}} onChange=${handleImg}/>
         <input ref=${attachRef} type="file"
-          accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,application/*"
+          accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,.zip,.ppt,.pptx,application/*,text/*"
           style=${{display:"none"}} onChange=${handleAttach}/>
         <button class="attach-btn" onClick=${()=>imgRef.current?.click()}><${Ic} name="camera" size=${18}/></button>
         <button class="attach-btn" onClick=${()=>attachRef.current?.click()}><${Ic} name="attach" size=${18}/></button>
