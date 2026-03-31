@@ -1086,7 +1086,7 @@ const INIT_COACHEES = [
     messages:[
       {id:1,from:"coachee",text:"Guten Morgen! Das Gespräch gestern war viel ruhiger als erwartet.",time:"09:10",date:"Heute"},
       {id:2,from:"coachee",text:"Ich habe die Atemtechnik ausprobiert — es hat geholfen!",time:"09:11",date:"Heute"},
-      {id:3,from:"coach",text:"Das klingt wunderbar! Wie hast du dich dabei gefühlt?",time:"09:12",date:"Heute",seen:true},
+      {id:3,from:"coach",sender:"Diana",text:"Das klingt wunderbar! Wie hast du dich dabei gefühlt?",time:"09:12",date:"Heute",seen:true},
       {id:4,from:"coachee",text:"Leichter. Ich habe erst geatmet, bevor ich reagiert habe.",time:"09:14",date:"Heute"},
     ]},
   {id:2,name:"Thomas Brändle",initials:"TB",color:AVATAR_BG[1],photo:null,online:false,topic:"Mann zu Mann / Sinn & Potenzial",unread:0,lastTime:"Gestern",photos:[],
@@ -1505,11 +1505,20 @@ function ChatWindow({coachee,recipient,setRecipient,onSend,onSendImg,onSendFile,
             <div class="date-divider">${date}</div>
             ${msgs.map((msg,i)=>{
               const isOut = msg.from==="coachee";
-              const prevSame = i>0&&msgs[i-1].from===msg.from;
+              const sender = msg.sender||"Diana";
+              const prevSame = i>0&&msgs[i-1].from===msg.from&&(msgs[i-1].sender||"Diana")===sender;
+              const avatarColor = sender==="Rico" ? "#a0cb7b" : "#68b87d";
+              const initial = sender[0];
               return html`
-                <div key=${msg.id} class=${"msg-row "+(isOut?"out":"in")} style=${{marginBottom:prevSame?1:8}}>
+                <div key=${msg.id} class=${"msg-row "+(isOut?"out":"in")} style=${{marginBottom:prevSame?1:8,alignItems:"flex-end"}}>
+                  ${!isOut&&html`<div style=${{width:28,height:28,borderRadius:"50%",flexShrink:0,
+                    background:prevSame?"transparent":avatarColor,
+                    display:"flex",alignItems:"center",justifyContent:"center",
+                    marginRight:6,marginBottom:2,fontSize:".72rem",fontWeight:700,
+                    color:"white"}}>${prevSame?"":initial}</div>`}
                   <div class="msg-bubble-wrap">
-                    ${!isOut&&!prevSame&&html`<div class="msg-sender">${msg.sender||"Diana"}</div>`}
+                    ${!isOut&&!prevSame&&html`<div style=${{fontSize:".67rem",fontWeight:700,
+                      color:avatarColor,marginBottom:2,marginLeft:2}}>${sender}</div>`}
                     <div class="msg-bubble">
                       ${msg.imgSrc&&!msg.isVideo&&html`<div class="msg-img-wrap"><img src=${msg.imgSrc} class="msg-img" alt="Foto" onClick=${()=>setLightbox(msg.imgSrc)}/></div>`}
                       ${msg.imgSrc&&msg.isVideo&&html`<div class="msg-img-wrap">
@@ -1553,7 +1562,7 @@ function ChatWindow({coachee,recipient,setRecipient,onSend,onSendImg,onSendFile,
                         </div>`}
                       ${msg.text&&html`<span>${msg.text}</span>`}
                     </div>
-                    <div class="msg-meta">
+                    <div class="msg-meta" style=${{justifyContent:isOut?"flex-end":"flex-start"}}>
                       <span class="msg-time-small">${msg.time}</span>
                       ${isOut&&msg.seen&&html`<span style=${{color:"var(--teal)",fontSize:".65rem"}}>✓✓</span>`}
                     </div>
