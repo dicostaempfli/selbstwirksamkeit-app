@@ -382,7 +382,7 @@ else window.addEventListener('load', initFB);
   /* ══════════════════════════════
      CONTENT PAGES (right side)
   ══════════════════════════════ */
-  .content-main { flex:1; overflow-y:auto; padding:32px 36px; background:var(--bg); }
+  
   .page-heading { font-family:'Manuale',serif; font-size:1.7rem; color:var(--text); margin-bottom:4px; }
   .page-sub { font-size:.87rem; color:var(--muted); margin-bottom:24px; }
 
@@ -935,11 +935,7 @@ else window.addEventListener('load', initFB);
   overflow: hidden;
   height: 100%;
 }
-.main-content > .page {
-  flex: 1;
-  overflow-y: auto;
-  min-height: 0;
-}
+.main-content > 
 
 /* Chat layout */
 .chat-layout { display:flex; flex-direction:row; width:100%; height:100%; overflow:hidden; }
@@ -1070,7 +1066,7 @@ else window.addEventListener('load', initFB);
 /* ── Mobile width optimization ── */
 @media (max-width: 768px) {
   /* Ensure full width usage */
-  .page { padding: 14px 12px calc(72px + env(safe-area-inset-bottom,0px) + 8px); }
+  
   
   /* Stat cards compact on small screens */
   .stat-card { padding: 10px 12px; }
@@ -1089,9 +1085,50 @@ else window.addEventListener('load', initFB);
 
 @media (max-width: 390px) {
   /* iPhone SE and smaller */
-  .page { padding: 12px 10px calc(72px + env(safe-area-inset-bottom,0px) + 8px); }
+  
   .stat-value { font-size: 1.4rem; }
   .bn-item span { font-size: .44rem; max-width: 46px; }
+}
+
+/* ── Page containers ── */
+.page {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+  padding: 20px 16px 32px;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+}
+
+/* Max width for readability on all screens */
+.page > * {
+  max-width: 100%;
+}
+
+/* Desktop content-main */
+.content-main {
+  flex: 1;
+  overflow-y: auto;
+  background: var(--bg);
+  padding: 24px 28px;
+  box-sizing: border-box;
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  .page {
+    padding: 14px 12px calc(72px + env(safe-area-inset-bottom, 0px) + 10px);
+  }
+  .content-main {
+    padding: 0;
+  }
+}
+
+@media (max-width: 390px) {
+  .page {
+    padding: 12px 10px calc(72px + env(safe-area-inset-bottom, 0px) + 8px);
+  }
 }
 </style>
 </head>
