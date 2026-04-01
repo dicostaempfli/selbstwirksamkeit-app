@@ -636,47 +636,7 @@ else window.addEventListener('load', initFB);
     display: none;
   }
 
-  @media (max-width: 768px) {
-    /* Body & root */
-    body { overflow: hidden; }
-    #app {
-      flex-direction: column;
-      height: 100dvh;
-      padding-top: env(safe-area-inset-top, 0px);
-    }
-
-    /* Push content down from status bar */
-    .panel-header,
-    .content-main > *:first-child {
-      padding-top: max(16px, env(safe-area-inset-top, 16px));
-    }
-
-    .topbar {
-      padding-top: max(44px, calc(env(safe-area-inset-top, 0px) + 12px));
-    }
-
-
-
-    /* Hide desktop sidebar */
-    .sidebar { display: none !important; }
-
-    /* Main content area takes full width */
-    .app > div:last-child,
-    .app > div:nth-child(2) {
-      flex: 1;
-      min-width: 0;
-      width: 100%;
-      overflow: hidden;
-    }
-
-    /* Content pages */
-    .content-main {
-      padding: 20px 14px 80px;
-      padding-top: max(20px, calc(env(safe-area-inset-top, 0px) + 12px));
-      overflow-y: auto;
-      height: 100%;
-    }
-    .page-heading { font-size: 1.35rem; }
+  
     .page-sub { font-size: .82rem; margin-bottom: 16px; }
 
     /* Chat panel: hide list when chatting on mobile */
@@ -1111,20 +1071,11 @@ else window.addEventListener('load', initFB);
 
 
 
-@media (max-width: 768px) {
+
   
-  .page {
-    padding: max(20px, calc(env(safe-area-inset-top, 0px) + 12px)) 14px calc(72px + env(safe-area-inset-bottom, 0px) + 16px);
-  }
-  .app-layout {
-    padding-top: 0;
-  }
 }
 
-@media (max-width: 390px) {
-  .page {
-    padding: max(16px, calc(env(safe-area-inset-top, 0px) + 10px)) 12px calc(72px + env(safe-area-inset-bottom, 0px) + 12px);
-  }
+
 }
 
 /* ── Status bar & safe area (exact coachee) ── */
@@ -1136,28 +1087,29 @@ else window.addEventListener('load', initFB);
 }
 
 /* Mobile: safe-area-inset-top on .app-layout (like coachee #app) */
+
+}
+
+/* Desktop: no status bar needed */
+
+}
+
+/* ── Top padding fix ── */
 @media (max-width: 768px) {
   .app-layout {
-    padding-top: env(safe-area-inset-top, 0px);
+    padding-top: env(safe-area-inset-top, 44px);
   }
   .page {
-    padding: max(20px, calc(env(safe-area-inset-top, 0px) + 16px)) 14px calc(72px + env(safe-area-inset-bottom, 0px) + 16px);
+    padding: 16px 14px calc(72px + env(safe-area-inset-bottom, 0px) + 16px);
     flex: 1;
     overflow-y: auto;
     background: var(--bg);
     box-sizing: border-box;
   }
 }
-
-/* Desktop: no status bar needed */
 @media (min-width: 769px) {
   .app-layout { padding-top: 0; }
-  .page {
-    padding: 24px 24px 32px;
-    flex: 1;
-    overflow-y: auto;
-    background: var(--bg);
-  }
+  .page { padding: 24px 24px 32px; flex: 1; overflow-y: auto; background: var(--bg); }
 }
 </style>
 </head>
