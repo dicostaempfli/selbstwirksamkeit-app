@@ -1925,19 +1925,18 @@ function ChatWindow({coachee,onSend,onSendImg,onSendFile,onBack,mobileOpen}) {
                       ${msg.imgSrc&&!msg.isVideo&&html`<div class="msg-img-wrap"><img src=${msg.imgSrc} class="msg-img" alt="Foto" onClick=${()=>setLightbox(msg.imgSrc)}/></div>`}
                       ${msg.imgSrc&&msg.isVideo&&html`<div class="msg-img-wrap">
                         <div onClick=${()=>setVideoLightbox(msg.imgSrc)}
-                          style=${{width:220,height:130,borderRadius:11,background:"var(--forest)",
-                            cursor:"pointer",position:"relative",display:"flex",
-                            alignItems:"center",justifyContent:"center"}}>
-                          <div style=${{width:52,height:52,borderRadius:"50%",background:"rgba(255,255,255,.92)",
-                            display:"flex",alignItems:"center",justifyContent:"center",
-                            boxShadow:"0 2px 10px rgba(0,0,0,.3)"}}>
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="var(--forest)" stroke="none">
+                          style=${{display:"flex",alignItems:"center",gap:10,cursor:"pointer",
+                            padding:"8px 10px",background:"rgba(0,0,0,.08)",borderRadius:10,
+                            minWidth:160,maxWidth:220}}>
+                          <div style=${{width:40,height:40,borderRadius:"50%",background:"var(--forest)",
+                            display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="white" stroke="none">
                               <polygon points="6,3 20,12 6,21"/>
                             </svg>
                           </div>
-                          <div style=${{position:"absolute",bottom:8,left:10,
-                            fontSize:".7rem",color:"rgba(255,255,255,.8)",fontWeight:600}}>
-                            Video
+                          <div>
+                            <div style=${{fontSize:".82rem",fontWeight:700,color:"var(--text)"}}>Video</div>
+                            <div style=${{fontSize:".72rem",color:"var(--muted)"}}>Tippen zum Abspielen</div>
                           </div>
                         </div>
                       </div>`}
