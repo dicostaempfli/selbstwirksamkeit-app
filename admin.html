@@ -497,7 +497,7 @@ else window.addEventListener('load', initFB);
 
   /* Dashboard stats */
   .stat-grid { display:flex; flex-direction:column; gap:10px; margin-bottom:18px; }
-  .stat-card { background:var(--surface); border-radius:var(--radius); box-shadow:var(--shadow); padding:16px 18px; border-left:4px solid var(--sage); }
+  
   .stat-card:nth-child(2) { border-left-color:var(--lime); }
   .stat-card:nth-child(3) { border-left-color:var(--teal); }
   .stat-card:nth-child(4) { border-left-color:var(--sage-dark); }
@@ -619,7 +619,7 @@ else window.addEventListener('load', initFB);
   @media (max-width: 375px) {
     .grid-2, .form-grid { grid-template-columns: 1fr !important; }
     .page-heading { font-size: 1.2rem; }
-    .stat-card { padding: 10px 12px; }
+    
     .modal { padding: 14px 12px !important; }
     .rem-area-btn { padding: 5px 10px !important; font-size: .72rem !important; }
     .btn { padding: 7px 12px; font-size: .8rem; }
@@ -950,7 +950,7 @@ else window.addEventListener('load', initFB);
 .conv-unread { background:var(--teal); color:white; border-radius:99px; padding:2px 6px; font-size:.65rem; font-weight:700; min-width:18px; text-align:center; }
 
 /* Bottom nav items */
-.bottom-nav-item { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; cursor:pointer; padding:6px 4px 8px; color:rgba(255,255,255,.45); border-radius:12px; font-size:.52rem; font-weight:700; font-family:'Exo 2',sans-serif; letter-spacing:.1px; position:relative; transition:all .18s; min-width:0; height:72px; margin:2px 1px 0; }
+.bottom-nav-item { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; cursor:pointer; padding:6px 2px 8px; color:rgba(255,255,255,.45); border-radius:12px; font-size:.52rem; font-weight:700; font-family:'Exo 2',sans-serif; letter-spacing:.1px; position:relative; transition:all .18s; min-width:0; margin:2px 1px 0; }
 .bottom-nav-item span { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:58px; }
 .bottom-nav-item.active { background:var(--sidebar-active); color:var(--forest); border-radius:12px; }
 .bottom-nav-item:hover:not(.active) { background:rgba(255,255,255,.08); color:rgba(255,255,255,.8); }
@@ -984,7 +984,7 @@ else window.addEventListener('load', initFB);
 @media (max-width: 768px) {
   .app-layout { flex-direction:column; }
   .sidebar { display:none !important; }
-  .bottom-nav { display:flex !important; position:fixed; bottom:0; left:0; right:0; height:calc(72px + env(safe-area-inset-bottom,0px)); padding-bottom:env(safe-area-inset-bottom,0px); background:var(--sidebar-bg); border-top:1px solid rgba(255,255,255,.15); z-index:100; }
+  .bottom-nav { display:flex !important; position:fixed; bottom:0; left:0; right:0; height:calc(72px + env(safe-area-inset-bottom,0px)); padding:0 4px env(safe-area-inset-bottom,0px); background:var(--sidebar-bg); border-top:1px solid rgba(255,255,255,.15); z-index:100; box-shadow:0 -2px 12px rgba(30,58,47,.15); }
   .main-content { padding-bottom:calc(72px + env(safe-area-inset-bottom,0px)); }
   .chat-layout { flex-direction:column; }
   .chat-list { width:100% !important; border-right:none; border-bottom:1px solid var(--border); }
@@ -996,6 +996,12 @@ else window.addEventListener('load', initFB);
   .bottom-nav { display:none !important; }
   .main-content { padding-bottom:0; }
 }
+
+/* Admin stat-card compact */
+.stat-card { padding: 12px 14px; border-radius: 12px; background: var(--surface); border: 0.5px solid var(--border); cursor: default; }
+.stat-label { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; margin-bottom: 4px; }
+.stat-value { font-family: 'Manuale', serif; font-size: 1.8rem; font-weight: 700; color: var(--text); line-height: 1; }
+.stat-hint { font-size: .75rem; color: var(--teal-dark); margin-top: 3px; }
 </style>
 </head>
 <body>
@@ -1268,18 +1274,26 @@ function DashboardPage({coachees,library,doodles,setPage}) {
         </div>
       </div>
 
-      <div class="stat-grid">
-        <div class="stat-card" onClick=${()=>setPage("coachees")} style=${{cursor:"pointer"}}>
-          <div class="stat-label">Coachees</div><div class="stat-value">${coachees.length}</div><div class="stat-hint">${coachees.filter(c=>c.online).length} online</div>
+      <div class="stat-grid" style=${{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:16}}>
+        <div class="stat-card" onClick=${()=>setPage("coachees")} style=${{cursor:"pointer",borderLeft:"4px solid var(--teal)"}}>
+          <div class="stat-label">Coachees</div>
+          <div class="stat-value">${coachees.length}</div>
+          <div class="stat-hint">${coachees.filter(c=>c.online).length} online</div>
         </div>
-        <div class="stat-card" onClick=${()=>setPage("chat")} style=${{cursor:"pointer"}}>
-          <div class="stat-label">Nachrichten</div><div class="stat-value">${totalUnread}</div><div class="stat-hint">ungelesen</div>
+        <div class="stat-card" onClick=${()=>setPage("chat")} style=${{cursor:"pointer",borderLeft:"4px solid var(--sage)"}}>
+          <div class="stat-label">Nachrichten</div>
+          <div class="stat-value">${totalUnread}</div>
+          <div class="stat-hint">ungelesen</div>
         </div>
-        <div class="stat-card" onClick=${()=>setPage("library")} style=${{cursor:"pointer"}}>
-          <div class="stat-label">Mediathek</div><div class="stat-value">${library.length}</div><div class="stat-hint">Materialien</div>
+        <div class="stat-card" onClick=${()=>setPage("library")} style=${{cursor:"pointer",borderLeft:"4px solid var(--lime)"}}>
+          <div class="stat-label">Mediathek</div>
+          <div class="stat-value">${library.length}</div>
+          <div class="stat-hint">Materialien</div>
         </div>
-        <div class="stat-card" onClick=${()=>setPage("doodle")} style=${{cursor:"pointer"}}>
-          <div class="stat-label">Termine</div><div class="stat-value">${openDoodles}</div><div class="stat-hint">offen</div>
+        <div class="stat-card" onClick=${()=>setPage("doodle")} style=${{cursor:"pointer",borderLeft:"4px solid var(--teal-dark)"}}>
+          <div class="stat-label">Termine</div>
+          <div class="stat-value">${openDoodles}</div>
+          <div class="stat-hint">offen</div>
         </div>
       </div>
 
