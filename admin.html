@@ -1750,6 +1750,11 @@ function ChatPage({coachees,setCoachees}) {
     const msg={id:Date.now(),from:"admin",sender,imgSrc:dataUrl,isVideo,text:"",time:nowTime(),date:"Heute"};
     setCoachees(cs=>cs.map(c=>c.id===activeId?{...c,messages:[...(c.messages||[]),msg],lastTime:nowTime()}:c));
   };
+  const sendFile = (file, sender="Diana") => {
+    if(!active) return;
+    const msg={id:Date.now(),from:"admin",sender,file,text:"",time:nowTime(),date:"Heute"};
+    setCoachees(cs=>cs.map(c=>c.id===activeId?{...c,messages:[...(c.messages||[]),msg],lastTime:nowTime()}:c));
+  };
 
   return html`
     <div style=${{display:"flex",flexDirection:"column",width:"100%",flex:1,minHeight:0,overflow:"hidden"}}>
