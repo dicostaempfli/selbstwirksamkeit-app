@@ -1589,7 +1589,13 @@ function ChatPage({coachees,setCoachees}) {
         ? html`
           <div style=${{display:"flex",flexDirection:"column",width:"100%",flex:1,minHeight:0,overflow:"hidden"}}>
             <div class="chat-list-header">
-              <div class="chat-list-title">Nachrichten</div>
+              <div style=${{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
+                <${Logo} size=${42}/>
+                <div>
+                  <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.3rem",fontWeight:700,color:"var(--text)"}}>Nachrichten</div>
+                  <div style=${{fontSize:".8rem",color:"var(--muted)"}}>Gespräche mit Coachees</div>
+                </div>
+              </div>
               <div class="search-wrap">
                 <span class="search-icon"><${Ic} name="search" size=${14}/></span>
                 <input class="search-input" value=${search} onInput=${e=>setSearch(e.target.value)} placeholder="Coachee suchen…"/>
@@ -1926,11 +1932,17 @@ function CoacheesPage({coachees,setCoachees,setPage}) {
 
   return html`
     <div class="page">
-      <div class="flex-between">
-        <div><div class="page-heading">Coachees</div><div class="page-sub">Alle aktiven und ehemaligen Coachees.</div></div>
-        <button class="btn btn-primary" onClick=${()=>setShowAdd(true)}><${Ic} name="plus" size=${15}/> Hinzufügen</button>
+      <div style=${{marginBottom:24,display:"flex",alignItems:"center",gap:14}}>
+        <${Logo} size=${52}/>
+        <div>
+          <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.3rem",fontWeight:700,color:"var(--text)"}}>Coachees</div>
+          <div style=${{fontSize:".88rem",color:"var(--muted)",marginTop:2}}>Alle aktiven und ehemaligen Coachees.</div>
+        </div>
+        <button class="btn btn-primary btn-sm" style=${{marginLeft:"auto"}} onClick=${()=>setShowAdd(true)}>
+          <${Ic} name="plus" size=${15}/> Hinzufügen
+        </button>
       </div>
-      <div class="coachee-grid">
+            <div class="coachee-grid">
         ${coachees.map(c=>html`
           <div key=${c.id} class="coachee-card">
             <div class="coachee-header">
@@ -1989,9 +2001,13 @@ function LibraryPage({library,setLibrary}) {
   const TypeIc   = ({type}) => html`<${Ic} name=${type==="audio"?"music":type==="video"?"video":"file"} size=${30}/>`;
 
   return html`
-    <div class="content-main">
-      <div class="flex-between">
-        <div><h1 class="page-heading">Mediathek</h1><p class="page-sub">Hier findest du Impulse, Übungen und Inspiration für deinen Alltag — zusammengestellt von Diana & Rico.</p></div>
+    <div class="page">
+      <div style=${{marginBottom:24,display:"flex",alignItems:"center",gap:14}}>
+        <${Logo} size=${52}/>
+        <div>
+          <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.3rem",fontWeight:700,color:"var(--text)"}}>Mediathek</div>
+          <div style=${{fontSize:".88rem",color:"var(--muted)",marginTop:2}}>Materialien für deine Coachees.</div>
+        </div>
         
       </div>
       
@@ -2162,9 +2178,13 @@ function DoodlePage({doodles,setDoodles,coachees}) {
 
   return html`
     <div class="page">
-      <div class="flex-between">
-        <div><div class="page-heading">Termine & Doodle</div><div class="page-sub">Terminvorschläge mit Coachees koordinieren.</div></div>
-        <button class="btn btn-primary" onClick=${()=>{setNewSlotDt(defaultDt());setShowCreate(true);}}><${Ic} name="plus" size=${15}/> Neuer Doodle</button>
+      <div style=${{marginBottom:24,display:"flex",alignItems:"center",gap:14}}>
+        <${Logo} size=${52}/>
+        <div>
+          <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.3rem",fontWeight:700,color:"var(--text)"}}>Termine & Events</div>
+          <div style=${{fontSize:".88rem",color:"var(--muted)",marginTop:2}}>Terminvorschläge koordinieren.</div>
+        </div>
+        <button class="btn btn-primary btn-sm" onClick=${()=>{setNewSlotDt(defaultDt());setShowCreate(true);}}><${Ic} name="plus" size=${15}/> Neuer Doodle</button>
       </div>
 
       ${doodles.length===0&&html`<div style=${{textAlign:"center",padding:"48px",color:"var(--muted)"}}><p>Noch kein Terminvorschlag erstellt.</p></div>`}
@@ -2273,7 +2293,91 @@ function DoodlePage({doodles,setDoodles,coachees}) {
     </div>`;
 }
 
-// ── ROOT ──
+// ── ROOT ──function ChatPage({coachees,setCoachees}) {
+  const [activeId,setActiveId] = useState(null);
+  const [search,setSearch] = useState("");
+  const [mobileView,setMobileView] = useState("list");
+  const [mobileOpen,setMobileOpen] = useState(false);
+
+  const filtered = coachees.filter(c=>c.name.toLowerCase().includes(search.toLowerCase())||c.topic.toLowerCase().includes(search.toLowerCase()));
+  const active = coachees.find(c=>c.id===activeId);
+
+    const selectCoachee = id => {
+    setActiveId(id);
+    setCoachees(cs=>cs.map(c=>c.id===id?{...c,unread:0}:c));
+    setMobileOpen(true);
+  };;
+
+  const sendMsg = (text, sender="Diana") => {
+    if(!text.trim()||!active) return;
+    const msg={id:Date.now(),from:"admin",sender:sender,text:text.trim(),time:nowTime(),date:"Heute",seen:false};
+    setCoachees(cs=>cs.map(c=>c.id===activeId?{...c,messages:[...(c.messages||[]),msg],lastTime:nowTime()}:c));
+  };
+
+  const sendImg = (dataUrl, isVideo=false, sender="Diana") => {
+    if(!active) return;
+    const msg={id:Date.now(),from:"admin",sender,imgSrc:dataUrl,isVideo,text:"",time:nowTime(),date:"Heute"};
+    setCoachees(cs=>cs.map(c=>c.id===activeId?{...c,messages:[...(c.messages||[]),msg],lastTime:nowTime()}:c));
+  };
+  const sendFile = (file, sender="Diana") => {
+    if(!active) return;
+    const msg={id:Date.now(),from:"admin",sender,file,text:"",time:nowTime(),date:"Heute"};
+    setCoachees(cs=>cs.map(c=>c.id===activeId?{...c,messages:[...(c.messages||[]),msg],lastTime:nowTime()}:c));
+  };
+
+  return html`
+    <div style=${{display:"flex",flexDirection:"column",width:"100%",flex:1,minHeight:0,overflow:"hidden"}}>
+      ${!mobileOpen
+        ? html`
+          <div style=${{display:"flex",flexDirection:"column",width:"100%",flex:1,minHeight:0,overflow:"hidden"}}>
+            <div class="chat-list-header">
+              <div style=${{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
+                <${Logo} size=${42}/>
+                <div>
+                  <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.3rem",fontWeight:700,color:"var(--text)"}}>Nachrichten</div>
+                  <div style=${{fontSize:".8rem",color:"var(--muted)"}}>Gespräche mit Coachees</div>
+                </div>
+              </div>
+              <div class="search-wrap">
+                <span class="search-icon"><${Ic} name="search" size=${14}/></span>
+                <input class="search-input" value=${search} onInput=${e=>setSearch(e.target.value)} placeholder="Coachee suchen…"/>
+              </div>
+            </div>
+            <div class="conv-list" style=${{flex:1,overflowY:"auto"}}>
+              ${filtered.map(c=>html`
+                <div key=${c.id} class=${"conv-row"+(activeId===c.id?" active":"")} onClick=${()=>selectCoachee(c.id)}>
+                  <div class="conv-avatar" style=${{background:c.color}}>
+                    ${c.photo?html`<img src=${c.photo} alt=""/>`:c.initials}
+                    ${c.online&&html`<span class="online-dot"/>`}
+                  </div>
+                  <div class="conv-info">
+                    <div class="conv-name">${c.name}</div>
+                    <div class="conv-preview">${c.messages?.length?c.messages.at(-1).from==="admin"?"Du: "+c.messages.at(-1).text:c.messages.at(-1).text:c.topic}</div>
+                  </div>
+                  <div class="conv-meta">
+                    <span class="conv-time">${c.lastTime}</span>
+                    ${(c.unread||0)>0&&html`<span class="conv-unread">${c.unread}</span>`}
+                  </div>
+                </div>`)}
+            </div>
+          </div>`
+        : html`
+          <div style=${{display:"flex",flexDirection:"column",width:"100%",flex:1,minHeight:0,overflow:"hidden"}}>
+            ${active
+              ? html`<${ChatWindow} coachee=${active} onSend=${sendMsg} onSendImg=${sendImg} onSendFile=${sendFile} setLightbox=${()=>{}} onBack=${()=>setMobileOpen(false)} mobileOpen=${true}/>`
+              : html`<div style=${{display:"flex",alignItems:"center",justifyContent:"center",flex:1,flexDirection:"column",gap:12,color:"var(--muted)"}}>
+                  <${Logo} size=${60}/>
+                  <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.1rem"}}>Wähle ein Gespräch</div>
+                </div>`}
+          </div>`}
+    </div>
+  `
+}
+
+
+
+
+
 function Root() {
   const [user,setUser] = useState(null);
   const [ready,setReady] = useState(false);
