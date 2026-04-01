@@ -2307,103 +2307,27 @@ function DoodlePage({doodles,setDoodles,coachees}) {
     setCoachees(cs=>cs.map(c=>c.id===id?{...c,unread:0}:c));
     setMobileOpen(true);
   };;
-
-  const sendMsg = (text, sender="Diana") => {
-    if(!text.trim()||!active) return;
-    const msg={id:Date.now(),from:"admin",sender:sender,text:text.trim(),time:nowTime(),date:"Heute",seen:false};
-    setCoachees(cs=>cs.map(c=>c.id===activeId?{...c,messages:[...(c.messages||[]),msg],lastTime:nowTime()}:c));
-  };
-
-  const sendImg = (dataUrl, isVideo=false, sender="Diana") => {
-    if(!active) return;
-    const msg={id:Date.now(),from:"admin",sender,imgSrc:dataUrl,isVideo,text:"",time:nowTime(),date:"Heute"};
-    setCoachees(cs=>cs.map(c=>c.id===activeId?{...c,messages:[...(c.messages||[]),msg],lastTime:nowTime()}:c));
-  };
-  const sendFile = (file, sender="Diana") => {
-    if(!active) return;
-    const msg={id:Date.now(),from:"admin",sender,file,text:"",time:nowTime(),date:"Heute"};
-    setCoachees(cs=>cs.map(c=>c.id===activeId?{...c,messages:[...(c.messages||[]),msg],lastTime:nowTime()}:c));
-  };
-
-  return html`
-    <div style=${{display:"flex",flexDirection:"column",width:"100%",flex:1,minHeight:0,overflow:"hidden"}}>
-      ${!mobileOpen
-        ? html`
-          <div style=${{display:"flex",flexDirection:"column",width:"100%",flex:1,minHeight:0,overflow:"hidden"}}>
-            <div class="chat-list-header">
-              <div style=${{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
-                <${Logo} size=${42}/>
-                <div>
-                  <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.3rem",fontWeight:700,color:"var(--text)"}}>Nachrichten</div>
-                  <div style=${{fontSize:".8rem",color:"var(--muted)"}}>Gespräche mit Coachees</div>
-                </div>
-              </div>
-              <div class="search-wrap">
-                <span class="search-icon"><${Ic} name="search" size=${14}/></span>
-                <input class="search-input" value=${search} onInput=${e=>setSearch(e.target.value)} placeholder="Coachee suchen…"/>
-              </div>
-            </div>
-            <div class="conv-list" style=${{flex:1,overflowY:"auto"}}>
-              ${filtered.map(c=>html`
-                <div key=${c.id} class=${"conv-row"+(activeId===c.id?" active":"")} onClick=${()=>selectCoachee(c.id)}>
-                  <div class="conv-avatar" style=${{background:c.color}}>
-                    ${c.photo?html`<img src=${c.photo} alt=""/>`:c.initials}
-                    ${c.online&&html`<span class="online-dot"/>`}
-                  </div>
-                  <div class="conv-info">
-                    <div class="conv-name">${c.name}</div>
-                    <div class="conv-preview">${c.messages?.length?c.messages.at(-1).from==="admin"?"Du: "+c.messages.at(-1).text:c.messages.at(-1).text:c.topic}</div>
-                  </div>
-                  <div class="conv-meta">
-                    <span class="conv-time">${c.lastTime}</span>
-                    ${(c.unread||0)>0&&html`<span class="conv-unread">${c.unread}</span>`}
-                  </div>
-                </div>`)}
-            </div>
-          </div>`
-        : html`
-          <div style=${{display:"flex",flexDirection:"column",width:"100%",flex:1,minHeight:0,overflow:"hidden"}}>
-            ${active
-              ? html`<${ChatWindow} coachee=${active} onSend=${sendMsg} onSendImg=${sendImg} onSendFile=${sendFile} setLightbox=${()=>{}} onBack=${()=>setMobileOpen(false)} mobileOpen=${true}/>`
-              : html`<div style=${{display:"flex",alignItems:"center",justifyContent:"center",flex:1,flexDirection:"column",gap:12,color:"var(--muted)"}}>
-                  <${Logo} size=${60}/>
-                  <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.1rem"}}>Wähle ein Gespräch</div>
-                </div>`}
-          </div>`}
-    </div>
-  `
-}
-
-
-
-
-
 function Root() {
-  const [user,setUser] = useState(null);
+  const [user,setUser]   = useState(null);
   const [ready,setReady] = useState(false);
 
   useEffect(()=>{
-    let unsub = null;
-    const tryAuth = (n=0) => {
-      const fbAuth = window._fb?.auth||window.firebase?.auth();
-      if(fbAuth) {
-        fbAuth.getRedirectResult().catch(()=>{});
-        unsub = fbAuth.onAuthStateChanged(u=>{ setUser(u); setReady(true); });
-      } else if(n<25) {
-        setTimeout(()=>tryAuth(n+1), 200);
-      } else {
-        setReady(true);
-      }
+    let unsub;
+    const tryAuth = async () => {
+      await initFB();
+      const auth = window._fb?.auth();
+      if(!auth){ setReady(true); return; }
+      unsub = auth.onAuthStateChanged(u=>{ setUser(u); setReady(true); });
     };
     tryAuth();
     return ()=>{ if(unsub) unsub(); };
   },[]);
 
   if(!ready) return html`
-    <div style=${{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:16,background:"var(--forest)"}}>
+    <div style=${{minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",background:"var(--sidebar-bg)",gap:16}}>
       <${Logo} size=${64}/>
-      <div style=${{width:36,height:36,borderRadius:"50%",border:"3px solid rgba(255,255,255,.2)",borderTopColor:"var(--lime)",animation:"spin .8s linear infinite"}}/>
-      <p style=${{color:"rgba(255,255,255,.5)",fontSize:".84rem"}}>Admin-Portal wird geladen…</p>
+      <div style=${{width:36,height:36,borderRadius:"50%",border:"3px solid rgba(255,255,255,.3)",borderTopColor:"#fff",animation:"spin 1s linear infinite"}}></div>
+      <p style=${{color:"rgba(255,255,255,.5)",fontSize:".84rem"}}>Admin-Portal lädt…</p>
       <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
     </div>`;
 
@@ -2412,10 +2336,6 @@ function Root() {
 }
 
 render(h(Root,null), document.getElementById('root'));
-
-
-
-
 </script>
 </body>
 </html>
