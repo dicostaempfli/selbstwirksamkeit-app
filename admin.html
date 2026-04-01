@@ -382,7 +382,7 @@ else window.addEventListener('load', initFB);
   /* ══════════════════════════════
      CONTENT PAGES (right side)
   ══════════════════════════════ */
-  .content-main { flex:1; overflow-y:auto; padding:32px 36px; background:var(--bg); }
+  
   .page-heading { font-family:'Manuale',serif; font-size:1.7rem; color:var(--text); margin-bottom:4px; }
   .page-sub { font-size:.87rem; color:var(--muted); margin-bottom:24px; }
 
@@ -788,7 +788,7 @@ else window.addEventListener('load', initFB);
   
     
     
-    .content-main { padding-bottom: 80px; }
+    
 
 
     /* ── Form inputs on mobile ── */
@@ -823,7 +823,7 @@ else window.addEventListener('load', initFB);
     }
     .bottom-nav-item { height: 72px; min-height: 72px; }
     /* ── Content padding ── */
-    .content-main { padding: 16px 12px calc(72px + env(safe-area-inset-bottom, 0px) + 16px); }
+    
     /* ── Chat ── */
     
 
@@ -1127,6 +1127,39 @@ else window.addEventListener('load', initFB);
 @media (min-width: 769px) {
   .page {
     padding: 24px 24px 32px;
+  }
+}
+
+/* ── Content-main: same top spacing as .page ── */
+.content-main {
+  flex: 1;
+  overflow-y: auto;
+  background: var(--bg);
+  box-sizing: border-box;
+}
+
+@media (max-width: 768px) {
+  .content-main {
+    padding-top: max(52px, calc(env(safe-area-inset-top, 0px) + 44px));
+    padding-left: 14px;
+    padding-right: 14px;
+    padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px) + 16px);
+  }
+}
+
+@media (min-width: 769px) {
+  .content-main { padding: 24px 24px 32px; }
+}
+
+/* ── Chat topbar: push down from status bar on mobile ── */
+@media (max-width: 768px) {
+  .chat-list-header {
+    padding-top: max(52px, calc(env(safe-area-inset-top, 0px) + 44px));
+  }
+  .chat-topbar {
+    padding-top: max(52px, calc(env(safe-area-inset-top, 0px) + 44px));
+    height: auto;
+    min-height: 60px;
   }
 }
 </style>
