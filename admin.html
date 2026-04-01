@@ -1883,37 +1883,21 @@ function ChatWindow({coachee,onSend,onSendImg,onSendFile,onBack,mobileOpen}) {
 
   return html`
     <div class="chat-area">
-      <div class="chat-topbar" style=${{flexDirection:"column",alignItems:"stretch",height:"auto",padding:"10px 14px",gap:8}}>
-        <div style=${{display:"flex",alignItems:"center",gap:10}}>
-          <svg width="36" height="36" viewBox="0 0 100 100" style=${{flexShrink:0,borderRadius:"50%"}}>
-            <circle cx="50" cy="50" r="50" fill="#efe454"/>
-            <circle cx="57.94" cy="50.79" r="37.3" fill="#a0cb7b"/>
-            <circle cx="66.67" cy="50.79" r="20.63" fill="#68b87d"/>
-          </svg>
-          <div style=${{flex:1,minWidth:0}}>
-            <div class="ct-name">${sender} Stämpfli</div>
-            <div class="ct-status" style=${{display:"flex",alignItems:"center",gap:5}}>
-              <span class="status-dot"/>
-              <span>Online · Dein Coaching-Team</span>
-            </div>
-          </div>
+      <div class="chat-topbar" style=${{padding:"10px 14px",display:"flex",alignItems:"center",gap:10}}>
+        <button onClick=${onBack} style=${{background:"none",border:"none",cursor:"pointer",
+          display:"flex",alignItems:"center",justifyContent:"center",padding:"0 4px 0 0",color:"var(--text)"}}>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <div class="ct-av" style=${{background:coachee.color,position:"relative",flexShrink:0}}>
+          ${coachee.photo?html`<img src=${coachee.photo} alt=""/>`:coachee.initials}
+          ${coachee.online&&html`<span class="online-dot" style=${{position:"absolute",bottom:0,right:0}}/>`}
         </div>
-        <div style=${{display:"flex",gap:8}}>
-          ${["Diana","Rico"].map(name=>html`
-            <div key=${name} class="stat-card" onClick=${()=>setRecipient(name)}
-              style=${{cursor:"pointer",flex:"1 1 0",minWidth:0,padding:"9px 12px",transition:"all .2s",
-                borderLeft:"4px solid "+(sender===name?"#1e3a2f":"#68b87d"),
-                background:sender===name?"#68b87d":"#dff0cc"}}>
-              <div style=${{display:"flex",alignItems:"center",gap:9}}>
-                <div style=${{width:28,height:28,borderRadius:8,flexShrink:0,
-                  display:"flex",alignItems:"center",justifyContent:"center",
-                  background:sender===name?"rgba(255,255,255,.3)":"rgba(104,184,125,.2)"}}>
-                  <${Ic} name="user" size=${15} style=${{color:sender===name?"white":"#1e3a2f"}}/>
-                </div>
-                <div style=${{fontFamily:"'Manuale',serif",fontWeight:700,fontSize:".85rem",
-                  color:sender===name?"white":"#1e3a2f"}}>${name}</div>
-              </div>
-            </div>`)}
+        <div style=${{flex:1,minWidth:0}}>
+          <div class="ct-name">${coachee.name}</div>
+          <div class="ct-status">
+            <span class=${"status-dot"+(coachee.online?"":" off")}/>
+            ${coachee.online?"Online":"Zuletzt: "+coachee.lastTime} · ${coachee.topic}
+          </div>
         </div>
       </div>
 
