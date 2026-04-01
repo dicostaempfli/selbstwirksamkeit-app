@@ -1824,40 +1824,49 @@ function ChatPage({coachees,setCoachees}) {
   };
 
 
-function ChatWindow({coachee,onSend,onSendImg,onSendFile,setLightbox,onBack,mobileOpen}) {
-  const [input,setInput]           = useState("");
+function ChatWindow({coachee,onSend,onSendImg,onSendFile,onBack,mobileOpen}) {
+  const [input,setInput]         = useState("");
   const [sender,setSender]         = useState("Diana");
-  const [recording,setRecording]   = useState(false);
+  const [lightbox,setLightbox]   = useState(null);
   const [videoLightbox,setVideoLightbox] = useState(null);
-  const [fileViewer,setFileViewer] = useState(null);
+  const [recording,setRecording]   = useState(false);
+  const [fileViewer,setFileViewer]   = useState(null);
+  const [showCamMenu,setShowCamMenu] = useState(false);
   const bottomRef  = useRef(null);
-  const imgRef     = useRef(null);
+  const textRef    = useRef(null);
+  const chatImgRef = useRef(null);
   const attachRef  = useRef(null);
-  const vidRef     = useRef(null);
   const mediaRecRef = useRef(null);
   const chunksRef  = useRef([]);
 
-  useEffect(()=>{ bottomRef.current?.scrollIntoView({behavior:"smooth"}); },[coachee?.messages?.length]);
+  useEffect(()=>{ bottomRef.current?.scrollIntoView({behavior:"smooth"}); },[coachee.messages.length]);
 
-  const groups = (coachee.messages||[]).reduce((acc,msg)=>{ const d=msg.date||"Heute"; if(!acc[d])acc[d]=[]; acc[d].push(msg); return acc; },{});
+  const groups = coachee.messages.reduce((acc,msg)=>{
+    const d=msg.date||"Heute"; if(!acc[d])acc[d]=[]; acc[d].push(msg); return acc;
+  },{});
 
-  const handleSend = () => { if(!input.trim()) return; onSend(input, sender); setInput(""); };
+  const handleSend = () => { if(!input.trim())return; onSend(input); setInput(""); };
   const handleKey  = e => { if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();handleSend();} };
 
-  const handleImg = async e => {
-    const f=e.target.files[0]; if(!f) return;
-    if(f.type.startsWith("video/")) {
-      const blobUrl = URL.createObjectURL(f);
-      onSendImg(blobUrl, true, sender);
-    } else {
-      onSendImg(await readFile(f), false, sender);
+  const handleChatImg = async e => {
+    const files = e.target.files; if(!files||!files[0])return;
+    for(let i=0;i<files.length;i++){
+      const f=files[i];
+      if(f.type.startsWith("video/")) {
+        // For video: store blob URL directly (iOS can play blob URLs)
+        const blobUrl = URL.createObjectURL(f);
+        onSendImg(blobUrl, true);
+      } else {
+        onSendImg(await readFile(f), false);
+      }
     }
+    setTimeout(()=>bottomRef.current?.scrollIntoView({behavior:"smooth"}),50);
   };
 
   const handleAttach = async e => {
-    const f=e.target.files[0]; if(!f) return;
+    const f=e.target.files[0]; if(!f)return;
     const r=new FileReader();
-    r.onload=ev=>{ onSendFile({url:ev.target.result,name:f.name,type:f.type,size:f.size,isAudio:false}, sender); };
+    r.onload=ev=>{ onSendFile({url:ev.target.result,name:f.name,type:f.type,size:f.size,isAudio:false}); };
     r.readAsDataURL(f); e.target.value="";
   };
 
@@ -1870,7 +1879,9 @@ function ChatWindow({coachee,onSend,onSendImg,onSendFile,setLightbox,onBack,mobi
       mr.onstop = () => {
         const blob = new Blob(chunksRef.current,{type:"audio/webm"});
         const rdr = new FileReader();
-        rdr.onload = ev2 => { onSendFile({url:ev2.target.result,name:"Sprachmemo.webm",type:"audio/webm",isAudio:true}, sender); };
+        rdr.onload = ev2 => {
+          onSendFile({url:ev2.target.result,name:"Sprachmemo.webm",type:"audio/webm",isAudio:true});
+        };
         rdr.readAsDataURL(blob);
         stream.getTracks().forEach(t=>t.stop());
       };
@@ -1885,152 +1896,215 @@ function ChatWindow({coachee,onSend,onSendImg,onSendFile,setLightbox,onBack,mobi
   const openFile = file => {
     try {
       const arr=file.url.split(","); const mime=arr[0].match(/:(.*?);/)[1];
-      const bstr=atob(arr[1]); const u8=new Uint8Array(bstr.length);
-      for(let i=0;i<bstr.length;i++) u8[i]=bstr.charCodeAt(i);
+      const bstr=atob(arr[1]); let n=bstr.length; const u8=new Uint8Array(n);
+      while(n--)u8[n]=bstr.charCodeAt(n);
       const blob=new Blob([u8],{type:mime});
       const blobUrl=URL.createObjectURL(blob);
-      // PDFs: open in new tab; others: show in overlay
-      if(mime==="application/pdf") {
-        window.open(blobUrl,"_blank");
-      } else {
-        setFileViewer({url:blobUrl,name:file.name,type:mime});
-      }
-    } catch(ex){ window.open(file.url,"_blank"); }
+      const a=document.createElement("a"); a.href=blobUrl; a.target="_blank"; a.rel="noopener";
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(()=>URL.revokeObjectURL(blobUrl),30000);
+    } catch(e){ window.open(file.url,"_blank"); }
   };
 
-  const lastIsCoachee = coachee.messages?.length>0&&coachee.messages.at(-1).from==="coachee";
-
   return html`
-    <div class=${"chat-window"+(mobileOpen?" active":"")}>
-      <div class="chat-topbar">
-        <button onClick=${onBack} style=${{background:"none",border:"none",cursor:"pointer",color:"var(--text)",display:"flex",alignItems:"center",gap:5,fontSize:".83rem",fontWeight:700,fontFamily:"'Exo 2',sans-serif",padding:0,marginRight:4}}>
-          <${Ic} name="x" size=${14}/> <span style=${{display:"none"}} class="mobile-back">Zurück</span>
-        </button>
-        <div class="ct-av" style=${{background:coachee.color}}>
-          ${coachee.photo?html`<img src=${coachee.photo} alt=""/>`:coachee.initials}
-          ${coachee.online&&html`<span class="online-dot" style=${{position:"absolute",bottom:0,right:0}}/>`}
-        </div>
-        <div>
-          <div class="ct-name">${coachee.name}</div>
-          <div class="ct-status">
-            <span class=${"status-dot"+(coachee.online?"":" off")}/>
-            ${coachee.online?"Online":"Zuletzt: "+coachee.lastTime} · ${coachee.topic}
+    <div class="chat-area">
+      <div class="chat-topbar" style=${{flexDirection:"column",alignItems:"stretch",height:"auto",padding:"10px 14px",gap:8}}>
+        <div style=${{display:"flex",alignItems:"center",gap:10}}>
+          <svg width="36" height="36" viewBox="0 0 100 100" style=${{flexShrink:0,borderRadius:"50%"}}>
+            <circle cx="50" cy="50" r="50" fill="#efe454"/>
+            <circle cx="57.94" cy="50.79" r="37.3" fill="#a0cb7b"/>
+            <circle cx="66.67" cy="50.79" r="20.63" fill="#68b87d"/>
+          </svg>
+          <div style=${{flex:1,minWidth:0}}>
+            <div class="ct-name">${recipient} Stämpfli</div>
+            <div class="ct-status" style=${{display:"flex",alignItems:"center",gap:5}}>
+              <span class="status-dot"/>
+              <span>Online · Dein Coaching-Team</span>
+            </div>
           </div>
+        </div>
+        <div style=${{display:"flex",gap:8}}>
+          ${["Diana","Rico"].map(name=>html`
+            <div key=${name} class="stat-card" onClick=${()=>setRecipient(name)}
+              style=${{cursor:"pointer",flex:"1 1 0",minWidth:0,padding:"9px 12px",transition:"all .2s",
+                borderLeft:"4px solid "+(recipient===name?"#1e3a2f":"#68b87d"),
+                background:recipient===name?"#68b87d":"#dff0cc"}}>
+              <div style=${{display:"flex",alignItems:"center",gap:9}}>
+                <div style=${{width:28,height:28,borderRadius:8,flexShrink:0,
+                  display:"flex",alignItems:"center",justifyContent:"center",
+                  background:recipient===name?"rgba(255,255,255,.3)":"rgba(104,184,125,.2)"}}>
+                  <${Ic} name="user" size=${15} style=${{color:recipient===name?"white":"#1e3a2f"}}/>
+                </div>
+                <div style=${{fontFamily:"'Manuale',serif",fontWeight:700,fontSize:".85rem",
+                  color:recipient===name?"white":"#1e3a2f"}}>${name}</div>
+              </div>
+            </div>`)}
         </div>
       </div>
 
-      <div class="messages-area">
+      <div class="messages" ref=${bottomRef}>
         ${Object.entries(groups).map(([date,msgs])=>html`
           <div key=${date}>
             <div class="date-divider">${date}</div>
             ${msgs.map((msg,i)=>{
-              const isOut=msg.from==="admin";
-              const sndr=msg.sender||(isOut?"Diana":"Coachee");
-              const avatarColor = sndr==="Rico"?"#a0cb7b":"#68b87d";
-              const prevSame = i>0&&msgs[i-1].from===msg.from&&(msgs[i-1].sender||"Diana")===(msg.sender||"Diana");
+              const isOut = msg.from==="admin";
+              const sender = msg.sender||"Diana";
+              const prevSame = i>0&&msgs[i-1].from===msg.from&&(msgs[i-1].sender||"Diana")===sender;
+              const avatarColor = sender==="Rico" ? "#a0cb7b" : "#68b87d";
+              const initial = sender[0];
               return html`
-                <div key=${msg.id} class=${"msg-row "+(isOut?"out":"in")} style=${{alignItems:"flex-end"}}>
-                  ${!isOut&&html`<div style=${{width:26,height:26,borderRadius:"50%",flexShrink:0,
+                <div key=${msg.id} class=${"msg-row "+(isOut?"out":"in")} style=${{marginBottom:prevSame?1:8,alignItems:"flex-end"}}>
+                  ${!isOut&&html`<div style=${{width:28,height:28,borderRadius:"50%",flexShrink:0,
                     background:prevSame?"transparent":avatarColor,
                     display:"flex",alignItems:"center",justifyContent:"center",
-                    marginRight:5,marginBottom:2,fontSize:".68rem",fontWeight:700,color:"white"}}>${prevSame?"":sndr[0]}</div>`}
-                  <div>
-                    ${!isOut&&!prevSame&&html`<div style=${{fontSize:".67rem",fontWeight:700,color:avatarColor,marginBottom:2}}>${sndr}</div>`}
-                    <div class=${"msg-bubble "+(isOut?"out":"in")}>
-                      ${msg.imgSrc&&!msg.isVideo&&html`<div style=${{margin:"-8px -12px -8px -12px"}}><img src=${msg.imgSrc} style=${{width:"100%",maxHeight:200,objectFit:"cover",display:"block",cursor:"pointer",borderRadius:14}} alt="Foto" onClick=${()=>setLightbox(msg.imgSrc)}/></div>`}
-                      ${msg.imgSrc&&msg.isVideo&&html`<div onClick=${()=>setVideoLightbox(msg.imgSrc)}
-                        style=${{width:200,height:130,borderRadius:9,background:"#1e3a2f",cursor:"pointer",
-                          position:"relative",display:"flex",alignItems:"center",justifyContent:"center"}}>
-                          <div style=${{width:44,height:44,borderRadius:"50%",background:"rgba(255,255,255,.9)",
-                            display:"flex",alignItems:"center",justifyContent:"center"}}>
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="#1e3a2f"><polygon points="6,3 20,12 6,21"/></svg>
+                    marginRight:6,marginBottom:2,fontSize:".72rem",fontWeight:700,
+                    color:"white"}}>${prevSame?"":initial}</div>`}
+                  <div class="msg-bubble-wrap">
+                    ${!isOut&&!prevSame&&html`<div style=${{fontSize:".67rem",fontWeight:700,
+                      color:avatarColor,marginBottom:2,marginLeft:2}}>${sender}</div>`}
+                    <div class="msg-bubble">
+                      ${msg.imgSrc&&!msg.isVideo&&html`<div class="msg-img-wrap"><img src=${msg.imgSrc} class="msg-img" alt="Foto" onClick=${()=>setLightbox(msg.imgSrc)}/></div>`}
+                      ${msg.imgSrc&&msg.isVideo&&html`<div class="msg-img-wrap">
+                        <div onClick=${()=>setVideoLightbox(msg.imgSrc)}
+                          style=${{width:220,borderRadius:11,overflow:"hidden",cursor:"pointer",
+                            position:"relative",display:"inline-block"}}>
+                          <video src=${msg.imgSrc} muted=${true} playsinline=${true}
+                            preload="auto"
+                            onLoadedData=${e=>{
+                              const v=e.target;
+                              v.currentTime=0.1;
+                            }}
+                            style=${{width:220,maxHeight:160,borderRadius:11,display:"block",
+                              objectFit:"cover",pointerEvents:"none"}}></video>
+                          <div style=${{position:"absolute",inset:0,display:"flex",
+                            alignItems:"center",justifyContent:"center",
+                            background:"rgba(0,0,0,.18)",borderRadius:11}}>
+                            <div style=${{width:46,height:46,borderRadius:"50%",
+                              background:"rgba(255,255,255,.92)",
+                              display:"flex",alignItems:"center",justifyContent:"center",
+                              boxShadow:"0 2px 10px rgba(0,0,0,.3)"}}>
+                              <svg width="18" height="18" viewBox="0 0 24 24" fill="#1e3a2f" stroke="none">
+                                <polygon points="6,3 20,12 6,21"/>
+                              </svg>
+                            </div>
                           </div>
-                          <div style=${{position:"absolute",bottom:6,left:8,fontSize:".68rem",color:"rgba(255,255,255,.7)",fontWeight:600}}>Video</div>
-                        </div>`}
+                        </div>
+                      </div>`}
                       ${msg.file&&msg.file.isAudio&&html`
                         <div style=${{padding:"2px 0"}}>
                           <audio controls=${true} src=${msg.file.url}
-                            style=${{height:32,maxWidth:200,borderRadius:20,display:"block"}}></audio>
-                          <div style=${{fontSize:".65rem",opacity:.6,marginTop:2}}>Sprachmemo</div>
+                            style=${{height:34,maxWidth:220,borderRadius:20,display:"block"}}></audio>
+                          <div style=${{fontSize:".68rem",opacity:.6,marginTop:3}}>Sprachmemo</div>
                         </div>`}
                       ${msg.file&&!msg.file.isAudio&&html`
-                        <div onClick=${e=>{e.stopPropagation();openFile(msg.file);}}
-                          style=${{display:"flex",alignItems:"center",gap:7,cursor:"pointer",
-                            padding:"8px 10px",background:"rgba(255,255,255,.15)",borderRadius:7,
-                            minWidth:140,userSelect:"none"}}>
-                          <${Ic} name="file" size=${18} style=${{flexShrink:0,opacity:.8}}/>
+                        <div onClick=${()=>openFile(msg.file)}
+                          style=${{display:"flex",alignItems:"center",gap:8,cursor:"pointer",
+                            padding:"6px 10px",background:"rgba(255,255,255,.15)",borderRadius:8,minWidth:160}}>
+                          <${Ic} name="file" size=${20} style=${{flexShrink:0,opacity:.8}}/>
                           <div style=${{minWidth:0}}>
-                            <div style=${{fontSize:".78rem",fontWeight:700,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:140}}>${msg.file.name}</div>
-                            <div style=${{fontSize:".65rem",opacity:.7}}>${(msg.file.type||"").split("/")[1]?.toUpperCase()||"Datei"}</div>
+                            <div style=${{fontSize:".8rem",fontWeight:700,overflow:"hidden",
+                              textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:160}}>${msg.file.name}</div>
+                            <div style=${{fontSize:".68rem",opacity:.7}}>${(msg.file.type||"").split("/")[1]?.toUpperCase()||"Datei"}</div>
                           </div>
+                          <${Ic} name="chevron" size=${14} style=${{flexShrink:0,opacity:.6}}/>
                         </div>`}
                       ${msg.text&&html`<span>${msg.text}</span>`}
                     </div>
-                    <div class=${"msg-meta"+(isOut?"":" in")}>${msg.time}${isOut?" ✓":""}</div>
+                    <div class="msg-meta" style=${{justifyContent:isOut?"flex-end":"flex-start"}}>
+                      <span class="msg-time-small">${msg.time}</span>
+                      ${isOut&&msg.seen&&html`<span style=${{color:"var(--teal)",fontSize:".65rem"}}>✓✓</span>`}
+                    </div>
                   </div>
                 </div>`;
             })}
-          </div>`)
-        }
-        ${lastIsCoachee&&html`
-          <div class="qr-wrap">
-            ${QUICK_REPLIES.map(q=>html`<button key=${q} class="qr-btn" onClick=${()=>{setInput(q);}}>${q}</button>`)}
-          </div>`}
+          </div>`)}
         <div ref=${bottomRef}/>
       </div>
 
-      <div class="chat-input-bar">
-        <input ref=${imgRef} type="file" accept="image/*,video/*" capture="environment"
-          style=${{display:"none"}} onChange=${handleImg}/>
+      <div class="chat-input-area">
+        <input ref=${chatImgRef} type="file" accept="image/*,video/*" capture="environment"
+          style=${{display:"none"}} onChange=${handleChatImg}/>
+        <input id="lib-pick" type="file" accept="image/*,video/*"
+          style=${{display:"none"}} onChange=${handleChatImg}/>
         <input ref=${attachRef} type="file"
-          accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,.zip,.ppt,.pptx,application/*,text/*"
+          accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,application/*"
           style=${{display:"none"}} onChange=${handleAttach}/>
-        <button class="attach-btn" onClick=${()=>imgRef.current?.click()}><${Ic} name="camera" size=${18}/></button>
+        <button class="attach-btn" onClick=${()=>setShowCamMenu(true)}><${Ic} name="camera" size=${18}/></button>
         <button class="attach-btn" onClick=${()=>attachRef.current?.click()}><${Ic} name="attach" size=${18}/></button>
-        <button class="attach-btn" onClick=${recording?stopRecording:startRecording}
+        <button class="attach-btn"
+          onClick=${recording?stopRecording:startRecording}
           style=${{color:recording?"#e53e3e":"var(--muted)",position:"relative"}}>
           <${Ic} name=${recording?"stop":"mic"} size=${18}/>
           ${recording&&html`<span style=${{position:"absolute",top:1,right:1,width:7,height:7,
             borderRadius:"50%",background:"#e53e3e",border:"2px solid var(--surface)"}}/>`}
         </button>
-        <div style=${{display:"flex",flexDirection:"column",flex:1,gap:4}}>
-          <div style=${{display:"flex",gap:6,alignItems:"center"}}>
-            <select value=${sender} onInput=${e=>setSender(e.target.value)}
-              style=${{fontSize:".72rem",fontWeight:700,border:"none",background:"var(--sage-pale)",
-                color:"var(--forest)",borderRadius:6,padding:"2px 8px",cursor:"pointer",fontFamily:"'Exo 2',sans-serif"}}>
-              <option>Diana</option>
-              <option>Rico</option>
-            </select>
-            <span style=${{fontSize:".72rem",color:"var(--muted)"}}>schreibt als Coach</span>
-          </div>
-          <textarea class="chat-textarea" rows=${1} value=${input}
-            onInput=${e=>setInput(e.target.value)} onKeyDown=${handleKey}
-            placeholder=${"Nachricht an "+coachee.name.split(" ")[0]+"…"}/>
-        </div>
-        <button class="send-btn" onClick=${handleSend} disabled=${!input.trim()}><${Ic} name="send" size=${16}/></button>
+        <textarea ref=${textRef} class="input-box" rows=${1} value=${input}
+          onInput=${e=>setInput(e.target.value)} onKeyDown=${handleKey}
+          onFocus=${()=>{
+            setTimeout(()=>{
+              if(textRef.current) textRef.current.scrollIntoView({block:"nearest",behavior:"smooth"});
+              if(bottomRef.current) bottomRef.current.scrollIntoView({behavior:"smooth"});
+            },350);
+          }}
+          placeholder=${"Nachricht an "+recipient+"…"}/>
+        <button class="send-btn" onClick=${handleSend} disabled=${!input.trim()}><${Ic} name="send" size=${17}/></button>
       </div>
 
+      ${showCamMenu&&html`
+        <div style=${{position:"fixed",inset:0,zIndex:99998,background:"rgba(0,0,0,.4)"}}
+          onClick=${()=>setShowCamMenu(false)}>
+          <div style=${{position:"fixed",bottom:0,left:0,right:0,background:"var(--surface)",
+            borderRadius:"16px 16px 0 0",padding:"8px 0 32px",boxShadow:"0 -4px 24px rgba(0,0,0,.15)"}}
+            onClick=${e=>e.stopPropagation()}>
+            <div style=${{width:36,height:4,borderRadius:2,background:"var(--border)",margin:"0 auto 16px"}}/>
+            ${[
+              {label:"Foto oder Video aufnehmen", action:()=>{setShowCamMenu(false);chatImgRef.current?.click();},
+                icon:html`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>`},
+              {label:"Aus Fotomediathek wählen", action:()=>{setShowCamMenu(false);document.getElementById("lib-pick")?.click();},
+                icon:html`<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>`},
+            ].map((item,i)=>html`
+              <div key=${i} onClick=${item.action}
+                style=${{display:"flex",alignItems:"center",gap:14,padding:"13px 22px",
+                  cursor:"pointer",borderTop:i>0?"0.5px solid var(--border)":"none"}}>
+                ${item.icon}
+                <span style=${{fontSize:".95rem",color:"var(--text)"}}>${item.label}</span>
+              </div>`)}
+          </div>
+        </div>`}
+      ${lightbox&&html`
+        <div class="lightbox" onClick=${e=>{if(e.target===e.currentTarget)setLightbox(null);}}>
+          <div style=${{position:"relative",display:"inline-block"}}>
+            <button onClick=${()=>setLightbox(null)}
+              style=${{position:"absolute",top:-14,right:-14,width:32,height:32,
+                borderRadius:"50%",background:"white",border:"none",cursor:"pointer",
+                display:"flex",alignItems:"center",justifyContent:"center",
+                boxShadow:"0 2px 8px rgba(0,0,0,.3)",zIndex:1,color:"var(--text)"}}>
+              <${Ic} name="x" size=${16}/>
+            </button>
+            <img src=${lightbox} alt="Foto"
+              style=${{maxWidth:"85vw",maxHeight:"75vh",borderRadius:12,display:"block"}}/>
+          </div>
+        </div>`}
       ${videoLightbox&&html`
-        <div style=${{position:"fixed",inset:0,background:"rgba(0,0,0,.92)",zIndex:99999,
-          display:"flex",alignItems:"center",justifyContent:"center"}}
+        <div style=${{position:"fixed",inset:0,background:"rgba(0,0,0,.92)",
+          zIndex:99999,display:"flex",alignItems:"center",justifyContent:"center"}}
           onClick=${e=>{if(e.target===e.currentTarget)setVideoLightbox(null);}}>
-          <div style=${{position:"relative",maxWidth:"95vw"}}>
+          <div style=${{position:"relative",maxWidth:"95vw",maxHeight:"90vh"}}>
             <button onClick=${()=>setVideoLightbox(null)}
-              style=${{position:"absolute",top:-14,right:-14,width:32,height:32,borderRadius:"50%",
-                background:"white",border:"none",cursor:"pointer",display:"flex",alignItems:"center",
-                justifyContent:"center",boxShadow:"0 2px 8px rgba(0,0,0,.3)",zIndex:1,color:"var(--text)"}}>
+              style=${{position:"absolute",top:-14,right:-14,width:32,height:32,
+                borderRadius:"50%",background:"white",border:"none",cursor:"pointer",
+                display:"flex",alignItems:"center",justifyContent:"center",
+                boxShadow:"0 2px 8px rgba(0,0,0,.3)",zIndex:1,color:"var(--text)"}}>
               <${Ic} name="x" size=${16}/>
             </button>
             <video src=${videoLightbox} controls=${true} autoplay=${true} playsinline=${true}
               style=${{maxWidth:"90vw",maxHeight:"80vh",borderRadius:12,display:"block"}}></video>
           </div>
         </div>`}
-
       ${fileViewer&&html`
-        <div style=${{position:"fixed",inset:0,background:"rgba(0,0,0,.85)",zIndex:99999,
-          display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
-          <div style=${{width:"90vw",height:"82vh",background:"white",borderRadius:12,
-            display:"flex",flexDirection:"column",overflow:"hidden"}}>
+        <div style=${{position:"fixed",inset:0,background:"rgba(0,0,0,.85)",
+          zIndex:99999,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
+          <div style=${{width:"90vw",height:"82vh",background:"white",borderRadius:12,display:"flex",flexDirection:"column",overflow:"hidden"}}>
             <div style=${{display:"flex",alignItems:"center",justifyContent:"space-between",
               padding:"10px 14px",background:"#1e3a2f",flexShrink:0,gap:10}}>
               <div style=${{display:"flex",alignItems:"center",gap:8,minWidth:0,flex:1,overflow:"hidden"}}>
