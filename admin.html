@@ -1733,11 +1733,11 @@ function ChatPage({coachees,setCoachees}) {
   const filtered = coachees.filter(c=>c.name.toLowerCase().includes(search.toLowerCase())||c.topic.toLowerCase().includes(search.toLowerCase()));
   const active = coachees.find(c=>c.id===activeId);
 
-  const selectCoachee = id => {
-    setCoachees(cs=>cs.map(c=>c.id===id?{...c,unread:0}:c));
+    const selectCoachee = id => {
     setActiveId(id);
+    setCoachees(cs=>cs.map(c=>c.id===id?{...c,unread:0}:c));
     setMobileOpen(true);
-  };
+  };;
 
   const sendMsg = (text, sender="Diana") => {
     if(!text.trim()||!active) return;
@@ -1752,9 +1752,16 @@ function ChatPage({coachees,setCoachees}) {
   };
 
   return html`
-    <div class="chat-layout" style=${{position:"relative"}}>
-      <!-- Coachee list -->
-      <div class="chat-list">
+    <div style=${{display:"flex",flexDirection:"column",width:"100%",height:"100%",overflow:"hidden",position:"relative"}}>
+
+      <!-- MOBILE LIST VIEW -->
+      <div style=${{
+        display:"flex", flexDirection:"column", width:"100%", height:"100%",
+        position:"absolute", top:0, left:0, right:0, bottom:0,
+        background:"var(--bg)", zIndex:1,
+        transition:"transform .25s ease",
+        transform: mobileOpen ? "translateX(-100%)" : "translateX(0)"
+      }}>
         <div class="chat-list-header">
           <div class="chat-list-title">Nachrichten</div>
           <div class="search-wrap">
@@ -1762,7 +1769,7 @@ function ChatPage({coachees,setCoachees}) {
             <input class="search-input" value=${search} onInput=${e=>setSearch(e.target.value)} placeholder="Coachee suchen…"/>
           </div>
         </div>
-        <div class="conv-list">
+        <div class="conv-list" style=${{flex:1,overflowY:"auto"}}>
           ${filtered.map(c=>html`
             <div key=${c.id} class=${"conv-row"+(activeId===c.id?" active":"")} onClick=${()=>selectCoachee(c.id)}>
               <div class="conv-avatar" style=${{background:c.color}}>
@@ -1781,15 +1788,34 @@ function ChatPage({coachees,setCoachees}) {
         </div>
       </div>
 
-      <!-- Chat window -->
-      ${active
-        ? html`<${ChatWindow} coachee=${active} onSend=${sendMsg} onSendImg=${sendImg} onSendFile=${sendFile} setLightbox=${()=>{}} onBack=${()=>setMobileOpen(false)} mobileOpen=${mobileOpen}/>`
-        : html`<div class="empty-chat">
-            <${Logo} size=${72}/>
-            <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.1rem",color:"var(--muted)"}}>Wähle ein Gespräch</div>
-            <div style=${{fontSize:".83rem",color:"var(--muted)",opacity:.6}}>aus der Liste links</div>
-          </div>`}
-    </div>`;
+      <!-- MOBILE CHAT VIEW (slides in from right) -->
+      <div style=${{
+        display:"flex", flexDirection:"column", width:"100%", height:"100%",
+        position:"absolute", top:0, left:0, right:0, bottom:0,
+        background:"var(--bg)", zIndex:2,
+        transition:"transform .25s ease",
+        transform: mobileOpen ? "translateX(0)" : "translateX(100%)"
+      }}>
+        ${active
+          ? html`<${ChatWindow} coachee=${active} onSend=${sendMsg} onSendImg=${sendImg} onSendFile=${sendFile} setLightbox=${()=>{}} onBack=${()=>setMobileOpen(false)} mobileOpen=${true}/>`
+          : html`<div style=${{display:"flex",alignItems:"center",justifyContent:"center",height:"100%",flexDirection:"column",gap:12,color:"var(--muted)"}}>
+              <${Logo} size=${60}/>
+              <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.1rem"}}>Wähle ein Gespräch</div>
+            </div>`
+        }
+      </div>
+
+      <!-- DESKTOP: side by side (overrides above on wide screens) -->
+      <style>
+        @media (min-width: 769px) {
+          .chat-desktop-list { display: flex !important; }
+          .chat-desktop-chat { display: flex !important; transform: none !important; position: relative !important; }
+          .chat-mobile-list { display: none !important; }
+          .chat-mobile-chat { display: none !important; }
+        }
+      </style>
+    </div>
+  `
 }
   const sendFile = (file, sender="Diana") => {
     const t = new Date().toLocaleTimeString('de-CH',{hour:'2-digit',minute:'2-digit'});
