@@ -610,9 +610,7 @@ else window.addEventListener('load', initFB);
     }
   }
 
-  @media (max-width: 375px) {
-    .grid-2, .form-grid { grid-template-columns: 1fr !important; }
-    .page-heading { font-size: 1.2rem; }
+  
     .stat-card { padding: 10px 12px; }
     .modal { padding: 14px 12px !important; }
     .rem-area-btn { padding: 5px 10px !important; font-size: .72rem !important; }
@@ -1100,21 +1098,45 @@ else window.addEventListener('load', initFB);
 
 
 /* .page = same as coachee .content-main */
+
+@media (max-width: 768px) {
+  
+}
+@media (max-width: 390px) {
+  
+}
+
+/* ── Top spacing: exact coachee values ── */
+#root {
+  padding-top: env(safe-area-inset-top, 0px);
+  height: 100dvh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
 .page {
   flex: 1;
   overflow-y: auto;
   background: var(--bg);
-  padding: 20px 16px;
+  padding: 20px 16px 32px;
   box-sizing: border-box;
 }
+
 @media (max-width: 768px) {
+  #root { padding-top: env(safe-area-inset-top, 0px); }
   .page {
-    padding: 16px 12px calc(72px + env(safe-area-inset-bottom, 0px) + 16px);
-    padding-top: max(16px, calc(env(safe-area-inset-top, 0px) + 12px));
+    padding: max(20px, calc(env(safe-area-inset-top, 0px) + 12px)) 14px calc(72px + env(safe-area-inset-bottom, 0px) + 16px);
+  }
+  .app-layout {
+    padding-top: 0;
   }
 }
+
 @media (max-width: 390px) {
-  .page { padding: 12px 10px calc(72px + env(safe-area-inset-bottom, 0px) + 12px); }
+  .page {
+    padding: max(16px, calc(env(safe-area-inset-top, 0px) + 10px)) 12px calc(72px + env(safe-area-inset-bottom, 0px) + 12px);
+  }
 }
 </style>
 </head>
