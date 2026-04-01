@@ -1107,24 +1107,12 @@ else window.addEventListener('load', initFB);
 }
 
 /* ── Top spacing: exact coachee values ── */
-#root {
-  padding-top: env(safe-area-inset-top, 0px);
-  height: 100dvh;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
 
-.page {
-  flex: 1;
-  overflow-y: auto;
-  background: var(--bg);
-  padding: 20px 16px 32px;
-  box-sizing: border-box;
-}
+
+
 
 @media (max-width: 768px) {
-  #root { padding-top: env(safe-area-inset-top, 0px); }
+  
   .page {
     padding: max(20px, calc(env(safe-area-inset-top, 0px) + 12px)) 14px calc(72px + env(safe-area-inset-bottom, 0px) + 16px);
   }
@@ -1136,6 +1124,39 @@ else window.addEventListener('load', initFB);
 @media (max-width: 390px) {
   .page {
     padding: max(16px, calc(env(safe-area-inset-top, 0px) + 10px)) 12px calc(72px + env(safe-area-inset-bottom, 0px) + 12px);
+  }
+}
+
+/* ── Status bar & safe area (exact coachee) ── */
+#root {
+  height: 100dvh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Mobile: safe-area-inset-top on .app-layout (like coachee #app) */
+@media (max-width: 768px) {
+  .app-layout {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+  .page {
+    padding: max(20px, calc(env(safe-area-inset-top, 0px) + 16px)) 14px calc(72px + env(safe-area-inset-bottom, 0px) + 16px);
+    flex: 1;
+    overflow-y: auto;
+    background: var(--bg);
+    box-sizing: border-box;
+  }
+}
+
+/* Desktop: no status bar needed */
+@media (min-width: 769px) {
+  .app-layout { padding-top: 0; }
+  .page {
+    padding: 24px 24px 32px;
+    flex: 1;
+    overflow-y: auto;
+    background: var(--bg);
   }
 }
 </style>
