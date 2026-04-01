@@ -1925,18 +1925,24 @@ function ChatWindow({coachee,onSend,onSendImg,onSendFile,onBack,mobileOpen}) {
                       ${msg.imgSrc&&!msg.isVideo&&html`<div class="msg-img-wrap"><img src=${msg.imgSrc} class="msg-img" alt="Foto" onClick=${()=>setLightbox(msg.imgSrc)}/></div>`}
                       ${msg.imgSrc&&msg.isVideo&&html`<div class="msg-img-wrap">
                         <div onClick=${()=>setVideoLightbox(msg.imgSrc)}
-                          style=${{display:"flex",alignItems:"center",gap:10,cursor:"pointer",
-                            padding:"8px 10px",background:"rgba(0,0,0,.08)",borderRadius:10,
-                            minWidth:160,maxWidth:220}}>
-                          <div style=${{width:40,height:40,borderRadius:"50%",background:"var(--forest)",
+                          style=${{width:220,borderRadius:12,overflow:"hidden",background:"var(--forest)",
+                            cursor:"pointer",display:"flex",alignItems:"center",gap:10,padding:"10px 12px"}}>
+                          <div style=${{width:44,height:44,borderRadius:8,background:"rgba(255,255,255,.12)",
                             display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="white" stroke="none">
-                              <polygon points="6,3 20,12 6,21"/>
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.7">
+                              <polygon points="23 7 16 12 23 17 23 7"/>
+                              <rect x="1" y="5" width="15" height="14" rx="2"/>
                             </svg>
                           </div>
-                          <div>
-                            <div style=${{fontSize:".82rem",fontWeight:700,color:"var(--text)"}}>Video</div>
-                            <div style=${{fontSize:".72rem",color:"var(--muted)"}}>Tippen zum Abspielen</div>
+                          <div style=${{flex:1,minWidth:0}}>
+                            <div style=${{fontSize:".82rem",fontWeight:700,color:"white"}}>Video</div>
+                            <div style=${{fontSize:".72rem",color:"rgba(255,255,255,.55)"}}>Tippen zum Abspielen</div>
+                          </div>
+                          <div style=${{width:30,height:30,borderRadius:"50%",background:"rgba(255,255,255,.15)",
+                            display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="white" stroke="none">
+                              <polygon points="6,3 20,12 6,21"/>
+                            </svg>
                           </div>
                         </div>
                       </div>`}
