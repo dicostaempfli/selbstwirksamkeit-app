@@ -1011,12 +1011,12 @@ else window.addEventListener('load', initFB);
 
 /* bn-item = admin bottom nav items (same as .bottom-nav-item) */
 .bn-item {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
+  flex: 1 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 4px !important;
   cursor: pointer;
   padding: 0 4px;
   color: rgba(255,255,255,.45);
@@ -1024,7 +1024,7 @@ else window.addEventListener('load', initFB);
   transition: all .18s;
   position: relative;
   min-width: 0;
-  height: 72px;
+  height: 72px !important;
 }
 .bn-item span {
   font-size: .52rem;
@@ -1064,6 +1064,8 @@ else window.addEventListener('load', initFB);
   background: var(--sidebar-bg);
   color: white;
 }
+
+/* v1775051783 */
 </style>
 </head>
 <body>
@@ -1281,7 +1283,7 @@ function AdminApp({user}) {
         <div class="sb-nav">
           ${NAV.map(n=>html`
             <div key=${n.id} class=${"sb-item"+(page===n.id?" active":"")} onClick=${()=>setPage(n.id)} title=${n.label}>
-              <${Ic} name=${n.icon} size=${20}/>
+              <${Ic} name=${n.icon} size=${24}/>
               ${(n.badge||0)>0&&html`<span class="sb-badge">${n.badge}</span>`}
             </div>`)}
         </div>
@@ -1308,12 +1310,12 @@ function AdminApp({user}) {
       <nav class="bottom-nav">
         ${NAV.map(n=>html`
           <div key=${n.id} class=${"bn-item"+(page===n.id?" active":"")} onClick=${()=>setPage(n.id)}>
-            <${Ic} name=${n.icon} size=${20}/>
+            <${Ic} name=${n.icon} size=${24}/>
             <span>${n.label}</span>
             ${(n.badge||0)>0&&html`<span class="bn-badge">${n.badge}</span>`}
           </div>`)}
         <div class="bn-item" onClick=${doLogout}>
-          <${Ic} name="logout" size=${20}/>
+          <${Ic} name="logout" size=${24}/>
           <span>Logout</span>
         </div>
       </nav>
