@@ -782,30 +782,9 @@ else window.addEventListener('load', initFB);
       padding-bottom: 0;
       box-shadow: 0 -2px 12px rgba(30,58,47,.15);
     }
-    .bottom-nav-item {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 4px;
-      cursor: pointer;
-      padding: 0 4px;
-      color: rgba(255,255,255,.45);
-      border-radius: 12px;
-      transition: all .18s;
-      position: relative;
-      padding: 6px 2px;
-      min-width: 0;
-    }
-    .bottom-nav-item.active {
-      color: var(--forest);
-      background: var(--sidebar-active);
-    }
-    .bottom-nav-item:hover:not(.active) {
-      color: rgba(255,255,255,.8);
-      background: rgba(255,255,255,.08);
-    }
+    
+    
+    
     .bottom-nav-label {
       font-size: .52rem;
       font-weight: 700;
@@ -816,17 +795,7 @@ else window.addEventListener('load', initFB);
       max-width: 58px;
       text-align: center;
     }
-    .bottom-nav-badge {
-      position: absolute;
-      top: 4px; right: 6px;
-      width: 14px; height: 14px;
-      border-radius: 50%;
-      background: var(--lime);
-      font-size: .55rem;
-      font-weight: 700;
-      color: #1a2e22;
-      display: flex; align-items: center; justify-content: center;
-    }
+    
 
     /* Adjust app layout for bottom nav */
     .chat-window { display:flex; flex-direction:column; flex:1; overflow:hidden; max-width:100%; }
@@ -866,7 +835,7 @@ else window.addEventListener('load', initFB);
       padding-bottom: env(safe-area-inset-bottom, 0px);
       height: calc(72px + env(safe-area-inset-bottom, 0px));
     }
-    .bottom-nav-item { height: 72px; min-height: 72px; }
+    
     /* ── Content padding ── */
     .content-main { padding: 16px 12px calc(72px + env(safe-area-inset-bottom, 0px) + 16px); }
     /* ── Chat ── */
@@ -984,12 +953,12 @@ else window.addEventListener('load', initFB);
 .login-logo { text-align:center; margin-bottom:28px; }
 
 /* Bottom nav items */
-.bottom-nav-item { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; cursor:pointer; padding:6px 2px 8px; color:rgba(255,255,255,.45); border-radius:12px; font-size:.52rem; font-weight:700; font-family:'Exo 2',sans-serif; letter-spacing:.1px; position:relative; transition:all .18s; min-width:0; }
-.bottom-nav-item span { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:58px; }
-.bottom-nav-item.active { background:var(--sidebar-active); color:var(--forest); }
-.bottom-nav-item:hover:not(.active) { background:rgba(255,255,255,.08); color:rgba(255,255,255,.8); }
-.bottom-nav-badge { position:absolute; top:4px; right:calc(50% - 18px); width:15px; height:15px; border-radius:50%; background:var(--lime); color:var(--forest); font-size:.55rem; font-weight:700; display:flex; align-items:center; justify-content:center; }
-.bottom-nav-item.active .bottom-nav-badge { background:var(--sidebar-bg); color:white; }
+
+
+
+
+
+
 
 /* Mobile */
 @media (max-width: 768px) {
@@ -1014,6 +983,59 @@ else window.addEventListener('load', initFB);
   .app-layout .sidebar { display:none !important; }
 }
 
+
+/* Bottom nav — exakt wie Coachee-App */
+.bottom-nav-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  cursor: pointer;
+  padding: 0 4px;
+  color: rgba(255,255,255,.45);
+  border-radius: 12px;
+  transition: all .18s;
+  position: relative;
+  min-width: 0;
+  height: 72px;
+}
+.bottom-nav-item span {
+  font-size: .52rem;
+  font-weight: 700;
+  font-family: 'Exo 2', sans-serif;
+  letter-spacing: .1px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 58px;
+}
+.bottom-nav-item.active {
+  background: var(--sidebar-active);
+  color: var(--forest);
+  border-radius: 12px;
+}
+.bottom-nav-item:hover:not(.active) {
+  background: rgba(255,255,255,.08);
+  color: rgba(255,255,255,.8);
+}
+.bottom-nav-badge {
+  position: absolute;
+  top: 6px;
+  right: calc(50% - 18px);
+  width: 15px; height: 15px;
+  border-radius: 50%;
+  background: var(--lime);
+  color: var(--forest);
+  font-size: .55rem;
+  font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+}
+.bottom-nav-item.active .bottom-nav-badge {
+  background: var(--sidebar-bg);
+  color: white;
+}
 </style>
 </head>
 <body>
@@ -1287,7 +1309,7 @@ function DashboardPage({coachees,library,doodles,setPage}) {
         </div>
       </div>
 
-      <div class="stat-grid" style=${{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:16}}>
+      <div class="stat-grid" style=${{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:12}}>
         <div class="stat-card" onClick=${()=>setPage("coachees")} style=${{cursor:"pointer",borderLeft:"4px solid var(--teal)"}}>
           <div class="stat-label">Coachees</div>
           <div class="stat-value">${coachees.length}</div>
@@ -1303,7 +1325,7 @@ function DashboardPage({coachees,library,doodles,setPage}) {
           <div class="stat-value">${library.length}</div>
           <div class="stat-hint">Materialien</div>
         </div>
-        <div class="stat-card" onClick=${()=>setPage("doodle")} style=${{cursor:"pointer",borderLeft:"4px solid var(--teal-dark)"}}>
+        <div class="stat-card" onClick=${()=>setPage("doodle")} style=${{cursor:"pointer",borderLeft:"4px solid #c4b8a8"}}>
           <div class="stat-label">Termine</div>
           <div class="stat-value">${openDoodles}</div>
           <div class="stat-hint">offen</div>
