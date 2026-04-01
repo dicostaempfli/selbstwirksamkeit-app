@@ -1337,6 +1337,17 @@ else window.addEventListener('load', initFB);
   .bottom-nav { display: none !important; }
   .main-content { padding-bottom: 0; }
 }
+
+/* ── Mobile chat panels ── */
+@media (max-width: 768px) {
+  .chat-list-panel { display: flex; flex-direction: column; width: 100%; height: 100%; }
+  .chat-window-panel { display: none; }
+  .chat-window-panel.active { display: flex; flex-direction: column; width: 100%; height: 100%; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: var(--bg); z-index: 10; }
+}
+@media (min-width: 769px) {
+  .chat-list-panel { display: flex; flex-direction: column; }
+  .chat-window-panel { display: flex; flex-direction: column; flex: 1; }
+}
 </style>
 </head>
 <body>
@@ -1610,10 +1621,18 @@ function DashboardPage({coachees,library,doodles,setPage}) {
       </div>
 
       <div class="stat-grid">
-        <div class="stat-card"><div class="stat-label">Coachees</div><div class="stat-value">${coachees.length}</div><div class="stat-hint">${coachees.filter(c=>c.online).length} online</div></div>
-        <div class="stat-card"><div class="stat-label">Ungelesen</div><div class="stat-value">${totalUnread}</div><div class="stat-hint">Nachrichten</div></div>
-        <div class="stat-card"><div class="stat-label">Mediathek</div><div class="stat-value">${library.length}</div><div class="stat-hint">Materialien</div></div>
-        <div class="stat-card"><div class="stat-label">Doodles</div><div class="stat-value">${openDoodles}</div><div class="stat-hint">offen</div></div>
+        <div class="stat-card" onClick=${()=>setPage("coachees")} style=${{cursor:"pointer"}}>
+          <div class="stat-label">Coachees</div><div class="stat-value">${coachees.length}</div><div class="stat-hint">${coachees.filter(c=>c.online).length} online</div>
+        </div>
+        <div class="stat-card" onClick=${()=>setPage("chat")} style=${{cursor:"pointer"}}>
+          <div class="stat-label">Nachrichten</div><div class="stat-value">${totalUnread}</div><div class="stat-hint">ungelesen</div>
+        </div>
+        <div class="stat-card" onClick=${()=>setPage("library")} style=${{cursor:"pointer"}}>
+          <div class="stat-label">Mediathek</div><div class="stat-value">${library.length}</div><div class="stat-hint">Materialien</div>
+        </div>
+        <div class="stat-card" onClick=${()=>setPage("doodle")} style=${{cursor:"pointer"}}>
+          <div class="stat-label">Termine</div><div class="stat-value">${openDoodles}</div><div class="stat-hint">offen</div>
+        </div>
       </div>
 
       <div class="card">
@@ -1708,6 +1727,7 @@ function QuoteEditor() {
 function ChatPage({coachees,setCoachees}) {
   const [activeId,setActiveId] = useState(null);
   const [search,setSearch] = useState("");
+  const [mobileView,setMobileView] = useState("list");
   const [mobileOpen,setMobileOpen] = useState(false);
 
   const filtered = coachees.filter(c=>c.name.toLowerCase().includes(search.toLowerCase())||c.topic.toLowerCase().includes(search.toLowerCase()));
@@ -1732,7 +1752,7 @@ function ChatPage({coachees,setCoachees}) {
   };
 
   return html`
-    <div class="chat-layout">
+    <div class="chat-layout" style=${{position:"relative"}}>
       <!-- Coachee list -->
       <div class="chat-list">
         <div class="chat-list-header">
