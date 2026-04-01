@@ -1008,6 +1008,62 @@ else window.addEventListener('load', initFB);
   .main-content { padding-bottom: 0; }
 }
 
+
+/* bn-item = admin bottom nav items (same as .bottom-nav-item) */
+.bn-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  cursor: pointer;
+  padding: 0 4px;
+  color: rgba(255,255,255,.45);
+  border-radius: 12px;
+  transition: all .18s;
+  position: relative;
+  min-width: 0;
+  height: 72px;
+}
+.bn-item span {
+  font-size: .52rem;
+  font-weight: 700;
+  font-family: 'Exo 2', sans-serif;
+  letter-spacing: .1px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 58px;
+}
+.bn-item.active {
+  background: var(--sidebar-active);
+  color: var(--forest);
+  border-radius: 12px;
+}
+.bn-item:hover:not(.active) {
+  background: rgba(255,255,255,.08);
+  color: rgba(255,255,255,.8);
+}
+.bn-badge {
+  position: absolute;
+  top: 6px;
+  right: calc(50% - 18px);
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: var(--lime);
+  color: var(--forest);
+  font-size: .55rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.bn-item.active .bn-badge {
+  background: var(--sidebar-bg);
+  color: white;
+}
 </style>
 </head>
 <body>
