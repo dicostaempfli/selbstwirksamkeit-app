@@ -1105,7 +1105,38 @@ else window.addEventListener('load', initFB);
   .sidebar { display: flex !important; }
   .bottom-nav { display: none !important; }
   .main-content { padding-bottom: 0; }
-}</style>
+}
+/* ── CRITICAL FIXES ── */
+
+/* Page scroll */
+.page {
+  padding: 20px 16px 32px;
+  overflow-y: auto;
+  height: 100%;
+  flex: 1;
+}
+@media (max-width: 768px) {
+  .page { padding: 16px 14px 24px; }
+}
+
+/* Bottom nav item BASE (was missing) */
+.bottom-nav-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  cursor: pointer;
+  padding: 0 4px;
+  color: rgba(255,255,255,.45);
+  border-radius: 12px;
+  transition: all .18s;
+  position: relative;
+  min-width: 0;
+  height: 72px;
+}
+</style>
 </head>
 <body>
 <div id="root"></div>
