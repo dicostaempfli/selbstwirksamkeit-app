@@ -1175,7 +1175,52 @@ else window.addEventListener('load', initFB);
   .bn-badge{position:absolute;top:3px;right:5px;width:13px;height:13px;border-radius:50%;background:var(--sage);font-size:.52rem;font-weight:700;color:var(--forest);display:flex;align-items:center;justify-content:center}
 }
 
-@media(min-width:769px){.bottom-nav{display:none}}</style>
+@media(min-width:769px){.bottom-nav{display:none}}
+
+/* ── Admin: override mobile rules that hide sidebar ── */
+.app-layout .sidebar { display: flex !important; }
+.app-layout .sidebar * { display: revert; }
+
+/* ── Admin: bottom-nav hidden on desktop ── */
+.app-layout .bottom-nav { display: none !important; }
+.app-layout .content-main { padding: 0; height: 100%; overflow: hidden; }
+
+/* ── Admin layout ── */
+.app-layout { display: flex; height: 100vh; overflow: hidden; width: 100%; }
+.chat-layout { display: flex; width: 100%; height: 100%; overflow: hidden; }
+.main-content { flex: 1; overflow-y: auto; height: 100%; }
+.chat-list { width: 260px; border-right: 1px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; background: var(--bg); height: 100%; overflow: hidden; }
+.chat-list-header { padding: 16px 16px 12px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+.chat-list-title { font-family: 'Manuale', serif; font-weight: 700; font-size: 1.1rem; color: var(--text); }
+.messages-area { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 2px; -webkit-overflow-scrolling: touch; }
+.chat-input-bar { background: var(--surface); border-top: 1px solid var(--border); padding: 10px 14px; display: flex; align-items: flex-end; gap: 8px; flex-shrink: 0; }
+.chat-textarea { flex: 1; background: var(--bg); border: 1.5px solid var(--border); border-radius: 20px; padding: 9px 15px; font-family: 'Exo 2'; font-size: .89rem; color: var(--text); resize: none; max-height: 100px; overflow-y: auto; line-height: 1.45; }
+.chat-textarea:focus { outline: none; border-color: var(--teal); }
+.coachee-card { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-bottom: 0.5px solid var(--border); cursor: pointer; transition: background .1s; }
+.coachee-card:hover { background: var(--teal-pale); }
+.coachee-card.active { background: var(--surface); }
+.coachee-av { width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: .82rem; font-weight: 700; flex-shrink: 0; }
+.coachee-name { font-weight: 700; font-size: .9rem; color: var(--text); }
+.coachee-topic { font-size: .74rem; color: var(--muted); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.badge-online { background: var(--teal); color: white; border-radius: 99px; padding: 1px 7px; font-size: .7rem; font-weight: 700; }
+.section-title { font-family: 'Manuale', serif; font-weight: 700; font-size: 1rem; color: var(--text); margin-bottom: 12px; }
+.conv-list { display: flex; flex-direction: column; }
+.ct-av { width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: .82rem; font-weight: 700; flex-shrink: 0; position: relative; overflow: hidden; }
+.ct-av img { width: 100%; height: 100%; object-fit: cover; }
+.online-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--teal); border: 2px solid var(--surface); }
+/* Vote rows */
+.vote-row { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border: 1px solid var(--border); border-radius: 10px; margin-bottom: 6px; background: var(--surface); }
+.vote-dt { font-size: .85rem; font-weight: 700; color: var(--text); flex: 1; }
+.vc-yes { background: var(--teal); color: white; border: none; border-radius: 6px; padding: 4px 10px; font-size: .75rem; font-weight: 700; cursor: pointer; }
+.vc-no { background: #fde8e8; color: var(--danger); border: none; border-radius: 6px; padding: 4px 10px; font-size: .75rem; font-weight: 700; cursor: pointer; }
+.vc-none { background: var(--border); color: var(--muted); border: none; border-radius: 6px; padding: 4px 10px; font-size: .75rem; font-weight: 700; cursor: pointer; }
+.best-row { background: var(--lime-pale); border-color: var(--lime-dark); }
+.slot-item { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; background: var(--bg); border-radius: 8px; margin-bottom: 4px; font-size: .85rem; }
+.qr-wrap { display: flex; gap: 6px; flex-wrap: wrap; padding: 6px 0; }
+.login-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: var(--bg); padding: 24px; }
+.login-card { background: var(--surface); border-radius: 20px; padding: 36px 32px; width: 100%; max-width: 400px; box-shadow: var(--shadow2); }
+.login-logo { text-align: center; margin-bottom: 28px; }
+</style>
 </head>
 <body>
 <div id="root"></div>
