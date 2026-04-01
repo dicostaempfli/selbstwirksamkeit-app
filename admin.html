@@ -1517,8 +1517,6 @@ function AdminApp({user}) {
   const [coachees,setCoachees] = useState(INIT_COACHEES);
   const [library,setLibrary] = useState(INIT_LIBRARY);
   const [doodles,setDoodles] = useState(INIT_DOODLES);
-  const [lightbox,setLightbox] = useState(null);
-
   const totalUnread = coachees.reduce((a,c)=>a+(c.unread||0),0);
 
   const NAV = [
@@ -1542,11 +1540,11 @@ function AdminApp({user}) {
             <div key=${n.id} class=${"sb-item"+(page===n.id?" active":"")} onClick=${()=>setPage(n.id)} title=${n.label}>
               <${Ic} name=${n.icon} size=${20}/>
               ${(n.badge||0)>0&&html`<span class="sb-badge">${n.badge}</span>`}
-            </div>\`)}
+            </div>`)}
         </div>
         <div class="sb-bottom">
           <div class="sb-avatar" title=${user?.email||"Admin"} style=${{fontSize:".6rem"}}>
-            ${user?.photoURL?html`<img src=${user.photoURL} style=${{width:"100%",height:"100%",borderRadius:"50%",objectFit:"cover"}} alt=""/>\`:user?.email?.[0]?.toUpperCase()||"A"}
+            ${user?.photoURL?html`<img src=${user.photoURL} style=${{width:"100%",height:"100%",borderRadius:"50%",objectFit:"cover"}} alt=""/>`:user?.email?.[0]?.toUpperCase()||"A"}
           </div>
           <button class="sb-logout" onClick=${doLogout}>
             <${Ic} name="logout" size=${14}/><span>Logout</span>
@@ -1557,7 +1555,7 @@ function AdminApp({user}) {
       <!-- Main content -->
       <div class="main-content" style=${{flex:1,overflow:"hidden",display:"flex",flexDirection:"column",minHeight:0}}>
         ${page==="dashboard"&&html`<${DashboardPage} coachees=${coachees} library=${library} doodles=${doodles} setPage=${setPage}/>`}
-        ${page==="chat"&&html`<${ChatPage} coachees=${coachees} setCoachees=${setCoachees} setLightbox=${setLightbox}/>`}
+        ${page==="chat"&&html`<${ChatPage} coachees=${coachees} setCoachees=${setCoachees}/>`}
         ${page==="coachees"&&html`<${CoacheesPage} coachees=${coachees} setCoachees=${setCoachees} setPage=${setPage}/>`}
         ${page==="library"&&html`<${LibraryPage} library=${library} setLibrary=${setLibrary}/>`}
         ${page==="doodle"&&html`<${DoodlePage} doodles=${doodles} setDoodles=${setDoodles} coachees=${coachees}/>`}
@@ -1570,29 +1568,15 @@ function AdminApp({user}) {
             <${Ic} name=${n.icon} size=${20}/>
             <span>${n.label}</span>
             ${(n.badge||0)>0&&html`<span class="bn-badge">${n.badge}</span>`}
-          </div>\`)}
+          </div>`)}
         <div class="bn-item" onClick=${doLogout}>
           <${Ic} name="logout" size=${20}/>
           <span>Logout</span>
         </div>
       </nav>
-
-      ${lightbox&&html`
-        <div class="lightbox" onClick=${e=>{if(e.target===e.currentTarget)setLightbox(null);}}>
-          <div style=${{position:"relative",display:"inline-block"}}>
-            <button onClick=${()=>setLightbox(null)}
-              style=${{position:"absolute",top:-14,right:-14,width:32,height:32,
-                borderRadius:"50%",background:"white",border:"none",cursor:"pointer",
-                display:"flex",alignItems:"center",justifyContent:"center",
-                boxShadow:"0 2px 8px rgba(0,0,0,.3)",zIndex:1,color:"var(--text)"}}>
-              <${Ic} name="x" size=${16}/>
-            </button>
-            <img src=${lightbox} alt="Foto"
-              style=${{maxWidth:"85vw",maxHeight:"75vh",borderRadius:12,display:"block"}}/>
-          </div>
-        </div>`}
     </div>`;
 }
+
 
 
 function DashboardPage({coachees,library,doodles,setPage}) {
@@ -1707,7 +1691,7 @@ function QuoteEditor() {
 }
 
 // ── CHAT PAGE ──
-function ChatPage({coachees,setCoachees,setLightbox}) {
+function ChatPage({coachees,setCoachees}) {
   const [activeId,setActiveId] = useState(null);
   const [search,setSearch] = useState("");
   const [mobileOpen,setMobileOpen] = useState(false);
@@ -1765,7 +1749,7 @@ function ChatPage({coachees,setCoachees,setLightbox}) {
 
       <!-- Chat window -->
       ${active
-        ? html`<${ChatWindow} coachee=${active} onSend=${sendMsg} onSendImg=${sendImg} onSendFile=${sendFile} setLightbox=${setLightbox} onBack=${()=>setMobileOpen(false)} mobileOpen=${mobileOpen}/>`
+        ? html`<${ChatWindow} coachee=${active} onSend=${sendMsg} onSendImg=${sendImg} onSendFile=${sendFile} setLightbox=${()=>{}} onBack=${()=>setMobileOpen(false)} mobileOpen=${mobileOpen}/>`
         : html`<div class="empty-chat">
             <${Logo} size=${72}/>
             <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.1rem",color:"var(--muted)"}}>Wähle ein Gespräch</div>
