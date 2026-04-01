@@ -1066,6 +1066,33 @@ else window.addEventListener('load', initFB);
 }
 
 /* v1775051783 */
+
+/* ── Mobile width optimization ── */
+@media (max-width: 768px) {
+  /* Ensure full width usage */
+  .page { padding: 14px 12px calc(72px + env(safe-area-inset-bottom,0px) + 8px); }
+  
+  /* Stat cards compact on small screens */
+  .stat-card { padding: 10px 12px; }
+  .stat-value { font-size: 1.6rem; }
+  
+  /* Cards full width */
+  .card { border-radius: 12px; margin-left: 0; margin-right: 0; }
+  
+  /* Nav icons smaller on narrow screens */
+  .bn-item span { font-size: .48rem; max-width: 52px; }
+
+  /* Ensure content doesn't overflow */
+  * { max-width: 100%; }
+  img, video { max-width: 100%; }
+}
+
+@media (max-width: 390px) {
+  /* iPhone SE and smaller */
+  .page { padding: 12px 10px calc(72px + env(safe-area-inset-bottom,0px) + 8px); }
+  .stat-value { font-size: 1.4rem; }
+  .bn-item span { font-size: .44rem; max-width: 46px; }
+}
 </style>
 </head>
 <body>
@@ -1299,7 +1326,7 @@ function AdminApp({user}) {
 
       <!-- Main content -->
       <div class="main-content">
-        ${page==="dashboard"&&html`<${DashboardPage} coachees=${coachees} library=${library} doodles=${doodles} setPage=${setPage}/>`}
+        ${page==="dashboard"&&html`<${DashboardPage} coachees=${coachees} library=${library} doodles=${doodles} setPage=${setPage} user=${user}/>`}
         ${page==="chat"&&html`<${ChatPage} coachees=${coachees} setCoachees=${setCoachees}/>`}
         ${page==="coachees"&&html`<${CoacheesPage} coachees=${coachees} setCoachees=${setCoachees} setPage=${setPage}/>`}
         ${page==="library"&&html`<${LibraryPage} library=${library} setLibrary=${setLibrary}/>`}
@@ -1324,9 +1351,11 @@ function AdminApp({user}) {
 
 
 
-function DashboardPage({coachees,library,doodles,setPage}) {
+function DashboardPage({coachees,library,doodles,setPage,user}) {
   const hour = new Date().getHours();
-  const greeting = hour<12?"Guten Morgen":hour<18?"Guten Tag":"Guten Abend";
+  const greetWord = hour<12?"Guten Morgen":hour<18?"Guten Tag":"Guten Abend";
+  const userName = user?.displayName?.split(" ")[0] || user?.email?.split("@")[0] || "Diana";
+  const greeting = greetWord + ", " + userName;
   const openDoodles = doodles.filter(d=>d.status==="open").length;
   const totalUnread = coachees.reduce((a,c)=>a+(c.unread||0),0);
 
@@ -1336,7 +1365,7 @@ function DashboardPage({coachees,library,doodles,setPage}) {
         <${Logo} size=${52}/>
         <div>
           <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.3rem",fontWeight:700,color:"var(--text)"}}>${greeting}</div>
-          <div style=${{fontSize:".88rem",color:"var(--muted)",marginTop:2}}>Diana & Rico · Admin-Portal</div>
+          <div style=${{fontSize:".88rem",color:"var(--muted)",marginTop:2}}>Admin-Portal · Raum für Selbstwirksamkeit</div>
         </div>
       </div>
 
