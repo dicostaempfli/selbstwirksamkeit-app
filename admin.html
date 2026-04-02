@@ -2294,20 +2294,6 @@ function DoodlePage({doodles,setDoodles,coachees}) {
 }
 
 // ── ROOT ──
-function ChatPage({coachees,setCoachees}) {
-  const [activeId,setActiveId] = useState(null);
-  const [search,setSearch] = useState("");
-  const [mobileView,setMobileView] = useState("list");
-  const [mobileOpen,setMobileOpen] = useState(false);
-
-  const filtered = coachees.filter(c=>c.name.toLowerCase().includes(search.toLowerCase())||c.topic.toLowerCase().includes(search.toLowerCase()));
-  const active = coachees.find(c=>c.id===activeId);
-
-    const selectCoachee = id => {
-    setActiveId(id);
-    setCoachees(cs=>cs.map(c=>c.id===id?{...c,unread:0}:c));
-    setMobileOpen(true);
-  };;
 function Root() {
   const [user,setUser]   = useState(null);
   const [ready,setReady] = useState(false);
