@@ -258,6 +258,15 @@
     padding:0 16px; height:64px; display:flex; align-items:center; gap:12px;
     flex-shrink:0; box-shadow:0 1px 6px rgba(62,122,74,.07);
   }
+  @media (max-width: 768px) {
+    .chat-topbar {
+      height:auto !important;
+      min-height:64px;
+      align-items:flex-start !important;
+      padding-top: max(52px, calc(env(safe-area-inset-top, 0px) + 44px)) !important;
+      padding-bottom: 10px !important;
+    }
+  }
   .ct-avatar {
     width:40px; height:40px; border-radius:50%;
     display:flex; align-items:center; justify-content:center;
