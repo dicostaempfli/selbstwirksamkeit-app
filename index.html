@@ -863,7 +863,8 @@
       display: flex; align-items: center; justify-content: center;
       border: 2px solid var(--sidebar-bg); box-sizing: border-box;
     }
-    .bn-item.active .bottom-nav-badge {
+    .bn-item.active .bottom-nav-badge,
+    .bottom-nav-item.active .bottom-nav-badge {
       background: #a0cb7b;
       border-color: #ece455;
     }
@@ -908,7 +909,7 @@
     }
     .bottom-nav-item { height: 72px; min-height: 72px; }
     /* ── Content padding ── */
-    .content-main { padding: 16px 12px calc(72px + env(safe-area-inset-bottom, 0px) + 16px); }
+    .content-main { padding-left: 12px; padding-right: 12px; padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px) + 16px); }
     /* ── Chat ── */
     
 
