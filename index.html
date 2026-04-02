@@ -170,10 +170,11 @@
   .sb-item:hover { background:var(--sidebar-hover); color:#fff; }
   .sb-item.active { background:var(--sidebar-active); color:var(--text); }
   .sb-item .badge {
-    position:absolute; top:7px; right:7px;
-    width:14px; height:14px; border-radius:50%;
-    background:var(--lime); font-size:.56rem; font-weight:700;
-    color:#1a2e22; display:flex; align-items:center; justify-content:center;
+    position:absolute; top:4px; right:4px;
+    min-width:16px; height:16px; border-radius:99px; padding:0 4px;
+    background:#a0cb7b; font-size:.56rem; font-weight:700;
+    color:#1a3322; display:flex; align-items:center; justify-content:center;
+    border:2px solid var(--sidebar-bg); box-sizing:border-box;
   }
   .sb-bottom { padding:0 10px; display:flex; justify-content:center; }
   .sb-avatar {
@@ -233,9 +234,9 @@
   .conv-meta { display:flex; flex-direction:column; align-items:flex-end; gap:3px; flex-shrink:0; }
   .conv-time { font-size:.69rem; color:var(--muted); }
   .conv-unread {
-    width:17px; height:17px; border-radius:50%; background:var(--teal);
-    color:#fff; font-size:.6rem; font-weight:700;
-    display:flex; align-items:center; justify-content:center;
+    min-width:17px; height:17px; border-radius:99px; padding:0 4px; background:#a0cb7b;
+    color:#1a3322; font-size:.6rem; font-weight:700;
+    display:flex; align-items:center; justify-content:center; box-sizing:border-box;
   }
 
   /* ══════════════════════════════
@@ -849,13 +850,14 @@
     .bottom-nav-badge {
       position: absolute;
       top: 4px; right: 6px;
-      width: 14px; height: 14px;
-      border-radius: 50%;
-      background: var(--lime);
+      min-width: 17px; height: 17px;
+      border-radius: 99px; padding: 0 4px;
+      background: #a0cb7b;
       font-size: .55rem;
       font-weight: 700;
-      color: #1a2e22;
+      color: #1a3322;
       display: flex; align-items: center; justify-content: center;
+      border: 2px solid var(--sidebar-bg); box-sizing: border-box;
     }
 
     /* Adjust app layout for bottom nav */
