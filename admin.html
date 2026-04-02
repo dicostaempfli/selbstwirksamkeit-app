@@ -1188,6 +1188,103 @@ else window.addEventListener('load', initFB);
     min-height: 60px;
   }
 }
+
+  /* ══ ATEMBALL OVERLAY ══ */
+  .breath-overlay {
+    position:fixed;inset:0;z-index:9999;
+    background:#0d2818;
+    display:flex;flex-direction:column;align-items:center;
+    transition:opacity .6s ease;
+  }
+  .bh-intro { justify-content:center;gap:0;padding:40px 36px; }
+  .bh-intro-ball {
+    width:140px;height:140px;border-radius:50%;
+    background:radial-gradient(circle at 33% 28%,
+      #e0fce8 0%,#a8e8b8 15%,#68c882 38%,
+      #3ea860 62%,#1e7840 82%,#0a4822 100%);
+    box-shadow:0 0 70px rgba(80,200,100,.2),0 0 25px rgba(80,200,100,.1),
+      0 10px 40px rgba(5,30,10,.45),inset 0 -8px 20px rgba(5,25,10,.3),
+      inset 4px 4px 14px rgba(200,255,210,.18);
+    position:relative;margin-bottom:38px;
+    animation:bh-idle 5s ease-in-out infinite;
+  }
+  @keyframes bh-idle{0%,100%{transform:scale(1)}50%{transform:scale(1.07)}}
+  .bh-intro-ball::before{content:'';position:absolute;top:13%;left:18%;
+    width:26%;height:15%;border-radius:50%;background:rgba(220,255,230,.5);transform:rotate(-18deg);}
+  .bh-intro-ball::after{content:'';position:absolute;top:24%;left:58%;
+    width:8%;height:5%;border-radius:50%;background:rgba(190,255,210,.28);}
+  .bh-bereit {
+    font-family:'Exo 2',sans-serif;font-size:1.55rem;font-weight:700;
+    color:rgba(255,255,255,.52);letter-spacing:.5px;margin-bottom:10px;text-align:center;
+  }
+  .bh-sub {
+    font-family:'Exo 2',sans-serif;font-size:.82rem;font-weight:300;
+    color:rgba(255,255,255,.52);letter-spacing:.4px;text-align:center;
+    line-height:1.6;margin-bottom:44px;
+  }
+  .bh-start-btn {
+    background:rgba(255,255,255,.1);border:1.5px solid rgba(255,255,255,.3);
+    color:rgba(255,255,255,.52);font-family:'Exo 2',sans-serif;
+    font-size:.88rem;font-weight:600;letter-spacing:1.4px;text-transform:uppercase;
+    border-radius:99px;padding:13px 52px;cursor:pointer;transition:all .22s;
+    margin-bottom:18px;user-select:none;text-align:center;
+  }
+  .bh-start-btn:hover{background:rgba(255,255,255,.18);border-color:rgba(255,255,255,.5);color:rgba(255,255,255,.8);}
+  .bh-skip-lnk {
+    font-family:'Exo 2',sans-serif;font-size:.72rem;font-weight:400;letter-spacing:.5px;
+    color:rgba(255,255,255,.35);cursor:pointer;transition:color .2s;
+    padding:4px 8px;user-select:none;text-align:center;
+  }
+  .bh-skip-lnk:hover{color:rgba(255,255,255,.65);}
+  .bh-exercise { justify-content:space-between; }
+  .bh-close-x {
+    position:absolute;top:18px;right:20px;
+    color:rgba(255,255,255,.52);font-size:26px;font-weight:300;line-height:1;
+    cursor:pointer;transition:color .2s;font-family:Arial,sans-serif;user-select:none;
+  }
+  .bh-close-x:hover{color:rgba(255,255,255,.88);}
+  .bh-rep-lbl {
+    font-family:'Exo 2',sans-serif;font-size:10px;font-weight:700;letter-spacing:2px;
+    text-transform:uppercase;color:rgba(255,255,255,.28);padding-top:50px;text-align:center;
+  }
+  .bh-text-block { display:flex;flex-direction:column;align-items:center;gap:2px; }
+  .bh-phase-word {
+    font-family:'Exo 2',sans-serif;font-size:1.05rem;font-weight:500;
+    color:rgba(255,255,255,.52);letter-spacing:1.5px;text-transform:uppercase;
+    min-height:28px;display:flex;align-items:center;justify-content:center;
+  }
+  .bh-count-num {
+    font-family:'Exo 2',sans-serif;font-size:2.2rem;font-weight:200;
+    color:rgba(255,255,255,.52);letter-spacing:3px;line-height:1;
+    width:60px;text-align:center;min-height:40px;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .bh-ball-area { display:flex;align-items:center;justify-content:center;flex:1; }
+  .bh-ball {
+    border-radius:50%;position:relative;
+    background:radial-gradient(circle at 33% 28%,
+      #e0fce8 0%,#a8e8b8 15%,#68c882 38%,
+      #3ea860 62%,#1e7840 82%,#0a4822 100%);
+    box-shadow:0 0 70px rgba(80,200,100,.2),0 0 25px rgba(80,200,100,.1),
+      0 10px 40px rgba(5,30,10,.45),inset 0 -8px 20px rgba(5,25,10,.3),
+      inset 4px 4px 14px rgba(200,255,210,.18);
+  }
+  .bh-ball::before{content:'';position:absolute;top:13%;left:18%;
+    width:26%;height:15%;border-radius:50%;background:rgba(220,255,230,.5);
+    transform:rotate(-18deg);pointer-events:none;}
+  .bh-ball::after{content:'';position:absolute;top:24%;left:58%;
+    width:8%;height:5%;border-radius:50%;background:rgba(190,255,210,.28);pointer-events:none;}
+  .bh-bottom { display:flex;flex-direction:column;align-items:center;gap:14px;padding-bottom:28px; }
+  .bh-dots { display:flex;gap:10px; }
+  .bh-dot { width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.15);transition:background .5s,transform .4s; }
+  .bh-dot.bh-done { background:rgba(104,184,125,.6); }
+  .bh-dot.bh-cur  { background:rgba(255,255,255,.55);transform:scale(1.3); }
+  .bh-arrow {
+    width:38px;height:38px;border-radius:50%;
+    background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);
+    display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .2s;
+  }
+  .bh-arrow:hover{background:rgba(255,255,255,.15);}
 </style>
 </head>
 <body>
@@ -2323,10 +2420,107 @@ function DoodlePage({doodles,setDoodles,coachees}) {
     </div>`;
 }
 
+
+// ══ ATEMBALL OVERLAY ══
+function BreathOverlay({ onDone }) {
+  const [screen, setScreen] = useState('intro');
+  const [phase,  setPhase]  = useState('');
+  const [count,  setCount]  = useState(' ');
+  const [repTxt, setRepTxt] = useState('Atemübung · Runde 1 von 3');
+  const ballRef = useRef(null);
+  const rafRef  = useRef(null);
+  const tickRef = useRef(null);
+
+  const IN_DUR=4000, OUT_DUR=6000, PAUSE=500, REPS=3;
+  const SZ_MIN=100, SZ_MAX=175;
+  const ease = t => -(Math.cos(Math.PI*t)-1)/2;
+  const setSz = px => { if(ballRef.current){ ballRef.current.style.width=px+'px'; ballRef.current.style.height=px+'px'; } };
+
+  const updDots = r => {
+    for(let i=0;i<REPS;i++){
+      const d=document.getElementById('bh-dot-'+i);
+      if(!d) continue;
+      d.className='bh-dot'+(i<r?' bh-done':i===r?' bh-cur':'');
+    }
+  };
+
+  const runPhase = (ph, rnd) => {
+    cancelAnimationFrame(rafRef.current); clearInterval(tickRef.current);
+    const dur=ph==='in'?IN_DUR:OUT_DUR, steps=ph==='in'?4:6;
+    const from=ph==='in'?SZ_MIN:SZ_MAX, to=ph==='in'?SZ_MAX:SZ_MIN;
+    setPhase(ph==='in'?'Einatmen':'Ausatmen'); setCount('1');
+    let shown=1;
+    tickRef.current=setInterval(()=>{ shown++; if(shown<=steps) setCount(String(shown)); },1000);
+    const start=performance.now();
+    const frame=now=>{
+      const t=Math.min((now-start)/dur,1);
+      setSz(from+(to-from)*ease(t));
+      if(t<1){ rafRef.current=requestAnimationFrame(frame); return; }
+      clearInterval(tickRef.current); setSz(to); setCount(' ');
+      if(ph==='in'){
+        setTimeout(()=>runPhase('out',rnd),PAUSE);
+      } else {
+        const next=rnd+1;
+        if(next<REPS){
+          setRepTxt('Atemübung · Runde '+(next+1)+' von '+REPS);
+          updDots(next);
+          setTimeout(()=>runPhase('in',next),PAUSE);
+        } else {
+          setPhase('Angekommen.'); setCount(' ');
+          for(let i=0;i<REPS;i++){ const d=document.getElementById('bh-dot-'+i); if(d)d.className='bh-dot bh-done'; }
+          setTimeout(()=>onDone(),2200);
+        }
+      }
+    };
+    rafRef.current=requestAnimationFrame(frame);
+  };
+
+  const startExercise = () => {
+    setScreen('exercise');
+    setTimeout(()=>{ updDots(0); runPhase('in',0); },400);
+  };
+
+  useEffect(()=>()=>{ cancelAnimationFrame(rafRef.current); clearInterval(tickRef.current); },[]);
+
+  if(screen==='intro') return html`
+    <div class="breath-overlay bh-intro" style=${{display:'flex'}}>
+      <div class="bh-intro-ball"></div>
+      <div class="bh-bereit">Bereit?</div>
+      <div class="bh-sub">Fokussiere dich auf den Atemball.</div>
+      <div class="bh-start-btn" onClick=${startExercise}>Starten</div>
+      <div class="bh-skip-lnk" onClick=${onDone}>Überspringen</div>
+    </div>`;
+
+  return html`
+    <div class="breath-overlay bh-exercise" style=${{display:'flex',position:'fixed'}}>
+      <div class="bh-close-x" onClick=${onDone}>&#x2715;</div>
+      <div class="bh-rep-lbl">${repTxt}</div>
+      <div class="bh-text-block">
+        <div class="bh-phase-word">${phase}</div>
+        <div class="bh-count-num">${count}</div>
+      </div>
+      <div class="bh-ball-area">
+        <div class="bh-ball" ref=${ballRef} style=${{width:SZ_MIN+'px',height:SZ_MIN+'px'}}></div>
+      </div>
+      <div class="bh-bottom">
+        <div class="bh-dots">
+          ${[0,1,2].map(i=>html`<div id=${'bh-dot-'+i} class=${'bh-dot'+(i===0?' bh-cur':'')}></div>`)}
+        </div>
+        <div class="bh-arrow" onClick=${onDone}>
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none"
+               stroke="rgba(255,255,255,.4)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="6 9 12 15 18 9"/>
+          </svg>
+        </div>
+      </div>
+    </div>`;
+}
+
 // ── ROOT ──
 function Root() {
-  const [user,setUser]   = useState(null);
-  const [ready,setReady] = useState(false);
+  const [user,setUser]     = useState(null);
+  const [ready,setReady]   = useState(false);
+  const [showBreath,setShowBreath] = useState(true);
 
   useEffect(()=>{
     let unsub;
@@ -2349,6 +2543,9 @@ function Root() {
     </div>`;
 
   if(!user) return html`<${LoginPage}/>`;
+
+  if(showBreath) return html`<${BreathOverlay} onDone=${()=>setShowBreath(false)}/>`;
+
   return html`<${AdminApp} user=${user}/>`;
 }
 
