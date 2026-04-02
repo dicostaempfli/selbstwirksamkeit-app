@@ -898,7 +898,7 @@ else window.addEventListener('load', initFB);
 /* Chat layout */
 .chat-layout { display:flex; flex-direction:row; width:100%; height:100%; overflow:hidden; }
 .chat-list { width:280px; flex-shrink:0; border-right:1px solid var(--border); display:flex; flex-direction:column; height:100%; overflow:hidden; background:var(--bg); }
-.chat-list-header { padding:14px 16px 10px; border-bottom:1px solid var(--border); flex-shrink:0; background:var(--surface); }
+.chat-list-header { padding:14px 16px 10px; border-bottom:1px solid var(--border); flex-shrink:0; background:var(--bg); }
 .chat-list-title { font-family:'Manuale',serif; font-weight:700; font-size:1.05rem; color:var(--text); }
 .conv-list { flex:1; overflow-y:auto; }
 .conv-row { display:flex; align-items:center; gap:10px; padding:11px 14px; cursor:pointer; border-bottom:0.5px solid var(--border); background:var(--surface); transition:background .1s; }
@@ -1589,11 +1589,11 @@ function ChatPage({coachees,setCoachees}) {
         ? html`
           <div style=${{display:"flex",flexDirection:"column",width:"100%",flex:1,minHeight:0,overflow:"hidden"}}>
             <div class="chat-list-header">
-              <div style=${{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
-                <${Logo} size=${42}/>
+              <div style=${{display:"flex",alignItems:"center",gap:14,marginBottom:8}}>
+                <${Logo} size=${52}/>
                 <div>
                   <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.3rem",fontWeight:700,color:"var(--text)"}}>Nachrichten</div>
-                  <div style=${{fontSize:".8rem",color:"var(--muted)"}}>Gespräche mit Coachees</div>
+                  <div style=${{fontSize:".88rem",color:"var(--muted)",marginTop:2}}>Gespräche mit Coachees</div>
                 </div>
               </div>
               <div class="search-wrap">
