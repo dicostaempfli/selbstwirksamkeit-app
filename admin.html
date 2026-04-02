@@ -2302,7 +2302,7 @@ function Root() {
     let unsub;
     const tryAuth = async () => {
       await initFB();
-      const auth = window._fb?.auth();
+      const auth = window._fb?.auth;
       if(!auth){ setReady(true); return; }
       unsub = auth.onAuthStateChanged(u=>{ setUser(u); setReady(true); });
     };
