@@ -1517,7 +1517,7 @@ function ChatWindow({coachee,recipient,setRecipient,onSend,onSendImg,onSendFile,
 
   return html`
     <div class="chat-area">
-      <div class="chat-topbar" style=${{flexDirection:"column",alignItems:"stretch",height:"auto",padding:"10px 14px",gap:8}}>
+      <div class="chat-topbar" style=${{flexDirection:"column",alignItems:"stretch",height:"auto",paddingTop:"max(52px, calc(env(safe-area-inset-top, 0px) + 44px))",paddingLeft:"14px",paddingRight:"14px",paddingBottom:"10px",gap:8}}>
         <div style=${{display:"flex",alignItems:"center",gap:10}}>
           <svg width="36" height="36" viewBox="0 0 100 100" style=${{flexShrink:0,borderRadius:"50%"}}>
             <circle cx="50" cy="50" r="50" fill="#efe454"/>
