@@ -1166,23 +1166,13 @@ else window.addEventListener('load', initFB);
 </head>
 <body>
 <div id="root"></div>
-<script type="importmap">
-{
-  "imports": {
-    "preact": "https://cdn.jsdelivr.net/npm/preact@10/dist/preact.module.js",
-    "preact/hooks": "https://cdn.jsdelivr.net/npm/preact@10/hooks/dist/hooks.module.js",
-    "preact/compat": "https://cdn.jsdelivr.net/npm/preact@10/compat/dist/compat.module.js"
-  }
-}
-</script>
+<script src="https://cdn.jsdelivr.net/npm/preact@10.19.3/dist/preact.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/preact@10.19.3/hooks/dist/hooks.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/htm@3.1.1/dist/htm.umd.js"></script>
 <script type="module">
-
-
-
-
-import { h, render, Fragment } from 'https://cdn.jsdelivr.net/npm/preact@10/dist/preact.module.js';
-import { useState, useRef, useEffect } from 'https://cdn.jsdelivr.net/npm/preact@10/hooks/dist/hooks.module.js';
-import { html } from 'https://cdn.jsdelivr.net/npm/htm@3/preact/index.module.js';
+const { h, render, Fragment } = window.preact;
+const { useState, useRef, useEffect } = window.preactHooks;
+const html = window.htm.bind(h);
 
 // ── HELPERS ──
 const nowTime = () => new Date().toLocaleTimeString('de-CH',{hour:'2-digit',minute:'2-digit'});
