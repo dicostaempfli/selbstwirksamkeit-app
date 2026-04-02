@@ -1166,13 +1166,14 @@ else window.addEventListener('load', initFB);
 </head>
 <body>
 <div id="root"></div>
-<script src="https://unpkg.com/preact@10.19.3/dist/preact.umd.js"></script>
-<script src="https://unpkg.com/preact@10.19.3/hooks/dist/hooks.umd.js"></script>
-<script src="https://unpkg.com/htm@3.1.1/dist/htm.umd.js"></script>
 <script type="module">
-const { h, render, Fragment } = window.preact;
-const { useState, useRef, useEffect, useCallback, useMemo } = window.preactHooks;
-const html = window.htm.bind(h);
+
+
+
+
+import { h, render, Fragment } from 'https://esm.sh/preact@10';
+import { useState, useRef, useEffect } from 'https://esm.sh/preact@10/hooks';
+import { html } from 'https://esm.sh/htm@3/preact';
 
 // ── HELPERS ──
 const nowTime = () => new Date().toLocaleTimeString('de-CH',{hour:'2-digit',minute:'2-digit'});
@@ -2292,7 +2293,8 @@ function DoodlePage({doodles,setDoodles,coachees}) {
     </div>`;
 }
 
-// ── ROOT ──function ChatPage({coachees,setCoachees}) {
+// ── ROOT ──
+function ChatPage({coachees,setCoachees}) {
   const [activeId,setActiveId] = useState(null);
   const [search,setSearch] = useState("");
   const [mobileView,setMobileView] = useState("list");
