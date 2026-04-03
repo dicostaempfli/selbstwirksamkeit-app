@@ -672,6 +672,8 @@
   html { overflow: hidden; max-width: 100vw; }
   body { margin: 0; overflow: hidden; width: 100%; touch-action: pan-y; }
   #app { height: 100vh; display: flex; overflow: hidden; position: relative; }
+  #breath-portal { position:fixed;top:0;left:0;width:100%;height:100%;z-index:9999;pointer-events:none; }
+  #breath-portal:empty { display:none; }
   input[type=range] { cursor: pointer; }
   textarea { font-family: inherit; }
   select { font-family: inherit; }
@@ -971,7 +973,7 @@
 
   /* ══ ATEMBALL OVERLAY ══ */
   .breath-overlay {
-    position:absolute;top:0;left:0;width:100%;height:100%;z-index:9999;
+    position:fixed;top:0;left:0;width:100%;height:100%;z-index:9999;
     background:#0d2818;
     display:flex;flex-direction:column;align-items:center;
     transition:opacity 1.4s ease;
@@ -1089,6 +1091,7 @@
 </head>
 <body>
 <div id="app"></div>
+<div id="breath-portal"></div>
 
 <script type="module">
 // Global error handler to catch and display runtime errors
@@ -3272,7 +3275,6 @@ function BreathOverlay({ onDone }) {
 function Root() {
   const [user,setUser]           = useState(null);
   const [authReady,setAuthReady] = useState(false);
-  const [showBreath,setShowBreath] = useState(true);
 
   useEffect(() => {
     // Wait for Firebase to initialize
@@ -3303,13 +3305,18 @@ function Root() {
 
   if(!user) return html`<${LoginPage}/>`;
 
-  if(showBreath) return html`<${BreathOverlay} onDone=${()=>setShowBreath(false)}/>`;
-
   return html`<${App} user=${user}/>`;
 }
 
 // ── MOUNT ──
+function BreathPortal() {
+  const [show, setShow] = useState(true);
+  if(!show) return null;
+  return html`<${BreathOverlay} onDone=${()=>setShow(false)}/>`;
+}
+
 render(h(Root, null), document.getElementById('app'));
+render(h(BreathPortal, null), document.getElementById('breath-portal'));
 </script>
 
   <!-- App Icon Manifest -->
