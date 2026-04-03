@@ -1269,9 +1269,9 @@ else window.addEventListener('load', initFB);
     color:rgba(255,255,255,.35);letter-spacing:2px;line-height:1;pointer-events:none;
   }
   .bh-phase-word {
-    font-family:'Exo 2',sans-serif;font-size:.82rem;font-weight:400;
-    color:rgba(255,255,255,.35);letter-spacing:.8px;
-    margin-top:14px;text-align:center;min-height:22px;
+    font-family:'Exo 2',sans-serif;font-size:1.05rem;font-weight:400;
+    color:rgba(255,255,255,.45);letter-spacing:.8px;
+    margin-top:16px;text-align:center;min-height:26px;
   }
   .bh-bottom { display:flex;flex-direction:column;align-items:center;gap:10px; }
   .bh-dots { display:flex;gap:8px; }
@@ -1279,10 +1279,11 @@ else window.addEventListener('load', initFB);
   .bh-dot.bh-done { background:rgba(104,184,125,.6); }
   .bh-dot.bh-cur  { background:rgba(255,255,255,.55);transform:scale(1.3); }
   .bh-done {
-    position:fixed;inset:0;z-index:9999;background:#0d2818;
+    position:fixed;inset:0;z-index:10000;background:#0d2818;
     display:flex;flex-direction:column;align-items:center;justify-content:center;
-    transition:opacity 1.4s ease;
+    animation:bh-done-fadein .8s ease forwards;
   }
+  @keyframes bh-done-fadein{from{opacity:0}to{opacity:1}}
   .bh-done-ball {
     width:100px;height:100px;border-radius:50%;
     background:radial-gradient(circle at 33% 28%,
@@ -2508,7 +2509,7 @@ function BreathOverlay({ onDone }) {
 
   if(screen==='exercise') return html`
     <div class="breath-overlay bh-exercise" style=${{display:'flex',position:'fixed'}}>
-      <div class="bh-close-x" onClick=${onDone}>&#x2715;</div>
+      <div class="bh-close-x" onClick=${onDone}>\u2715</div>
       <div class="bh-rep-lbl" ref=${repLblRef}>Atemübung · Runde 1 von 3</div>
       <div class="bh-unit">
         <div class="bh-ball-wrap">
