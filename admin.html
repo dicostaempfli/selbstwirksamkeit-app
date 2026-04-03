@@ -2461,7 +2461,7 @@ function BreathOverlay({ onDone }) {
           if(phaseRef.current)  phaseRef.current.textContent='Angekommen.';
           if(countRef.current)  countRef.current.textContent='\u00a0';
           for(let i=0;i<REPS;i++){ const d=document.getElementById('bh-dot-'+i); if(d)d.className='bh-dot bh-done'; }
-          setTimeout(()=>setScreen('done'),600);
+          setScreen('done');
         }
         return;
       }
@@ -2520,7 +2520,7 @@ function BreathOverlay({ onDone }) {
     </div>`;
 
   return html`
-    <div class="breath-overlay bh-abschluss" style=${{display:'flex',justifyContent:'center',alignItems:'center',flexDirection:'column'}}>
+    <div style=${{position:'fixed',inset:0,zIndex:9999,background:'#0d2818',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center'}}>
       <div class="bh-done-ball"></div>
       <div class="bh-done-word">Ich bin.</div>
       <div class="bh-done-sub">Nimm wahr, wie es sich anfühlt.</div>
