@@ -649,8 +649,8 @@ else window.addEventListener('load', initFB);
   *, *::before, *::after { box-sizing: border-box; }
   html { overflow: hidden; max-width: 100vw; }
   body { margin: 0; overflow: hidden; width: 100%; max-width: 100vw; touch-action: pan-y; }
-  #breath-portal { position:fixed;top:0;left:0;width:100%;height:100%;z-index:9999; }
-  #breath-portal:empty { display:none; }
+  #breath-portal { position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999; }
+  #breath-portal[style*="none"] { display:none; }
   input[type=range] { cursor: pointer; }
   textarea { font-family: inherit; }
   select { font-family: inherit; }
@@ -2570,15 +2570,21 @@ function Root() {
   return html`<${AdminApp} user=${user}/>`;
 }
 
-// Mount BreathOverlay in separate portal div outside #root (fixes iOS Safari fixed/overflow bug)
-function BreathPortal() {
-  const [show, setShow] = useState(true);
-  if(!show) return null;
-  return html`<${BreathOverlay} onDone=${()=>setShow(false)}/>`;
-}
-
 render(h(Root,null), document.getElementById('root'));
-render(h(BreathPortal,null), document.getElementById('breath-portal'));
+
+// Mount BreathOverlay directly into portal (outside #root, no overflow:hidden parent)
+(function() {
+  const portal = document.getElementById('breath-portal');
+  function mountBreath() {
+    render(h(BreathOverlay, {
+      onDone: () => {
+        render(null, portal);
+        portal.style.display = 'none';
+      }
+    }), portal);
+  }
+  mountBreath();
+})();
 </script>
 </body>
 </html>
