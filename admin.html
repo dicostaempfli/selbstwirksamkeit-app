@@ -2436,11 +2436,9 @@ function DoodlePage({doodles,setDoodles,coachees}) {
 // ══ ATEMBALL OVERLAY ══
 function BreathOverlay({ onDone }) {
   const [screen, setScreen] = useState('intro');
-  const ballRef = useRef(null);
-  const rafRef  = useRef(null);
-  const repLblRef = useRef(null);
-  const phaseRef  = useRef(null);
-  const countRef  = useRef(null);
+  const overlayRef = useRef(null);
+  const ballRef    = useRef(null);
+  const rafRef     = useRef(null);
 
   const IN_MS=4000, OUT_MS=6000, CYCLE=10000, REPS=3;
   const SZ_MIN=100, SZ_MAX=200;
@@ -2450,19 +2448,31 @@ function BreathOverlay({ onDone }) {
 
   useEffect(()=>{
     if(screen!=='exercise') return;
-    let startTime=null, done=false;
+    let startTime=null, finished=false;
     const frame = now => {
       if(!startTime) startTime=now;
       const elapsed=now-startTime;
       if(elapsed>=CYCLE*REPS){
-        if(!done){
-          done=true;
-          if(ballRef.current){ ballRef.current.style.width=SZ_MIN+'px'; ballRef.current.style.height=SZ_MIN+'px'; }
-          if(phaseRef.current)  phaseRef.current.textContent='Angekommen.';
-          if(countRef.current)  countRef.current.textContent='\u00a0';
-          for(let i=0;i<REPS;i++){ const d=document.getElementById('bh-dot-'+i); if(d)d.className='bh-dot bh-done'; }
-          if(repLblRef.current) repLblRef.current.textContent='';
-          setTimeout(()=>setScreen('done'),0);
+        if(!finished){
+          finished=true;
+          cancelAnimationFrame(rafRef.current);
+          const el = overlayRef.current;
+          if(el){
+            el.innerHTML = '';
+            el.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;z-index:9999;background:#0d2818;display:flex;flex-direction:column;align-items:center;justify-content:center;';
+            const ball = document.createElement('div');
+            ball.style.cssText = 'width:100px;height:100px;border-radius:50%;flex-shrink:0;margin-bottom:36px;background:radial-gradient(circle at 33% 28%,#e0fce8 0%,#a8e8b8 15%,#68c882 38%,#3ea860 62%,#1e7840 82%,#0a4822 100%);box-shadow:0 0 40px rgba(80,200,100,.2);';
+            const w1 = document.createElement('div');
+            w1.style.cssText = "font-family:'Exo 2',sans-serif;font-size:2rem;font-weight:300;color:rgba(255,255,255,.65);letter-spacing:6px;text-align:center;margin-bottom:20px;";
+            w1.textContent = 'Ich bin.';
+            const w2 = document.createElement('div');
+            w2.style.cssText = "font-family:'Exo 2',sans-serif;font-size:.95rem;font-weight:300;color:rgba(255,255,255,.45);text-align:center;line-height:1.8;";
+            w2.textContent = 'Nimm wahr, wie es sich anf\u00fchlt.';
+            el.appendChild(ball);
+            el.appendChild(w1);
+            el.appendChild(w2);
+          }
+          setTimeout(()=>onDone(), 5000);
         }
         return;
       }
@@ -2471,12 +2481,15 @@ function BreathOverlay({ onDone }) {
       const isIn=inCycle<IN_MS;
       const t=isIn?inCycle/IN_MS:(inCycle-IN_MS)/OUT_MS;
       const sz=isIn?SZ_MIN+(SZ_MAX-SZ_MIN)*ease(t):SZ_MAX-(SZ_MAX-SZ_MIN)*ease(t);
-      if(ballRef.current){ ballRef.current.style.width=sz+'px'; ballRef.current.style.height=sz+'px'; }
+      const b=ballRef.current;
+      if(b){ b.style.width=sz+'px'; b.style.height=sz+'px'; }
+      const lbl=document.getElementById('bh-rep-lbl');
+      const ph=document.getElementById('bh-phase');
+      const cnt=document.getElementById('bh-cnt');
       const totalSec=isIn?4:6;
-      const sec=Math.min(Math.floor(t*totalSec)+1,totalSec);
-      if(countRef.current)  countRef.current.textContent=sec;
-      if(phaseRef.current)  phaseRef.current.textContent=isIn?'Einatmen durch Nase':'Ausatmen durch Mund';
-      if(repLblRef.current) repLblRef.current.textContent='Atemübung \u00b7 Runde '+(rep+1)+' von '+REPS;
+      if(cnt)  cnt.textContent=Math.min(Math.floor(t*totalSec)+1,totalSec);
+      if(ph)   ph.textContent=isIn?'Einatmen durch Nase':'Ausatmen durch Mund';
+      if(lbl)  lbl.textContent='Atem\u00fcbung \u00b7 Runde '+(rep+1)+' von '+REPS;
       for(let i=0;i<REPS;i++){
         const d=document.getElementById('bh-dot-'+i);
         if(d) d.className='bh-dot'+(i<rep?' bh-done':i===rep?' bh-cur':'');
@@ -2485,12 +2498,6 @@ function BreathOverlay({ onDone }) {
     };
     rafRef.current=requestAnimationFrame(frame);
     return ()=>cancelAnimationFrame(rafRef.current);
-  },[screen]);
-
-  useEffect(()=>{
-    if(screen!=='done') return;
-    const t=setTimeout(()=>onDone(),5000);
-    return ()=>clearTimeout(t);
   },[screen]);
 
   if(screen==='intro') return html`
@@ -2502,29 +2509,22 @@ function BreathOverlay({ onDone }) {
       <div class="bh-skip-lnk" onClick=${onDone}>Überspringen</div>
     </div>`;
 
-  if(screen==='exercise') return html`
-    <div class="breath-overlay bh-exercise" style=${{display:'flex',position:'fixed'}}>
+  return html`
+    <div ref=${overlayRef} class="breath-overlay bh-exercise" style=${{display:'flex',position:'fixed'}}>
       <div class="bh-close-x" onClick=${onDone}>\u2715</div>
-      <div class="bh-rep-lbl" ref=${repLblRef}>Atemübung · Runde 1 von 3</div>
+      <div id="bh-rep-lbl" class="bh-rep-lbl">Atemübung · Runde 1 von 3</div>
       <div class="bh-unit">
         <div class="bh-ball-wrap">
           <div class="bh-ball" ref=${ballRef} style=${{width:SZ_MIN+'px',height:SZ_MIN+'px'}}></div>
-          <div class="bh-count-inner" ref=${countRef}>1</div>
+          <div id="bh-cnt" class="bh-count-inner">1</div>
         </div>
-        <div class="bh-phase-word" ref=${phaseRef}>Einatmen durch Nase</div>
+        <div id="bh-phase" class="bh-phase-word">Einatmen durch Nase</div>
       </div>
       <div class="bh-bottom">
         <div class="bh-dots">
           ${[0,1,2].map(i=>html`<div id=${'bh-dot-'+i} class=${'bh-dot'+(i===0?' bh-cur':'')}></div>`)}
         </div>
       </div>
-    </div>`;
-
-  return html`
-    <div style=${{position:'fixed',top:0,left:0,right:0,bottom:0,zIndex:9999,background:'#0d2818',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:0}}>
-      <div style=${{width:'100px',height:'100px',borderRadius:'50%',flexShrink:0,marginBottom:'36px',background:'radial-gradient(circle at 33% 28%, #e0fce8 0%, #a8e8b8 15%, #68c882 38%, #3ea860 62%, #1e7840 82%, #0a4822 100%)'}}></div>
-      <div style=${{fontFamily:"'Exo 2',sans-serif",fontSize:'2rem',fontWeight:300,color:'rgba(255,255,255,.65)',letterSpacing:'6px',textAlign:'center',marginBottom:'20px'}}>Ich bin.</div>
-      <div style=${{fontFamily:"'Exo 2',sans-serif",fontSize:'.95rem',fontWeight:300,color:'rgba(255,255,255,.45)',textAlign:'center',lineHeight:1.8,letterSpacing:'.3px'}}>Nimm wahr, wie es sich anfühlt.</div>
     </div>`;
 }
 
