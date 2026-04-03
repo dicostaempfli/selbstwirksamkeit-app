@@ -1136,7 +1136,7 @@ else window.addEventListener('load', initFB);
 }
 
 /* ── Status bar fix: padding directly on .page ── */
-#root { height: 100dvh; overflow: hidden; display: flex; flex-direction: column; max-width: 100vw; width: 100%; }
+#root { height: 100dvh; overflow: hidden; display: flex; flex-direction: column; max-width: 100vw; width: 100%; position: relative; }
 
 @media (max-width: 768px) {
   #root { flex-direction: column; width: 100vw; }
@@ -1200,7 +1200,7 @@ else window.addEventListener('load', initFB);
 
   /* ══ ATEMBALL OVERLAY ══ */
   .breath-overlay {
-    position:fixed;top:0;left:0;right:0;bottom:0;z-index:9999;
+    position:absolute;top:0;left:0;width:100%;height:100%;z-index:9999;
     background:#0d2818;
     display:flex;flex-direction:column;align-items:center;
     transition:opacity 1.4s ease;
@@ -2519,7 +2519,7 @@ function BreathOverlay({ onDone }) {
     </div>`;
 
   return html`
-    <div ref=${overlayRef} class="breath-overlay bh-exercise" style=${{display:'flex',position:'fixed'}}>
+    <div ref=${overlayRef} class="breath-overlay bh-exercise" style=${{display:'flex'}}>
       <div class="bh-close-x" onClick=${onDone}>\u2715</div>
       <div id="bh-rep-lbl" class="bh-rep-lbl">Atemübung · Runde 1 von 3</div>
       <div class="bh-unit">
