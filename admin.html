@@ -649,8 +649,6 @@ else window.addEventListener('load', initFB);
   *, *::before, *::after { box-sizing: border-box; }
   html { overflow: hidden; max-width: 100vw; }
   body { margin: 0; overflow: hidden; width: 100%; max-width: 100vw; touch-action: pan-y; }
-  #breath-portal { position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999; }
-  #breath-portal[style*="none"] { display:none; }
   input[type=range] { cursor: pointer; }
   textarea { font-family: inherit; }
   select { font-family: inherit; }
@@ -1198,121 +1196,11 @@ else window.addEventListener('load', initFB);
     height: auto;
     min-height: 60px;
   }
-}
-
-  /* ══ ATEMBALL OVERLAY ══ */
-  .breath-overlay {
-    position:absolute;top:0;left:0;width:100%;height:100%;
-    background:#0d2818;
-    display:flex;flex-direction:column;align-items:center;
-    transition:opacity 1.4s ease;
-  }
-  .bh-intro { justify-content:center;gap:0;padding:36px 28px; }
-  .bh-intro-ball {
-    width:120px;height:120px;border-radius:50%;
-    background:radial-gradient(circle at 33% 28%,
-      #e0fce8 0%,#a8e8b8 15%,#68c882 38%,
-      #3ea860 62%,#1e7840 82%,#0a4822 100%);
-    box-shadow:0 0 50px rgba(80,200,100,.2),
-      0 8px 30px rgba(5,30,10,.5),inset 0 -6px 14px rgba(5,25,10,.3),
-      inset 3px 3px 10px rgba(200,255,210,.18);
-    position:relative;margin-bottom:32px;flex-shrink:0;
-    animation:bh-idle 5s ease-in-out infinite;
-  }
-  @keyframes bh-idle{0%,100%{transform:scale(1)}50%{transform:scale(1.07)}}
-  .bh-intro-ball::before{content:'';position:absolute;top:13%;left:18%;
-    width:26%;height:15%;border-radius:50%;background:rgba(220,255,230,.5);transform:rotate(-18deg);}
-  .bh-intro-ball::after{content:'';position:absolute;top:24%;left:58%;
-    width:8%;height:5%;border-radius:50%;background:rgba(190,255,210,.28);}
-  .bh-ebene {
-    font-family:'Exo 2',sans-serif;font-size:1.02rem;font-weight:300;
-    color:rgba(255,255,255,.55);text-align:center;line-height:1.85;
-    letter-spacing:.3px;margin-bottom:28px;
-  }
-  .bh-bereit {
-    font-family:'Exo 2',sans-serif;font-size:1.65rem;font-weight:700;
-    color:rgba(255,255,255,.52);letter-spacing:.5px;margin-bottom:44px;text-align:center;
-  }
-  .bh-start-btn {
-    background:rgba(255,255,255,.1);border:1.5px solid rgba(255,255,255,.3);
-    color:rgba(255,255,255,.52);font-family:'Exo 2',sans-serif;
-    font-size:1rem;font-weight:600;letter-spacing:1.4px;text-transform:uppercase;
-    border-radius:99px;padding:13px 52px;cursor:pointer;transition:all .22s;
-    margin-bottom:18px;user-select:none;text-align:center;
-  }
-  .bh-start-btn:hover{background:rgba(255,255,255,.18);border-color:rgba(255,255,255,.5);color:rgba(255,255,255,.85);}
-  .bh-skip-lnk {
-    font-family:'Exo 2',sans-serif;font-size:.85rem;font-weight:400;letter-spacing:.5px;
-    color:rgba(255,255,255,.3);cursor:pointer;transition:color .2s;
-    padding:4px 8px;user-select:none;text-align:center;
-  }
-  .bh-skip-lnk:hover{color:rgba(255,255,255,.6);}
-  .bh-exercise { justify-content:space-between;padding:0 28px 28px; }
-  .bh-close-x {
-    position:absolute;top:14px;right:16px;
-    color:rgba(255,255,255,.4);font-size:22px;font-weight:300;line-height:1;
-    cursor:pointer;transition:color .2s;font-family:Arial,sans-serif;user-select:none;
-  }
-  .bh-close-x:hover{color:rgba(255,255,255,.88);}
-  .bh-rep-lbl {
-    font-family:'Exo 2',sans-serif;font-size:11px;font-weight:700;letter-spacing:2px;
-    text-transform:uppercase;color:rgba(255,255,255,.28);padding-top:42px;text-align:center;
-  }
-  .bh-unit { display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1; }
-  .bh-ball-wrap { position:relative;display:flex;align-items:center;justify-content:center; }
-  .bh-ball {
-    border-radius:50%;position:relative;
-    background:radial-gradient(circle at 33% 28%,
-      #e0fce8 0%,#a8e8b8 15%,#68c882 38%,
-      #3ea860 62%,#1e7840 82%,#0a4822 100%);
-    box-shadow:0 0 50px rgba(80,200,100,.2),
-      0 8px 30px rgba(5,30,10,.5),inset 0 -6px 14px rgba(5,25,10,.3),
-      inset 3px 3px 10px rgba(200,255,210,.18);
-  }
-  .bh-ball::before{content:'';position:absolute;top:13%;left:18%;
-    width:26%;height:15%;border-radius:50%;background:rgba(220,255,230,.5);
-    transform:rotate(-18deg);pointer-events:none;}
-  .bh-ball::after{content:'';position:absolute;top:24%;left:58%;
-    width:8%;height:5%;border-radius:50%;background:rgba(190,255,210,.28);pointer-events:none;}
-  .bh-count-inner {
-    position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
-    font-family:'Exo 2',sans-serif;font-size:2.8rem;font-weight:200;
-    color:rgba(255,255,255,.35);letter-spacing:2px;line-height:1;pointer-events:none;
-  }
-  .bh-phase-word {
-    font-family:'Exo 2',sans-serif;font-size:1.2rem;font-weight:400;
-    color:rgba(255,255,255,.45);letter-spacing:.8px;
-    margin-top:18px;text-align:center;min-height:28px;
-  }
-  .bh-bottom { display:flex;flex-direction:column;align-items:center;gap:10px; }
-  .bh-dots { display:flex;gap:8px; }
-  .bh-dot { width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.15);transition:background .5s,transform .4s; }
-  .bh-dot.bh-done { background:rgba(104,184,125,.6); }
-  .bh-dot.bh-cur  { background:rgba(255,255,255,.55);transform:scale(1.3); }
-  .bh-done-word {
-    font-family:'Exo 2',sans-serif;font-size:2rem;font-weight:300;
-    color:rgba(255,255,255,.65);letter-spacing:6px;text-align:center;margin-bottom:20px;
-  }
-  .bh-done-sub {
-    font-family:'Exo 2',sans-serif;font-size:.95rem;font-weight:300;
-    color:rgba(255,255,255,.45);text-align:center;line-height:1.8;letter-spacing:.3px;
-  }
-  .bh-done-ball {
-    width:100px;height:100px;border-radius:50%;flex-shrink:0;
-    background:radial-gradient(circle at 33% 28%,
-      #e0fce8 0%,#a8e8b8 15%,#68c882 38%,
-      #3ea860 62%,#1e7840 82%,#0a4822 100%);
-    box-shadow:0 0 40px rgba(80,200,100,.2),0 8px 24px rgba(5,30,10,.5),
-      inset 0 -5px 12px rgba(5,25,10,.3);
-    margin-bottom:36px;
-    animation:bh-done-glow 3s ease-in-out infinite;
-  }
-  @keyframes bh-done-glow{0%,100%{box-shadow:0 0 30px rgba(80,200,100,.12)}50%{box-shadow:0 0 60px rgba(80,200,100,.35)}}
+}50%{box-shadow:0 0 60px rgba(80,200,100,.35)}}
 </style>
 </head>
 <body>
 <div id="root"></div>
-<div id="breath-portal"></div>
 <script type="module">
 
 
@@ -2445,101 +2333,6 @@ function DoodlePage({doodles,setDoodles,coachees}) {
 }
 
 
-// ══ ATEMBALL OVERLAY ══
-function BreathOverlay({ onDone }) {
-  const [screen, setScreen] = useState('intro');
-  const overlayRef = useRef(null);
-  const ballRef    = useRef(null);
-  const rafRef     = useRef(null);
-
-  const IN_MS=4000, OUT_MS=6000, CYCLE=10000, REPS=3;
-  const SZ_MIN=100, SZ_MAX=200;
-  const ease = t => -(Math.cos(Math.PI*t)-1)/2;
-
-  const startExercise = () => setScreen('exercise');
-
-  useEffect(()=>{
-    if(screen!=='exercise') return;
-    let startTime=null, finished=false;
-    const frame = now => {
-      if(!startTime) startTime=now;
-      const elapsed=now-startTime;
-      if(elapsed>=CYCLE*REPS){
-        if(!finished){
-          finished=true;
-          cancelAnimationFrame(rafRef.current);
-          const el = overlayRef.current;
-          if(el){
-            el.innerHTML = '';
-            el.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;z-index:9999;background:#0d2818;display:flex;flex-direction:column;align-items:center;justify-content:center;';
-            const ball = document.createElement('div');
-            ball.style.cssText = 'width:100px;height:100px;border-radius:50%;flex-shrink:0;margin-bottom:36px;background:radial-gradient(circle at 33% 28%,#e0fce8 0%,#a8e8b8 15%,#68c882 38%,#3ea860 62%,#1e7840 82%,#0a4822 100%);box-shadow:0 0 40px rgba(80,200,100,.2);';
-            const w1 = document.createElement('div');
-            w1.style.cssText = "font-family:'Exo 2',sans-serif;font-size:2rem;font-weight:300;color:rgba(255,255,255,.65);letter-spacing:6px;text-align:center;margin-bottom:20px;";
-            w1.textContent = 'Ich bin.';
-            const w2 = document.createElement('div');
-            w2.style.cssText = "font-family:'Exo 2',sans-serif;font-size:.95rem;font-weight:300;color:rgba(255,255,255,.45);text-align:center;line-height:1.8;";
-            w2.textContent = 'Nimm wahr, wie es sich anf\u00fchlt.';
-            el.appendChild(ball);
-            el.appendChild(w1);
-            el.appendChild(w2);
-          }
-          setTimeout(()=>onDone(), 5000);
-        }
-        return;
-      }
-      const rep=Math.min(Math.floor(elapsed/CYCLE),REPS-1);
-      const inCycle=elapsed%CYCLE;
-      const isIn=inCycle<IN_MS;
-      const t=isIn?inCycle/IN_MS:(inCycle-IN_MS)/OUT_MS;
-      const sz=isIn?SZ_MIN+(SZ_MAX-SZ_MIN)*ease(t):SZ_MAX-(SZ_MAX-SZ_MIN)*ease(t);
-      const b=ballRef.current;
-      if(b){ b.style.width=sz+'px'; b.style.height=sz+'px'; }
-      const lbl=document.getElementById('bh-rep-lbl');
-      const ph=document.getElementById('bh-phase');
-      const cnt=document.getElementById('bh-cnt');
-      const totalSec=isIn?4:6;
-      if(cnt)  cnt.textContent=Math.min(Math.floor(t*totalSec)+1,totalSec);
-      if(ph)   ph.textContent=isIn?'Einatmen durch Nase':'Ausatmen durch Mund';
-      if(lbl)  lbl.textContent='Atem\u00fcbung \u00b7 Runde '+(rep+1)+' von '+REPS;
-      for(let i=0;i<REPS;i++){
-        const d=document.getElementById('bh-dot-'+i);
-        if(d) d.className='bh-dot'+(i<rep?' bh-done':i===rep?' bh-cur':'');
-      }
-      rafRef.current=requestAnimationFrame(frame);
-    };
-    rafRef.current=requestAnimationFrame(frame);
-    return ()=>cancelAnimationFrame(rafRef.current);
-  },[screen]);
-
-  if(screen==='intro') return html`
-    <div class="breath-overlay bh-intro" style=${{display:'flex'}}>
-      <div class="bh-intro-ball"></div>
-      <div class="bh-ebene">Verlasse den Kopf,<br/>komm im Körper an.</div>
-      <div class="bh-bereit">Bereit?</div>
-      <div class="bh-start-btn" onClick=${startExercise}>Start</div>
-      <div class="bh-skip-lnk" onClick=${onDone}>Überspringen</div>
-    </div>`;
-
-  return html`
-    <div ref=${overlayRef} class="breath-overlay bh-exercise" style=${{display:'flex'}}>
-      <div class="bh-close-x" onClick=${onDone}>\u2715</div>
-      <div id="bh-rep-lbl" class="bh-rep-lbl">Atemübung · Runde 1 von 3</div>
-      <div class="bh-unit">
-        <div class="bh-ball-wrap">
-          <div class="bh-ball" ref=${ballRef} style=${{width:SZ_MIN+'px',height:SZ_MIN+'px'}}></div>
-          <div id="bh-cnt" class="bh-count-inner">1</div>
-        </div>
-        <div id="bh-phase" class="bh-phase-word">Einatmen durch Nase</div>
-      </div>
-      <div class="bh-bottom">
-        <div class="bh-dots">
-          ${[0,1,2].map(i=>html`<div id=${'bh-dot-'+i} class=${'bh-dot'+(i===0?' bh-cur':'')}></div>`)}
-        </div>
-      </div>
-    </div>`;
-}
-
 // ── ROOT ──
 function Root() {
   const [user,setUser]     = useState(null);
@@ -2572,19 +2365,6 @@ function Root() {
 
 render(h(Root,null), document.getElementById('root'));
 
-// Mount BreathOverlay directly into portal (outside #root, no overflow:hidden parent)
-(function() {
-  const portal = document.getElementById('breath-portal');
-  function mountBreath() {
-    render(h(BreathOverlay, {
-      onDone: () => {
-        render(null, portal);
-        portal.style.display = 'none';
-      }
-    }), portal);
-  }
-  mountBreath();
-})();
 </script>
 </body>
 </html>
