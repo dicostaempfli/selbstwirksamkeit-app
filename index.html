@@ -3201,6 +3201,7 @@ function BreathOverlay({ onDone }) {
           if(phaseRef.current)  phaseRef.current.textContent='Angekommen.';
           if(countRef.current)  countRef.current.textContent='\u00a0';
           for(let i=0;i<REPS;i++){ const d=document.getElementById('bh-dot-'+i); if(d)d.className='bh-dot bh-done'; }
+          if(repLblRef.current) repLblRef.current.textContent='';
           setScreen('done');
         }
         return;
