@@ -672,7 +672,7 @@
   html { overflow: hidden; max-width: 100vw; }
   body { margin: 0; overflow: hidden; width: 100%; touch-action: pan-y; }
   #app { height: 100vh; display: flex; overflow: hidden; position: relative; }
-  #breath-portal { position:fixed;top:0;left:0;width:100%;height:100%;z-index:9999;pointer-events:none; }
+  #breath-portal { position:fixed;top:0;left:0;width:100%;height:100%;z-index:9999; }
   #breath-portal:empty { display:none; }
   input[type=range] { cursor: pointer; }
   textarea { font-family: inherit; }
@@ -973,7 +973,7 @@
 
   /* ══ ATEMBALL OVERLAY ══ */
   .breath-overlay {
-    position:fixed;top:0;left:0;width:100%;height:100%;z-index:9999;
+    position:absolute;top:0;left:0;width:100%;height:100%;
     background:#0d2818;
     display:flex;flex-direction:column;align-items:center;
     transition:opacity 1.4s ease;
