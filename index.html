@@ -1658,7 +1658,7 @@ function ChatWindow({coachee,recipient,setRecipient,onSend,onSendImg,onSendFile,
             </div>
           </div>
         </div>
-        <div style=${{display:"flex",gap:8}}>
+        <div style=${{display:"flex",gap:8,width:"100%"}}>
           ${["Diana","Rico"].map(name=>html`
             <div key=${name} class="stat-card" onClick=${()=>setRecipient(name)}
               style=${{cursor:"pointer",flex:"1 1 0",minWidth:0,padding:"9px 12px",transition:"all .2s",
