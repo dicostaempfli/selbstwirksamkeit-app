@@ -142,9 +142,6 @@
     --shadow2: 0 6px 28px rgba(62,122,74,.14);
   }
 
-  body { font-family:'Exo 2',sans-serif; background:var(--bg); color:var(--text); height:100vh; overflow:hidden; }
-  .app { display:flex; height:100vh; overflow:hidden; }
-
   /* ── SCROLLBAR ── */
   ::-webkit-scrollbar { width:5px; }
   ::-webkit-scrollbar-track { background:transparent; }
@@ -670,9 +667,9 @@
   @keyframes spin { to { transform: rotate(360deg); } }
   *, *::before, *::after { box-sizing: border-box; }
   html { overflow: hidden; max-width: 100vw; }
-  body { margin: 0; overflow: hidden; width: 100%; touch-action: pan-y; }
-  #app { height: 100vh; display: flex; overflow: hidden; position: relative; }
-  #breath-portal { position:fixed;top:0;left:0;width:100%;height:100%;z-index:9999; }
+  body { font-family:'Exo 2',sans-serif; background:var(--bg); color:var(--text); margin:0; overflow:hidden; width:100%; touch-action:pan-y; }
+  #app { height: 100dvh; display: flex; overflow: hidden; position: relative; }
+  #breath-portal { position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9999; }
   #breath-portal:empty { display:none; }
   input[type=range] { cursor: pointer; }
   textarea { font-family: inherit; }
@@ -689,10 +686,8 @@
 
   @media (max-width: 768px) {
     /* Body & root */
-    body { overflow: hidden; }
     #app {
       flex-direction: column;
-      height: 100dvh;
       padding-top: 0;
     }
 
