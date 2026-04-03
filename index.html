@@ -1066,21 +1066,21 @@
 
   /* Abschluss-Screen – gleicher Wrapper wie intro/exercise */
   .bh-done-word {
-    font-family:'Exo 2',sans-serif;font-size:2rem;font-weight:200;
-    color:rgba(255,255,255,.35);letter-spacing:6px;text-align:center;margin-bottom:20px;
+    font-family:'Exo 2',sans-serif;font-size:2rem;font-weight:300;
+    color:rgba(255,255,255,.65);letter-spacing:6px;text-align:center;margin-bottom:20px;
   }
   .bh-done-sub {
     font-family:'Exo 2',sans-serif;font-size:.95rem;font-weight:300;
-    color:rgba(255,255,255,.35);text-align:center;line-height:1.8;letter-spacing:.3px;
+    color:rgba(255,255,255,.45);text-align:center;line-height:1.8;letter-spacing:.3px;
   }
   .bh-done-ball {
-    width:100px;height:100px;border-radius:50%;
+    width:100px;height:100px;border-radius:50%;flex-shrink:0;
     background:radial-gradient(circle at 33% 28%,
       #e0fce8 0%,#a8e8b8 15%,#68c882 38%,
       #3ea860 62%,#1e7840 82%,#0a4822 100%);
     box-shadow:0 0 40px rgba(80,200,100,.2),0 8px 24px rgba(5,30,10,.5),
       inset 0 -5px 12px rgba(5,25,10,.3);
-    margin-bottom:48px;
+    margin-bottom:36px;
     animation:bh-done-glow 3s ease-in-out infinite;
   }
   @keyframes bh-done-glow{0%,100%{box-shadow:0 0 30px rgba(80,200,100,.12)}50%{box-shadow:0 0 60px rgba(80,200,100,.35)}}
@@ -3262,10 +3262,10 @@ function BreathOverlay({ onDone }) {
     </div>`;
 
   return html`
-    <div class="breath-overlay" style=${{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center'}}>
-      <div class="bh-done-ball"></div>
-      <div class="bh-done-word">Ich bin.</div>
-      <div class="bh-done-sub">Nimm wahr, wie es sich anfühlt.</div>
+    <div style=${{position:'fixed',top:0,left:0,right:0,bottom:0,zIndex:9999,background:'#0d2818',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:0}}>
+      <div style=${{width:'100px',height:'100px',borderRadius:'50%',flexShrink:0,marginBottom:'36px',background:'radial-gradient(circle at 33% 28%, #e0fce8 0%, #a8e8b8 15%, #68c882 38%, #3ea860 62%, #1e7840 82%, #0a4822 100%)'}}></div>
+      <div style=${{fontFamily:"'Exo 2',sans-serif",fontSize:'2rem',fontWeight:300,color:'rgba(255,255,255,.65)',letterSpacing:'6px',textAlign:'center',marginBottom:'20px'}}>Ich bin.</div>
+      <div style=${{fontFamily:"'Exo 2',sans-serif",fontSize:'.95rem',fontWeight:300,color:'rgba(255,255,255,.45)',textAlign:'center',lineHeight:1.8,letterSpacing:'.3px'}}>Nimm wahr, wie es sich anfühlt.</div>
     </div>`;
 }
 
