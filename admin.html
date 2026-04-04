@@ -697,7 +697,7 @@ window.addEventListener('orientationchange', ()=>setTimeout(setVH,150));
       width: 100%;
       display: flex;
       flex-direction: column;
-      height: calc(100dvh - 72px - env(safe-area-inset-bottom, 0px));
+      height: calc(var(--vp-h, 100dvh) - 72px);
       flex: none;
       overflow: hidden;
     }

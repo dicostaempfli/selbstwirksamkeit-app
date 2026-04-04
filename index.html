@@ -78,7 +78,8 @@
       }
     });
 
-    // PWA + keyboard height fix for iOS + Android
+    // Keyboard height fix - visualViewport.height shrinks when keyboard opens
+    // Works across Safari, Firefox, Chrome on iOS and Android
     function setVH() {
       const vp = window.visualViewport;
       const vh = vp ? vp.height : window.innerHeight;
@@ -659,7 +660,7 @@
   *, *::before, *::after { box-sizing: border-box; }
   html { overflow: hidden; max-width: 100vw; }
   body { font-family:'Exo 2',sans-serif; background:var(--bg); color:var(--text); margin:0; overflow:hidden; width:100%; touch-action:pan-y; }
-  #app { height: 100dvh; display: flex; overflow: hidden; position: relative; }
+  #app { height: var(--vp-h, 100dvh); display: flex; overflow: hidden; position: relative; }
   #breath-portal { position:fixed;top:0;left:0;width:100vw;height:100dvh;z-index:9999;background:#0d2818; }
   #breath-portal:empty { display:none; }
   input[type=range] { cursor: pointer; }
@@ -730,7 +731,7 @@
       width: 100%;
       display: flex;
       flex-direction: column;
-      height: calc(100dvh - 72px - env(safe-area-inset-bottom, 0px));
+      height: calc(var(--vp-h, 100dvh) - 72px);
       flex: none;
       overflow: hidden;
     }
