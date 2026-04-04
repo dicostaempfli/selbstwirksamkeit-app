@@ -1144,6 +1144,7 @@ const Logo = ({ size=44 }) => html`
 const Wordmark = ({ dark=true, height=48 }) => html`
   <img src=${LOGO_SRC} 
     style=${{height:height+"px",width:"auto",maxWidth:"320px",objectFit:"contain",display:"block",
+      margin:"0 auto",
       filter:dark?"none":"brightness(0) invert(1)"}} 
     alt="Raum für Selbstwirksamkeit"/>`;
 
