@@ -697,8 +697,8 @@ window.addEventListener('orientationchange', ()=>setTimeout(setVH,150));
       width: 100%;
       display: flex;
       flex-direction: column;
-      flex: 1;
-      min-height: 0;
+      height: calc(100dvh - 72px - env(safe-area-inset-bottom, 0px));
+      flex: none;
       overflow: hidden;
     }
     .chat-area.hidden-mobile { display: none !important; }
@@ -1154,7 +1154,7 @@ window.addEventListener('orientationchange', ()=>setTimeout(setVH,150));
 }
 
 
-#root { height:var(--vp-h, 100dvh); overflow:hidden; display:flex; flex-direction:column; width:100%; position:relative; }
+#root { height:100dvh; overflow:hidden; display:flex; flex-direction:column; width:100%; position:relative; }
 
 .page {
   flex: 1;

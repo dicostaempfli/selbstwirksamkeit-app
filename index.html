@@ -338,10 +338,6 @@
     flex-direction: column;
     gap: 2px;
   }
-  /* Mobile: messages scroll above fixed bottom-nav */
-  @media (max-width: 768px) {
-    .messages { padding-bottom: calc(16px + 72px + env(safe-area-inset-bottom, 0px)); }
-  }
   .chat-input-area {
     flex-shrink: 0;
     background: var(--surface);
@@ -663,7 +659,7 @@
   *, *::before, *::after { box-sizing: border-box; }
   html { overflow: hidden; max-width: 100vw; }
   body { font-family:'Exo 2',sans-serif; background:var(--bg); color:var(--text); margin:0; overflow:hidden; width:100%; touch-action:pan-y; }
-  #app { height: var(--vp-h, 100dvh); display: flex; overflow: hidden; position: relative; }
+  #app { height: 100dvh; display: flex; overflow: hidden; position: relative; }
   #breath-portal { position:fixed;top:0;left:0;width:100vw;height:100dvh;z-index:9999;background:#0d2818; }
   #breath-portal:empty { display:none; }
   input[type=range] { cursor: pointer; }
@@ -730,6 +726,14 @@
 
     /* Chat area full screen */
     /* Chat — mobile */
+    .chat-area {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      height: calc(100dvh - 72px - env(safe-area-inset-bottom, 0px));
+      flex: none;
+      overflow: hidden;
+    }
 
     .chat-area.hidden-mobile { display: none !important; }
     .mobile-back-btn { display: flex !important; }
@@ -737,8 +741,7 @@
     .ct-name { font-size: .88rem; }
     .ct-status { font-size: .68rem; }
     .messages {
-      padding: 10px;
-      padding-bottom: 12px;
+      padding: 10px 10px 12px;
       flex: 1;
       min-height: 0;
       overflow-y: auto;
