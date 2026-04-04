@@ -1021,7 +1021,7 @@
   .bh-skip-lnk:hover{color:rgba(255,255,255,.6);}
 
   /* Übungs-Screen */
-  .bh-exercise { justify-content:space-between;padding:0 28px 28px; }
+  .bh-exercise { justify-content:space-between;padding:0 28px;padding-bottom:max(24px, calc(env(safe-area-inset-bottom, 0px) + 20px)); }
   .bh-close-x {
     position:absolute;top:14px;right:16px;
     color:rgba(255,255,255,.4);font-size:22px;font-weight:300;line-height:1;
@@ -1031,6 +1031,7 @@
   .bh-rep-lbl {
     font-family:'Exo 2',sans-serif;font-size:11px;font-weight:700;letter-spacing:2px;
     text-transform:uppercase;color:rgba(255,255,255,.28);padding-top:42px;text-align:center;
+    white-space:nowrap;width:100%;
   }
   .bh-unit { display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1; }
   .bh-ball-wrap { position:relative;display:flex;align-items:center;justify-content:center; }
