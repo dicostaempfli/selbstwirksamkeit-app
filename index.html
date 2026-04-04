@@ -84,9 +84,7 @@
       const vh = vp ? vp.height : window.innerHeight;
       const navH = 72;
       document.documentElement.style.setProperty('--chat-h', (vh - navH) + 'px');
-      // When keyboard is open, also shift chat area up by viewport offset
-      const offsetY = vp ? vp.offsetTop : 0;
-      document.documentElement.style.setProperty('--vp-offset', offsetY + 'px');
+      document.documentElement.style.setProperty('--vp-h', vh + 'px');
     }
     setVH();
     if(window.visualViewport) {
@@ -745,8 +743,6 @@
       height: var(--chat-h, calc(100dvh - 72px));
       max-height: var(--chat-h, calc(100dvh - 72px));
       flex: none;
-      transform: translateY(calc(-1 * var(--vp-offset, 0px)));
-      transition: transform 0s;
     }
     .chat-area.hidden-mobile { display: none !important; }
     .mobile-back-btn { display: flex !important; }

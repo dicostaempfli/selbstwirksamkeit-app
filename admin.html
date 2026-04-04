@@ -61,6 +61,21 @@
 }
 if(document.readyState === 'complete') initFB();
 else window.addEventListener('load', initFB);
+
+// Keyboard height fix
+function setVH() {
+  const vp = window.visualViewport;
+  const vh = vp ? vp.height : window.innerHeight;
+  document.documentElement.style.setProperty('--chat-h', (vh - 72) + 'px');
+  document.documentElement.style.setProperty('--vp-h', vh + 'px');
+}
+setVH();
+if(window.visualViewport) {
+  window.visualViewport.addEventListener('resize', setVH);
+  window.visualViewport.addEventListener('scroll', setVH);
+}
+window.addEventListener('resize', setVH);
+window.addEventListener('orientationchange', ()=>setTimeout(setVH,150));
 </script>
 <style>
 
@@ -683,8 +698,6 @@ else window.addEventListener('load', initFB);
       height: var(--chat-h, calc(100dvh - 72px));
       max-height: var(--chat-h, calc(100dvh - 72px));
       flex: none;
-      transform: translateY(calc(-1 * var(--vp-offset, 0px)));
-      transition: transform 0s;
     }
     .chat-area.hidden-mobile { display: none !important; }
     .mobile-back-btn { display: flex !important; }
