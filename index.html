@@ -1768,6 +1768,7 @@ function ChatWindow({coachee,recipient,setRecipient,onSend,onSendImg,onSendFile,
               if(bottomRef.current) bottomRef.current.scrollIntoView({behavior:"smooth"});
             },350);
           }}
+          autocomplete="off" autocorrect="off" autocapitalize="sentences" spellcheck="false"
           placeholder=${"Nachricht an "+recipient+"…"}/>
         <button class="send-btn" onClick=${handleSend} disabled=${!input.trim()}><${Ic} name="send" size=${17}/></button>
       </div>
