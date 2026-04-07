@@ -62,11 +62,18 @@
 if(document.readyState === 'complete') initFB();
 else window.addEventListener('load', initFB);
 
-// Keyboard height fix for iOS + Android
+// Keyboard height fix + horizontal scroll lock for iOS Safari
 function setVH() {
   const vp = window.visualViewport;
   const vh = vp ? vp.height : window.innerHeight;
   document.documentElement.style.setProperty('--vp-h', vh + 'px');
+  // iOS Safari: nach Input-Fokus kann der Viewport horizontal verschoben sein
+  // offsetLeft > 0 bedeutet der Viewport ist nach rechts gescrollt → zurücksetzen
+  if(vp && vp.offsetLeft !== 0) {
+    window.scrollTo({ left: 0, behavior: 'instant' });
+    document.documentElement.scrollLeft = 0;
+    document.body.scrollLeft = 0;
+  }
 }
 setVH();
 if(window.visualViewport) {
@@ -75,6 +82,16 @@ if(window.visualViewport) {
 }
 window.addEventListener('resize', setVH);
 window.addEventListener('orientationchange', ()=>setTimeout(setVH,150));
+
+// Zusätzlicher Schutz: nach jedem Input-Blur Viewport zurücksetzen
+document.addEventListener('focusout', function() {
+  setTimeout(function() {
+    window.scrollTo({ left: 0, top: 0, behavior: 'instant' });
+    document.documentElement.scrollLeft = 0;
+    document.body.scrollLeft = 0;
+    setVH();
+  }, 50);
+}, true);
 </script>
 <style>
 
