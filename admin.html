@@ -903,6 +903,7 @@ window.addEventListener('orientationchange', ()=>setTimeout(setVH,150));
   overflow: hidden;
   overflow-x: hidden;
   overscroll-behavior: none;
+  touch-action: pan-y;
   position: relative;
 }
 .main-content {
@@ -1130,7 +1131,7 @@ window.addEventListener('orientationchange', ()=>setTimeout(setVH,150));
 }
 
 
-#root { height:100dvh; overflow:hidden; display:flex; flex-direction:column; width:100%; position:fixed; inset:0; overscroll-behavior:none; }
+#root { height:100dvh; overflow:hidden; display:flex; flex-direction:column; width:100%; position:relative; overscroll-behavior:none; }
 
 .page {
   flex: 1;
