@@ -2907,12 +2907,14 @@ function LoginPage({ onLogin }) {
 
   return html`
     <div style=${{
-      minHeight:"100vh", display:"flex", alignItems:"center", justifyContent:"center",
-      background:"var(--bg)", padding:"24px"
+      minHeight:"var(--vp-h, 100dvh)", display:"flex", alignItems:"flex-start", justifyContent:"center",
+      background:"var(--bg)", padding:"24px 24px env(safe-area-inset-bottom,16px)",
+      overflowY:"auto", WebkitOverflowScrolling:"touch"
     }}>
       <div style=${{
         background:"var(--surface)", borderRadius:20, padding:"36px 32px",
-        width:"100%", maxWidth:400, boxShadow:"0 8px 40px rgba(30,58,47,.12)"
+        width:"100%", maxWidth:400, boxShadow:"0 8px 40px rgba(30,58,47,.12)",
+        margin:"auto 0"
       }}>
         <!-- Logo -->
         <div style=${{textAlign:"center", marginBottom:28}}>
