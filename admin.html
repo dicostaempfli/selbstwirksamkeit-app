@@ -8,7 +8,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
 <meta http-equiv="Pragma" content="no-cache"/>
 <meta http-equiv="Expires" content="0"/>
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-visual"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-visual"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-title" content="Admin"/>
 <meta name="theme-color" content="#4a9e62"/>
@@ -62,18 +62,11 @@
 if(document.readyState === 'complete') initFB();
 else window.addEventListener('load', initFB);
 
-// Keyboard height fix + horizontal scroll lock for iOS Safari
+// Keyboard height fix for iOS + Android
 function setVH() {
   const vp = window.visualViewport;
   const vh = vp ? vp.height : window.innerHeight;
   document.documentElement.style.setProperty('--vp-h', vh + 'px');
-  // iOS Safari: nach Input-Fokus kann der Viewport horizontal verschoben sein
-  // offsetLeft > 0 bedeutet der Viewport ist nach rechts gescrollt → zurücksetzen
-  if(vp && vp.offsetLeft !== 0) {
-    window.scrollTo({ left: 0, behavior: 'instant' });
-    document.documentElement.scrollLeft = 0;
-    document.body.scrollLeft = 0;
-  }
 }
 setVH();
 if(window.visualViewport) {
@@ -82,16 +75,6 @@ if(window.visualViewport) {
 }
 window.addEventListener('resize', setVH);
 window.addEventListener('orientationchange', ()=>setTimeout(setVH,150));
-
-// Zusätzlicher Schutz: nach jedem Input-Blur Viewport zurücksetzen
-document.addEventListener('focusout', function() {
-  setTimeout(function() {
-    window.scrollTo({ left: 0, top: 0, behavior: 'instant' });
-    document.documentElement.scrollLeft = 0;
-    document.body.scrollLeft = 0;
-    setVH();
-  }, 50);
-}, true);
 </script>
 <style>
 
@@ -218,7 +201,7 @@ document.addEventListener('focusout', function() {
   .search-input {
     width:100%; padding:8px 12px 8px 34px;
     border:1.5px solid var(--border); border-radius:10px;
-    font-family:'Exo 2'; font-size:16px;
+    font-family:'Exo 2'; font-size:.82rem;
     background:var(--bg); color:var(--text); transition:border .2s;
   }
   .search-input:focus { outline:none; border-color:var(--teal); background:#fff; }
@@ -382,7 +365,7 @@ document.addEventListener('focusout', function() {
     border-radius: 20px;
     padding: 9px 15px;
     font-family: 'Exo 2';
-    font-size: 16px;
+    font-size: .89rem;
     color: var(--text);
     resize: none;
     max-height: 100px;
@@ -472,7 +455,7 @@ document.addEventListener('focusout', function() {
   .label { font-size:.72rem; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; margin-bottom:5px; display:block; }
   .input,.textarea,.select {
     width:100%; padding:8px 12px; border:1.5px solid var(--border); border-radius:10px;
-    font-family:'Exo 2'; font-size:16px; background:var(--surface); color:var(--text); transition:border .2s;
+    font-family:'Exo 2'; font-size:.87rem; background:var(--surface); color:var(--text); transition:border .2s;
   }
   .input:focus,.textarea:focus,.select:focus { outline:none; border-color:var(--teal); }
   .textarea { resize:vertical; min-height:74px; }
@@ -524,7 +507,7 @@ document.addEventListener('focusout', function() {
   .modal-actions { display:flex; gap:8px; justify-content:space-between; flex-shrink:0; background:var(--surface); padding:14px 20px calc(env(safe-area-inset-bottom,0px) + 16px); border-top:2px solid var(--border); margin:0 -20px -0px; margin-top:16px; }
 
   /* Dashboard stats */
-  .stat-grid { display:grid; grid-template-columns:1fr; gap:10px; margin-bottom:18px; }
+  .stat-grid { display:flex; flex-direction:column; gap:10px; margin-bottom:18px; }
   .stat-card { background:var(--surface); border-radius:var(--radius); box-shadow:var(--shadow); padding:16px 18px; border-left:4px solid var(--sage); }
   .stat-card:nth-child(2) { border-left-color:var(--lime); }
   .stat-card:nth-child(3) { border-left-color:var(--teal); }
@@ -654,8 +637,8 @@ document.addEventListener('focusout', function() {
   /* Extra fixes */
   @keyframes spin { to { transform: rotate(360deg); } }
   *, *::before, *::after { box-sizing: border-box; }
-  html { overflow: hidden; max-width: 100vw; overscroll-behavior: none; }
-  body { font-family:'Exo 2',sans-serif; background:var(--bg); color:var(--text); margin:0; overflow:hidden; width:100%; max-width:100vw; touch-action:pan-y; overscroll-behavior: none; }
+  html { overflow: hidden; max-width: 100vw; }
+  body { font-family:'Exo 2',sans-serif; background:var(--bg); color:var(--text); margin:0; overflow:hidden; width:100%; max-width:100vw; touch-action:pan-y; }
   input[type=range] { cursor: pointer; }
   textarea { font-family: inherit; }
   select { font-family: inherit; }
@@ -711,7 +694,7 @@ document.addEventListener('focusout', function() {
       padding: 8px 10px;
       padding-bottom: max(8px, env(safe-area-inset-bottom, 8px));
     }
-    .input-box { font-size: 16px; padding: 8px 12px; }
+    .input-box { font-size: .88rem; padding: 8px 12px; }
 
     /* Quick replies */
     .quick-replies { padding: 0 12px 6px; }
@@ -720,7 +703,7 @@ document.addEventListener('focusout', function() {
     .photo-panel { padding: 10px 12px; }
 
     /* Dashboard stats */
-    .stat-grid { display:grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .stat-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
     .stat-value { font-size: 1.4rem; }
 
     /* Library grid */
@@ -830,7 +813,7 @@ document.addEventListener('focusout', function() {
       padding: 8px 10px;
     }
     input[type="time"] {
-      font-size: 16px;
+      font-size: 14px !important;
       padding: 6px 8px;
       max-width: 130px;
     }
@@ -902,7 +885,7 @@ document.addEventListener('focusout', function() {
     }
     .msg-bubble-wrap { max-width: 82%; }
     .msg-bubble { font-size: .85rem; }
-    .input-box { font-size: 16px; padding: 8px 12px; }
+    .input-box { font-size: .88rem; padding: 8px 12px; }
 
   }
 
@@ -919,9 +902,6 @@ document.addEventListener('focusout', function() {
   height: 100dvh;
   overflow: hidden;
   overflow-x: hidden;
-  overscroll-behavior: none;
-  touch-action: pan-y;
-  position: relative;
 }
 .main-content {
   flex: 1;
@@ -968,6 +948,16 @@ document.addEventListener('focusout', function() {
 .coachee-topic { font-size:.78rem; color:var(--muted); }
 .badge-online { background:var(--teal); color:white; border-radius:99px; padding:2px 8px; font-size:.7rem; font-weight:700; }
 .badge-offline { background:var(--border2); color:var(--muted); border-radius:99px; padding:2px 8px; font-size:.7rem; font-weight:700; }
+.badge-ehemalig { background:var(--border); color:var(--muted); border-radius:99px; padding:2px 8px; font-size:.7rem; font-weight:700; }
+.coachee-header { display:flex; align-items:center; gap:12px; margin-bottom:12px; }
+.coachee-meta { display:flex; gap:5px; flex-wrap:wrap; margin-top:4px; }
+.coachee-gender { font-size:.65rem; font-weight:700; color:var(--muted); background:var(--surface2); border-radius:99px; padding:1px 7px; }
+.topic-edit-btn { background:none; border:none; cursor:pointer; color:var(--muted); padding:0 2px; font-size:.75rem; opacity:.6; vertical-align:middle; }
+.topic-edit-btn:hover { opacity:1; color:var(--teal-dark); }
+.topic-inline-input { font-size:.78rem; font-family:'Exo 2',sans-serif; border:1.5px solid var(--teal); border-radius:6px; padding:3px 7px; background:var(--surface); color:var(--text); outline:none; width:100%; margin-top:3px; }
+.sel-btn { flex:1; padding:8px; border-radius:10px; border:1.5px solid var(--border2); cursor:pointer; text-align:center; font-size:.8rem; font-weight:700; font-family:'Exo 2',sans-serif; color:var(--muted); background:var(--surface); transition:all .15s; }
+.sel-btn.active { border-color:var(--teal); background:var(--sage); color:var(--forest); }
+.modal-preview { display:flex; align-items:center; gap:12px; padding:12px 14px; background:var(--surface2); border-radius:10px; margin-bottom:18px; }
 
 /* Doodle */
 .vote-row { display:flex; align-items:center; gap:12px; padding:10px 14px; border:1px solid var(--border); border-radius:10px; margin-bottom:6px; background:var(--surface); }
@@ -989,8 +979,7 @@ document.addEventListener('focusout', function() {
   .sidebar { display: none !important; }
   .bottom-nav { display: flex !important; position: fixed; bottom: 0; left: 0; right: 0; height: calc(72px + env(safe-area-inset-bottom, 0px)); padding: 0 4px env(safe-area-inset-bottom, 0px); background: var(--sidebar-bg); border-top: 1px solid rgba(255,255,255,.15); z-index: 100; box-shadow: 0 -2px 12px rgba(30,58,47,.15); align-items: stretch; }
   .main-content { padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px)); }
-  .main-content:has(.chat-layout) { padding-bottom: 0; }
-  .chat-layout { flex-direction: column; height: calc(var(--vp-h, 100dvh) - calc(72px + env(safe-area-inset-bottom, 0px))); }
+  .chat-layout { flex-direction: column; }
   .chat-list { width: 100% !important; border-right: none; border-bottom: 1px solid var(--border); }
 }
 
@@ -1148,7 +1137,7 @@ document.addEventListener('focusout', function() {
 }
 
 
-#root { height:100dvh; overflow:hidden; display:flex; flex-direction:column; width:100%; position:relative; overscroll-behavior:none; }
+#root { height:100dvh; overflow:hidden; display:flex; flex-direction:column; width:100%; position:relative; }
 
 .page {
   flex: 1;
@@ -1961,29 +1950,34 @@ function ChatWindow({coachee,onSend,onSendImg,onSendFile,onBack,mobileOpen}) {
 
 
 function CoacheesPage({coachees,setCoachees,setPage}) {
-  const [showAdd,setShowAdd] = useState(false);
-  const [form,setForm] = useState({name:"",topic:""});
+  const [showAdd,setShowAdd]     = useState(false);
+  const [form,setForm]           = useState({name:"",topic:"",gender:"",status:"aktiv"});
+  const [editTopicId,setEditTopicId] = useState(null);
+  const [editTopicVal,setEditTopicVal] = useState("");
 
   const addCoachee = () => {
     if(!form.name.trim()) return;
     const initials=form.name.trim().split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase();
-    const nc={id:"c"+Date.now(),name:form.name.trim(),initials,color:AVATAR_BG[coachees.length%AVATAR_BG.length],photo:null,online:false,topic:form.topic.trim()||"Coaching",unread:0,lastTime:"Jetzt",messages:[]};
+    const nc={id:"c"+Date.now(),name:form.name.trim(),initials,color:AVATAR_BG[coachees.length%AVATAR_BG.length],photo:null,online:false,topic:form.topic.trim()||"Coaching",gender:form.gender,status:form.status,unread:0,lastTime:"Jetzt",messages:[]};
     setCoachees(cs=>[...cs,nc]);
-    setShowAdd(false);setForm({name:"",topic:""});
+    setShowAdd(false);setForm({name:"",topic:"",gender:"",status:"aktiv"});
     showToast("✓ Coachee hinzugefügt");
+  };
+
+  const saveTopic = (id) => {
+    setCoachees(cs=>cs.map(c=>c.id===id?{...c,topic:editTopicVal.trim()||c.topic}:c));
+    setEditTopicId(null);
   };
 
   return html`
     <div class="page">
-      <div style=${{marginBottom:24,display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:14}}>
-        <div style=${{display:"flex",alignItems:"center",gap:14,flexShrink:0}}>
-          <${Logo} size=${52}/>
-          <div>
-            <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.3rem",fontWeight:700,color:"var(--text)"}}>Coachees</div>
-            <div style=${{fontSize:".88rem",color:"var(--muted)",marginTop:2}}>Alle aktiven und ehemaligen Coachees.</div>
-          </div>
+      <div style=${{marginBottom:24,display:"flex",alignItems:"center",gap:12}}>
+        <${Logo} size=${44}/>
+        <div style=${{flex:1,minWidth:0}}>
+          <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.2rem",fontWeight:700,color:"var(--text)"}}>Coachees</div>
+          <div style=${{fontSize:".82rem",color:"var(--muted)",marginTop:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>Alle aktiven und ehemaligen Coachees.</div>
         </div>
-        <button class="btn btn-primary btn-sm" onClick=${()=>setShowAdd(true)}>
+        <button class="btn btn-primary btn-sm" style=${{flexShrink:0}} onClick=${()=>setShowAdd(true)}>
           <${Ic} name="plus" size=${15}/> Hinzufügen
         </button>
       </div>
@@ -1991,13 +1985,31 @@ function CoacheesPage({coachees,setCoachees,setPage}) {
         ${coachees.map(c=>html`
           <div key=${c.id} class="coachee-card">
             <div class="coachee-header">
-              <div class="coachee-av" style=${{background:c.color}}>
+              <div class="coachee-av" style=${{background:c.color,position:"relative"}}>
                 ${c.photo?html`<img src=${c.photo} alt=""/>`:c.initials}
                 ${c.online&&html`<span class="online-dot" style=${{position:"absolute",bottom:0,right:0}}/>`}
               </div>
-              <div>
+              <div style=${{flex:1,minWidth:0}}>
                 <div class="coachee-name">${c.name}</div>
-                <div class="coachee-topic">${c.topic}</div>
+                ${editTopicId===c.id
+                  ? html`<div>
+                      <input class="topic-inline-input" value=${editTopicVal}
+                        onInput=${e=>setEditTopicVal(e.target.value)}
+                        onKeyDown=${e=>{if(e.key==="Enter")saveTopic(c.id);if(e.key==="Escape")setEditTopicId(null);}}
+                        autoFocus/>
+                      <div style=${{display:"flex",gap:5,marginTop:4}}>
+                        <button class="btn btn-primary btn-sm" style=${{padding:"2px 8px",fontSize:".7rem"}} onClick=${()=>saveTopic(c.id)}>OK</button>
+                        <button class="btn btn-ghost btn-sm" style=${{padding:"2px 8px",fontSize:".7rem"}} onClick=${()=>setEditTopicId(null)}>✕</button>
+                      </div>
+                    </div>`
+                  : html`<div style=${{display:"flex",alignItems:"center",gap:4}}>
+                      <span class="coachee-topic">${c.topic}</span>
+                      <button class="topic-edit-btn" onClick=${()=>{setEditTopicId(c.id);setEditTopicVal(c.topic);}}>✎</button>
+                    </div>`}
+                <div class="coachee-meta">
+                  ${c.gender&&html`<span class="coachee-gender">${c.gender}</span>`}
+                  ${c.status==="ehemalig"&&html`<span class="badge-ehemalig">Ehemalig</span>`}
+                </div>
               </div>
             </div>
             <div style=${{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
@@ -2013,9 +2025,40 @@ function CoacheesPage({coachees,setCoachees,setPage}) {
       ${showAdd&&html`
         <div class="overlay" onClick=${e=>{if(e.target===e.currentTarget)setShowAdd(false);}}>
           <div class="modal">
-            <div style=${{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4}}><h2 class="modal-title" style=${{marginBottom:0}}>Neuen Coachee hinzufügen</h2><button style=${{background:"none",border:"none",cursor:"pointer",color:"var(--muted)",padding:4,borderRadius:8,display:"flex"}} onClick=${()=>{const o=document.querySelector(".overlay");if(o)o.click();}}><\${Ic} name="x" size=\${20}/></button></div>
-            <div class="form-row"><label class="label">Name</label><input class="input" value=${form.name} onInput=${e=>setForm(f=>({...f,name:e.target.value}))} placeholder="z.B. Anna Meier"/></div>
-            <div class="form-row"><label class="label">Thema</label><input class="input" value=${form.topic} onInput=${e=>setForm(f=>({...f,topic:e.target.value}))} placeholder="z.B. Paarbeziehung"/></div>
+            <div style=${{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16}}>              <h2 class="modal-title" style=${{marginBottom:0}}>Neuen Coachee hinzufügen</h2>              <button style=${{background:"none",border:"none",cursor:"pointer",color:"var(--muted)",padding:4,borderRadius:8,display:"flex"}} onClick=${()=>setShowAdd(false)}><${Ic} name="x" size=${20}/></button>            </div>
+            <div class="modal-preview">
+              <div style=${{width:46,height:46,borderRadius:"50%",background:form.name?AVATAR_BG[form.name.length%AVATAR_BG.length]:AVATAR_BG[0],display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,fontSize:".9rem",color:"#1a3322",flexShrink:0}}>
+                ${form.name?form.name.trim().split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase():"?"}
+              </div>
+              <div style=${{flex:1,minWidth:0}}>
+                <div style=${{fontWeight:700,fontSize:".92rem",color:form.name?"var(--text)":"var(--muted)"}}>${form.name||"Name eingeben…"}</div>
+                <div style=${{fontSize:".75rem",color:"var(--muted)",marginTop:2}}>${form.topic||"Thema eingeben…"}</div>
+                <div style=${{display:"flex",gap:5,marginTop:4,flexWrap:"wrap"}}>
+                  ${form.gender&&html`<span style=${{fontSize:".65rem",fontWeight:700,background:"var(--surface2)",color:"var(--muted)",borderRadius:99,padding:"1px 7px"}}>${form.gender}</span>`}
+                  <span style=${{fontSize:".65rem",fontWeight:700,background:form.status==="aktiv"?"var(--sage)":"var(--border)",color:form.status==="aktiv"?"var(--forest)":"var(--muted)",borderRadius:99,padding:"1px 7px"}}>${form.status==="aktiv"?"Aktiv":"Ehemalig"}</span>
+                </div>
+              </div>
+            </div>
+            <div class="form-row"><label class="label">Name *</label><input class="input" value=${form.name} onInput=${e=>setForm(f=>({...f,name:e.target.value}))} placeholder="z.B. Anna Meier"/></div>
+            <div class="form-row"><label class="label">Thema / Coaching-Fokus</label><input class="input" value=${form.topic} onInput=${e=>setForm(f=>({...f,topic:e.target.value}))} placeholder="z.B. Paarbeziehung & Kommunikation"/></div>
+            <div class="form-row">
+              <label class="label">Geschlecht</label>
+              <div style=${{display:"flex",gap:8}}>
+                ${["Männlich","Weiblich"].map(g=>html`
+                  <div key=${g} class=${"sel-btn"+(form.gender===g?" active":"")} onClick=${()=>setForm(f=>({...f,gender:f.gender===g?"":g}))}>
+                    ${g==="Männlich"?"♂":"♀"} ${g}
+                  </div>`)}
+              </div>
+            </div>
+            <div class="form-row">
+              <label class="label">Status</label>
+              <div style=${{display:"flex",gap:8}}>
+                ${["aktiv","ehemalig"].map(s=>html`
+                  <div key=${s} class=${"sel-btn"+(form.status===s?" active":"")} onClick=${()=>setForm(f=>({...f,status:s}))}>
+                    ${s==="aktiv"?"✓ Aktiv":"◷ Ehemalig"}
+                  </div>`)}
+              </div>
+            </div>
             <div class="modal-actions">
               <button class="btn btn-ghost" onClick=${()=>setShowAdd(false)}>Abbrechen</button>
               <button class="btn btn-primary" onClick=${addCoachee}>Erstellen</button>
