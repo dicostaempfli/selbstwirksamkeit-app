@@ -454,34 +454,6 @@
   .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
   .flex-between { display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; }
 
-  /* Goals */
-  .goal-item { background:var(--surface2); border:1px solid var(--border); border-radius:12px; padding:13px 15px; margin-bottom:9px; }
-  .goal-item.done { opacity:.5; }
-  .goal-top { display:flex; justify-content:space-between; align-items:flex-start; gap:8px; }
-  .goal-title { font-weight:700; font-size:.89rem; }
-  .goal-area { font-size:.67rem; padding:2px 8px; border-radius:99px; font-weight:700; }
-  .area-eltern { background:var(--teal-pale); color:var(--teal-dark); }
-  .area-paar   { background:var(--lime-pale); color:#6b6200; }
-  .area-ich    { background:var(--sage-pale); color:#2d6b1f; }
-  .progress-bar { height:5px; background:var(--border); border-radius:99px; margin-top:8px; overflow:hidden; }
-  .progress-fill { height:100%; background:var(--teal); border-radius:99px; transition:width .4s; }
-  .goal-meta { display:flex; justify-content:space-between; align-items:center; margin-top:7px; }
-  .goal-date { font-size:.71rem; color:var(--muted); }
-  .goal-actions { display:flex; gap:4px; }
-
-  /* Journal */
-  .journal-entry { background:var(--surface2); border:1px solid var(--border); border-radius:12px; padding:13px 15px; margin-bottom:9px; }
-  .je-header { display:flex; justify-content:space-between; margin-bottom:7px; align-items:center; }
-  .je-date { font-size:.73rem; color:var(--muted); }
-  .je-text { font-size:.87rem; line-height:1.6; white-space:pre-wrap; }
-  .mood-row { display:flex; gap:7px; margin-bottom:10px; }
-  .mood-btn {
-    padding:6px 13px; border-radius:99px; cursor:pointer; border:1.5px solid var(--border);
-    font-size:.74rem; font-weight:700; font-family:'Exo 2'; color:var(--muted);
-    background:var(--surface2); transition:all .15s;
-  }
-  .mood-btn.selected { border-color:var(--teal); background:var(--teal); color:#fff; }
-
   /* Reminders */
   .reminder-item { background:var(--surface2); border:1px solid var(--border); border-radius:12px; padding:12px 14px; margin-bottom:8px; }
   .reminder-item-top { display:flex; justify-content:space-between; align-items:center; }
@@ -763,7 +735,7 @@
     /* Photo panel */
     .photo-panel { padding: 10px 12px; }
 
-    /* Goals */
+    /* Layout */
     .stat-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
     .stat-value { font-size: 1.4rem; }
 
@@ -1213,13 +1185,7 @@ const readFile = f => new Promise(res => {
 
 // ── SEED DATA ──
 const AVATAR_BG = ["#9dd979","#eaed53","#62ba7a","#bfe9cb","#d4f0c4","#c4e8cf","#b8ddc4","#f5f9cc"];
-const AREAS = ["Eltern-Sein","Paar-Sein","Ich-Sein"];
-const AREA_COLOR = {
-  "Eltern-Sein":{ bar:"#68b87d", bg:"#e8f7ee", tag:"#c4e8d0", text:"#2a6644" },
-  "Paar-Sein":  { bar:"#efe454", bg:"#fafbe0", tag:"#f2f0a0", text:"#6b6200" },
-  "Ich-Sein":   { bar:"#a0cb7b", bg:"#eef7e4", tag:"#d0ebbb", text:"#3a6820" },
-};
-const MOODS = [{key:"1",label:"Schwer"},{key:"2",label:"Ruhig"},{key:"3",label:"Offen"},{key:"4",label:"Leicht"},{key:"5",label:"Dankbar"}];
+
 const DAYS_SHORT = ["Mo","Di","Mi","Do","Fr","Sa","So"];
 const WEEKDAY_FULL = ["Montag","Dienstag","Mittwoch","Donnerstag","Freitag","Samstag","Sonntag"];
 const QUOTES = [
@@ -1253,14 +1219,6 @@ const INIT_COACHEES = [
     ]},
 ];
 
-const INIT_GOALS = [
-  {id:1,title:"Täglich 10 Minuten Stille für mich reservieren",area:"Ich-Sein",progress:60,deadline:"2026-04-30",done:false},
-  {id:2,title:"Jeden Abend echtes Gespräch mit meinem Partner",area:"Paar-Sein",progress:40,deadline:"2026-05-15",done:false},
-  {id:3,title:"Montags Familienfrühstück ohne Bildschirm",area:"Eltern-Sein",progress:80,deadline:"2026-04-01",done:false},
-];
-const INIT_JOURNAL = [
-  {id:1,text:"Heute hatte ich ein tiefes Gespräch mit meiner Partnerin. Es fühlte sich leichter an.",mood:"3",date:"2026-03-20"},
-];
 const REM_ICONS = [
   {key:"sunrise",label:"Morgen"},{key:"moon",label:"Abend"},{key:"leaf",label:"Natur"},
   {key:"heart",label:"Beziehung"},{key:"compass",label:"Orientierung"},{key:"journal",label:"Journal"},
@@ -1853,7 +1811,6 @@ function ChatWindow({coachee,recipient,setRecipient,onSend,onSendImg,onSendFile,
 
 
 function DashboardPage({coachees,library,reminders,doodles,setPage,user,onLogoTap}) {
-  const avgProg = 0; // goals removed
   const hour = new Date().getHours();
   const greeting = hour<12?"Guten Morgen":hour<18?"Guten Tag":"Guten Abend";
   const [quote,setQuote] = useState(QUOTES[0]);
@@ -1920,141 +1877,6 @@ function DashboardPage({coachees,library,reminders,doodles,setPage,user,onLogoTa
     </div>`;
 }
 
-// ── GOALS PAGE ──
-function GoalsPage({goals,setGoals}) {
-  const [showModal,setShowModal] = useState(false);
-  const [editId,setEditId]       = useState(null);
-  const [form,setForm]           = useState({title:"",area:"Ich-Sein",deadline:"",progress:0});
-
-  const openNew  = () => { setForm({title:"",area:"Ich-Sein",deadline:"",progress:0}); setEditId(null); setShowModal(true); };
-  const openEdit = g  => { setForm({title:g.title,area:g.area,deadline:g.deadline,progress:g.progress}); setEditId(g.id); setShowModal(true); };
-  const save     = () => { if(!form.title.trim())return; editId?setGoals(gs=>gs.map(g=>g.id===editId?{...g,...form}:g)):setGoals(gs=>[...gs,{id:Date.now(),...form,done:false}]); setShowModal(false); };
-  const toggle   = id => setGoals(gs=>gs.map(g=>g.id===id?{...g,done:!g.done}:g));
-  const del      = id => setGoals(gs=>gs.filter(g=>g.id!==id));
-  const setP     = (id,v) => setGoals(gs=>gs.map(g=>g.id===id?{...g,progress:v}:g));
-
-  return html`
-    <div class="content-main">
-      <div class="flex-between">
-        <div><h1 class="page-heading">Meine Ziele</h1><p class="page-sub">Setze klare Ziele und verfolge deinen Weg.</p></div>
-        <button class="btn btn-primary" onClick=${openNew}><${Ic} name="plus" size=${15}/> Neues Ziel</button>
-      </div>
-      ${AREAS.map(area=>{
-        const ag=goals.filter(g=>g.area===area); if(!ag.length)return null;
-        const ac=AREA_COLOR[area]||{bar:"var(--teal)",bg:"var(--surface2)",tag:"var(--teal-pale)",text:"var(--teal-dark)"};
-        return html`
-          <div key=${area} style=${{marginBottom:28}}>
-            <div style=${{display:'flex',alignItems:'center',gap:10,marginBottom:12}}>
-              <div style=${{width:4,height:22,borderRadius:99,background:ac.bar,flexShrink:0}}/>
-              <span style=${{fontFamily:"'Manuale',serif",fontSize:'1.05rem',fontWeight:700,color:'var(--text)'}}>${area}</span>
-              <span style=${{fontSize:'.72rem',fontWeight:700,background:ac.tag,color:ac.text,padding:'2px 10px',borderRadius:99}}>${ag.filter(g=>!g.done).length} aktiv</span>
-              <div style=${{flex:1,height:1,background:'var(--border)'}}/>
-            </div>
-            ${ag.map(g=>html`
-              <div key=${g.id} style=${{background:g.done?'var(--surface2)':ac.bg,border:'1px solid '+(g.done?'var(--border)':ac.tag),borderRadius:14,padding:'16px 18px',opacity:g.done?.6:1,marginBottom:10}}>
-                <div style=${{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:10,marginBottom:g.done?0:12}}>
-                  <div style=${{flex:1}}>
-                    <div style=${{fontWeight:700,fontSize:'.92rem',textDecoration:g.done?'line-through':'none',color:'var(--text)',marginBottom:3}}>${g.title}</div>
-                    ${g.deadline&&html`<div style=${{fontSize:'.72rem',color:'var(--muted)',display:'flex',alignItems:'center',gap:4}}><${Ic} name="calendar" size=${11}/> Bis ${fmtDate(g.deadline)}</div>`}
-                  </div>
-                  <div style=${{display:'flex',gap:5,flexShrink:0}}>
-                    <button class="btn btn-ghost btn-sm" onClick=${()=>toggle(g.id)} style=${{padding:'4px 9px'}}><${Ic} name=${g.done?"undo":"check"} size=${13}/></button>
-                    <button class="btn btn-ghost btn-sm" onClick=${()=>openEdit(g)} style=${{padding:'4px 9px'}}><${Ic} name="edit" size=${13}/></button>
-                    <button class="btn btn-danger btn-sm" onClick=${()=>del(g.id)} style=${{padding:'4px 9px'}}><${Ic} name="trash" size=${13}/></button>
-                  </div>
-                </div>
-                ${!g.done&&html`
-                  <div>
-                    <div style=${{display:'flex',alignItems:'center',gap:10,marginBottom:6}}>
-                      <div style=${{flex:1,height:8,background:'rgba(0,0,0,.08)',borderRadius:99,overflow:'hidden'}}>
-                        <div style=${{height:'100%',borderRadius:99,background:ac.bar,width:g.progress+'%',transition:'width .4s ease',boxShadow:'0 1px 4px '+ac.bar+'66'}}/>
-                      </div>
-                      <span style=${{fontSize:'.78rem',fontWeight:700,color:ac.text,minWidth:32,textAlign:'right'}}>${g.progress}%</span>
-                    </div>
-                    <input type="range" min="0" max="100" value=${g.progress} onInput=${e=>setP(g.id,+e.target.value)} style=${{width:'100%',accentColor:ac.bar,cursor:'pointer'}}/>
-                  </div>`}
-              </div>`)}
-          </div>`;
-      })}
-      ${showModal&&html`
-        <div class="overlay" onClick=${()=>setShowModal(false)}>
-          <div class="modal" onClick=${e=>e.stopPropagation()}>
-            <div style=${{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4}}><h2 class="modal-title" style=${{marginBottom:0}}>${editId?"Ziel bearbeiten":"Neues Ziel"}</h2><button style=${{background:"none",border:"none",cursor:"pointer",color:"var(--muted)",padding:4,borderRadius:8,display:"flex"}} onClick=${()=>setShowModal(false)}><${Ic} name="x" size=${20}/></button></div>
-            <div class="form-row"><label class="label">Ziel</label><input class="input" value=${form.title} onInput=${e=>setForm(f=>({...f,title:e.target.value}))} placeholder="Was möchtest du erreichen?"/></div>
-            <div class="form-grid">
-              <div class="form-row"><label class="label">Bereich</label>
-                <select class="select" value=${form.area} onChange=${e=>setForm(f=>({...f,area:e.target.value}))}>
-                  ${AREAS.map(a=>html`<option key=${a} value=${a}>${a}</option>`)}
-                </select>
-              </div>
-              <div class="form-row"><label class="label">Zieldatum</label><input class="input" type="date" value=${form.deadline} onInput=${e=>setForm(f=>({...f,deadline:e.target.value}))}/></div>
-            </div>
-            <div class="form-row">
-              <label class="label">Fortschritt: ${form.progress}%</label>
-              <div style=${{display:'flex',alignItems:'center',gap:10}}>
-                <div style=${{flex:1,height:8,background:'var(--border)',borderRadius:99,overflow:'hidden'}}>
-                  <div style=${{height:'100%',borderRadius:99,background:'var(--teal)',width:form.progress+'%'}}/>
-                </div>
-                <span style=${{fontSize:'.8rem',fontWeight:700,color:'var(--muted)',minWidth:32}}>${form.progress}%</span>
-              </div>
-              <input type="range" min="0" max="100" value=${form.progress} onInput=${e=>setForm(f=>({...f,progress:+e.target.value}))} style=${{width:'100%',marginTop:6,accentColor:'var(--teal)'}}/>
-            </div>
-            <div style=${{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:18}}>
-              <div>
-                ${editId&&html`<button style=${{background:"#fff0ef",border:"1.5px solid #f5c0bc",color:"var(--danger)",padding:"7px 14px",borderRadius:10,cursor:"pointer",fontFamily:"'Exo 2',sans-serif",fontWeight:700,fontSize:".82rem",display:"flex",alignItems:"center",gap:6}}
-                  onClick=${()=>{setShowModal(false);setReminders(rs=>rs.filter(x=>x.id!==editId));}}>
-                  <${Ic} name="trash" size=${14}/> Löschen
-                </button>`}
-              </div>
-              <div style=${{display:"flex",gap:8}}>
-                <button class="btn btn-ghost" onClick=${()=>setShowModal(false)}>Abbrechen</button>
-                <button class="btn btn-primary" onClick=${save}><${Ic} name="check" size=${14}/> Speichern</button>
-              </div>
-            </div>
-          </div>
-        </div>`}
-    </div>`;
-}
-
-// ── JOURNAL PAGE ──
-function JournalPage({journal,setJournal}) {
-  const [text,setText] = useState("");
-  const [mood,setMood] = useState("3");
-  const PROMPTS = ["Was hat mich heute bewegt?","Wofür bin ich dankbar?","Was möchte ich loslassen?","Was habe ich über mich gelernt?"];
-  const add = () => { if(!text.trim())return; setJournal(j=>[{id:Date.now(),text,mood,date:today()},...j]); setText(""); setMood("3"); };
-  const moodLabel = k => MOODS.find(m=>m.key===k)?.label??"";
-
-  return html`
-    <div class="content-main">
-      <h1 class="page-heading">Reflexions-Journal</h1>
-      <p class="page-sub">Schreibe täglich auf, was dich bewegt.</p>
-      <div class="card">
-        <div class="card-title"><${Ic} name="pen" size=${17}/> Neuer Eintrag</div>
-        <div class="form-row">
-          <label class="label">Stimmung</label>
-          <div class="mood-row">${MOODS.map(m=>html`<button key=${m.key} class=${"mood-btn"+(mood===m.key?" selected":"")} onClick=${()=>setMood(m.key)}>${m.label}</button>`)}</div>
-        </div>
-        <div class="form-row">
-          <div style=${{display:'flex',gap:6,flexWrap:'wrap',marginBottom:8}}>
-            ${PROMPTS.map(p=>html`<button key=${p} class="btn btn-ghost btn-sm" onClick=${()=>setText(t=>t?t+"\n\n"+p+" ":p+" ")}>${p}</button>`)}
-          </div>
-          <textarea class="textarea" rows=${4} value=${text} onInput=${e=>setText(e.target.value)} placeholder="Deine Gedanken…"/>
-        </div>
-        <button class="btn btn-primary" onClick=${add}>Speichern</button>
-      </div>
-      ${journal.map(e=>html`
-        <div key=${e.id} class="journal-entry">
-          <div class="je-header">
-            <span class="je-date">${fmtDate(e.date)}</span>
-            <div style=${{display:'flex',gap:9,alignItems:'center'}}>
-              <span style=${{fontSize:'.75rem',color:'var(--muted)'}}>${fmtDate(e.date)}</span>
-              <button class="btn btn-danger btn-sm" style=${{padding:'2px 7px'}} onClick=${()=>setJournal(js=>js.filter(j=>j.id!==e.id))}><${Ic} name="trash" size=${11}/></button>
-            </div>
-          </div>
-          <p class="je-text">${e.text}</p>
-        </div>`)}
-    </div>`;
-}
 
 function LibraryPage({library,setLibrary}) {
   const [searchQ,setSearchQ] = useState('');

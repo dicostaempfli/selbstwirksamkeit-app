@@ -463,34 +463,6 @@ window.addEventListener('orientationchange', ()=>setTimeout(setVH,150));
   .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
   .flex-between { display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; }
 
-  /* Goals */
-  .goal-item { background:var(--surface2); border:1px solid var(--border); border-radius:12px; padding:13px 15px; margin-bottom:9px; }
-  .goal-item.done { opacity:.5; }
-  .goal-top { display:flex; justify-content:space-between; align-items:flex-start; gap:8px; }
-  .goal-title { font-weight:700; font-size:.89rem; }
-  .goal-area { font-size:.67rem; padding:2px 8px; border-radius:99px; font-weight:700; }
-  .area-eltern { background:var(--teal-pale); color:var(--teal-dark); }
-  .area-paar   { background:var(--lime-pale); color:#6b6200; }
-  .area-ich    { background:var(--sage-pale); color:#2d6b1f; }
-  .progress-bar { height:5px; background:var(--border); border-radius:99px; margin-top:8px; overflow:hidden; }
-  .progress-fill { height:100%; background:var(--teal); border-radius:99px; transition:width .4s; }
-  .goal-meta { display:flex; justify-content:space-between; align-items:center; margin-top:7px; }
-  .goal-date { font-size:.71rem; color:var(--muted); }
-  .goal-actions { display:flex; gap:4px; }
-
-  /* Journal */
-  .journal-entry { background:var(--surface2); border:1px solid var(--border); border-radius:12px; padding:13px 15px; margin-bottom:9px; }
-  .je-header { display:flex; justify-content:space-between; margin-bottom:7px; align-items:center; }
-  .je-date { font-size:.73rem; color:var(--muted); }
-  .je-text { font-size:.87rem; line-height:1.6; white-space:pre-wrap; }
-  .mood-row { display:flex; gap:7px; margin-bottom:10px; }
-  .mood-btn {
-    padding:6px 13px; border-radius:99px; cursor:pointer; border:1.5px solid var(--border);
-    font-size:.74rem; font-weight:700; font-family:'Exo 2'; color:var(--muted);
-    background:var(--surface2); transition:all .15s;
-  }
-  .mood-btn.selected { border-color:var(--teal); background:var(--teal); color:#fff; }
-
   /* Reminders */
   .reminder-item { background:var(--surface2); border:1px solid var(--border); border-radius:12px; padding:12px 14px; margin-bottom:8px; }
   .reminder-item-top { display:flex; justify-content:space-between; align-items:center; }
