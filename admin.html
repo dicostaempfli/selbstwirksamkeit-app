@@ -507,7 +507,7 @@ window.addEventListener('orientationchange', ()=>setTimeout(setVH,150));
   .modal-actions { display:flex; gap:8px; justify-content:space-between; flex-shrink:0; background:var(--surface); padding:14px 20px calc(env(safe-area-inset-bottom,0px) + 16px); border-top:2px solid var(--border); margin:0 -20px -0px; margin-top:16px; }
 
   /* Dashboard stats */
-  .stat-grid { display:flex; flex-direction:column; gap:10px; margin-bottom:18px; }
+  .stat-grid { display:grid; grid-template-columns:1fr; gap:10px; margin-bottom:18px; }
   .stat-card { background:var(--surface); border-radius:var(--radius); box-shadow:var(--shadow); padding:16px 18px; border-left:4px solid var(--sage); }
   .stat-card:nth-child(2) { border-left-color:var(--lime); }
   .stat-card:nth-child(3) { border-left-color:var(--teal); }
@@ -703,7 +703,7 @@ window.addEventListener('orientationchange', ()=>setTimeout(setVH,150));
     .photo-panel { padding: 10px 12px; }
 
     /* Dashboard stats */
-    .stat-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+    .stat-grid { display:grid; grid-template-columns: 1fr 1fr; gap: 8px; }
     .stat-value { font-size: 1.4rem; }
 
     /* Library grid */
@@ -969,7 +969,8 @@ window.addEventListener('orientationchange', ()=>setTimeout(setVH,150));
   .sidebar { display: none !important; }
   .bottom-nav { display: flex !important; position: fixed; bottom: 0; left: 0; right: 0; height: calc(72px + env(safe-area-inset-bottom, 0px)); padding: 0 4px env(safe-area-inset-bottom, 0px); background: var(--sidebar-bg); border-top: 1px solid rgba(255,255,255,.15); z-index: 100; box-shadow: 0 -2px 12px rgba(30,58,47,.15); align-items: stretch; }
   .main-content { padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px)); }
-  .chat-layout { flex-direction: column; }
+  .main-content:has(.chat-layout) { padding-bottom: 0; }
+  .chat-layout { flex-direction: column; height: calc(var(--vp-h, 100dvh) - calc(72px + env(safe-area-inset-bottom, 0px))); }
   .chat-list { width: 100% !important; border-right: none; border-bottom: 1px solid var(--border); }
 }
 
