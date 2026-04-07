@@ -637,8 +637,8 @@ window.addEventListener('orientationchange', ()=>setTimeout(setVH,150));
   /* Extra fixes */
   @keyframes spin { to { transform: rotate(360deg); } }
   *, *::before, *::after { box-sizing: border-box; }
-  html { overflow: hidden; max-width: 100vw; }
-  body { font-family:'Exo 2',sans-serif; background:var(--bg); color:var(--text); margin:0; overflow:hidden; width:100%; max-width:100vw; touch-action:pan-y; }
+  html { overflow: hidden; max-width: 100vw; overscroll-behavior: none; }
+  body { font-family:'Exo 2',sans-serif; background:var(--bg); color:var(--text); margin:0; overflow:hidden; width:100%; max-width:100vw; touch-action:pan-y; overscroll-behavior: none; }
   input[type=range] { cursor: pointer; }
   textarea { font-family: inherit; }
   select { font-family: inherit; }
@@ -902,6 +902,8 @@ window.addEventListener('orientationchange', ()=>setTimeout(setVH,150));
   height: 100dvh;
   overflow: hidden;
   overflow-x: hidden;
+  overscroll-behavior: none;
+  position: relative;
 }
 .main-content {
   flex: 1;
@@ -1128,7 +1130,7 @@ window.addEventListener('orientationchange', ()=>setTimeout(setVH,150));
 }
 
 
-#root { height:100dvh; overflow:hidden; display:flex; flex-direction:column; width:100%; position:relative; }
+#root { height:100dvh; overflow:hidden; display:flex; flex-direction:column; width:100%; position:fixed; inset:0; overscroll-behavior:none; }
 
 .page {
   flex: 1;
