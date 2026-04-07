@@ -1456,11 +1456,11 @@ function DashboardPage({coachees,library,doodles,setPage,user}) {
         <${Logo} size=${52}/>
         <div>
           <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.3rem",fontWeight:700,color:"var(--text)"}}>${greeting}</div>
-          <div style=${{fontSize:".88rem",color:"var(--muted)",marginTop:2}}>Admin-Portal · Raum für Selbstwirksamkeit</div>
+          <div style=${{fontSize:".88rem",color:"var(--muted)",marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"calc(100vw - 120px)"}}>Admin-Portal · Raum für Selbstwirksamkeit</div>
         </div>
       </div>
 
-      <div class="stat-grid" style=${{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:12}}>
+      <div class="stat-grid" style=${{marginBottom:12}}>
         <div class="stat-card" onClick=${()=>setPage("coachees")} style=${{cursor:"pointer",borderLeft:"4px solid var(--teal)"}}>
           <div class="stat-label">Coachees</div>
           <div class="stat-value">${coachees.length}</div>
@@ -1605,10 +1605,10 @@ function ChatPage({coachees,setCoachees}) {
   };
 
   return html`
-    <div style=${{display:"flex",flexDirection:"column",width:"100%",flex:1,minHeight:0,overflow:"hidden"}}>
+    <div style=${{display:"flex",flexDirection:"column",width:"100%",flex:1,minHeight:0,overflow:"hidden",height:"100%"}}>
       ${!mobileOpen
         ? html`
-          <div style=${{display:"flex",flexDirection:"column",width:"100%",flex:1,minHeight:0,overflow:"hidden"}}>
+          <div style=${{display:"flex",flexDirection:"column",width:"100%",flex:1,minHeight:0,overflow:"hidden",height:"100%"}}>
             <div class="chat-list-header">
               <div style=${{display:"flex",alignItems:"center",gap:14,marginBottom:8}}>
                 <${Logo} size=${52}/>
