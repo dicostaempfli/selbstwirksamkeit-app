@@ -941,17 +941,20 @@ window.addEventListener('orientationchange', ()=>setTimeout(setVH,150));
 .stat-hint { font-size:.75rem; color:var(--teal-dark); margin-top:3px; }
 
 /* Coachees page */
-.coachee-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(min(240px,100%),1fr)); gap:14px; padding:4px 0; }
-.coachee-card { background:var(--surface); border-radius:14px; border:1px solid var(--border); padding:16px; }
-.coachee-av { width:48px; height:48px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:.9rem; font-weight:700; }
-.coachee-name { font-weight:700; font-size:.95rem; color:var(--text); }
-.coachee-topic { font-size:.78rem; color:var(--muted); }
+.coachee-grid { display:flex; flex-direction:column; gap:10px; padding:4px 0; }
+.coachee-card { background:var(--surface); border-radius:14px; border:1px solid var(--border); padding:16px 18px; }
+.coachee-av { width:52px; height:52px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:.95rem; font-weight:700; flex-shrink:0; }
+.coachee-name { font-weight:700; font-size:1rem; color:var(--text); }
+.coachee-topic { font-size:.79rem; color:var(--muted); margin-top:2px; }
 .badge-online { background:var(--teal); color:white; border-radius:99px; padding:2px 8px; font-size:.7rem; font-weight:700; }
 .badge-offline { background:var(--border2); color:var(--muted); border-radius:99px; padding:2px 8px; font-size:.7rem; font-weight:700; }
 .badge-ehemalig { background:var(--border); color:var(--muted); border-radius:99px; padding:2px 8px; font-size:.7rem; font-weight:700; }
-.coachee-header { display:flex; align-items:center; gap:12px; margin-bottom:12px; }
-.coachee-meta { display:flex; gap:5px; flex-wrap:wrap; margin-top:4px; }
-.coachee-gender { font-size:.65rem; font-weight:700; color:var(--muted); background:var(--surface2); border-radius:99px; padding:1px 7px; }
+.coachee-header { display:flex; align-items:center; gap:14px; }
+.coachee-meta { display:flex; gap:5px; flex-wrap:wrap; margin-top:6px; }
+.coachee-gender { font-size:.68rem; font-weight:700; color:var(--forest); background:var(--sage); border-radius:99px; padding:2px 8px; }
+.coachee-actions { display:flex; flex-direction:column; gap:7px; flex-shrink:0; }
+.coachee-edit-sheet { position:fixed; inset:0; background:rgba(20,50,30,.35); z-index:9998; display:flex; align-items:flex-end; justify-content:center; }
+.coachee-edit-panel { background:var(--surface); border-radius:20px 20px 0 0; padding:24px; width:100%; max-width:480px; max-height:85dvh; overflow-y:auto; }
 .topic-edit-btn { background:none; border:none; cursor:pointer; color:var(--muted); padding:0 2px; font-size:.75rem; opacity:.6; vertical-align:middle; }
 .topic-edit-btn:hover { opacity:1; color:var(--teal-dark); }
 .topic-inline-input { font-size:.78rem; font-family:'Exo 2',sans-serif; border:1.5px solid var(--teal); border-radius:6px; padding:3px 7px; background:var(--surface); color:var(--text); outline:none; width:100%; margin-top:3px; }
@@ -1952,8 +1955,8 @@ function ChatWindow({coachee,onSend,onSendImg,onSendFile,onBack,mobileOpen}) {
 function CoacheesPage({coachees,setCoachees,setPage}) {
   const [showAdd,setShowAdd]         = useState(false);
   const [form,setForm]               = useState({firstname:"",lastname:"",notes:"",modell:"",coaching:"",kids:false,gender:""});
-  const [editTopicId,setEditTopicId] = useState(null);
-  const [editTopicVal,setEditTopicVal] = useState("");
+  const [editId,setEditId]           = useState(null);
+  const [editForm,setEditForm]       = useState({});
 
   const addCoachee = () => {
     const fname = form.firstname.trim();
@@ -1970,11 +1973,17 @@ function CoacheesPage({coachees,setCoachees,setPage}) {
     showToast("✓ Coachee hinzugefügt");
   };
 
-  const saveTopic = (id) => {
-    setCoachees(cs=>cs.map(c=>c.id===id?{...c,topic:editTopicVal.trim()||c.topic}:c));
-    setEditTopicId(null);
+  const openEdit = (c) => { setEditId(c.id); setEditForm({firstname:c.name.split(" ")[0]||"",lastname:c.name.split(" ").slice(1).join(" ")||"",notes:c.notes||"",modell:c.modell||"",coaching:c.coaching||"",kids:c.kids||false,gender:c.gender||""}); };
+  const saveEdit = () => {
+    if(!editForm.firstname.trim()) return;
+    const fullname=[editForm.firstname.trim(),editForm.lastname.trim()].filter(Boolean).join(" ");
+    const initials=fullname.split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase();
+    const topic=[editForm.coaching,editForm.kids?"mit Kids":""].filter(Boolean).join(" ")||editForm.modell||"Coaching";
+    setCoachees(cs=>cs.map(c=>c.id===editId?{...c,name:fullname,initials,topic,modell:editForm.modell,coaching:editForm.coaching,kids:editForm.kids,gender:editForm.gender,notes:editForm.notes}:c));
+    setEditId(null);
   };
-
+  const deleteCoachee = (id) => { setCoachees(cs=>cs.filter(c=>c.id!==id)); setEditId(null); showToast("Coachee gelöscht"); };
+  const selEditBtn = (field,val) => setEditForm(f=>({...f,[field]:f[field]===val?"":val,...(field==="coaching"&&val==="Eltern"?{kids:false}:{})}));
   const selBtn = (field, val) => setForm(f=>({...f,[field]:f[field]===val?"":val,...(field==="coaching"&&val==="Eltern"?{kids:false}:{})}));
 
   return html`
@@ -1990,42 +1999,27 @@ function CoacheesPage({coachees,setCoachees,setPage}) {
         </button>
       </div>
             <div class="coachee-grid">
-        ${coachees.map(c=>html`
+        ${[...coachees].sort((a,b)=>a.name.localeCompare(b.name,"de")).map(c=>html`
           <div key=${c.id} class="coachee-card">
             <div class="coachee-header">
-              <div class="coachee-av" style=${{background:c.color,position:"relative"}}>
-                ${c.photo?html`<img src=${c.photo} alt=""/>`:c.initials}
-                ${c.online&&html`<span class="online-dot" style=${{position:"absolute",bottom:0,right:0}}/>`}
+              <div style=${{position:"relative",flexShrink:0}}>
+                <div class="coachee-av" style=${{background:c.color}}>
+                  ${c.photo?html`<img src=${c.photo} alt="" style=${{width:"100%",height:"100%",borderRadius:"50%",objectFit:"cover"}}/>`:c.initials}
+                </div>
+                ${c.online&&html`<span class="online-dot" style=${{position:"absolute",bottom:1,right:1,width:11,height:11,borderRadius:"50%",background:"var(--teal)",border:"2px solid var(--surface)",display:"block"}}/>`}
               </div>
               <div style=${{flex:1,minWidth:0}}>
                 <div class="coachee-name">${c.name}</div>
-                ${editTopicId===c.id
-                  ? html`<div>
-                      <input class="topic-inline-input" value=${editTopicVal}
-                        onInput=${e=>setEditTopicVal(e.target.value)}
-                        onKeyDown=${e=>{if(e.key==="Enter")saveTopic(c.id);if(e.key==="Escape")setEditTopicId(null);}}
-                        autoFocus/>
-                      <div style=${{display:"flex",gap:5,marginTop:4}}>
-                        <button class="btn btn-primary btn-sm" style=${{padding:"2px 8px",fontSize:".7rem"}} onClick=${()=>saveTopic(c.id)}>OK</button>
-                        <button class="btn btn-ghost btn-sm" style=${{padding:"2px 8px",fontSize:".7rem"}} onClick=${()=>setEditTopicId(null)}>✕</button>
-                      </div>
-                    </div>`
-                  : html`<div style=${{display:"flex",alignItems:"center",gap:4}}>
-                      <span class="coachee-topic">${c.topic}</span>
-                      <button class="topic-edit-btn" onClick=${()=>{setEditTopicId(c.id);setEditTopicVal(c.topic);}}>✎</button>
-                    </div>`}
+                <div class="coachee-topic">${c.topic}</div>
                 <div class="coachee-meta">
                   ${c.modell&&html`<span class="coachee-gender">${c.modell}</span>`}
                   ${c.coaching&&html`<span class="coachee-gender">${c.coaching}${c.kids?" + Kids":""}</span>`}
                   ${c.gender&&html`<span class="coachee-gender">${c.gender}</span>`}
                 </div>
               </div>
-            </div>
-            <div style=${{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-              <span class=${"coachee-badge "+(c.online?"badge-online":"badge-offline")}>${c.online?"Online":"Offline"}</span>
-              <div style=${{display:"flex",gap:6}}>
-                <button class="btn btn-ghost btn-sm" onClick=${()=>setPage("chat")}><${Ic} name="chat" size=${13}/> Chat</button>
-                <button class="btn btn-danger btn-sm" onClick=${()=>setCoachees(cs=>cs.filter(x=>x.id!==c.id))}><${Ic} name="trash" size=${13}/></button>
+              <div class="coachee-actions">
+                <button class="btn btn-primary btn-sm" style=${{whiteSpace:"nowrap"}} onClick=${()=>setPage("chat")}><${Ic} name="chat" size=${13}/> Chat</button>
+                <button class="btn btn-ghost btn-sm" style=${{whiteSpace:"nowrap"}} onClick=${()=>openEdit(c)}><${Ic} name="edit" size=${13}/> Edit</button>
               </div>
             </div>
           </div>`)}
@@ -2141,7 +2135,97 @@ function CoacheesPage({coachees,setCoachees,setPage}) {
               <button class="btn btn-primary" onClick=${addCoachee}>Erstellen</button>
             </div>
           </div>
-        </div>`}    </div>`;
+        </div>`}      ${editId&&html`
+        <div class="coachee-edit-sheet" onClick=${e=>{if(e.target===e.currentTarget)setEditId(null);}}>
+          <div class="coachee-edit-panel">
+            <div style=${{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:18}}>
+              <h2 class="modal-title" style=${{marginBottom:0}}>${editForm.firstname} ${editForm.lastname} bearbeiten</h2>
+              <button style=${{background:"none",border:"none",cursor:"pointer",color:"var(--muted)",padding:4,borderRadius:8,display:"flex"}} onClick=${()=>setEditId(null)}><${Ic} name="x" size=${20}/></button>
+            </div>
+            <div class="form-grid" style=${{marginBottom:12}}>
+              <div class="form-row" style=${{marginBottom:0}}>
+                <label class="label">Vorname *</label>
+                <input class="input" value=${editForm.firstname} onInput=${e=>setEditForm(f=>({...f,firstname:e.target.value}))} placeholder="Vorname"/>
+              </div>
+              <div class="form-row" style=${{marginBottom:0}}>
+                <label class="label">Nachname</label>
+                <input class="input" value=${editForm.lastname} onInput=${e=>setEditForm(f=>({...f,lastname:e.target.value}))} placeholder="Nachname"/>
+              </div>
+            </div>
+            <div class="form-row">
+              <label class="label">Bemerkungen</label>
+              <textarea class="textarea" rows=${2} value=${editForm.notes} onInput=${e=>setEditForm(f=>({...f,notes:e.target.value}))} placeholder="Notizen zum Coachee…"/>
+            </div>
+            <div class="form-row">
+              <label class="label">Modell</label>
+              <div style=${{display:"flex",gap:8}}>
+                ${["Stunden","Package"].map(label=>html`
+                  <div key=${label} class=${"sel-btn"+(editForm.modell===label?" active":"")}
+                    style=${{flex:1,flexDirection:"column",gap:5,padding:"10px 8px"}}
+                    onClick=${()=>selEditBtn("modell",label)}>
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                      ${label==="Stunden"
+                        ? html`<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>`
+                        : html`<path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><path d="M3.27 6.96L12 12.01l8.73-5.05M12 22.08V12"/>`}
+                    </svg>
+                    ${label}
+                  </div>`)}
+              </div>
+            </div>
+            <div class="form-row">
+              <label class="label">Coaching</label>
+              <div style=${{display:"flex",gap:8,marginBottom:8}}>
+                ${[["Paar","paar"],["Einzel","einzel"]].map(([label])=>html`
+                  <div key=${label} class=${"sel-btn"+(editForm.coaching===label?" active":"")}
+                    style=${{flex:1,flexDirection:"column",gap:5,padding:"10px 8px"}}
+                    onClick=${()=>selEditBtn("coaching",label)}>
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                      ${label==="Paar"
+                        ? html`<path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>`
+                        : html`<path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>`}
+                    </svg>
+                    ${label}
+                  </div>`)}
+              </div>
+              ${(editForm.coaching==="Paar"||editForm.coaching==="Einzel")&&html`
+                <div class=${"sel-btn"+(editForm.kids?" active":"")}
+                  style=${{padding:"9px 14px",flexDirection:"row",gap:9,justifyContent:"flex-start"}}
+                  onClick=${()=>setEditForm(f=>({...f,kids:!f.kids}))}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="5" r="3"/><path d="M4 21v-2a4 4 0 014-4h0"/><circle cx="17" cy="8" r="2"/><path d="M14 21v-1.5a3 3 0 013-3h0a3 3 0 013 3V21"/></svg>
+                  <span style=${{flex:1}}>Mit Kids</span>
+                  <span style=${{width:18,height:18,borderRadius:"50%",background:editForm.kids?"var(--teal)":"transparent",border:editForm.kids?"none":"1.5px solid var(--border2)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                    ${editForm.kids&&html`<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>`}
+                  </span>
+                </div>`}
+            </div>
+            <div class="form-row">
+              <label class="label">Geschlecht</label>
+              <div style=${{display:"flex",gap:8}}>
+                ${["Männlich","Weiblich"].map(label=>html`
+                  <div key=${label} class=${"sel-btn"+(editForm.gender===label?" active":"")}
+                    style=${{flex:1,flexDirection:"column",gap:5,padding:"10px 8px"}}
+                    onClick=${()=>selEditBtn("gender",label)}>
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                      ${label==="Männlich"
+                        ? html`<circle cx="10" cy="14" r="6"/><path d="M22 2l-6 6M22 2h-6M22 2v6"/>`
+                        : html`<circle cx="12" cy="8" r="6"/><path d="M12 14v8M9 19h6"/>`}
+                    </svg>
+                    ${label}
+                  </div>`)}
+              </div>
+            </div>
+            <div style=${{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:18}}>
+              <button class="btn btn-danger btn-sm" onClick=${()=>deleteCoachee(editId)}>
+                <${Ic} name="trash" size=${13}/> Löschen
+              </button>
+              <div style=${{display:"flex",gap:8}}>
+                <button class="btn btn-ghost" onClick=${()=>setEditId(null)}>Abbrechen</button>
+                <button class="btn btn-primary" onClick=${saveEdit}>Speichern</button>
+              </div>
+            </div>
+          </div>
+        </div>`}
+    </div>`;
 }
 
 // ── LIBRARY PAGE ──
