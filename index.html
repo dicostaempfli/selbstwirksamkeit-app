@@ -454,6 +454,34 @@
   .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
   .flex-between { display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; }
 
+  /* Goals */
+  .goal-item { background:var(--surface2); border:1px solid var(--border); border-radius:12px; padding:13px 15px; margin-bottom:9px; }
+  .goal-item.done { opacity:.5; }
+  .goal-top { display:flex; justify-content:space-between; align-items:flex-start; gap:8px; }
+  .goal-title { font-weight:700; font-size:.89rem; }
+  .goal-area { font-size:.67rem; padding:2px 8px; border-radius:99px; font-weight:700; }
+  .area-eltern { background:var(--teal-pale); color:var(--teal-dark); }
+  .area-paar   { background:var(--lime-pale); color:#6b6200; }
+  .area-ich    { background:var(--sage-pale); color:#2d6b1f; }
+  .progress-bar { height:5px; background:var(--border); border-radius:99px; margin-top:8px; overflow:hidden; }
+  .progress-fill { height:100%; background:var(--teal); border-radius:99px; transition:width .4s; }
+  .goal-meta { display:flex; justify-content:space-between; align-items:center; margin-top:7px; }
+  .goal-date { font-size:.71rem; color:var(--muted); }
+  .goal-actions { display:flex; gap:4px; }
+
+  /* Journal */
+  .journal-entry { background:var(--surface2); border:1px solid var(--border); border-radius:12px; padding:13px 15px; margin-bottom:9px; }
+  .je-header { display:flex; justify-content:space-between; margin-bottom:7px; align-items:center; }
+  .je-date { font-size:.73rem; color:var(--muted); }
+  .je-text { font-size:.87rem; line-height:1.6; white-space:pre-wrap; }
+  .mood-row { display:flex; gap:7px; margin-bottom:10px; }
+  .mood-btn {
+    padding:6px 13px; border-radius:99px; cursor:pointer; border:1.5px solid var(--border);
+    font-size:.74rem; font-weight:700; font-family:'Exo 2'; color:var(--muted);
+    background:var(--surface2); transition:all .15s;
+  }
+  .mood-btn.selected { border-color:var(--teal); background:var(--teal); color:#fff; }
+
   /* Reminders */
   .reminder-item { background:var(--surface2); border:1px solid var(--border); border-radius:12px; padding:12px 14px; margin-bottom:8px; }
   .reminder-item-top { display:flex; justify-content:space-between; align-items:center; }
@@ -735,7 +763,7 @@
     /* Photo panel */
     .photo-panel { padding: 10px 12px; }
 
-    /* Layout */
+    /* Goals */
     .stat-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
     .stat-value { font-size: 1.4rem; }
 
@@ -1185,7 +1213,13 @@ const readFile = f => new Promise(res => {
 
 // ── SEED DATA ──
 const AVATAR_BG = ["#9dd979","#eaed53","#62ba7a","#bfe9cb","#d4f0c4","#c4e8cf","#b8ddc4","#f5f9cc"];
-
+const AREAS = ["Eltern-Sein","Paar-Sein","Ich-Sein"];
+const AREA_COLOR = {
+  "Eltern-Sein":{ bar:"#68b87d", bg:"#e8f7ee", tag:"#c4e8d0", text:"#2a6644" },
+  "Paar-Sein":  { bar:"#efe454", bg:"#fafbe0", tag:"#f2f0a0", text:"#6b6200" },
+  "Ich-Sein":   { bar:"#a0cb7b", bg:"#eef7e4", tag:"#d0ebbb", text:"#3a6820" },
+};
+const MOODS = [{key:"1",label:"Schwer"},{key:"2",label:"Ruhig"},{key:"3",label:"Offen"},{key:"4",label:"Leicht"},{key:"5",label:"Dankbar"}];
 const DAYS_SHORT = ["Mo","Di","Mi","Do","Fr","Sa","So"];
 const WEEKDAY_FULL = ["Montag","Dienstag","Mittwoch","Donnerstag","Freitag","Samstag","Sonntag"];
 const QUOTES = [
@@ -1219,6 +1253,14 @@ const INIT_COACHEES = [
     ]},
 ];
 
+const INIT_GOALS = [
+  {id:1,title:"Täglich 10 Minuten Stille für mich reservieren",area:"Ich-Sein",progress:60,deadline:"2026-04-30",done:false},
+  {id:2,title:"Jeden Abend echtes Gespräch mit meinem Partner",area:"Paar-Sein",progress:40,deadline:"2026-05-15",done:false},
+  {id:3,title:"Montags Familienfrühstück ohne Bildschirm",area:"Eltern-Sein",progress:80,deadline:"2026-04-01",done:false},
+];
+const INIT_JOURNAL = [
+  {id:1,text:"Heute hatte ich ein tiefes Gespräch mit meiner Partnerin. Es fühlte sich leichter an.",mood:"3",date:"2026-03-20"},
+];
 const REM_ICONS = [
   {key:"sunrise",label:"Morgen"},{key:"moon",label:"Abend"},{key:"leaf",label:"Natur"},
   {key:"heart",label:"Beziehung"},{key:"compass",label:"Orientierung"},{key:"journal",label:"Journal"},
@@ -1811,6 +1853,7 @@ function ChatWindow({coachee,recipient,setRecipient,onSend,onSendImg,onSendFile,
 
 
 function DashboardPage({coachees,library,reminders,doodles,setPage,user,onLogoTap}) {
+  const avgProg = 0; // goals removed
   const hour = new Date().getHours();
   const greeting = hour<12?"Guten Morgen":hour<18?"Guten Tag":"Guten Abend";
   const [quote,setQuote] = useState(QUOTES[0]);
@@ -1877,343 +1920,313 @@ function DashboardPage({coachees,library,reminders,doodles,setPage,user,onLogoTa
     </div>`;
 }
 
+// ── GOALS PAGE ──
+function GoalsPage({goals,setGoals}) {
+  const [showModal,setShowModal] = useState(false);
+  const [editId,setEditId]       = useState(null);
+  const [form,setForm]           = useState({title:"",area:"Ich-Sein",deadline:"",progress:0});
 
-function LibraryPage({library,setLibrary}) {
-  const [searchQ,setSearchQ] = useState('');
-  const [filter,setFilter]     = useState("all");
-  const [showUpload,setShowUpload] = useState(false);
-  const [drag,setDrag]         = useState(false);
-  const [form,setForm]         = useState({title:"",desc:"",type:"audio"});
-  const fileRef = useRef(null);
-
-  const filtered = (filter==="all"?library:library.filter(i=>i.type===filter)).filter(i=>!searchQ||i.title.toLowerCase().includes(searchQ.toLowerCase())||(i.desc&&i.desc.toLowerCase().includes(searchQ.toLowerCase()))||(i.keywords&&i.keywords.toLowerCase().includes(searchQ.toLowerCase())))
-  const TYPES = [{id:"all",label:"Alle",icon:"library"},{id:"audio",label:"Audio",icon:"music"},{id:"video",label:"Video",icon:"video"},{id:"dokus",label:"Dokus",icon:"file"}];
-
-  const handleFile = e => { const f=e.target.files[0]; if(!f)return; const t=f.type.startsWith("audio")?"audio":f.type.startsWith("video")?"video":"dokus"; setForm(v=>({...v,type:t})); };
-  const handleDrop = e => { e.preventDefault(); setDrag(false); const f=e.dataTransfer.files[0]; if(!f)return; const t=f.type.startsWith("audio")?"audio":f.type.startsWith("video")?"video":"dokus"; setForm(v=>({...v,type:t})); };
-  const save = () => { if(!form.title.trim())return; setShowUpload(false); setForm({title:"",desc:"",type:"audio"}); setLibrary(l=>[{id:Date.now(),...form,uploadedAt:new Date().toLocaleDateString("de-CH")},...l]); };
-  const del  = id => setLibrary(l=>l.filter(i=>i.id!==id));
-  const BadgeCls = {audio:"badge-audio",video:"badge-video",dokus:"badge-dokus"};
-  const ThumbBg  = {audio:"#d8f0e0",video:"#eef7e4",dokus:"#fafbe0",all:"#f0ede8"};
-  const TypeIc   = ({type}) => html`<${Ic} name=${type==="audio"?"music":type==="video"?"video":"file"} size=${30}/>`;
+  const openNew  = () => { setForm({title:"",area:"Ich-Sein",deadline:"",progress:0}); setEditId(null); setShowModal(true); };
+  const openEdit = g  => { setForm({title:g.title,area:g.area,deadline:g.deadline,progress:g.progress}); setEditId(g.id); setShowModal(true); };
+  const save     = () => { if(!form.title.trim())return; editId?setGoals(gs=>gs.map(g=>g.id===editId?{...g,...form}:g)):setGoals(gs=>[...gs,{id:Date.now(),...form,done:false}]); setShowModal(false); };
+  const toggle   = id => setGoals(gs=>gs.map(g=>g.id===id?{...g,done:!g.done}:g));
+  const del      = id => setGoals(gs=>gs.filter(g=>g.id!==id));
+  const setP     = (id,v) => setGoals(gs=>gs.map(g=>g.id===id?{...g,progress:v}:g));
 
   return html`
     <div class="content-main">
       <div class="flex-between">
-        <div><h1 class="page-heading">Mediathek</h1><p class="page-sub">Hier findest du Impulse, Übungen und Inspiration für deinen Alltag — zusammengestellt von Diana & Rico.</p></div>
-        
+        <div><h1 class="page-heading">Meine Ziele</h1><p class="page-sub">Setze klare Ziele und verfolge deinen Weg.</p></div>
+        <button class="btn btn-primary" onClick=${openNew}><${Ic} name="plus" size=${15}/> Neues Ziel</button>
       </div>
-      
-      <div style=${{marginBottom:12}}>
-        <input class="input" type="text" placeholder="Inhalte suchen…"
-          value=${searchQ} onInput=${e=>setSearchQ(e.target.value)}
-          style=${{width:'100%',fontSize:'.88rem',padding:'9px 14px'}}/>
-      </div>
-      <div class="lib-filter">
-        ${TYPES.map(t=>html`<button key=${t.id} class=${"lib-filter-btn"+(filter===t.id?" sel":"")} data-type=${t.id} onClick=${()=>setFilter(t.id)}><${Ic} name=${t.icon} size=${13}/>${t.label}</button>`)}
-      </div>
-      <div class="lib-grid">
-        ${filtered.map(item=>html`
-          <div key=${item.id} class="lib-card">
-            <div class="lib-thumb" style=${{background:ThumbBg[item.type]||"#f0ede8",borderBottom:"2px solid "+(item.type==="audio"?"#68b87d":item.type==="video"?"#a0cb7b":item.type==="dokus"?"#efe454":"#c4b8a8")}}>
-              <div style=${{color:'var(--muted)',opacity:.45}}><${TypeIc} type=${item.type}/></div>
-              ${(item.type==="audio"||item.type==="video")&&html`
-              <div class="lib-play-overlay" style=${{cursor:"pointer"}} onClick=${()=>{
-                if(item.fileUrl) {
-                  try {
-                    const arr=item.fileUrl.split(',');
-                    const mime=arr[0].match(/:(.*?);/)[1];
-                    const bstr=atob(arr[1]); let n=bstr.length;
-                    const u8=new Uint8Array(n); while(n--)u8[n]=bstr.charCodeAt(n);
-                    const blob=new Blob([u8],{type:mime});
-                    const url=URL.createObjectURL(blob);
-                    const a=document.createElement('a'); a.href=url; a.target='_blank'; a.rel='noopener';
-                    document.body.appendChild(a); a.click(); document.body.removeChild(a);
-                    setTimeout(()=>URL.revokeObjectURL(url),30000);
-                  } catch(e){ window.open(item.fileUrl,'_blank'); }
-                }
-              }}>
-                <div class="lib-play-btn"><${Ic} name="play" size=${17}/></div>
-              </div>`}
-              <span class=${"lib-type-badge "+BadgeCls[item.type]}><${Ic} name=${item.type==="audio"?"music":item.type==="video"?"video":"file"} size=${10}/>${item.type==="audio"?"Audio":item.type==="video"?"Video":"Text"}</span>
+      ${AREAS.map(area=>{
+        const ag=goals.filter(g=>g.area===area); if(!ag.length)return null;
+        const ac=AREA_COLOR[area]||{bar:"var(--teal)",bg:"var(--surface2)",tag:"var(--teal-pale)",text:"var(--teal-dark)"};
+        return html`
+          <div key=${area} style=${{marginBottom:28}}>
+            <div style=${{display:'flex',alignItems:'center',gap:10,marginBottom:12}}>
+              <div style=${{width:4,height:22,borderRadius:99,background:ac.bar,flexShrink:0}}/>
+              <span style=${{fontFamily:"'Manuale',serif",fontSize:'1.05rem',fontWeight:700,color:'var(--text)'}}>${area}</span>
+              <span style=${{fontSize:'.72rem',fontWeight:700,background:ac.tag,color:ac.text,padding:'2px 10px',borderRadius:99}}>${ag.filter(g=>!g.done).length} aktiv</span>
+              <div style=${{flex:1,height:1,background:'var(--border)'}}/>
             </div>
-            <div class="lib-card-body" style=${{borderLeft:"3px solid "+(item.type==="audio"?"#68b87d":item.type==="video"?"#a0cb7b":item.type==="dokus"?"#efe454":"#c4b8a8")}}>
-              <div class="lib-card-title" style=${{color:"#1a1a1a"}}>${item.title}</div>
-              <div class="lib-card-desc" style=${{color:"#444"}}>${item.desc}</div>
-              ${item.keywords&&html`<div style=${{marginTop:5,display:'flex',flexWrap:'wrap',gap:4}}>
-                ${item.keywords.split(',').map(k=>k.trim()).filter(k=>k).map(k=>html`
-                  <span key=${k} style=${{fontSize:'.62rem',background:'var(--sage-pale)',color:'var(--forest)',
-                    padding:'2px 7px',borderRadius:99,fontWeight:700}}>#${k}</span>`)}
-              </div>`}
-              <div class="lib-card-meta">
-                <span>${item.duration||""}</span>
-                <div style=${{display:'flex',gap:6,alignItems:'center'}}>
-                  <span>${item.uploadedAt}</span>
+            ${ag.map(g=>html`
+              <div key=${g.id} style=${{background:g.done?'var(--surface2)':ac.bg,border:'1px solid '+(g.done?'var(--border)':ac.tag),borderRadius:14,padding:'16px 18px',opacity:g.done?.6:1,marginBottom:10}}>
+                <div style=${{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:10,marginBottom:g.done?0:12}}>
+                  <div style=${{flex:1}}>
+                    <div style=${{fontWeight:700,fontSize:'.92rem',textDecoration:g.done?'line-through':'none',color:'var(--text)',marginBottom:3}}>${g.title}</div>
+                    ${g.deadline&&html`<div style=${{fontSize:'.72rem',color:'var(--muted)',display:'flex',alignItems:'center',gap:4}}><${Ic} name="calendar" size=${11}/> Bis ${fmtDate(g.deadline)}</div>`}
+                  </div>
+                  <div style=${{display:'flex',gap:5,flexShrink:0}}>
+                    <button class="btn btn-ghost btn-sm" onClick=${()=>toggle(g.id)} style=${{padding:'4px 9px'}}><${Ic} name=${g.done?"undo":"check"} size=${13}/></button>
+                    <button class="btn btn-ghost btn-sm" onClick=${()=>openEdit(g)} style=${{padding:'4px 9px'}}><${Ic} name="edit" size=${13}/></button>
+                    <button class="btn btn-danger btn-sm" onClick=${()=>del(g.id)} style=${{padding:'4px 9px'}}><${Ic} name="trash" size=${13}/></button>
+                  </div>
                 </div>
+                ${!g.done&&html`
+                  <div>
+                    <div style=${{display:'flex',alignItems:'center',gap:10,marginBottom:6}}>
+                      <div style=${{flex:1,height:8,background:'rgba(0,0,0,.08)',borderRadius:99,overflow:'hidden'}}>
+                        <div style=${{height:'100%',borderRadius:99,background:ac.bar,width:g.progress+'%',transition:'width .4s ease',boxShadow:'0 1px 4px '+ac.bar+'66'}}/>
+                      </div>
+                      <span style=${{fontSize:'.78rem',fontWeight:700,color:ac.text,minWidth:32,textAlign:'right'}}>${g.progress}%</span>
+                    </div>
+                    <input type="range" min="0" max="100" value=${g.progress} onInput=${e=>setP(g.id,+e.target.value)} style=${{width:'100%',accentColor:ac.bar,cursor:'pointer'}}/>
+                  </div>`}
+              </div>`)}
+          </div>`;
+      })}
+      ${showModal&&html`
+        <div class="overlay" onClick=${()=>setShowModal(false)}>
+          <div class="modal" onClick=${e=>e.stopPropagation()}>
+            <div style=${{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4}}><h2 class="modal-title" style=${{marginBottom:0}}>${editId?"Ziel bearbeiten":"Neues Ziel"}</h2><button style=${{background:"none",border:"none",cursor:"pointer",color:"var(--muted)",padding:4,borderRadius:8,display:"flex"}} onClick=${()=>setShowModal(false)}><${Ic} name="x" size=${20}/></button></div>
+            <div class="form-row"><label class="label">Ziel</label><input class="input" value=${form.title} onInput=${e=>setForm(f=>({...f,title:e.target.value}))} placeholder="Was möchtest du erreichen?"/></div>
+            <div class="form-grid">
+              <div class="form-row"><label class="label">Bereich</label>
+                <select class="select" value=${form.area} onChange=${e=>setForm(f=>({...f,area:e.target.value}))}>
+                  ${AREAS.map(a=>html`<option key=${a} value=${a}>${a}</option>`)}
+                </select>
               </div>
+              <div class="form-row"><label class="label">Zieldatum</label><input class="input" type="date" value=${form.deadline} onInput=${e=>setForm(f=>({...f,deadline:e.target.value}))}/></div>
             </div>
-          </div>`)}
-      </div>
-      ${filtered.length===0&&html`<div style=${{textAlign:'center',padding:'44px',color:'var(--muted)'}}><p>Noch keine Inhalte in dieser Kategorie.</p></div>`}
-      ${showUpload&&html`
-        <div class="overlay" onClick=${()=>setShowUpload(false)}>
-          <div class="modal" style=${{width:500}} onClick=${e=>e.stopPropagation()}>
-<div style=${{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4}}><h2 class="modal-title" style=${{marginBottom:0}}>Material hochladen</h2><button style=${{background:"none",border:"none",cursor:"pointer",color:"var(--muted)",padding:4,borderRadius:8,display:"flex"}} onClick=${()=>setShowUpload(false)}><${Ic} name="x" size=${20}/></button></div>
             <div class="form-row">
-              <div class=${"upload-zone"+(drag?" drag":"")} onDragOver=${e=>{e.preventDefault();setDrag(true);}} onDragLeave=${()=>setDrag(false)} onDrop=${handleDrop} onClick=${()=>fileRef.current?.click()}>
-                <div style=${{display:'flex',justifyContent:'center',opacity:.5}}><${Ic} name="upload" size=${30}/></div>
-                <p>Datei hierher ziehen oder klicken</p>
-                <span>Audio · Video · PDF · DOCX</span>
-                <input ref=${fileRef} type="file" style=${{display:'none'}} accept="audio/*,video/*,.pdf,.docx,.txt" onChange=${handleFile}/>
+              <label class="label">Fortschritt: ${form.progress}%</label>
+              <div style=${{display:'flex',alignItems:'center',gap:10}}>
+                <div style=${{flex:1,height:8,background:'var(--border)',borderRadius:99,overflow:'hidden'}}>
+                  <div style=${{height:'100%',borderRadius:99,background:'var(--teal)',width:form.progress+'%'}}/>
+                </div>
+                <span style=${{fontSize:'.8rem',fontWeight:700,color:'var(--muted)',minWidth:32}}>${form.progress}%</span>
               </div>
+              <input type="range" min="0" max="100" value=${form.progress} onInput=${e=>setForm(f=>({...f,progress:+e.target.value}))} style=${{width:'100%',marginTop:6,accentColor:'var(--teal)'}}/>
             </div>
-            <div class="form-row"><label class="label">Typ</label>
-              <div style=${{display:'flex',gap:7}}>
-                ${["audio","video","dokus"].map(t=>html`
-                  <button key=${t} onClick=${()=>setForm(f=>({...f,type:t}))}
-                    style=${{padding:'7px 14px',borderRadius:10,border:'1.5px solid',fontFamily:"'Exo 2',sans-serif",fontWeight:700,fontSize:'.81rem',cursor:'pointer',display:'flex',alignItems:'center',gap:6,borderColor:form.type===t?'var(--teal)':'var(--border)',background:form.type===t?'var(--sage)':'var(--surface)',color:'var(--text)'}}>
-                    <${Ic} name=${t==="audio"?"music":t==="video"?"video":"file"} size=${13}/>
-                    ${t==="audio"?"Audio":t==="video"?"Video":"Text"}
-                  </button>`)}
+            <div style=${{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:18}}>
+              <div>
+                ${editId&&html`<button style=${{background:"#fff0ef",border:"1.5px solid #f5c0bc",color:"var(--danger)",padding:"7px 14px",borderRadius:10,cursor:"pointer",fontFamily:"'Exo 2',sans-serif",fontWeight:700,fontSize:".82rem",display:"flex",alignItems:"center",gap:6}}
+                  onClick=${()=>{setShowModal(false);setReminders(rs=>rs.filter(x=>x.id!==editId));}}>
+                  <${Ic} name="trash" size=${14}/> Löschen
+                </button>`}
               </div>
-            </div>
-            <div class="form-row"><label class="label">Titel</label><input class="input" value=${form.title} onInput=${e=>setForm(f=>({...f,title:e.target.value}))} placeholder="z.B. Atemübung — 5 Minuten"/></div>
-            <div class="form-row"><label class="label">Beschreibung</label><textarea class="textarea" rows=${2} value=${form.desc} onInput=${e=>setForm(f=>({...f,desc:e.target.value}))} placeholder="Unser nächster Termin - wähle bitte alle Zeitfenster, die dir passen."/></div>
-            <div class="modal-actions">
-              <button class="btn btn-ghost" onClick=${()=>setShowUpload(false)}>Abbrechen</button>
-              <button class="btn btn-primary" onClick=${save}><${Ic} name="upload" size=${13}/> Speichern</button>
+              <div style=${{display:"flex",gap:8}}>
+                <button class="btn btn-ghost" onClick=${()=>setShowModal(false)}>Abbrechen</button>
+                <button class="btn btn-primary" onClick=${save}><${Ic} name="check" size=${14}/> Speichern</button>
+              </div>
             </div>
           </div>
         </div>`}
     </div>`;
 }
 
-// ── REMINDERS PAGE ──
-const SYMBOLS = [
-  {name:'Lebensbaum',desc:'Verbindung von Himmel und Erde, Generationen, Verwurzelung',svg:`<svg width="52" height="66" viewBox="590 188 820 1038" xmlns="http://www.w3.org/2000/svg"><path fill="#060606" d="M989 188C978.118 214.129 950.353 235.269 949.039 265C948.264 282.548 952.003 296.947 962.888 311C967.631 317.123 976.295 321.64 979.107 329C980.624 332.973 980 337.83 980 342L980 365C980 374.608 979.433 384.414 980.089 394C981.151 409.504 982.857 426.61 980 442L978 442C973.768 432.925 963.924 426.297 956 420.576C947.191 414.215 938.397 406.906 932.04 398C930.019 395.168 927.111 391.63 926.948 388C926.781 384.267 929.515 380.508 930.56 377C932.823 369.406 932.826 360.333 929.662 353C921.282 333.579 897.477 325.026 888 306C884.061 310.773 882.575 317.078 881.13 323C877.319 338.612 873.617 361.784 885.468 374.826C893.155 383.286 905.185 383.97 912.895 392.043C917.417 396.778 917.756 402.363 920.399 408C923.252 414.085 927.371 419.824 931.616 425C938.816 433.781 947.868 440.251 956 448.039C965.003 456.661 972.883 466.943 978.68 478C983.623 487.428 982 498.674 982 509L982 570C974.663 566.914 968.575 561.693 961 558.814C946.772 553.407 932.449 552.269 921.09 540.91C907.319 527.139 903.076 506.376 899.4 488C893.333 457.676 889.974 426.801 877.988 398C872.871 385.703 865.348 374.464 855.996 365C849.209 358.132 838.53 350.702 834.179 342C832.52 338.682 833 334.594 833 331C833 324.566 833.027 318.334 831.714 312C827.622 292.245 815.655 275.422 802.036 261C797.593 256.296 793.981 250.789 788 248C782.147 273.299 763.637 305.977 780.108 331C789.873 345.836 805.256 343.487 819 351.036C835.523 360.11 848.969 377.833 857.961 394C873.003 421.045 876.631 453.841 880.87 484C883.539 502.99 886.199 522.425 894.309 540C900.805 554.076 911.913 565.24 926 571.691C940.821 578.479 955.41 579.988 966.815 593C975.818 603.272 978.583 616.859 980.155 630C983.243 655.806 981 683.003 981 709C975.186 705.918 972.232 700.338 968.667 695C963.887 687.844 958.924 680.726 953.551 674C948.015 667.07 942.064 660.896 935 655.503C925.87 648.533 916.238 643.349 910.338 633C904.635 622.997 903.608 612.02 901.336 601C898.297 586.263 893.698 571.775 885.564 559C877.924 547.001 867.836 537.783 857 528.753C848.415 521.598 837.97 513.505 833.363 503C828.147 491.108 834.519 477.534 832.561 465C828.266 437.501 802.914 412.75 778 402C778 420.023 776 437.935 776 456C776 466.03 775.619 475.729 780.131 485C784.866 494.73 793.191 500.573 803 504.547C808.014 506.578 814.747 507.175 818.61 511.228C823.991 516.873 826.9 525.018 832.17 531C844.979 545.539 860.372 556.971 868.691 575C876.082 591.019 877.642 608.157 882 625C869.086 622.011 856.544 615.645 845 609.306C821.371 596.329 799.306 580.079 781.17 560C767.322 544.669 755.936 527.327 743.349 511C737.143 502.95 729.591 495.999 723.394 488C716.183 478.693 720.28 465.706 716.453 455C711.051 439.887 696.674 430.707 683 423.756C677.851 421.139 672.725 418.021 667 417C661.801 438.102 660.43 470.141 682 482.906C691.997 488.822 704.107 485.461 712.907 494.105C718.523 499.622 722.216 507.527 726.659 514C737.055 529.148 746.728 544.773 757 560C744.738 559.747 732.086 557.441 720 555.414C714.681 554.521 708.216 554.172 704.434 549.786C701.233 546.075 702.095 540.464 700.64 536C697.443 526.189 690.347 517.769 681 513.326C666.152 506.269 648.67 509.264 633 510.831C620.51 512.08 608.466 512.034 596 512C598.479 520.589 604.337 528.876 609.63 536C623.631 554.847 641.592 568.544 666 567.985C671.802 567.853 677.58 566.61 683 564.575C687.801 562.772 692.733 559.966 698 560.133C705.53 560.373 711.795 565.783 719 567.497C733.13 570.858 747.945 571.298 762 574.902C770.161 576.995 774.361 583.291 780.004 589C787.489 596.572 795.626 603.237 804 609.79C821.841 623.752 842.791 634.649 863 644.753C874.814 650.66 890.082 655.959 899 666C885.841 662.867 871.444 664 858 664C825.142 664 792.678 667.77 760 662.725C742.321 659.996 725.491 653.968 708 650.449C700.258 648.891 690.263 649.826 683.054 646.968C678.799 645.281 677.302 640.529 674.906 637C671.797 632.42 667.708 628.212 663 625.272C642.795 612.654 612.779 623.233 593 632C596.274 638.447 604.299 642.849 610 647.127C624.545 658.04 638.611 670.474 658 668.907C668.499 668.058 674.945 658.342 686 660.669C697.535 663.097 707.986 668.384 719 672.308C736.271 678.46 754.726 683.061 773 684.83C816.95 689.086 862.704 680.332 906 691.478C912.539 693.162 919.128 695.521 925 698.873C929.463 701.42 933.314 704.914 938 707C932.405 708.413 926.594 706.221 921 705.25C911.978 703.683 902.164 702.458 893 703.089C875.027 704.327 859.755 715.054 842 716.829C833.59 717.67 825.182 716.701 817 714.764C812.305 713.652 807.847 711.485 803 711.093C790.063 710.049 778.633 715.224 766 716.714C757.277 717.744 748.834 714.745 740 716.322C719.932 719.904 701.882 740.764 701 761C718.829 756.387 740.351 760.53 757 752.004C761.705 749.595 765.444 745.812 767.647 741C769.075 737.882 769.432 734.069 771.703 731.39C773.966 728.721 777.747 727.409 781 726.44C793.265 722.784 804.299 727.233 816 730.573C823.115 732.603 830.613 733.571 838 733.896C852.279 734.524 865.265 728.825 879 726.261C895.905 723.105 913.547 724.457 930 729.439C934.55 730.817 938.925 733.022 943 735.453C968.418 750.615 970.874 779.38 972.039 806C972.543 817.499 973.266 828.476 972.17 840C971.51 846.931 971.566 854.044 971.089 861C970.081 875.732 970.11 890.662 966 905C961.934 919.184 955.243 932.246 944.961 943C903.493 986.369 839.036 983.694 785 996.119C759.859 1001.9 729.713 1009.69 714 1032C729.037 1029.97 744.336 1024.12 759 1020.15C773.894 1016.12 788.887 1013.81 804 1011C793.385 1030.94 775.364 1045.33 754 1052.25C721.867 1062.67 680.307 1064.55 665.454 1101C658.933 1117 661.288 1132.42 662 1149C666.124 1143.07 665.418 1133.95 666.808 1127C669.174 1115.17 674.388 1104.52 683.004 1096.01C708.329 1071.01 749.053 1075.97 780 1061.82C790.789 1056.89 800.888 1049.98 808.711 1041C815.701 1032.98 820.52 1023.2 829 1016.52C844.594 1004.23 863.662 1003.16 882 998C875.936 1016.63 872.631 1035.37 857 1048.7C840.085 1063.13 817.37 1066.12 798 1075.81C778.368 1085.63 764.921 1103.08 758.721 1124C755.89 1133.55 756.973 1142.3 757 1152C761.106 1145.47 762.561 1137.03 765.889 1130C771.877 1117.35 781.56 1105.62 793 1097.57C818.536 1079.6 852.38 1080.93 875.714 1058.56C881.458 1053.06 886.523 1046.4 889.546 1039C894.162 1027.71 895.643 1015.7 901.877 1005C909.664 991.628 923.519 983.608 937 977C932.995 986.766 929.507 997.34 929.039 1008C928.34 1023.95 932.126 1042.15 922.072 1056C913.379 1067.98 900.016 1072.97 888 1080.69C873.057 1090.29 858.585 1100.43 844 1110.56C829.501 1120.64 815.554 1130.71 806.066 1146C794.428 1164.76 787.549 1195.22 808 1211C807.035 1203.36 805.559 1195.73 806.089 1188C807.899 1161.6 824.302 1143.33 846 1130C846.269 1162.44 871.878 1184.33 883 1213C886.224 1205.32 883.006 1195.28 879.988 1188C872.938 1171 856.334 1152.67 861.04 1133C864.259 1119.55 874.663 1110.76 886 1103.81C904.225 1092.64 925.631 1086.41 939.331 1069C949.048 1056.65 952.286 1041.4 952.961 1026C953.389 1016.22 952.577 1006.64 954.899 997C958.482 982.127 967.78 971.802 979 962C979.746 971.436 982.545 980.604 983.714 990C985.57 1004.92 985.316 1020.18 982.54 1035C977.056 1064.27 959.33 1089.57 955.715 1119C953.784 1134.73 957.708 1154.8 971 1165C971 1155.63 969.628 1146.39 970.039 1137C970.58 1124.66 973.291 1111.75 977.029 1100C981.594 1085.65 989.702 1073.47 996 1060C999.252 1066.2 1000.79 1073.36 1003 1080C1007.09 1092.27 1012.52 1105.88 1011.96 1119C1011.37 1132.9 1004.39 1145.93 1007 1160C1011.73 1156.35 1014.39 1151.09 1017.4 1146C1026.71 1130.25 1030.61 1113.07 1027.39 1095C1024.68 1079.84 1018.79 1065.81 1014.88 1051C1009.65 1031.16 1008 1011.42 1008 991C1008 980.95 1007.67 969.794 1010 960C1026.34 971.513 1035.75 992.717 1038.73 1012C1041.84 1032.19 1040.72 1052.05 1054.47 1069C1072.64 1091.4 1115.06 1098.84 1119.7 1131C1122.37 1149.53 1109.65 1162.21 1102.87 1178C1097.61 1190.27 1098.38 1201.18 1100 1214C1105.04 1207.46 1103.82 1195.79 1107.31 1188C1113.15 1174.95 1122.8 1164.06 1128.69 1151C1131.78 1144.13 1132.64 1137.3 1134 1130C1141.65 1136.07 1149.3 1142.22 1155.32 1150C1172.43 1172.1 1173 1199.41 1173 1226C1177.21 1222.16 1178.97 1216.43 1180.37 1211C1183.36 1199.36 1183.97 1186.9 1182.27 1175C1176.43 1134.03 1139.38 1106.84 1108 1083.73C1096 1074.9 1081.14 1067.39 1072.44 1055C1062.88 1041.38 1065.61 1025.65 1063.71 1010C1062.33 998.59 1057.92 988.158 1056 977C1069.06 986.296 1084.58 990.579 1093.53 1005C1100.02 1015.45 1100.05 1026.7 1103.75 1038C1106.67 1046.92 1112.19 1054.55 1119 1060.91C1128.41 1069.71 1140 1076.04 1152 1080.57C1165.09 1085.52 1178.37 1088.49 1190 1096.78C1207.94 1109.56 1214.43 1127.38 1222 1147C1224.72 1140.53 1223.36 1129.84 1222.25 1123C1218.54 1100.29 1203.36 1083.18 1183 1073.26C1166.79 1065.36 1148.6 1061.39 1135.09 1048.71C1120.48 1035 1122.53 1014.39 1113 998C1129.83 1004.49 1151.17 1005.17 1166 1015.79C1174.46 1021.85 1179.94 1031.09 1186.46 1039C1193.93 1048.05 1203.33 1056.11 1214 1061.11C1246.6 1076.39 1291.98 1063.79 1317.18 1095.01C1320.6 1099.26 1323.34 1103.96 1325.4 1109C1328.65 1116.96 1330.9 1125.47 1332 1134C1336.31 1130.74 1336 1123.99 1336 1119C1336 1103.39 1330.19 1089.01 1318.99 1078.04C1304.78 1064.13 1284.09 1058.06 1265 1054.61C1257.06 1053.18 1248.85 1052.98 1241 1051.1C1222.44 1046.65 1204.77 1035.01 1197 1017C1206.75 1019.52 1216.47 1021.3 1226 1024.69C1240.18 1029.74 1254.32 1036.6 1269 1040C1265.99 1032.9 1260.07 1028.35 1254 1023.88C1240.59 1014.01 1225.71 1007.55 1210 1002.33C1157.67 984.952 1095.03 988.993 1052 948.911C1026.35 925.02 1023.01 894.835 1019.83 862C1017.94 842.435 1017 822.675 1017 803C1017 784.712 1015.14 765.714 1020.44 748C1025.47 731.176 1037.11 715.483 1051 704.899C1083.85 679.865 1126.25 687.457 1165 686.996C1174.26 686.886 1183.78 685.836 1193 684.834C1197.64 684.33 1202.31 682.846 1207 683.108C1219.15 683.787 1233.15 690.644 1244 695.781C1248.16 697.75 1253.23 699.849 1255.54 704.093C1257.54 707.756 1256.73 712.033 1257.3 716C1258.24 722.488 1261.08 728.326 1266.04 732.674C1283.7 748.141 1307.47 745.924 1329 745C1320.45 728.756 1311.83 709.584 1295 700.313C1290.06 697.591 1284.57 695.469 1279 694.465C1275.63 693.857 1272.14 694.26 1269 692.686C1257.75 687.043 1249.54 676.619 1237 673L1237 671C1252.08 665.514 1265.39 656.355 1281 651.721C1285.5 650.384 1291.28 648.394 1296 648.525C1301.57 648.679 1306.31 654.159 1311 656.676C1319.71 661.348 1330.13 663.895 1340 662.714C1363.78 659.87 1383.58 644.156 1407 641C1401.78 635.621 1393.77 632.214 1387 629.142C1369.62 621.258 1348.28 614.221 1329 618.286C1323.77 619.388 1319.01 621.562 1315.04 625.185C1310.71 629.142 1307.75 634.052 1302 636.181C1296.89 638.074 1291.32 636.886 1286 637.015C1279.96 637.16 1273.82 638.348 1268 639.884C1246.84 645.464 1227.53 655.853 1206 660.576C1188.45 664.424 1169.95 666.425 1152 665.985C1142.67 665.757 1133.33 664.243 1124 664.015C1107.28 663.605 1090.65 664.656 1074 665C1082.8 652.759 1098.05 644.806 1111 637.694C1130.94 626.743 1150.84 616.213 1169 602.346C1175.24 597.58 1181.38 592.469 1187 586.985C1191.1 582.987 1194.98 577.966 1200 575.089C1204.63 572.437 1210.81 571.556 1216 570.614C1222.36 569.459 1228.61 569.438 1235 568.83C1241.51 568.211 1249.62 566.557 1256 568.703C1260.44 570.196 1263.97 573.825 1268 576.121C1273.87 579.471 1280.26 581.152 1287 581.406C1306.74 582.15 1323.53 568.256 1335.56 554C1340.87 547.713 1347.06 540.747 1350 533C1342.22 531.148 1333.93 531.586 1326 530.83C1311.03 529.405 1293.08 525.769 1279 532.81C1273.27 535.676 1268.21 540.029 1264.24 545.039C1261.55 548.426 1259.6 553.435 1254.98 554.527C1250.18 555.665 1243.87 553.635 1239 553.17C1230.85 552.391 1223.12 552.978 1215 553C1223.08 538.814 1235 526.218 1245.72 514C1251.49 507.415 1257.94 498.575 1265.09 493.523C1268.75 490.937 1273.79 492.145 1278 491.961C1283.37 491.725 1289.15 490.52 1294 488.18C1314.49 478.29 1326.34 458.283 1334.6 438C1337.9 429.903 1341.61 421.864 1342 413C1335.92 415.532 1330.25 418.858 1324 420.997C1306.45 426.999 1286.1 431.362 1272.09 444.3C1265.68 450.226 1261.19 458.484 1259.45 467C1258.42 472.022 1259.32 479.655 1256.4 483.907C1253.29 488.431 1247.19 491.031 1243 494.465C1236.62 499.699 1230.71 505.963 1225.09 512C1208.12 530.222 1194.78 551.807 1176 568.285C1160.35 582.014 1143.61 592.942 1125 602.247C1121.41 604.041 1110.55 611.61 1106.74 608.292C1104.74 606.55 1105.16 603.314 1105.43 601C1106.06 595.644 1106.52 590.284 1107.66 585C1110.35 572.603 1115.29 560.911 1123.31 551C1131.4 541.005 1141.66 533.203 1149.57 523C1155.47 515.401 1160.33 506.838 1164.13 498C1166.37 492.767 1167.69 486.956 1170.53 482C1173.59 476.665 1178.84 473.674 1182.61 468.985C1189.03 461 1192.82 449.096 1193.83 439C1195.4 423.333 1192.09 407.569 1191.02 392C1190.68 386.917 1188.19 379.036 1190.49 374.228C1192.35 370.329 1198.34 370.403 1202 369.946C1207.7 369.234 1213.28 367.063 1218 363.779C1231.76 354.2 1235.27 335.482 1237.28 320C1238.16 313.247 1238.95 305.595 1237 299C1230.17 301.844 1223.62 305.443 1217 308.753C1202.74 315.881 1186.9 323.448 1182.04 340C1180.43 345.491 1180.49 352.353 1181.3 358C1182.1 363.525 1184.61 367.638 1181.75 373C1169.64 395.67 1147.58 412.46 1143.44 439C1142.09 447.62 1142.98 456.742 1145.67 465C1148.54 473.792 1153.67 480.659 1149.66 490C1139.47 513.735 1115.29 525.525 1101.04 546C1092.62 558.094 1086.81 572.289 1085.17 587C1083.99 597.496 1086.09 610.661 1080.52 620C1074.26 630.497 1061.54 637.357 1053 646C1043.71 655.401 1036.18 666.247 1028.58 677C1022.48 685.613 1015.52 694.449 1011 704C1007.33 691.582 1008.53 675.936 1007.96 663C1007.57 654.122 1007.67 644.844 1006.83 636C1006.1 628.296 1004.7 619.558 1007.05 612C1009.41 604.423 1015.64 597.621 1021.04 592.001C1026.3 586.52 1032.18 581.683 1039 578.27C1052.97 571.281 1067.76 568.031 1074.54 552C1082.81 532.437 1078.14 509.377 1076.17 489C1074.79 474.75 1073.41 460.347 1074.04 446C1074.32 439.644 1075.73 433.358 1076 427C1068.7 433.261 1067.41 444.964 1065.92 454C1063.02 471.568 1064.27 489.333 1065.04 507C1065.48 517.129 1067.34 527.094 1063.9 537C1058.67 552.028 1044.25 555.424 1031 560.425C1021.25 564.106 1012.56 568.766 1005 576C1004 563.32 1004 550.744 1004 538C1004 526.168 1003.77 515.137 1008.46 504C1013.4 492.276 1023.26 483.241 1029.22 472C1036.11 459 1039.14 444.771 1050.09 434.171C1057.25 427.241 1066.57 423.355 1074 416.816C1079.42 412.046 1083.04 404.68 1089.01 400.728C1093.41 397.822 1099.26 397.102 1104 394.73C1114.66 389.395 1124.08 379.418 1127.9 368C1132.6 353.921 1128.34 337.308 1123.19 324C1121.87 320.607 1118.53 308.791 1113.16 311.752C1108.67 314.223 1104.91 321.14 1101.57 325C1091.76 336.366 1080.25 347.549 1077.46 363C1075.87 371.853 1080.61 384.238 1075.99 392C1067.82 405.721 1049.65 409.619 1038 419.326C1027.44 428.123 1023 438.418 1016.56 450C1013.67 455.204 1009.69 459.723 1007 465C1001.35 454.416 1003.72 437.777 1002.91 426C1001.72 408.659 1000.18 391.345 998.911 374C997.742 358.05 996.061 343.7 1000.72 328C1006.69 307.879 1022.73 293.668 1024.83 272C1027.13 248.259 1017.06 225.19 1003.97 206C999.863 199.974 995.628 191.366 989 188z"/>
-<path fill="#2d2d2d" d="M991.333 257.667C991.278 257.722 991.222 258.778 991.667 258.333C991.723 258.277 991.777 257.223 991.333 257.667z"/>
-<path fill="#181818" d="M948 267L948 274C949.059 271.466 949.059 269.534 948 267z"/>
-<path fill="#1d1d1d" d="M965 271L965 276C965.83 273.97 965.83 273.03 965 271z"/>
-<path fill="#2d2d2d" d="M802 306L802 309C802.696 307.446 802.696 307.554 802 306z"/>
-<path fill="#272727" d="M878.333 337.667C878.278 337.722 878.222 338.778 878.667 338.333C878.723 338.277 878.778 337.222 878.333 337.667z"/>
-<path fill="#2b2b2b" d="M1129.33 349.667C1129.28 349.722 1129.22 350.778 1129.67 350.333C1129.72 350.278 1129.78 349.222 1129.33 349.667z"/>
-<path fill="#2a2a2a" d="M1114 354L1114 357C1114.7 355.446 1114.7 355.554 1114 354z"/>
-<path fill="#2d2d2d" d="M997 357L997 360C997.696 358.446 997.696 358.554 997 357z"/>
-<path fill="#242424" d="M1129 357L1129 360C1129.7 358.446 1129.7 358.554 1129 357z"/>
-<path fill="#2a2a2a" d="M1193.67 359.333C1193.22 359.777 1194.28 359.722 1194.33 359.667C1194.78 359.223 1193.72 359.278 1193.67 359.333z"/>
-<path fill="#2f2f2f" d="M998.333 369.667C998.278 369.722 998.222 370.778 998.667 370.333C998.723 370.277 998.778 369.222 998.333 369.667z"/>
-<path fill="#252525" d="M1189.33 375.667C1189.28 375.722 1189.22 376.778 1189.67 376.333C1189.72 376.278 1189.78 375.222 1189.33 375.667z"/>
-<path fill="#282828" d="M1091.67 381.333C1091.22 381.778 1092.28 381.722 1092.33 381.667C1092.78 381.222 1091.72 381.278 1091.67 381.333z"/>
-<path fill="#171717" d="M980 397L980 405C981.161 402.23 981.161 399.77 980 397z"/>
-<path fill="#2e2e2e" d="M980 405L980 412C981.06 409.466 981.06 407.534 980 405z"/>
-<path fill="#2b2b2b" d="M1193.33 416.667C1193.28 416.723 1193.22 417.778 1193.67 417.333C1193.72 417.278 1193.78 416.222 1193.33 416.667z"/>
-<path fill="#292929" d="M665.333 423.667C665.278 423.722 665.222 424.778 665.667 424.333C665.722 424.278 665.778 423.222 665.333 423.667z"/>
-<path fill="#292929" d="M1143.33 437.667C1143.28 437.722 1143.22 438.778 1143.67 438.333C1143.72 438.278 1143.78 437.222 1143.33 437.667z"/>
-<path fill="#282828" d="M978.667 441.333C978.222 441.778 979.278 441.722 979.333 441.667C979.778 441.222 978.722 441.278 978.667 441.333z"/>
-<path fill="#2f2f2f" d="M1158 444L1158 450C1158.95 447.715 1158.95 446.285 1158 444z"/>
-<path fill="#1e1e1e" d="M775 453L775 463C776.346 459.793 776.346 456.207 775 453z"/>
-<path fill="#222222" d="M1004.33 453.667C1004.28 453.722 1004.22 454.778 1004.67 454.333C1004.72 454.278 1004.78 453.222 1004.33 453.667z"/>
-<path fill="#202020" d="M792.333 466.667C792.278 466.722 792.222 467.778 792.667 467.333C792.722 467.278 792.778 466.222 792.333 466.667z"/>
-<path fill="#262626" d="M1064.33 467.667C1064.28 467.722 1064.22 468.778 1064.67 468.333C1064.72 468.278 1064.78 467.222 1064.33 467.667z"/>
-<path fill="#252525" d="M897.333 477.667C897.278 477.722 897.222 478.778 897.667 478.333C897.722 478.278 897.778 477.222 897.333 477.667z"/>
-<path fill="#212121" d="M815 483L815 489C815.951 486.715 815.951 485.285 815 483z"/>
-<path fill="#292929" d="M1064 492L1064 495C1064.7 493.446 1064.7 493.554 1064 492z"/>
-<path fill="#2e2e2e" d="M1077.33 500.667C1077.28 500.722 1077.22 501.777 1077.67 501.333C1077.72 501.278 1077.78 500.222 1077.33 500.667z"/>
-<path fill="#1f1f1f" d="M644.667 509.333C644.222 509.778 645.278 509.722 645.333 509.667C645.778 509.222 644.722 509.278 644.667 509.333z"/>
-<path fill="#2a2a2a" d="M634.667 510.333C634.222 510.778 635.278 510.722 635.333 510.667C635.778 510.222 634.722 510.278 634.667 510.333z"/>
-<path fill="#2d2d2d" d="M1065 511L1065 514C1065.7 512.446 1065.7 512.554 1065 511z"/>
-<path fill="#212121" d="M1078.33 514.667C1078.28 514.723 1078.22 515.777 1078.67 515.333C1078.72 515.278 1078.78 514.222 1078.33 514.667z"/>
-<path fill="#272727" d="M1288.67 529.333C1288.22 529.777 1289.28 529.723 1289.33 529.667C1289.78 529.222 1288.72 529.278 1288.67 529.333z"/>
-<path fill="#2e2e2e" d="M1323.67 530.333C1323.22 530.777 1324.28 530.722 1324.33 530.667C1324.78 530.222 1323.72 530.278 1323.67 530.333z"/>
-<path fill="#242424" d="M1221 552C1222.25 552.685 1222.55 552.749 1224 553C1222.75 552.315 1222.45 552.251 1221 552z"/>
-<path fill="#222222" d="M1237 568C1238.25 568.685 1238.55 568.749 1240 569C1238.75 568.315 1238.45 568.251 1237 568z"/>
-<path fill="#2b2b2b" d="M729.667 569.333C729.222 569.778 730.278 569.722 730.333 569.667C730.778 569.222 729.722 569.278 729.667 569.333z"/>
-<path fill="#2b2b2b" d="M1004 569L1004 572C1004.7 570.446 1004.7 570.554 1004 569z"/>
-<path fill="#282828" d="M747.667 572.333C747.222 572.778 748.278 572.722 748.333 572.667C748.778 572.222 747.722 572.278 747.667 572.333z"/>
-<path fill="#222222" d="M1285.67 581.333C1285.22 581.777 1286.28 581.722 1286.33 581.667C1286.78 581.222 1285.72 581.278 1285.67 581.333z"/>
-<path fill="#272727" d="M1084.33 592.667C1084.28 592.723 1084.22 593.777 1084.67 593.333C1084.72 593.278 1084.78 592.222 1084.33 592.667z"/>
-<path fill="#232323" d="M1340 617C1341.25 617.685 1341.55 617.749 1343 618C1341.75 617.315 1341.45 617.251 1340 617z"/>
-<path fill="#292929" d="M1006 631L1006 634C1006.7 632.446 1006.7 632.554 1006 631z"/>
-<path fill="#262626" d="M980 632L980 635C980.696 633.446 980.696 633.554 980 632z"/>
-<path fill="#202020" d="M1333.67 633.333C1333.22 633.778 1334.28 633.722 1334.33 633.667C1334.78 633.222 1333.72 633.278 1333.67 633.333z"/>
-<path fill="#1e1e1e" d="M1339 633C1340.25 633.685 1340.55 633.749 1342 634C1340.75 633.315 1340.45 633.251 1339 633z"/>
-<path fill="#242424" d="M1007 654L1007 659C1007.83 656.97 1007.83 656.03 1007 654z"/>
-<path fill="#252525" d="M898 664L897 666L899 666C899 664.147 899.3 664.65 898 664z"/>
-<path fill="#212121" d="M1079.67 664.333C1079.22 664.777 1080.28 664.722 1080.33 664.667C1080.78 664.222 1079.72 664.278 1079.67 664.333z"/>
-<path fill="#282828" d="M1129 664C1130.25 664.685 1130.55 664.749 1132 665C1130.75 664.315 1130.45 664.251 1129 664z"/>
-<path fill="#1f1f1f" d="M788 665C789.769 665.779 791.036 665.912 793 666C791.231 665.221 789.964 665.088 788 665z"/>
-<path fill="#222222" d="M1146 665C1147.25 665.685 1147.55 665.749 1149 666C1147.75 665.315 1147.45 665.251 1146 665z"/>
-<path fill="#262626" d="M1166 665C1167.25 665.685 1167.55 665.749 1169 666C1167.75 665.315 1167.45 665.251 1166 665z"/>
-<path fill="#222222" d="M780.667 685.333C780.222 685.778 781.278 685.722 781.333 685.667C781.778 685.222 780.722 685.278 780.667 685.333z"/>
-<path fill="#181818" d="M798 686C800.052 686.874 801.747 686.953 804 687C801.948 686.126 800.253 686.047 798 686z"/>
-<path fill="#222222" d="M812 686C813.248 686.685 813.548 686.749 815 687C813.752 686.315 813.452 686.251 812 686z"/>
-<path fill="#262626" d="M867 686C868.248 686.685 868.548 686.749 870 687C868.752 686.315 868.452 686.251 867 686z"/>
-<path fill="#212121" d="M1171 686C1172.25 686.685 1172.55 686.749 1174 687C1172.75 686.315 1172.45 686.251 1171 686z"/>
-<path fill="#202020" d="M882.667 687.333C882.222 687.778 883.278 687.722 883.333 687.667C883.778 687.222 882.722 687.278 882.667 687.333z"/>
-<path fill="#272727" d="M905 703C906.248 703.685 906.548 703.749 908 704C906.752 703.315 906.452 703.251 905 703z"/>
-<path fill="#252525" d="M744 715C745.248 715.685 745.548 715.749 747 716C745.752 715.315 745.452 715.251 744 715z"/>
-<path fill="#2e2e2e" d="M797.667 725.333C797.222 725.778 798.278 725.722 798.333 725.667C798.778 725.222 797.722 725.278 797.667 725.333z"/>
-<path fill="#2d2d2d" d="M972 810L972 818C973.161 815.23 973.161 812.77 972 810z"/>
-<path fill="#2b2b2b" d="M972 827L972 833C972.951 830.715 972.951 829.285 972 827z"/>
-<path fill="#181818" d="M972 833L972 838C972.83 835.97 972.83 835.03 972 833z"/>
-<path fill="#232323" d="M935 977C935.545 978.635 935.365 978.455 937 979L937 977L935 977z"/>
-<path fill="#222222" d="M845.667 986.333C845.222 986.778 846.278 986.722 846.333 986.667C846.778 986.222 845.722 986.278 845.667 986.333z"/>
-<path fill="#252525" d="M816.667 990.333C816.222 990.778 817.278 990.722 817.333 990.667C817.778 990.222 816.722 990.278 816.667 990.333z"/>
-<path fill="#1e1e1e" d="M803.333 1011.67C803.278 1011.72 803.222 1012.78 803.667 1012.33C803.722 1012.28 803.778 1011.22 803.333 1011.67z"/>
-<path fill="#2c2c2c" d="M983.333 1027.67C983.278 1027.72 983.222 1028.78 983.667 1028.33C983.722 1028.28 983.778 1027.22 983.333 1027.67z"/>
-<path fill="#2e2e2e" d="M952 1030L952 1033C952.696 1031.45 952.696 1031.55 952 1030z"/>
-<path fill="#272727" d="M982.333 1034.67C982.277 1034.72 982.222 1035.78 982.667 1035.33C982.722 1035.28 982.778 1034.22 982.333 1034.67z"/>
-<path fill="#2b2b2b" d="M1243.67 1068.33C1243.22 1068.78 1244.28 1068.72 1244.33 1068.67C1244.78 1068.22 1243.72 1068.28 1243.67 1068.33z"/>
-<path fill="#2a2a2a" d="M1264.67 1071.33C1264.22 1071.78 1265.28 1071.72 1265.33 1071.67C1265.78 1071.22 1264.72 1071.28 1264.67 1071.33z"/>
-<path fill="#252525" d="M1028.33 1102.67C1028.28 1102.72 1028.22 1103.78 1028.67 1103.33C1028.72 1103.28 1028.78 1102.22 1028.33 1102.67z"/>
-<path fill="#2a2a2a" d="M1028 1112L1028 1116C1028.71 1114.24 1028.71 1113.76 1028 1112z"/>
-<path fill="#2e2e2e" d="M661.333 1114.67C661.278 1114.72 661.222 1115.78 661.667 1115.33C661.722 1115.28 661.778 1114.22 661.333 1114.67z"/>
-<path fill="#232323" d="M955 1118L955 1121C955.696 1119.45 955.696 1119.55 955 1118z"/>
-<path fill="#191919" d="M660 1122L660 1127C660.83 1124.97 660.83 1124.03 660 1122z"/>
-<path fill="#2d2d2d" d="M1011.33 1122.67C1011.28 1122.72 1011.22 1123.78 1011.67 1123.33C1011.72 1123.28 1011.78 1122.22 1011.33 1122.67z"/>
-<path fill="#212121" d="M970.333 1132.67C970.278 1132.72 970.222 1133.78 970.667 1133.33C970.722 1133.28 970.778 1132.22 970.333 1132.67z"/>
-<path fill="#2b2b2b" d="M756.333 1135.67C756.278 1135.72 756.222 1136.78 756.667 1136.33C756.722 1136.28 756.778 1135.22 756.333 1135.67z"/>
-<path fill="#292929" d="M1223 1135L1223 1138C1223.7 1136.45 1223.7 1136.55 1223 1135z"/>
-<path fill="#2a2a2a" d="M756 1143L756 1146C756.696 1144.45 756.696 1144.55 756 1143z"/>
-<path fill="#2d2d2d" d="M806.333 1198.67C806.278 1198.72 806.222 1199.78 806.667 1199.33C806.722 1199.28 806.778 1198.22 806.333 1198.67z"/>
-<path fill="#1f1f1f" d="M884 1207L884 1210C884.696 1208.45 884.696 1208.55 884 1207z"/>
-</svg>`},
-  {name:'Lotusblüte',desc:'Erwachen, Reinheit, Entfaltung aus dem Dunkeln ins Licht',svg:`<svg width="64" height="36" viewBox="349 339 1302 719" xmlns="http://www.w3.org/2000/svg"><path fill="none" stroke="#1e3a2f" stroke-width="22" stroke-linecap="round" stroke-linejoin="round" d="M883 551C875.393 545.401 869.167 537.003 862.83 530C855.524 521.925 847.073 514.474 839 507.17C804.833 476.257 766.21 448.505 725 427.752C712.402 421.408 699.981 414.866 687 409.281C679.746 406.16 672.112 402.53 664 404.394C653.405 406.829 652.359 418.227 650.424 427C645.559 449.061 641.564 471.457 639.911 494C635.079 559.92 637.972 624.678 654.884 689C661.968 715.943 672.337 741.355 683 767C673.838 765.647 664.938 761.599 656 759.152C639.219 754.559 622.122 750.701 605 747.614C555.175 738.631 502.249 736.832 452 742.845C433.884 745.013 415.821 747.317 398 751.349C390.906 752.955 381.696 753.471 376.532 759.213C368.814 767.796 373.859 777.284 378.248 786C388.183 805.73 400.033 824.927 412.721 843C466.405 919.469 539.942 978.464 626 1014.58C709.516 1049.62 803.582 1058.37 893 1049.83C915.335 1047.7 938.079 1044.39 960 1039.58C968.675 1037.67 977.384 1035.78 986 1033.62C990.216 1032.57 994.629 1030.64 999 1030.47C1006.68 1030.19 1015.49 1034.17 1023 1035.79C1040.31 1039.53 1057.46 1043.14 1075 1045.73C1125.8 1053.21 1176.91 1054.71 1228 1049.83C1358.63 1037.35 1479.49 975.559 1563.25 874C1582.9 850.18 1600.48 824.127 1615.23 797C1620.22 787.831 1629.66 776.033 1626.2 765C1623.4 756.091 1615 754.342 1607 752.576C1589.42 748.693 1571.82 746.009 1554 743.576C1474.02 732.658 1391.45 743.125 1315 768C1355.19 683.191 1367.7 586.736 1359.07 494C1357.01 471.808 1353.49 449.783 1348.79 428C1346.97 419.552 1346.31 408.814 1337 405.148C1329.36 402.141 1321.99 405.439 1315 408.421C1301.78 414.063 1288.85 420.312 1276 426.753C1233.78 447.915 1193.96 476.542 1159 508.17C1143.75 521.963 1130.36 537.34 1116 552C1111.65 533.192 1103.21 514.544 1095.31 497C1080.32 463.764 1062.36 431.485 1040.85 402C1033.4 391.783 1025.8 381.605 1017.57 372C1013.7 367.477 1009.21 362.193 1003 361.214C991.83 359.453 986.063 366.143 979.424 374C972.603 382.074 966.155 390.492 959.884 399C937.231 429.735 918.37 463.228 902.694 498C895.309 514.383 885.642 533.108 883 551z"/></svg>`},
-  {name:'Blume des Lebens',desc:'Einheit aller Dinge, universelle Schöpfung',svg:`<svg width="52" height="52" viewBox="0 0 52 52" fill="none" stroke="#1e3a2f" stroke-width="1.1">
-  <circle cx="26" cy="26" r="25" stroke-dasharray="2,0"/>
-  <circle cx="26" cy="26" r="7"/>
-  <circle cx="26" cy="19" r="7"/>
-  <circle cx="32" cy="22.5" r="7"/>
-  <circle cx="32" cy="29.5" r="7"/>
-  <circle cx="26" cy="33" r="7"/>
-  <circle cx="20" cy="29.5" r="7"/>
-  <circle cx="20" cy="22.5" r="7"/>
-  <circle cx="26" cy="12" r="7"/>
-  <circle cx="38" cy="19" r="7"/>
-  <circle cx="38" cy="33" r="7"/>
-  <circle cx="26" cy="40" r="7"/>
-  <circle cx="14" cy="33" r="7"/>
-  <circle cx="14" cy="19" r="7"/>
-</svg>`},
-  {name:'Pentagramm',desc:'Fünf Elemente, Mensch im Universum, göttliche Ordnung',svg:`<svg width="72" height="72" viewBox="0 0 72 72" fill="none" stroke="#1e3a2f" stroke-width="1.4">
-  <circle cx="36" cy="36" r="33"/>
-  <!-- Perfect pentagram: 5 points at 72° intervals, starting top -->
-  <!-- Points at: top(36,4), upper-right(65,27), lower-right(54,62), lower-left(18,62), upper-left(7,27) -->
-  <!-- Star connections: 0→2→4→1→3→0 -->
-  <polygon points="36,4 54,62 7,27 65,27 18,62" fill="none"/>
-</svg>`},
-  {name:'Same des Lebens',desc:'Ursprung, Potenzial, Beginn von allem',svg:`<svg width="64" height="64" viewBox="0 0 64 64" fill="none" stroke="#1e3a2f" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="32" cy="32" r="9"/><circle cx="32" cy="23" r="9"/><circle cx="40" cy="27.5" r="9"/><circle cx="40" cy="36.5" r="9"/><circle cx="32" cy="41" r="9"/><circle cx="24" cy="36.5" r="9"/><circle cx="24" cy="27.5" r="9"/></svg>`},
-  {name:'Torusfeld',desc:'Selbsterneuerung, Energiefluss, das eigene Herzfeld',svg:`<svg width="52" height="52" viewBox="0 0 52 52" fill="none" stroke="#1e3a2f" stroke-width="1.3">
-  <ellipse cx="26" cy="26" rx="23" ry="23"/>
-  <ellipse cx="26" cy="26" rx="23" ry="9"/>
-  <ellipse cx="26" cy="26" rx="9" ry="23"/>
-  <ellipse cx="26" cy="26" rx="6" ry="6"/>
-  <path d="M26,3 Q40,10 40,26 Q40,42 26,49" stroke-dasharray="3,2"/>
-  <path d="M26,3 Q12,10 12,26 Q12,42 26,49" stroke-dasharray="3,2"/>
-</svg>`},
-  {name:'Lemniskate',desc:'Unendlichkeit, ewiger Kreislauf, zeitloses Sein',svg:`<svg width="52" height="52" viewBox="0 0 52 52" fill="none" stroke="#1e3a2f" stroke-width="1.4">
-  <path d="M26,26 C26,26 16,12 8,16 C2,19 2,33 8,36 C16,40 26,26 26,26 C26,26 36,12 44,16 C50,19 50,33 44,36 C36,40 26,26 26,26"/>
-</svg>`},
-  {name:'Oktaeder',desc:'Luft, Denken, mentale Klarheit und Reflexion',svg:`<svg width="52" height="52" viewBox="0 0 52 52" fill="none" stroke="#1e3a2f" stroke-width="1.3">
-  <polygon points="26,4 48,26 26,48 4,26"/>
-  <line x1="4" y1="26" x2="48" y2="26"/>
-  <line x1="26" y1="4" x2="26" y2="48"/>
-  <ellipse cx="26" cy="26" rx="22" ry="8" stroke-dasharray="3,2"/>
-</svg>`},
-  {name:'Sri Yantra',desc:'Kosmische Schöpfung, Einheit von Bewusstsein und Energie',svg:`<svg width="52" height="52" viewBox="0 0 52 52" fill="none" stroke="#1e3a2f" stroke-width="1.2">
-  <circle cx="26" cy="26" r="23"/>
-  <!-- 9 interlocking triangles approximation -->
-  <polygon points="26,6 44,38 8,38"/>
-  <polygon points="26,46 8,14 44,14"/>
-  <polygon points="26,10 41,34 11,34"/>
-  <polygon points="26,42 11,18 41,18"/>
-  <polygon points="26,14 38,30 14,30"/>
-  <polygon points="26,38 14,22 38,22"/>
-  <circle cx="26" cy="26" r="2.5" fill="#1e3a2f"/>
-</svg>`},
-  {name:'Vesica Piscis',desc:'Verbindung, Brücke zwischen zwei Welten, Bewusstsein',svg:`<svg width="52" height="52" viewBox="0 0 52 52" fill="none" stroke="#1e3a2f" stroke-width="1.3">
-  <circle cx="20" cy="26" r="14"/>
-  <circle cx="32" cy="26" r="14"/>
-</svg>`},
-  {name:'Fibonacci-Folge',desc:'Natürliches Wachstum, Harmonie im Universum',svg:`<svg width="52" height="52" viewBox="0 0 52 52" fill="none" stroke="#1e3a2f" stroke-width="1.3">
-  <!-- Fibonacci squares -->
-  <rect x="24" y="24" width="4" height="4"/>
-  <rect x="20" y="24" width="4" height="4"/>
-  <rect x="20" y="20" width="8" height="4"/>
-  <rect x="8" y="20" width="12" height="12"/>
-  <rect x="8" y="8" width="20" height="12" stroke-dasharray="0"/>
-  <!-- Spiral arc -->
-  <path d="M28,28 Q28,24 24,24 Q20,24 20,28 Q20,36 28,36 Q40,36 40,20 Q40,4 20,4" stroke-width="1.5" fill="none"/>
-</svg>`},
-  {name:'Frucht des Lebens',desc:'Vollständigkeit, 13 Informationssysteme der Realität',svg:`<svg width="64" height="64" viewBox="-4 -4 72 72" fill="none" stroke="#1e3a2f" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="32" cy="32" r="7"/><circle cx="32" cy="18" r="7"/><circle cx="44.1" cy="25" r="7"/><circle cx="44.1" cy="39" r="7"/><circle cx="32" cy="46" r="7"/><circle cx="19.9" cy="39" r="7"/><circle cx="19.9" cy="25" r="7"/><circle cx="32" cy="4" r="7"/><circle cx="56.2" cy="18" r="7"/><circle cx="56.2" cy="46" r="7"/><circle cx="32" cy="60" r="7"/><circle cx="7.8" cy="46" r="7"/><circle cx="7.8" cy="18" r="7"/></svg>`},
-  {name:'Hexaeder',desc:'Erde, Stabilität, Verwurzelung und Beständigkeit',svg:`<svg width="52" height="52" viewBox="0 0 52 52" fill="none" stroke="#1e3a2f" stroke-width="1.3">
-  <!-- Cube / Hexaeder isometric -->
-  <polygon points="26,4 46,16 46,38 26,50 6,38 6,16"/>
-  <line x1="26" y1="4" x2="26" y2="26"/>
-  <line x1="46" y1="16" x2="26" y2="26"/>
-  <line x1="6" y1="16" x2="26" y2="26"/>
-  <line x1="26" y1="26" x2="26" y2="50" stroke-dasharray="3,2"/>
-  <line x1="26" y1="26" x2="46" y2="38" stroke-dasharray="3,2"/>
-  <line x1="26" y1="26" x2="6" y2="38" stroke-dasharray="3,2"/>
-</svg>`},
-  {name:'Horusauge',desc:'Schutz, inneres Sehen, Intuition und Weisheit',svg:`<svg width="64" height="64" viewBox="0 0 64 64" fill="none" stroke="#1e3a2f" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4,32 Q18,16 32,16 Q46,16 60,32"/><path d="M4,32 Q18,48 32,48 Q46,48 60,32"/><circle cx="32" cy="32" r="9"/><circle cx="32" cy="32" r="4" fill="#1e3a2f"/><path d="M46,40 Q52,48 50,56 Q48,58 46,56"/><path d="M48,38 Q58,46 56,56"/></svg>`},
-  {name:'Ikosaeder',desc:'Wasser, Fluss, emotionale Intelligenz und Anpassung',svg:`<svg width="64" height="64" viewBox="0 0 64 64" fill="none" stroke="#1e3a2f" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="32" cy="32" r="28"/><polygon points="32,6 54,20 54,44 32,58 10,44 10,20"/><line x1="32" y1="6" x2="32" y2="58"/><line x1="10" y1="20" x2="54" y2="44"/><line x1="54" y1="20" x2="10" y2="44"/></svg>`},
-  {name:'Kabbala',desc:'10 Aspekte des Seins, Weg zur Erleuchtung',svg:`<svg width="64" height="64" viewBox="0 0 64 64" fill="none" stroke="#1e3a2f" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="32" cy="5" r="4"/><circle cx="16" cy="14" r="4"/><circle cx="48" cy="14" r="4"/><circle cx="10" cy="28" r="4"/><circle cx="54" cy="28" r="4"/><circle cx="32" cy="24" r="4"/><circle cx="16" cy="42" r="4"/><circle cx="48" cy="42" r="4"/><circle cx="32" cy="52" r="4"/><circle cx="32" cy="60" r="4"/><line x1="32" y1="9" x2="16" y2="10"/><line x1="32" y1="9" x2="48" y2="10"/><line x1="16" y1="18" x2="10" y2="24"/><line x1="48" y1="18" x2="54" y2="24"/><line x1="16" y1="18" x2="32" y2="20"/><line x1="48" y1="18" x2="32" y2="20"/><line x1="10" y1="32" x2="16" y2="38"/><line x1="54" y1="32" x2="48" y2="38"/><line x1="32" y1="28" x2="16" y2="38"/><line x1="32" y1="28" x2="48" y2="38"/><line x1="16" y1="46" x2="32" y2="48"/><line x1="48" y1="46" x2="32" y2="48"/><line x1="32" y1="9" x2="32" y2="20" stroke-dasharray="2 2"/><line x1="32" y1="28" x2="32" y2="48" stroke-dasharray="2 2"/><line x1="32" y1="56" x2="32" y2="60"/></svg>`},
-  {name:'Merkaba',desc:'Licht-Geist-Körper, Aufstieg und Transformation',svg:`<svg width="52" height="52" viewBox="0 0 52 52" fill="none" stroke="#1e3a2f" stroke-width="1.3">
-  <!-- Merkaba: two interlocking tetrahedra -->
-  <polygon points="26,4 46,38 6,38"/>
-  <polygon points="26,48 46,14 6,14"/>
-  <line x1="26" y1="4" x2="6" y2="38"/>
-  <line x1="26" y1="4" x2="46" y2="38"/>
-  <line x1="6" y1="38" x2="46" y2="38"/>
-  <line x1="26" y1="48" x2="6" y2="14"/>
-  <line x1="26" y1="48" x2="46" y2="14"/>
-  <line x1="6" y1="14" x2="46" y2="14"/>
-  <circle cx="26" cy="26" r="4" fill="none"/>
-</svg>`},
-  {name:'Tetraeder',desc:'Feuer, Wille, Handlungskraft und Transformation',svg:`<svg width="52" height="52" viewBox="0 0 52 52" fill="none" stroke="#1e3a2f" stroke-width="1.3">
-  <polygon points="26,4 48,44 4,44"/>
-  <line x1="26" y1="4" x2="26" y2="44"/>
-  <line x1="26" y1="44" x2="26" y2="44"/>
-  <!-- Inner perspective lines -->
-  <line x1="26" y1="4" x2="30" y2="32" stroke-dasharray="3,2"/>
-  <line x1="4" y1="44" x2="30" y2="32" stroke-dasharray="3,2"/>
-  <line x1="48" y1="44" x2="30" y2="32" stroke-dasharray="3,2"/>
-</svg>`},
-  {name:'Yin & Yang',desc:'Polarität, Gleichgewicht, das Ganze aus Gegensätzen',svg:`<svg width="52" height="52" viewBox="0 0 52 52" fill="none" stroke="#1e3a2f" stroke-width="1.3">
-  <circle cx="26" cy="26" r="22"/>
-  <path d="M26,4 C26,4 37,4 37,15 C37,26 26,26 26,26 C26,26 15,26 15,37 C15,48 26,48 26,48" stroke-width="0"/>
-  <path d="M26,4 C15,4 4,15 4,26 C4,37 15,48 26,48 C26,48 15,48 15,37 C15,26 26,26 26,26 C26,26 37,26 37,15 C37,4 26,4 26,4 Z" fill="#1e3a2f"/>
-  <circle cx="26" cy="15" r="4.5" fill="white" stroke="none"/>
-  <circle cx="26" cy="37" r="4.5" fill="#1e3a2f" stroke="none"/>
-</svg>`}
-];
+// ── JOURNAL PAGE ──
+function JournalPage({journal,setJournal}) {
+  const [text,setText] = useState("");
+  const [mood,setMood] = useState("3");
+  const PROMPTS = ["Was hat mich heute bewegt?","Wofür bin ich dankbar?","Was möchte ich loslassen?","Was habe ich über mich gelernt?"];
+  const add = () => { if(!text.trim())return; setJournal(j=>[{id:Date.now(),text,mood,date:today()},...j]); setText(""); setMood("3"); };
+  const moodLabel = k => MOODS.find(m=>m.key===k)?.label??"";
 
-const REM_AREAS = ["Ich-Sein","Paar-Sein","Eltern-Sein","Allgemein"];
-const REM_AREA_COLOR = {
-  "Ich-Sein":   {bg:"#d8f0e0",tag:"#b0dfc0",text:"#1a5530",bar:"#68b87d"},
-  "Paar-Sein":  {bg:"#eef7e4",tag:"#c8e8a8",text:"#2d5a18",bar:"#a0cb7b"},
-  "Eltern-Sein":{bg:"#fafbe0",tag:"#f0ec90",text:"#6b6200",bar:"#efe454"},
-  "Allgemein":  {bg:"#f0ede8",tag:"#e0d8d0",text:"#5a5248",bar:"#c4b8a8"},
-};
-const BLANK_FORM = {
-  label:"", icon:"sunrise", sacredSymbol:"", time:"08:00",
-  recurrence:"daily", weekdays:[1], monthDays:[1],
-  customInterval:1, customUnit:"Tagen", customWeekdays:[],
-  photos:[], files:[], area:"Allgemein", timesPerDay:1, additionalTimes:[]
-};
+  return html`
+    <div class="content-main">
+      <h1 class="page-heading">Reflexions-Journal</h1>
+      <p class="page-sub">Schreibe täglich auf, was dich bewegt.</p>
+      <div class="card">
+        <div class="card-title"><${Ic} name="pen" size=${17}/> Neuer Eintrag</div>
+        <div class="form-row">
+          <label class="label">Stimmung</label>
+          <div class="mood-row">${MOODS.map(m=>html`<button key=${m.key} class=${"mood-btn"+(mood===m.key?" selected":"")} onClick=${()=>setMood(m.key)}>${m.label}</button>`)}</div>
+        </div>
+        <div class="form-row">
+          <div style=${{display:'flex',gap:6,flexWrap:'wrap',marginBottom:8}}>
+            ${PROMPTS.map(p=>html`<button key=${p} class="btn btn-ghost btn-sm" onClick=${()=>setText(t=>t?t+"\n\n"+p+" ":p+" ")}>${p}</button>`)}
+          </div>
+          <textarea class="textarea" rows=${4} value=${text} onInput=${e=>setText(e.target.value)} placeholder="Deine Gedanken…"/>
+        </div>
+        <button class="btn btn-primary" onClick=${add}>Speichern</button>
+      </div>
+      ${journal.map(e=>html`
+        <div key=${e.id} class="journal-entry">
+          <div class="je-header">
+            <span class="je-date">${fmtDate(e.date)}</span>
+            <div style=${{display:'flex',gap:9,alignItems:'center'}}>
+              <span style=${{fontSize:'.75rem',color:'var(--muted)'}}>${fmtDate(e.date)}</span>
+              <button class="btn btn-danger btn-sm" style=${{padding:'2px 7px'}} onClick=${()=>setJournal(js=>js.filter(j=>j.id!==e.id))}><${Ic} name="trash" size=${11}/></button>
+            </div>
+          </div>
+          <p class="je-text">${e.text}</p>
+        </div>`)}
+    </div>`;
+}
 
+function LibraryPage({library,setLibrary}) {
+  const [searchQ,setSearchQ] = useState('');
+  const [filter,setFilter]   = useState("all");
+  const [viewer,setViewer]   = useState(null);
 
-const REC_TABS = [
-  {id:"daily",   icon:"sun",    label:"Täglich"},
-  {id:"weekly",  icon:"repeat", label:"Wöchentlich"},
-  {id:"monthly", icon:"calendar",label:"Monatlich"},
-  {id:"custom",  icon:"sliders", label:"Benutzerdefiniert"},
-];
+  const TYPES = [{id:"all",label:"Alle",icon:"library"},{id:"audio",label:"Audio",icon:"music"},{id:"video",label:"Video",icon:"video"},{id:"dokus",label:"Dokus",icon:"file"}];
+  const COLOR  = {audio:"#68b87d",video:"#a0cb7b",dokus:"#efe454"};
+  const BG     = {audio:"#d8f0e0",video:"#eef7e4",dokus:"#fafbe0"};
+  const BadgeCls = {audio:"badge-audio",video:"badge-video",dokus:"badge-dokus"};
 
+  const filtered = (filter==="all"?library:library.filter(i=>i.type===filter))
+    .filter(i=>!searchQ||i.title.toLowerCase().includes(searchQ.toLowerCase())||
+      (i.desc&&i.desc.toLowerCase().includes(searchQ.toLowerCase()))||
+      (i.keywords&&i.keywords.toLowerCase().includes(searchQ.toLowerCase())));
 
+  const openViewer = item => {
+    if(!item.fileUrl) return;
+    try {
+      const arr=item.fileUrl.split(',');
+      const mime=arr[0].match(/:(.*?);/)[1];
+      const bstr=atob(arr[1]); let n=bstr.length;
+      const u8=new Uint8Array(n); while(n--)u8[n]=bstr.charCodeAt(n);
+      const blob=new Blob([u8],{type:mime});
+      const url=URL.createObjectURL(blob);
+      setViewer({url, name:item.fileName||item.title, type:item.type});
+    } catch(e){ window.open(item.fileUrl,'_blank'); }
+  };
 
+  const closeViewer = () => {
+    if(viewer?.url) URL.revokeObjectURL(viewer.url);
+    setViewer(null);
+  };
 
+  const ThumbContent = ({item}) => {
+    if(item.type==="video") {
+      if(item.thumbData) return html`
+        <div style=${{position:"relative",height:"100%",overflow:"hidden"}}>
+          <img src=${item.thumbData} style=${{width:"100%",height:"100%",objectFit:"cover",display:"block"}}/>
+          <div style=${{position:"absolute",inset:0,background:"rgba(0,0,0,.2)",display:"flex",alignItems:"center",justifyContent:"center"}}>
+            <div style=${{width:44,height:44,borderRadius:"50%",background:"rgba(255,255,255,.92)",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 2px 12px rgba(0,0,0,.3)"}}>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="#1a1a1a"><path d="M5 3l14 9-14 9V3z"/></svg>
+            </div>
+          </div>
+          ${item.duration&&html`<div style=${{position:"absolute",bottom:6,left:8,background:"rgba(0,0,0,.65)",color:"white",fontSize:".65rem",fontWeight:700,padding:"2px 6px",borderRadius:4,display:"flex",alignItems:"center",gap:4}}>
+            <span style=${{background:"white",color:"#111",fontSize:".55rem",padding:"0 3px",borderRadius:2,fontWeight:700}}>HD</span>${item.duration}
+          </div>`}
+        </div>`;
+      return html`
+        <div style=${{display:"flex",alignItems:"center",justifyContent:"center",height:"100%",background:"#1a1a1a",position:"relative"}}>
+          <div style=${{position:"absolute",top:5,left:6,display:"flex",gap:3}}>
+            ${[0,1,2,3].map(i=>html`<div key=${i} style=${{width:5,height:5,background:"rgba(255,255,255,.2)",borderRadius:1}}/>`)}
+          </div>
+          <div style=${{position:"absolute",bottom:5,left:6,display:"flex",gap:3}}>
+            ${[0,1,2,3].map(i=>html`<div key=${i} style=${{width:5,height:5,background:"rgba(255,255,255,.2)",borderRadius:1}}/>`)}
+          </div>
+          <div style=${{width:38,height:38,borderRadius:"50%",background:"rgba(255,255,255,.25)",border:"2px solid rgba(255,255,255,.5)",display:"flex",alignItems:"center",justifyContent:"center"}}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M5 3l14 9-14 9V3z"/></svg>
+          </div>
+        </div>`;
+    }
+    if(item.type==="audio") {
+      const wave = item.thumbData ? JSON.parse(item.thumbData) : null;
+      return html`
+        <div style=${{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:"100%",gap:8,position:"relative"}}>
+          ${wave
+            ? html`<div style=${{display:"flex",alignItems:"center",gap:2,height:44,padding:"0 12px"}}>
+                ${wave.map((h,i)=>html`<div key=${i} style=${{width:3,height:Math.round(h*44)+"px",background:COLOR.audio,borderRadius:2,opacity:.8}}/>`)}\
+              </div>`
+            : html`<div style=${{display:"flex",alignItems:"center",gap:2,height:36}}>
+                ${[12,24,32,20,28,16,30,22,14,28,18,26].map((h,i)=>html`<div key=${i} style=${{width:3,height:h,background:COLOR.audio,borderRadius:2,opacity:.7}}/>`)}\
+              </div>`}
+          <div style=${{display:"flex",alignItems:"center",gap:8}}>
+            <div style=${{width:30,height:30,borderRadius:"50%",background:COLOR.audio,display:"flex",alignItems:"center",justifyContent:"center"}}>
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="white"><path d="M5 3l14 9-14 9V3z"/></svg>
+            </div>
+            ${item.duration&&html`<span style=${{fontSize:".72rem",fontWeight:700,color:"#2a6644"}}>${item.duration}</span>`}
+          </div>
+        </div>`;
+    }
+    return html`
+      <div style=${{display:"flex",alignItems:"center",justifyContent:"center",height:"100%",position:"relative"}}>
+        <div style=${{position:"relative",width:58,height:74}}>
+          <div style=${{position:"absolute",top:4,left:4,width:58,height:72,background:"#f0efcc",borderRadius:3,border:"1px solid #d4d084"}}/>
+          <div style=${{position:"absolute",top:2,left:2,width:58,height:72,background:"#f5f4d8",borderRadius:3,border:"1px solid #d4d084"}}/>
+          <div style=${{position:"absolute",top:0,left:0,width:58,height:72,background:"white",borderRadius:3,border:"1.5px solid #c8c850",display:"flex",flexDirection:"column",padding:"7px 6px",gap:3}}>
+            ${[90,70,85,55,80,65,75,50,70,60].map((w,i)=>html`<div key=${i} style=${{height:i===3?1:2,background:i===3?"#eee":"#d4d084",borderRadius:2,width:w+"%"}}/>`)}\
+          </div>
+        </div>
+        ${item.fileUrl&&html`<div style=${{position:"absolute",bottom:6,right:6,display:"flex",alignItems:"center",gap:3,fontSize:".6rem",fontWeight:700,color:"#a0a060"}}>
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Öffnen
+        </div>`}
+      </div>`;
+  };
+
+  return html`
+    <div class="content-main">
+      <div><h1 class="page-heading">Mediathek</h1>
+        <p class="page-sub">Impulse, Übungen und Inspiration für deinen Alltag — von Diana & Rico.</p>
+      </div>
+
+      <div style=${{marginBottom:10}}>
+        <input class="input" type="text" placeholder="Inhalte suchen…"
+          value=${searchQ} onInput=${e=>setSearchQ(e.target.value)}
+          style=${{width:"100%",padding:"9px 14px"}}/>
+      </div>
+      <div class="lib-filter" style=${{marginBottom:12}}>
+        ${TYPES.map(t=>html`
+          <button key=${t.id} data-type=${t.id}
+            class=${"lib-filter-btn"+(filter===t.id?" sel":"")}
+            onClick=${()=>setFilter(t.id)}>
+            <${Ic} name=${t.icon} size=${13}/>${t.label}
+          </button>`)}
+      </div>
+
+      <div class="lib-grid">
+        ${filtered.map(item=>html`
+          <div key=${item.id} class="lib-card" onClick=${()=>openViewer(item)}
+            style=${{cursor:item.fileUrl?"pointer":"default"}}>
+            <div class="lib-thumb" style=${{background:BG[item.type]||"#f0ede8",borderBottom:"2px solid "+COLOR[item.type],position:"relative",overflow:"hidden"}}>
+              <${ThumbContent} item=${item}/>
+              <span class=${"lib-type-badge "+BadgeCls[item.type]}>
+                <${Ic} name=${item.type==="audio"?"music":item.type==="video"?"video":"file"} size=${10}/>
+                ${item.type==="audio"?"Audio":item.type==="video"?"Video":"Doku"}
+              </span>
+            </div>
+            <div class="lib-card-body" style=${{borderLeft:"3px solid "+COLOR[item.type]}}>
+              <div class="lib-card-title">${item.title}</div>
+              ${item.desc&&html`<div class="lib-card-desc">${item.desc}</div>`}
+              ${item.keywords&&html`<div style=${{marginTop:5,display:"flex",flexWrap:"wrap",gap:4}}>
+                ${item.keywords.split(",").map(k=>k.trim()).filter(k=>k).map(k=>html`
+                  <span key=${k} style=${{fontSize:".62rem",background:"var(--sage-pale)",color:"var(--forest)",padding:"2px 7px",borderRadius:99,fontWeight:700}}>#${k}</span>`)}
+              </div>`}
+              <div class="lib-card-meta">
+                <span>${item.duration||""}</span>
+                <span>${item.uploadedAt}</span>
+              </div>
+            </div>
+          </div>`)}
+      </div>
+
+      ${filtered.length===0&&html`
+        <div style=${{textAlign:"center",padding:"44px",color:"var(--muted)"}}>
+          <p>${searchQ?"Keine Treffer für '"+searchQ+"'":"Noch keine Inhalte in dieser Kategorie."}</p>
+        </div>`}
+
+      ${viewer&&html`
+        <div style=${{position:"fixed",inset:0,background:"rgba(0,0,0,.85)",zIndex:99999,display:"flex",flexDirection:"column"}} onClick=${closeViewer}>
+          <div style=${{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 14px",background:"#1e3a2f",flexShrink:0,gap:10}} onClick=${e=>e.stopPropagation()}>
+            <div style=${{display:"flex",alignItems:"center",gap:8,minWidth:0,flex:1,overflow:"hidden"}}>
+              <${Ic} name=${viewer.type==="audio"?"music":viewer.type==="video"?"video":"file"} size=${16} style=${{color:"rgba(255,255,255,.7)",flexShrink:0}}/>
+              <span style=${{fontSize:".85rem",fontWeight:600,color:"white",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>${viewer.name}</span>
+            </div>
+            <div onClick=${closeViewer} style=${{background:"white",cursor:"pointer",width:36,height:36,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+              <svg width="16" height="16" viewBox="0 0 24 24" stroke="#1e3a2f" stroke-width="2.5" fill="none"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </div>
+          </div>
+          ${viewer.type==="audio"&&html`
+            <div style=${{flex:1,display:"flex",alignItems:"center",justifyContent:"center",padding:24}} onClick=${e=>e.stopPropagation()}>
+              <audio controls autoPlay src=${viewer.url} style=${{width:"100%",maxWidth:400}}/>
+            </div>`}
+          ${viewer.type==="video"&&html`
+            <div style=${{flex:1,display:"flex",alignItems:"center",justifyContent:"center",padding:8}} onClick=${e=>e.stopPropagation()}>
+              <video controls autoPlay src=${viewer.url} style=${{maxWidth:"100%",maxHeight:"100%",borderRadius:8}}/>
+            </div>`}
+          ${viewer.type==="dokus"&&html`
+            <iframe src=${viewer.url} style=${{flex:1,border:"none",width:"100%"}} onClick=${e=>e.stopPropagation()}/>
+          `}
+        </div>`}
+    </div>
+  `;
+}
 
 function RemindersPage({reminders,setReminders}) {
   const [showModal,setShowModal] = useState(false);
@@ -2907,14 +2920,12 @@ function LoginPage({ onLogin }) {
 
   return html`
     <div style=${{
-      minHeight:"var(--vp-h, 100dvh)", display:"flex", alignItems:"flex-start", justifyContent:"center",
-      background:"var(--bg)", padding:"24px 24px env(safe-area-inset-bottom,16px)",
-      overflowY:"auto", WebkitOverflowScrolling:"touch"
+      minHeight:"100vh", display:"flex", alignItems:"center", justifyContent:"center",
+      background:"var(--bg)", padding:"24px"
     }}>
       <div style=${{
         background:"var(--surface)", borderRadius:20, padding:"36px 32px",
-        width:"100%", maxWidth:400, boxShadow:"0 8px 40px rgba(30,58,47,.12)",
-        margin:"auto 0"
+        width:"100%", maxWidth:400, boxShadow:"0 8px 40px rgba(30,58,47,.12)"
       }}>
         <!-- Logo -->
         <div style=${{textAlign:"center", marginBottom:28}}>
