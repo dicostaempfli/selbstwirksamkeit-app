@@ -538,6 +538,7 @@ window.addEventListener('orientationchange', ()=>setTimeout(setVH,150));
   .lib-filter-btn[data-type="audio"].sel { border-color:#68b87d; background:#68b87d; color:white; }
   .lib-filter-btn[data-type="video"].sel { border-color:#a0cb7b; background:#a0cb7b; color:#1e3a2f; }
   .lib-filter-btn[data-type="dokus"].sel { border-color:#efe454; background:#efe454; color:#5a4800; }
+  .lib-filter-btn[data-type="foto"].sel  { border-color:#7ec8e3; background:#7ec8e3; color:#0a3a4a; }
   /* All filter buttons use same forest color when selected */
   .lib-filter-btn:hover { border-color:var(--teal); }
   .lib-grid { display:grid; grid-template-columns:1fr 1fr; gap:13px; margin-bottom:20px; }
@@ -549,6 +550,7 @@ window.addEventListener('orientationchange', ()=>setTimeout(setVH,150));
   .badge-audio { background:#68b87d; color:white; }
   .badge-video { background:#a0cb7b; color:#1e3a2f; }
   .badge-dokus { background:#efe454; color:#3a3000; }
+  .badge-foto  { background:#7ec8e3; color:#0a3a4a; }
   .lib-play-overlay { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(30,60,35,.2); }
   .lib-play-btn { width:40px; height:40px; border-radius:50%; background:#fff; display:flex; align-items:center; justify-content:center; color:var(--text); box-shadow:0 2px 8px rgba(0,0,0,.2); }
   .lib-card-body { padding:12px; border-left-width:3px; border-left-style:solid; }
@@ -2180,16 +2182,7 @@ function CoacheesPage({coachees,setCoachees,setPage}) {
               </button>
               <div style=${{display:"flex",gap:8}}>
                 <button class="btn btn-ghost" onClick=${()=>setEditId(null)}>Abbrechen</button>
-                <button class="btn btn-primary" onClick=${saveEdit}>Speichern</button>
-              </div>
-            </div>
-          </div>
-        </div>`}
-    </div>`;
-}
-
-// ── LIBRARY PAGE ──
-function LibraryPage({library,setLibrary}) {
+                <button class="btn btn-primfunction LibraryPage({library,setLibrary}) {
   const [searchQ,setSearchQ]     = useState('');
   const [filter,setFilter]       = useState("all");
   const [showUpload,setShowUpload] = useState(false);
@@ -2203,11 +2196,17 @@ function LibraryPage({library,setLibrary}) {
   const [uploading,setUploading] = useState(false);
   const fileRef = useRef(null);
 
-  const TYPES = [{id:"all",label:"Alle",icon:"library"},{id:"audio",label:"Audio",icon:"music"},{id:"video",label:"Video",icon:"video"},{id:"dokus",label:"Dokus",icon:"file"}];
-  const ACCEPT = "audio/*,video/*,.pdf,.doc,.docx,.txt,.xlsx,.xls,.ppt,.pptx,.mp3,.m4a,.mp4,.mov,.avi,.mkv";
-  const COLOR  = {audio:"#68b87d",video:"#a0cb7b",dokus:"#efe454"};
-  const BG     = {audio:"#d8f0e0",video:"#eef7e4",dokus:"#fafbe0"};
-  const BadgeCls = {audio:"badge-audio",video:"badge-video",dokus:"badge-dokus"};
+  const TYPES = [
+    {id:"all",   label:"Alle",  icon:"library"},
+    {id:"audio", label:"Audio", icon:"music"},
+    {id:"video", label:"Video", icon:"video"},
+    {id:"dokus", label:"Dokus", icon:"file"},
+    {id:"foto",  label:"Fotos", icon:"image"},
+  ];
+  const ACCEPT = "audio/*,video/*,image/*,.pdf,.doc,.docx,.txt,.xlsx,.xls,.ppt,.pptx,.mp3,.m4a,.mp4,.mov,.avi,.mkv,.jpg,.jpeg,.png,.gif,.webp";
+  const COLOR    = {audio:"#68b87d",video:"#a0cb7b",dokus:"#efe454",foto:"#7ec8e3"};
+  const BG       = {audio:"#d8f0e0",video:"#eef7e4",dokus:"#fafbe0",foto:"#e0f5fb"};
+  const BadgeCls = {audio:"badge-audio",video:"badge-video",dokus:"badge-dokus",foto:"badge-foto"};
 
   const filtered = (filter==="all"?library:library.filter(i=>i.type===filter))
     .filter(i=>!searchQ||i.title.toLowerCase().includes(searchQ.toLowerCase())||
@@ -2216,9 +2215,11 @@ function LibraryPage({library,setLibrary}) {
 
   const detectType = f => {
     if(!f) return "dokus";
+    if(f.type.startsWith("image")) return "foto";
     if(f.type.startsWith("audio")) return "audio";
     if(f.type.startsWith("video")) return "video";
     const ext = f.name.split('.').pop().toLowerCase();
+    if(["jpg","jpeg","png","gif","webp","heic","heif"].includes(ext)) return "foto";
     if(["mp3","m4a","aac","wav","ogg","flac"].includes(ext)) return "audio";
     if(["mp4","mov","avi","mkv","webm","m4v"].includes(ext)) return "video";
     return "dokus";
@@ -2237,46 +2238,46 @@ function LibraryPage({library,setLibrary}) {
     r.readAsDataURL(f);
   });
 
-  const extractVideoThumb = dataUrl => new Promise(res => {
+  const extractVideoThumb = f => new Promise(res => {
+    const objUrl = URL.createObjectURL(f);
     const vid = document.createElement("video");
-    vid.crossOrigin = "anonymous";
-    vid.muted = true;
-    vid.preload = "metadata";
-    vid.onloadeddata = () => {
-      vid.currentTime = 0.5;
-    };
+    vid.muted = true; vid.playsInline = true; vid.preload = "metadata";
+    vid.onloadedmetadata = () => { vid.currentTime = Math.min(0.5, vid.duration * 0.1); };
     vid.onseeked = () => {
-      const c = document.createElement("canvas");
-      c.width = 320; c.height = 180;
-      c.getContext("2d").drawImage(vid, 0, 0, 320, 180);
-      res({thumb: c.toDataURL("image/jpeg",0.7), dur: vid.duration});
-      URL.revokeObjectURL(vid.src);
+      try {
+        const c = document.createElement("canvas");
+        c.width = 320; c.height = Math.round(vid.videoHeight/vid.videoWidth*320)||180;
+        c.getContext("2d").drawImage(vid, 0, 0, c.width, c.height);
+        res({thumb: c.toDataURL("image/jpeg",0.75), dur: vid.duration});
+      } catch(e) { res({thumb:null, dur:vid.duration||0}); }
+      URL.revokeObjectURL(objUrl);
     };
-    vid.onerror = () => res({thumb:null, dur:0});
-    vid.src = dataUrl;
+    vid.onerror = () => { URL.revokeObjectURL(objUrl); res({thumb:null, dur:0}); };
+    setTimeout(() => { URL.revokeObjectURL(objUrl); res({thumb:null, dur:0}); }, 8000);
+    vid.src = objUrl;
   });
 
-  const extractAudioWave = dataUrl => new Promise(res => {
+  const extractAudioWave = f => new Promise(res => {
     try {
       const ctx = new (window.AudioContext||window.webkitAudioContext)();
-      const base64 = dataUrl.split(",")[1];
-      const bin = atob(base64);
-      const buf = new Uint8Array(bin.length);
-      for(let i=0;i<bin.length;i++) buf[i]=bin.charCodeAt(i);
-      ctx.decodeAudioData(buf.buffer, decoded => {
-        const data = decoded.getChannelData(0);
-        const bars = 40;
-        const step = Math.floor(data.length/bars);
-        const peaks = [];
-        for(let i=0;i<bars;i++){
-          let max=0;
-          for(let j=0;j<step;j++) max=Math.max(max,Math.abs(data[i*step+j]||0));
-          peaks.push(max);
-        }
-        const norm = Math.max(...peaks)||1;
-        res({wave: peaks.map(p=>Math.max(0.08,p/norm)), dur: decoded.duration});
-        ctx.close();
-      }, () => res({wave:null, dur:0}));
+      const reader = new FileReader();
+      reader.onload = e => {
+        ctx.decodeAudioData(e.target.result.slice(0), decoded => {
+          const data = decoded.getChannelData(0);
+          const bars = 40, step = Math.floor(data.length/bars);
+          const peaks = [];
+          for(let i=0;i<bars;i++){
+            let max=0;
+            for(let j=0;j<step;j++) max=Math.max(max,Math.abs(data[i*step+j]||0));
+            peaks.push(max);
+          }
+          const norm = Math.max(...peaks)||1;
+          res({wave: peaks.map(p=>Math.max(0.08,p/norm)), dur: decoded.duration});
+          ctx.close();
+        }, () => res({wave:null, dur:0}));
+      };
+      reader.onerror = () => res({wave:null, dur:0});
+      reader.readAsArrayBuffer(f);
     } catch(e) { res({wave:null, dur:0}); }
   });
 
@@ -2287,27 +2288,34 @@ function LibraryPage({library,setLibrary}) {
     setFileName(f.name);
     setThumbData(null); setDuration("");
     setUploading(true);
-    readFile(f).then(data => {
-      setFileData(data);
-      if(t==="video") {
-        extractVideoThumb(data).then(({thumb,dur}) => {
-          if(thumb) setThumbData(thumb);
-          if(dur) setDuration(fmtDur(dur));
-          setUploading(false);
-        });
-      } else if(t==="audio") {
-        extractAudioWave(data).then(({wave,dur}) => {
-          if(wave) setThumbData(JSON.stringify(wave));
-          if(dur) setDuration(fmtDur(dur));
-          setUploading(false);
-        });
-      } else {
+    if(t==="foto") {
+      readFile(f).then(data => {
+        setFileData(data);
+        setThumbData(data);
         setUploading(false);
-      }
-    }).catch(() => { showToast("Fehler beim Lesen"); setUploading(false); });
+      }).catch(() => { showToast("Fehler beim Lesen"); setUploading(false); });
+    } else if(t==="video") {
+      extractVideoThumb(f).then(({thumb,dur}) => {
+        if(thumb) setThumbData(thumb);
+        if(dur) setDuration(fmtDur(dur));
+        readFile(f).then(data => { setFileData(data); setUploading(false); })
+          .catch(() => { setUploading(false); showToast("Video gelesen (kein Thumb)"); });
+      });
+    } else if(t==="audio") {
+      extractAudioWave(f).then(({wave,dur}) => {
+        if(wave) setThumbData(JSON.stringify(wave));
+        if(dur) setDuration(fmtDur(dur));
+        readFile(f).then(data => { setFileData(data); setUploading(false); })
+          .catch(() => { setUploading(false); });
+      });
+    } else {
+      readFile(f).then(data => { setFileData(data); setUploading(false); })
+        .catch(() => { showToast("Fehler beim Lesen"); setUploading(false); });
+    }
+    if(fileRef.current) fileRef.current.value = "";
   };
 
-  const handleInputChange = e => handleFile(e.target.files[0]);
+  const handleInputChange = e => { handleFile(e.target.files[0]); e.target.value=""; };
   const handleDrop = e => { e.preventDefault(); setDrag(false); handleFile(e.dataTransfer.files[0]); };
 
   const save = () => {
@@ -2348,7 +2356,13 @@ function LibraryPage({library,setLibrary}) {
   };
 
   const ThumbContent = ({item}) => {
-    // VIDEO
+    if(item.type==="foto") return html`
+      <div style=${{position:"relative",height:"100%",overflow:"hidden"}}>
+        <img src=${item.thumbData||item.fileUrl} style=${{width:"100%",height:"100%",objectFit:"cover",display:"block"}}/>
+        <div style=${{position:"absolute",bottom:8,right:8,width:28,height:28,borderRadius:"50%",background:"rgba(255,255,255,.85)",display:"flex",alignItems:"center",justifyContent:"center"}}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#1a4a5a" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/><path d="M11 8v6M8 11h6"/></svg>
+        </div>
+      </div>`;
     if(item.type==="video") {
       if(item.thumbData) return html`
         <div style=${{position:"relative",height:"100%",overflow:"hidden"}}>
@@ -2375,7 +2389,6 @@ function LibraryPage({library,setLibrary}) {
           </div>
         </div>`;
     }
-    // AUDIO
     if(item.type==="audio") {
       const wave = item.thumbData ? JSON.parse(item.thumbData) : null;
       return html`
@@ -2395,7 +2408,6 @@ function LibraryPage({library,setLibrary}) {
           </div>
         </div>`;
     }
-    // DOKU
     return html`
       <div style=${{display:"flex",alignItems:"center",justifyContent:"center",height:"100%",position:"relative"}}>
         <div style=${{position:"relative",width:58,height:74}}>
@@ -2441,14 +2453,14 @@ function LibraryPage({library,setLibrary}) {
       <div class="lib-grid">
         ${filtered.map(item=>html`
           <div key=${item.id} class="lib-card" onClick=${()=>openViewer(item)}>
-            <div class="lib-thumb" style=${{background:BG[item.type]||"#f0ede8",borderBottom:"2px solid "+COLOR[item.type],position:"relative",overflow:"hidden"}}>
+            <div class="lib-thumb" style=${{background:BG[item.type]||"#f0ede8",borderBottom:"2px solid "+(COLOR[item.type]||"#c4b8a8"),position:"relative",overflow:"hidden"}}>
               <${ThumbContent} item=${item}/>
-              <span class=${"lib-type-badge "+BadgeCls[item.type]}>
-                <${Ic} name=${item.type==="audio"?"music":item.type==="video"?"video":"file"} size=${10}/>
-                ${item.type==="audio"?"Audio":item.type==="video"?"Video":"Doku"}
+              <span class=${"lib-type-badge "+(BadgeCls[item.type]||"badge-dokus")}>
+                <${Ic} name=${item.type==="audio"?"music":item.type==="video"?"video":item.type==="foto"?"image":"file"} size=${10}/>
+                ${item.type==="audio"?"Audio":item.type==="video"?"Video":item.type==="foto"?"Foto":"Doku"}
               </span>
             </div>
-            <div class="lib-card-body" style=${{borderLeft:"3px solid "+COLOR[item.type]}}>
+            <div class="lib-card-body" style=${{borderLeft:"3px solid "+(COLOR[item.type]||"#c4b8a8")}}>
               <div class="lib-card-title">${item.title}</div>
               ${item.desc&&html`<div class="lib-card-desc">${item.desc}</div>`}
               ${item.keywords&&html`<div style=${{marginTop:5,display:"flex",flexWrap:"wrap",gap:4}}>
@@ -2475,16 +2487,20 @@ function LibraryPage({library,setLibrary}) {
         </div>`}
 
       ${viewer&&html`
-        <div style=${{position:"fixed",inset:0,background:"rgba(0,0,0,.85)",zIndex:99999,display:"flex",flexDirection:"column"}} onClick=${closeViewer}>
+        <div style=${{position:"fixed",inset:0,background:"rgba(0,0,0,.9)",zIndex:99999,display:"flex",flexDirection:"column"}} onClick=${closeViewer}>
           <div style=${{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 14px",background:"#1e3a2f",flexShrink:0,gap:10}} onClick=${e=>e.stopPropagation()}>
             <div style=${{display:"flex",alignItems:"center",gap:8,minWidth:0,flex:1,overflow:"hidden"}}>
-              <${Ic} name=${viewer.type==="audio"?"music":viewer.type==="video"?"video":"file"} size=${16} style=${{color:"rgba(255,255,255,.7)",flexShrink:0}}/>
+              <${Ic} name=${viewer.type==="audio"?"music":viewer.type==="video"?"video":viewer.type==="foto"?"image":"file"} size=${16} style=${{color:"rgba(255,255,255,.7)",flexShrink:0}}/>
               <span style=${{fontSize:".85rem",fontWeight:600,color:"white",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>${viewer.name}</span>
             </div>
-            <div onClick=${closeViewer} style=${{background:"white",border:"none",cursor:"pointer",width:36,height:36,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+            <div onClick=${closeViewer} style=${{background:"white",cursor:"pointer",width:36,height:36,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
               <svg width="16" height="16" viewBox="0 0 24 24" stroke="#1e3a2f" stroke-width="2.5" fill="none"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
             </div>
           </div>
+          ${viewer.type==="foto"&&html`
+            <div style=${{flex:1,display:"flex",alignItems:"center",justifyContent:"center",padding:16}} onClick=${e=>e.stopPropagation()}>
+              <img src=${viewer.url} style=${{maxWidth:"100%",maxHeight:"100%",borderRadius:8,objectFit:"contain"}}/>
+            </div>`}
           ${viewer.type==="audio"&&html`
             <div style=${{flex:1,display:"flex",alignItems:"center",justifyContent:"center",padding:24}} onClick=${e=>e.stopPropagation()}>
               <audio controls autoPlay src=${viewer.url} style=${{width:"100%",maxWidth:400}}/>
@@ -2513,19 +2529,21 @@ function LibraryPage({library,setLibrary}) {
                 onClick=${()=>fileRef.current?.click()}>
                 <div style=${{display:"flex",justifyContent:"center",opacity:.5}}><${Ic} name="upload" size=${30}/></div>
                 <p>${uploading?"Vorschau wird erstellt…":fileName||"Datei hierher ziehen oder tippen"}</p>
-                <span>Audio · Video · PDF · DOCX · XLSX · PPT</span>
+                <span>Audio · Video · Foto · PDF · DOCX · XLSX</span>
                 <input ref=${fileRef} type="file" style=${{display:"none"}} accept=${ACCEPT} onChange=${handleInputChange}/>
               </div>
             </div>
             <div class="form-row">
               <label class="label">Typ</label>
-              <div style=${{display:"flex",gap:7}}>
-                ${["audio","video","dokus"].map(t=>html`
+              <div style=${{display:"grid",gridTemplateColumns:"1fr 1fr",gap:7}}>
+                ${["audio","video","dokus","foto"].map(t=>html`
                   <button key=${t} onClick=${()=>setForm(f=>({...f,type:t}))}
-                    style=${{padding:"7px 14px",borderRadius:10,border:"1.5px solid",fontFamily:"'Exo 2',sans-serif",fontWeight:700,fontSize:".81rem",cursor:"pointer",display:"flex",alignItems:"center",gap:6,
-                    borderColor:form.type===t?"var(--teal)":"var(--border)",background:form.type===t?"var(--sage)":"var(--surface)",color:"var(--text)"}}>
-                    <${Ic} name=${t==="audio"?"music":t==="video"?"video":"file"} size=${13}/>
-                    ${t==="audio"?"Audio":t==="video"?"Video":"Doku"}
+                    style=${{padding:"7px 10px",borderRadius:10,border:"1.5px solid",fontFamily:"'Exo 2',sans-serif",fontWeight:700,fontSize:".79rem",cursor:"pointer",display:"flex",alignItems:"center",gap:6,
+                    borderColor:form.type===t?(COLOR[t]||"var(--teal)"):"var(--border)",
+                    background:form.type===t?(t==="audio"?"#e8f7ee":t==="video"?"#eef7e4":t==="foto"?"#e0f5fb":"var(--sage)"):"var(--surface)",
+                    color:"var(--text)"}}>
+                    <${Ic} name=${t==="audio"?"music":t==="video"?"video":t==="foto"?"image":"file"} size=${13}/>
+                    ${t==="audio"?"Audio":t==="video"?"Video":t==="foto"?"Foto":"Doku"}
                   </button>`)}
               </div>
             </div>
@@ -2544,6 +2562,15 @@ function LibraryPage({library,setLibrary}) {
             <div class="modal-actions">
               <button class="btn btn-ghost" onClick=${()=>setShowUpload(false)}>Abbrechen</button>
               <button class="btn btn-primary" onClick=${save} disabled=${uploading}>
+                <${Ic} name="upload" size=${13}/> Speichern
+              </button>
+            </div>
+          </div>
+        </div>`}
+    </div>
+  `;
+}
+
                 <${Ic} name="upload" size=${13}/> Speichern
               </button>
             </div>
