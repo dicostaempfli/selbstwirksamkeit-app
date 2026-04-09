@@ -2221,8 +2221,14 @@ function LibraryPage({library,setLibrary}) {
               <video controls autoPlay src=${viewer.url} style=${{maxWidth:"100%",maxHeight:"100%",borderRadius:8}}/>
             </div>`}
           ${viewer.type==="dokus"&&html`
-            <iframe src=${viewer.url} style=${{flex:1,border:"none",width:"100%"}} onClick=${e=>e.stopPropagation()}/>
-          `}
+            <div style=${{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:16,padding:24}} onClick=${e=>e.stopPropagation()}>
+              <embed src=${viewer.url} type="application/pdf" style=${{width:"100%",flex:1,borderRadius:8,minHeight:200}} onError=${()=>{}}/>
+              <a href=${viewer.url} download=${viewer.name} target="_blank" rel="noopener"
+                style=${{display:"flex",alignItems:"center",gap:8,padding:"10px 20px",background:"#4a9e62",color:"white",borderRadius:10,fontFamily:"'Exo 2',sans-serif",fontWeight:700,fontSize:".85rem",textDecoration:"none",flexShrink:0}}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Öffnen / Herunterladen
+              </a>
+            </div>`}
         </div>`}
     </div>
   `;
