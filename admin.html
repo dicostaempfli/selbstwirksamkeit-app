@@ -2190,13 +2190,14 @@ function CoacheesPage({coachees,setCoachees,setPage}) {
 
 // ── LIBRARY PAGE ──
 function LibraryPage({library,setLibrary}) {
-  const [searchQ,setSearchQ] = useState('');
-  const [filter,setFilter]   = useState("all");
+  const [searchQ,setSearchQ]     = useState('');
+  const [filter,setFilter]       = useState("all");
   const [showUpload,setShowUpload] = useState(false);
-  const [drag,setDrag]       = useState(false);
-  const [form,setForm]       = useState({title:"",desc:"",type:"audio",keywords:""});
-  const [fileData,setFileData] = useState(null);
-  const [fileName,setFileName] = useState("");
+  const [viewer,setViewer]       = useState(null);
+  const [drag,setDrag]           = useState(false);
+  const [form,setForm]           = useState({title:"",desc:"",type:"audio",keywords:""});
+  const [fileData,setFileData]   = useState(null);
+  const [fileName,setFileName]   = useState("");
   const [uploading,setUploading] = useState(false);
   const fileRef = useRef(null);
 
@@ -2225,17 +2226,15 @@ function LibraryPage({library,setLibrary}) {
     r.readAsDataURL(f);
   });
 
-  const handleFile = async f => {
+  const handleFile = f => {
     if(!f) return;
     const t = detectType(f);
     setForm(v=>({...v, type:t, title:v.title||f.name.replace(/\.[^.]+$/,"") }));
     setFileName(f.name);
     setUploading(true);
-    try {
-      const data = await readFile(f);
-      setFileData(data);
-    } catch(e) { showToast("Fehler beim Lesen der Datei"); }
-    setUploading(false);
+    readFile(f)
+      .then(data => { setFileData(data); setUploading(false); })
+      .catch(() => { showToast("Fehler beim Lesen der Datei"); setUploading(false); });
   };
 
   const handleInputChange = e => handleFile(e.target.files[0]);
@@ -2258,7 +2257,7 @@ function LibraryPage({library,setLibrary}) {
 
   const del = id => { setLibrary(l=>l.filter(i=>i.id!==id)); showToast("Material gelöscht"); };
 
-  const openFile = item => {
+  const openViewer = item => {
     if(!item.fileUrl) return;
     try {
       const arr=item.fileUrl.split(',');
@@ -2267,15 +2266,55 @@ function LibraryPage({library,setLibrary}) {
       const u8=new Uint8Array(n); while(n--)u8[n]=bstr.charCodeAt(n);
       const blob=new Blob([u8],{type:mime});
       const url=URL.createObjectURL(blob);
-      const a=document.createElement('a'); a.href=url; a.target='_blank'; a.rel='noopener';
-      document.body.appendChild(a); a.click(); document.body.removeChild(a);
-      setTimeout(()=>URL.revokeObjectURL(url),30000);
+      setViewer({url, name:item.fileName||item.title, type:item.type, mime});
     } catch(e){ window.open(item.fileUrl,'_blank'); }
   };
 
+  const closeViewer = () => {
+    if(viewer?.url) URL.revokeObjectURL(viewer.url);
+    setViewer(null);
+  };
+
   const BadgeCls = {audio:"badge-audio",video:"badge-video",dokus:"badge-dokus"};
-  const ThumbBg  = {audio:"#d8f0e0",video:"#eef7e4",dokus:"#fafbe0"};
-  const TypeIc   = ({type}) => html`<${Ic} name=${type==="audio"?"music":type==="video"?"video":"file"} size=${30}/>`;
+  const COLOR    = {audio:"#68b87d",video:"#a0cb7b",dokus:"#efe454"};
+  const BG       = {audio:"#d8f0e0",video:"#eef7e4",dokus:"#fafbe0"};
+
+  const ThumbContent = ({item}) => {
+    if(item.type==="audio") return html`
+      <div style=${{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:"100%",gap:8,position:"relative"}}>
+        <div style=${{display:"flex",alignItems:"center",gap:3,height:36}}>
+          ${[12,24,32,20,28,16,30,22,14,28,18,26].map((h,i)=>html`
+            <div key=${i} style=${{width:3,height:h,background:COLOR.audio,borderRadius:2,opacity:.7}}/>
+          `)}
+        </div>
+        ${item.fileUrl&&html`
+          <div style=${{position:"absolute",bottom:8,right:8,width:28,height:28,borderRadius:"50%",background:COLOR.audio,display:"flex",alignItems:"center",justifyContent:"center"}}>
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="white" stroke="white" stroke-width="1"><path d="M5 3l14 9-14 9V3z"/></svg>
+          </div>`}
+      </div>`;
+    if(item.type==="video") return html`
+      <div style=${{display:"flex",alignItems:"center",justifyContent:"center",height:"100%",background:"#1a1a1a",position:"relative"}}>
+        <div style=${{position:"absolute",top:0,left:0,right:0,height:12,background:"rgba(255,255,255,.06)",display:"flex",gap:2,padding:"2px 4px"}}>
+          ${[0,1,2,3,4,5].map(i=>html`<div key=${i} style=${{width:8,height:8,background:"rgba(255,255,255,.15)",borderRadius:1}}/>`)}
+        </div>
+        ${item.fileUrl
+          ? html`<div style=${{width:36,height:36,borderRadius:"50%",background:"rgba(255,255,255,.9)",display:"flex",alignItems:"center",justifyContent:"center"}}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="#1a1a1a" stroke="#1a1a1a" stroke-width="1"><path d="M5 3l14 9-14 9V3z"/></svg>
+            </div>`
+          : html`<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.3)" stroke-width="1.5" stroke-linecap="round"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>`}
+      </div>`;
+    return html`
+      <div style=${{display:"flex",alignItems:"center",justifyContent:"center",height:"100%",position:"relative"}}>
+        <div style=${{width:52,height:64,background:"white",borderRadius:4,border:"1.5px solid #d4d084",display:"flex",flexDirection:"column",padding:"6px 5px",gap:3,boxShadow:"2px 2px 6px rgba(0,0,0,.1)"}}>
+          ${[80,65,90,50,75,60].map((w,i)=>html`<div key=${i} style=${{height:3,background:"#d4d084",borderRadius:2,width:w+"%"}}/>`)}
+        </div>
+        ${item.fileUrl&&html`
+          <div style=${{position:"absolute",bottom:6,right:6,display:"flex",alignItems:"center",gap:3,fontSize:".6rem",fontWeight:700,color:"#a0a060"}}>
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Öffnen
+          </div>`}
+      </div>`;
+  };
 
   return html`
     <div class="page" style=${{overflowX:"hidden"}}>
@@ -2295,26 +2334,29 @@ function LibraryPage({library,setLibrary}) {
           value=${searchQ} onInput=${e=>setSearchQ(e.target.value)}
           style=${{width:"100%",padding:"9px 14px"}}/>
       </div>
-      <div class="lib-filter" style=${{marginBottom:10}}>
-        ${TYPES.map(t=>html`<button key=${t.id} class=${"lib-filter-btn"+(filter===t.id?" sel":"")} onClick=${()=>setFilter(t.id)}><${Ic} name=${t.icon} size=${13}/>${t.label}</button>`)}
+      <div class="lib-filter" style=${{marginBottom:12}}>
+        ${TYPES.map(t=>html`
+          <button key=${t.id}
+            data-type=${t.id}
+            class=${"lib-filter-btn"+(filter===t.id?" sel":"")}
+            onClick=${()=>setFilter(t.id)}>
+            <${Ic} name=${t.icon} size=${13}/>${t.label}
+          </button>`)}
       </div>
 
       <div class="lib-grid">
         ${filtered.map(item=>html`
-          <div key=${item.id} class="lib-card">
-            <div class="lib-thumb" style=${{background:ThumbBg[item.type]||"#f0ede8",borderBottom:"2px solid "+(item.type==="audio"?"#68b87d":item.type==="video"?"#a0cb7b":"#efe454"),cursor:item.fileUrl?"pointer":"default"}}
-              onClick=${()=>openFile(item)}>
-              <div style=${{color:"var(--muted)",opacity:.45}}><${TypeIc} type=${item.type}/></div>
-              ${item.fileUrl&&html`<div class="lib-play-overlay"><div class="lib-play-btn"><${Ic} name=${item.type==="video"?"play":"file"} size=${17}/></div></div>`}
+          <div key=${item.id} class="lib-card" onClick=${()=>openViewer(item)}>
+            <div class="lib-thumb" style=${{background:BG[item.type]||"#f0ede8",borderBottom:"2px solid "+COLOR[item.type],position:"relative"}}>
+              <${ThumbContent} item=${item}/>
               <span class=${"lib-type-badge "+BadgeCls[item.type]}>
                 <${Ic} name=${item.type==="audio"?"music":item.type==="video"?"video":"file"} size=${10}/>
                 ${item.type==="audio"?"Audio":item.type==="video"?"Video":"Doku"}
               </span>
             </div>
-            <div class="lib-card-body" style=${{borderLeft:"3px solid "+(item.type==="audio"?"#68b87d":item.type==="video"?"#a0cb7b":"#efe454")}}>
+            <div class="lib-card-body" style=${{borderLeft:"3px solid "+COLOR[item.type]}}>
               <div class="lib-card-title">${item.title}</div>
               ${item.desc&&html`<div class="lib-card-desc">${item.desc}</div>`}
-              ${item.fileName&&html`<div style=${{fontSize:".68rem",color:"var(--muted)",marginTop:3,display:"flex",alignItems:"center",gap:4}}><${Ic} name="file" size=${10}/>${item.fileName}</div>`}
               ${item.keywords&&html`<div style=${{marginTop:5,display:"flex",flexWrap:"wrap",gap:4}}>
                 ${item.keywords.split(",").map(k=>k.trim()).filter(k=>k).map(k=>html`
                   <span key=${k} style=${{fontSize:".62rem",background:"var(--sage-pale)",color:"var(--forest)",padding:"2px 7px",borderRadius:99,fontWeight:700}}>#${k}</span>`)}
@@ -2323,7 +2365,10 @@ function LibraryPage({library,setLibrary}) {
                 <span>${item.duration||""}</span>
                 <div style=${{display:"flex",gap:6,alignItems:"center"}}>
                   <span>${item.uploadedAt}</span>
-                  <button class="btn btn-danger btn-sm" style=${{padding:"2px 7px"}} onClick=${e=>{e.stopPropagation();del(item.id)}}><${Ic} name="trash" size=${11}/></button>
+                  <button class="btn btn-danger btn-sm" style=${{padding:"2px 7px"}}
+                    onClick=${e=>{e.stopPropagation();del(item.id)}}>
+                    <${Ic} name="trash" size=${11}/>
+                  </button>
                 </div>
               </div>
             </div>
@@ -2332,7 +2377,34 @@ function LibraryPage({library,setLibrary}) {
 
       ${filtered.length===0&&html`
         <div style=${{textAlign:"center",padding:"44px",color:"var(--muted)"}}>
-          <p>${searchQ?"Keine Treffer für '+searchQ+'":"Noch keine Inhalte in dieser Kategorie."}</p>
+          <p>${searchQ?"Keine Treffer für '"+searchQ+"'":"Noch keine Inhalte in dieser Kategorie."}</p>
+        </div>`}
+
+      ${viewer&&html`
+        <div style=${{position:"fixed",inset:0,background:"rgba(0,0,0,.85)",zIndex:99999,display:"flex",flexDirection:"column"}} onClick=${closeViewer}>
+          <div style=${{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 14px",background:"#1e3a2f",flexShrink:0,gap:10}} onClick=${e=>e.stopPropagation()}>
+            <div style=${{display:"flex",alignItems:"center",gap:8,minWidth:0,flex:1,overflow:"hidden"}}>
+              <${Ic} name=${viewer.type==="audio"?"music":viewer.type==="video"?"video":"file"} size=${16} style=${{color:"rgba(255,255,255,.7)",flexShrink:0}}/>
+              <span style=${{fontSize:".85rem",fontWeight:600,color:"white",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>${viewer.name}</span>
+            </div>
+            <div onClick=${closeViewer}
+              style=${{background:"white",border:"none",cursor:"pointer",width:36,height:36,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+              <svg width="16" height="16" viewBox="0 0 24 24" stroke="#1e3a2f" stroke-width="2.5" fill="none">
+                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+            </div>
+          </div>
+          ${viewer.type==="audio"&&html`
+            <div style=${{flex:1,display:"flex",alignItems:"center",justifyContent:"center",padding:24}} onClick=${e=>e.stopPropagation()}>
+              <audio controls autoPlay src=${viewer.url} style=${{width:"100%",maxWidth:400}}/>
+            </div>`}
+          ${viewer.type==="video"&&html`
+            <div style=${{flex:1,display:"flex",alignItems:"center",justifyContent:"center",padding:8}} onClick=${e=>e.stopPropagation()}>
+              <video controls autoPlay src=${viewer.url} style=${{maxWidth:"100%",maxHeight:"100%",borderRadius:8}}/>
+            </div>`}
+          ${viewer.type==="dokus"&&html`
+            <iframe src=${viewer.url} style=${{flex:1,border:"none",width:"100%"}} onClick=${e=>e.stopPropagation()}/>
+          `}
         </div>`}
 
       ${showUpload&&html`
@@ -2342,7 +2414,6 @@ function LibraryPage({library,setLibrary}) {
               <h2 class="modal-title" style=${{marginBottom:0}}>Material hochladen</h2>
               <button style=${{background:"none",border:"none",cursor:"pointer",color:"var(--muted)",padding:4,borderRadius:8,display:"flex"}} onClick=${()=>setShowUpload(false)}><${Ic} name="x" size=${20}/></button>
             </div>
-
             <div class="form-row">
               <div class=${"upload-zone"+(drag?" drag":"")}
                 onDragOver=${e=>{e.preventDefault();setDrag(true);}}
@@ -2356,31 +2427,30 @@ function LibraryPage({library,setLibrary}) {
                   accept=${ACCEPT} onChange=${handleInputChange}/>
               </div>
             </div>
-
             <div class="form-row">
               <label class="label">Typ</label>
-              <div style=${{display:"flex",gap:7}}>${["audio","video","dokus"].map(t=>html`
-                <button key=${t} onClick=${()=>setForm(f=>({...f,type:t}))}
-                  style=${{padding:"7px 14px",borderRadius:10,border:"1.5px solid",fontFamily:"'Exo 2',sans-serif",fontWeight:700,fontSize:".81rem",cursor:"pointer",display:"flex",alignItems:"center",gap:6,
-                  borderColor:form.type===t?"var(--teal)":"var(--border)",background:form.type===t?"var(--sage)":"var(--surface)",color:"var(--text)"}}>
-                  <${Ic} name=${t==="audio"?"music":t==="video"?"video":"file"} size=${13}/>
-                  ${t==="audio"?"Audio":t==="video"?"Video":"Doku"}
-                </button>`)}</div>
+              <div style=${{display:"flex",gap:7}}>
+                ${["audio","video","dokus"].map(t=>html`
+                  <button key=${t} onClick=${()=>setForm(f=>({...f,type:t}))}
+                    style=${{padding:"7px 14px",borderRadius:10,border:"1.5px solid",fontFamily:"'Exo 2',sans-serif",fontWeight:700,fontSize:".81rem",cursor:"pointer",display:"flex",alignItems:"center",gap:6,
+                    borderColor:form.type===t?"var(--teal)":"var(--border)",background:form.type===t?"var(--sage)":"var(--surface)",color:"var(--text)"}}>
+                    <${Ic} name=${t==="audio"?"music":t==="video"?"video":"file"} size=${13}/>
+                    ${t==="audio"?"Audio":t==="video"?"Video":"Doku"}
+                  </button>`)}
+              </div>
             </div>
-
             <div class="form-row">
               <label class="label">Titel *</label>
               <input class="input" value=${form.title} onInput=${e=>setForm(f=>({...f,title:e.target.value}))} placeholder="z.B. Atemübung — 5 Minuten"/>
             </div>
             <div class="form-row">
               <label class="label">Beschreibung</label>
-              <textarea class="textarea" rows=${2} value=${form.desc} onInput=${e=>setForm(f=>({...f,desc:e.target.value}))} placeholder="Kurze Beschreibung des Inhalts…"/>
+              <textarea class="textarea" rows=${2} value=${form.desc} onInput=${e=>setForm(f=>({...f,desc:e.target.value}))} placeholder="Kurze Beschreibung…"/>
             </div>
             <div class="form-row">
               <label class="label">Stichwörter (kommagetrennt)</label>
               <input class="input" value=${form.keywords} onInput=${e=>setForm(f=>({...f,keywords:e.target.value}))} placeholder="z.B. Atem, Entspannung, Morgen"/>
             </div>
-
             <div class="modal-actions">
               <button class="btn btn-ghost" onClick=${()=>setShowUpload(false)}>Abbrechen</button>
               <button class="btn btn-primary" onClick=${save} disabled=${uploading}>
