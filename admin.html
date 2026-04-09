@@ -2191,155 +2191,208 @@ function CoacheesPage({coachees,setCoachees,setPage}) {
 // ── LIBRARY PAGE ──
 function LibraryPage({library,setLibrary}) {
   const [searchQ,setSearchQ] = useState('');
-  const [filter,setFilter]     = useState("all");
+  const [filter,setFilter]   = useState("all");
   const [showUpload,setShowUpload] = useState(false);
-  const [drag,setDrag]         = useState(false);
-  const [form,setForm]         = useState({title:"",desc:"",type:"audio"});
+  const [drag,setDrag]       = useState(false);
+  const [form,setForm]       = useState({title:"",desc:"",type:"audio",keywords:""});
+  const [fileData,setFileData] = useState(null);
+  const [fileName,setFileName] = useState("");
+  const [uploading,setUploading] = useState(false);
   const fileRef = useRef(null);
 
-  const filtered = (filter==="all"?library:library.filter(i=>i.type===filter)).filter(i=>!searchQ||i.title.toLowerCase().includes(searchQ.toLowerCase())||(i.desc&&i.desc.toLowerCase().includes(searchQ.toLowerCase()))||(i.keywords&&i.keywords.toLowerCase().includes(searchQ.toLowerCase())))
   const TYPES = [{id:"all",label:"Alle",icon:"library"},{id:"audio",label:"Audio",icon:"music"},{id:"video",label:"Video",icon:"video"},{id:"dokus",label:"Dokus",icon:"file"}];
+  const ACCEPT = "audio/*,video/*,.pdf,.doc,.docx,.txt,.xlsx,.xls,.ppt,.pptx,.mp3,.m4a,.mp4,.mov,.avi,.mkv";
 
-  const handleFile = e => { const f=e.target.files[0]; if(!f)return; const t=f.type.startsWith("audio")?"audio":f.type.startsWith("video")?"video":"dokus"; setForm(v=>({...v,type:t})); };
-  const handleDrop = e => { e.preventDefault(); setDrag(false); const f=e.dataTransfer.files[0]; if(!f)return; const t=f.type.startsWith("audio")?"audio":f.type.startsWith("video")?"video":"dokus"; setForm(v=>({...v,type:t})); };
-  const save = () => { if(!form.title.trim())return; setShowUpload(false); setForm({title:"",desc:"",type:"audio"}); setLibrary(l=>[{id:Date.now(),...form,uploadedAt:new Date().toLocaleDateString("de-CH")},...l]); };
-  const del  = id => setLibrary(l=>l.filter(i=>i.id!==id));
+  const filtered = (filter==="all"?library:library.filter(i=>i.type===filter))
+    .filter(i=>!searchQ||i.title.toLowerCase().includes(searchQ.toLowerCase())||
+      (i.desc&&i.desc.toLowerCase().includes(searchQ.toLowerCase()))||
+      (i.keywords&&i.keywords.toLowerCase().includes(searchQ.toLowerCase())));
+
+  const detectType = f => {
+    if(!f) return "dokus";
+    if(f.type.startsWith("audio")) return "audio";
+    if(f.type.startsWith("video")) return "video";
+    const ext = f.name.split('.').pop().toLowerCase();
+    if(["mp3","m4a","aac","wav","ogg","flac"].includes(ext)) return "audio";
+    if(["mp4","mov","avi","mkv","webm","m4v"].includes(ext)) return "video";
+    return "dokus";
+  };
+
+  const readFile = f => new Promise((res,rej) => {
+    const r = new FileReader();
+    r.onload = e => res(e.target.result);
+    r.onerror = () => rej(new Error("Lesefehler"));
+    r.readAsDataURL(f);
+  });
+
+  const handleFile = async f => {
+    if(!f) return;
+    const t = detectType(f);
+    setForm(v=>({...v, type:t, title:v.title||f.name.replace(/\.[^.]+$/,"") }));
+    setFileName(f.name);
+    setUploading(true);
+    try {
+      const data = await readFile(f);
+      setFileData(data);
+    } catch(e) { showToast("Fehler beim Lesen der Datei"); }
+    setUploading(false);
+  };
+
+  const handleInputChange = e => handleFile(e.target.files[0]);
+  const handleDrop = e => { e.preventDefault(); setDrag(false); handleFile(e.dataTransfer.files[0]); };
+
+  const save = () => {
+    if(!form.title.trim()) return;
+    const item = {
+      id:Date.now(), ...form,
+      fileUrl: fileData||null,
+      fileName: fileName||null,
+      uploadedAt: new Date().toLocaleDateString("de-CH")
+    };
+    setLibrary(l=>[item,...l]);
+    setShowUpload(false);
+    setForm({title:"",desc:"",type:"audio",keywords:""});
+    setFileData(null); setFileName("");
+    showToast("✓ Material gespeichert");
+  };
+
+  const del = id => { setLibrary(l=>l.filter(i=>i.id!==id)); showToast("Material gelöscht"); };
+
+  const openFile = item => {
+    if(!item.fileUrl) return;
+    try {
+      const arr=item.fileUrl.split(',');
+      const mime=arr[0].match(/:(.*?);/)[1];
+      const bstr=atob(arr[1]); let n=bstr.length;
+      const u8=new Uint8Array(n); while(n--)u8[n]=bstr.charCodeAt(n);
+      const blob=new Blob([u8],{type:mime});
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement('a'); a.href=url; a.target='_blank'; a.rel='noopener';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(()=>URL.revokeObjectURL(url),30000);
+    } catch(e){ window.open(item.fileUrl,'_blank'); }
+  };
+
   const BadgeCls = {audio:"badge-audio",video:"badge-video",dokus:"badge-dokus"};
-  const ThumbBg  = {audio:"#d8f0e0",video:"#eef7e4",dokus:"#fafbe0",all:"#f0ede8"};
+  const ThumbBg  = {audio:"#d8f0e0",video:"#eef7e4",dokus:"#fafbe0"};
   const TypeIc   = ({type}) => html`<${Ic} name=${type==="audio"?"music":type==="video"?"video":"file"} size=${30}/>`;
 
   return html`
-    <div class="page">
-      <div style=${{marginBottom:24,display:"flex",alignItems:"center",gap:14}}>
-        <${Logo} size=${52}/>
-        <div>
-          <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.3rem",fontWeight:700,color:"var(--text)"}}>Mediathek</div>
-          <div style=${{fontSize:".88rem",color:"var(--muted)",marginTop:2}}>Materialien für deine Coachees.</div>
+    <div class="page" style=${{overflowX:"hidden"}}>
+      <div style=${{marginBottom:20,display:"flex",alignItems:"center",gap:12}}>
+        <${Logo} size=${44}/>
+        <div style=${{flex:1,minWidth:0}}>
+          <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.2rem",fontWeight:700,color:"var(--text)"}}>Mediathek</div>
+          <div style=${{fontSize:".82rem",color:"var(--muted)",marginTop:1}}>Materialien für deine Coachees.</div>
         </div>
-        
-      </div>
-      
-      <div style=${{marginBottom:12}}>
-        <input class="input" type="text" placeholder="Inhalte suchen…"
-          value=${searchQ} onInput=${e=>setSearchQ(e.target.value)}
-          style=${{width:'100%',fontSize:'.88rem',padding:'9px 14px'}}/>
-      </div>
-      <div class="lib-filter">
-        ${TYPES.map(t=>html`<button key=${t.id} class=${"lib-filter-btn"+(filter===t.id?" sel":"")} data-type=${t.id} onClick=${()=>setFilter(t.id)}><${Ic} name=${t.icon} size=${13}/>${t.label}</button>`)}
-      </div>
-      <div style=${{display:"flex",justifyContent:"flex-end",marginBottom:8}}>
-        <button class="btn btn-primary btn-sm" onClick=${()=>setShowUpload(true)}>
+        <button class="btn btn-primary btn-sm" style=${{flexShrink:0}} onClick=${()=>setShowUpload(true)}>
           <${Ic} name="upload" size=${14}/> Hochladen
         </button>
       </div>
+
+      <div style=${{marginBottom:10}}>
+        <input class="input" type="text" placeholder="Inhalte suchen…"
+          value=${searchQ} onInput=${e=>setSearchQ(e.target.value)}
+          style=${{width:"100%",padding:"9px 14px"}}/>
+      </div>
+      <div class="lib-filter" style=${{marginBottom:10}}>
+        ${TYPES.map(t=>html`<button key=${t.id} class=${"lib-filter-btn"+(filter===t.id?" sel":"")} onClick=${()=>setFilter(t.id)}><${Ic} name=${t.icon} size=${13}/>${t.label}</button>`)}
+      </div>
+
       <div class="lib-grid">
         ${filtered.map(item=>html`
           <div key=${item.id} class="lib-card">
-            <div class="lib-thumb" style=${{background:ThumbBg[item.type]||"#f0ede8",borderBottom:"2px solid "+(item.type==="audio"?"#68b87d":item.type==="video"?"#a0cb7b":item.type==="dokus"?"#efe454":"#c4b8a8")}}>
-              <div style=${{color:'var(--muted)',opacity:.45}}><${TypeIc} type=${item.type}/></div>
-              ${(item.type==="audio"||item.type==="video")&&html`
-              <div class="lib-play-overlay" style=${{cursor:"pointer"}} onClick=${()=>{
-                if(item.fileUrl) {
-                  try {
-                    const arr=item.fileUrl.split(',');
-                    const mime=arr[0].match(/:(.*?);/)[1];
-                    const bstr=atob(arr[1]); let n=bstr.length;
-                    const u8=new Uint8Array(n); while(n--)u8[n]=bstr.charCodeAt(n);
-                    const blob=new Blob([u8],{type:mime});
-                    const url=URL.createObjectURL(blob);
-                    const a=document.createElement('a'); a.href=url; a.target='_blank'; a.rel='noopener';
-                    document.body.appendChild(a); a.click(); document.body.removeChild(a);
-                    setTimeout(()=>URL.revokeObjectURL(url),30000);
-                  } catch(e){ window.open(item.fileUrl,'_blank'); }
-                }
-              }}>
-                <div class="lib-play-btn"><${Ic} name="play" size=${17}/></div>
-              </div>`}
-              <span class=${"lib-type-badge "+BadgeCls[item.type]}><${Ic} name=${item.type==="audio"?"music":item.type==="video"?"video":"file"} size=${10}/>${item.type==="audio"?"Audio":item.type==="video"?"Video":"Text"}</span>
+            <div class="lib-thumb" style=${{background:ThumbBg[item.type]||"#f0ede8",borderBottom:"2px solid "+(item.type==="audio"?"#68b87d":item.type==="video"?"#a0cb7b":"#efe454"),cursor:item.fileUrl?"pointer":"default"}}
+              onClick=${()=>openFile(item)}>
+              <div style=${{color:"var(--muted)",opacity:.45}}><${TypeIc} type=${item.type}/></div>
+              ${item.fileUrl&&html`<div class="lib-play-overlay"><div class="lib-play-btn"><${Ic} name=${item.type==="video"?"play":"file"} size=${17}/></div></div>`}
+              <span class=${"lib-type-badge "+BadgeCls[item.type]}>
+                <${Ic} name=${item.type==="audio"?"music":item.type==="video"?"video":"file"} size=${10}/>
+                ${item.type==="audio"?"Audio":item.type==="video"?"Video":"Doku"}
+              </span>
             </div>
-            <div class="lib-card-body" style=${{borderLeft:"3px solid "+(item.type==="audio"?"#68b87d":item.type==="video"?"#a0cb7b":item.type==="dokus"?"#efe454":"#c4b8a8")}}>
-              <div class="lib-card-title" style=${{color:"#1a1a1a"}}>${item.title}</div>
-              <div class="lib-card-desc" style=${{color:"#444"}}>${item.desc}</div>
-              ${item.keywords&&html`<div style=${{marginTop:5,display:'flex',flexWrap:'wrap',gap:4}}>
-                ${item.keywords.split(',').map(k=>k.trim()).filter(k=>k).map(k=>html`
-                  <span key=${k} style=${{fontSize:'.62rem',background:'var(--sage-pale)',color:'var(--forest)',
-                    padding:'2px 7px',borderRadius:99,fontWeight:700}}>#${k}</span>`)}
+            <div class="lib-card-body" style=${{borderLeft:"3px solid "+(item.type==="audio"?"#68b87d":item.type==="video"?"#a0cb7b":"#efe454")}}>
+              <div class="lib-card-title">${item.title}</div>
+              ${item.desc&&html`<div class="lib-card-desc">${item.desc}</div>`}
+              ${item.fileName&&html`<div style=${{fontSize:".68rem",color:"var(--muted)",marginTop:3,display:"flex",alignItems:"center",gap:4}}><${Ic} name="file" size=${10}/>${item.fileName}</div>`}
+              ${item.keywords&&html`<div style=${{marginTop:5,display:"flex",flexWrap:"wrap",gap:4}}>
+                ${item.keywords.split(",").map(k=>k.trim()).filter(k=>k).map(k=>html`
+                  <span key=${k} style=${{fontSize:".62rem",background:"var(--sage-pale)",color:"var(--forest)",padding:"2px 7px",borderRadius:99,fontWeight:700}}>#${k}</span>`)}
               </div>`}
               <div class="lib-card-meta">
                 <span>${item.duration||""}</span>
-                <div style=${{display:'flex',gap:6,alignItems:'center'}}>
+                <div style=${{display:"flex",gap:6,alignItems:"center"}}>
                   <span>${item.uploadedAt}</span>
+                  <button class="btn btn-danger btn-sm" style=${{padding:"2px 7px"}} onClick=${e=>{e.stopPropagation();del(item.id)}}><${Ic} name="trash" size=${11}/></button>
                 </div>
               </div>
             </div>
           </div>`)}
       </div>
-      ${filtered.length===0&&html`<div style=${{textAlign:'center',padding:'44px',color:'var(--muted)'}}><p>Noch keine Inhalte in dieser Kategorie.</p></div>`}
-      ${showUpload&&html`
-        <div class="overlay" onClick=${()=>setShowUpload(false)}>
-          <div class="modal" style=${{width:500}} onClick=${e=>e.stopPropagation()}>
-<div style=${{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4}}><h2 class="modal-title" style=${{marginBottom:0}}>Material hochladen</h2><button style=${{background:"none",border:"none",cursor:"pointer",color:"var(--muted)",padding:4,borderRadius:8,display:"flex"}} onClick=${()=>setShowUpload(false)}><${Ic} name="x" size=${20}/></button></div>
-            <div class="form-row">
-              <div class=${"upload-zone"+(drag?" drag":"")} onDragOver=${e=>{e.preventDefault();setDrag(true);}} onDragLeave=${()=>setDrag(false)} onDrop=${handleDrop} onClick=${()=>fileRef.current?.click()}>
-                <div style=${{display:'flex',justifyContent:'center',opacity:.5}}><${Ic} name="upload" size=${30}/></div>
-                <p>Datei hierher ziehen oder klicken</p>
-                <span>Audio · Video · PDF · DOCX</span>
-                <input ref=${fileRef} type="file" style=${{display:'none'}} accept="audio/*,video/*,.pdf,.docx,.txt" onChange=${handleFile}/>
-              </div>
-            </div>
-            <div class="form-row"><label class="label">Typ</label>
-              <div style=${{display:'flex',gap:7}}>
-                ${["audio","video","dokus"].map(t=>html`
-                  <button key=${t} onClick=${()=>setForm(f=>({...f,type:t}))}
-                    style=${{padding:'7px 14px',borderRadius:10,border:'1.5px solid',fontFamily:"'Exo 2',sans-serif",fontWeight:700,fontSize:'.81rem',cursor:'pointer',display:'flex',alignItems:'center',gap:6,borderColor:form.type===t?'var(--teal)':'var(--border)',background:form.type===t?'var(--sage)':'var(--surface)',color:'var(--text)'}}>
-                    <${Ic} name=${t==="audio"?"music":t==="video"?"video":"file"} size=${13}/>
-                    ${t==="audio"?"Audio":t==="video"?"Video":"Text"}
-                  </button>`)}
-              </div>
-            </div>
-            <div class="form-row"><label class="label">Titel</label><input class="input" value=${form.title} onInput=${e=>setForm(f=>({...f,title:e.target.value}))} placeholder="z.B. Atemübung — 5 Minuten"/></div>
-            <div class="form-row"><label class="label">Beschreibung</label><textarea class="textarea" rows=${2} value=${form.desc} onInput=${e=>setForm(f=>({...f,desc:e.target.value}))} placeholder="Unser nächster Termin - wähle bitte alle Zeitfenster, die dir passen."/></div>
-            <div class="modal-actions">
-              <button class="btn btn-ghost" onClick=${()=>setShowUpload(false)}>Abbrechen</button>
-              <button class="btn btn-primary" onClick=${save}><${Ic} name="upload" size=${13}/> Speichern</button>
-            </div>
-          </div>
+
+      ${filtered.length===0&&html`
+        <div style=${{textAlign:"center",padding:"44px",color:"var(--muted)"}}>
+          <p>${searchQ?"Keine Treffer für ""+searchQ+"".":"Noch keine Inhalte in dieser Kategorie."}</p>
         </div>`}
 
       ${showUpload&&html`
         <div class="overlay" onClick=${e=>{if(e.target===e.currentTarget)setShowUpload(false);}}>
-          <div class="modal" style=${{maxWidth:420}}>
-            <div class="modal-title">Material hochladen</div>
-            <div class="form-group">
-              <label class="form-label">Typ</label>
-              <select class="form-input" value=${form.type} onInput=${e=>setForm(f=>({...f,type:e.target.value}))}>
-                <option value="audio">Audio</option>
-                <option value="video">Video</option>
-                <option value="dokus">Dokument</option>
-              </select>
+          <div class="modal" onClick=${e=>e.stopPropagation()}>
+            <div style=${{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16}}>
+              <h2 class="modal-title" style=${{marginBottom:0}}>Material hochladen</h2>
+              <button style=${{background:"none",border:"none",cursor:"pointer",color:"var(--muted)",padding:4,borderRadius:8,display:"flex"}} onClick=${()=>setShowUpload(false)}><${Ic} name="x" size=${20}/></button>
             </div>
-            <div class="form-group">
-              <label class="form-label">Titel</label>
-              <input class="form-input" value=${form.title} onInput=${e=>setForm(f=>({...f,title:e.target.value}))} placeholder="Titel des Materials"/>
+
+            <div class="form-row">
+              <div class=${"upload-zone"+(drag?" drag":"")}
+                onDragOver=${e=>{e.preventDefault();setDrag(true);}}
+                onDragLeave=${()=>setDrag(false)}
+                onDrop=${handleDrop}
+                onClick=${()=>fileRef.current?.click()}>
+                <div style=${{display:"flex",justifyContent:"center",opacity:.5}}><${Ic} name="upload" size=${30}/></div>
+                <p>${uploading?"Wird geladen…":fileName||"Datei hierher ziehen oder tippen"}</p>
+                <span>Audio · Video · PDF · DOCX · XLSX · PPT</span>
+                <input ref=${fileRef} type="file" style=${{display:"none"}}
+                  accept=${ACCEPT} onChange=${handleInputChange}/>
+              </div>
             </div>
-            <div class="form-group">
-              <label class="form-label">Beschreibung</label>
-              <textarea class="form-input" rows=${2} value=${form.desc} onInput=${e=>setForm(f=>({...f,desc:e.target.value}))} placeholder="Kurze Beschreibung..."></textarea>
+
+            <div class="form-row">
+              <label class="label">Typ</label>
+              <div style=${{display:"flex",gap:7}}>${["audio","video","dokus"].map(t=>html`
+                <button key=${t} onClick=${()=>setForm(f=>({...f,type:t}))}
+                  style=${{padding:"7px 14px",borderRadius:10,border:"1.5px solid",fontFamily:"'Exo 2',sans-serif",fontWeight:700,fontSize:".81rem",cursor:"pointer",display:"flex",alignItems:"center",gap:6,
+                  borderColor:form.type===t?"var(--teal)":"var(--border)",background:form.type===t?"var(--sage)":"var(--surface)",color:"var(--text)"}}>
+                  <${Ic} name=${t==="audio"?"music":t==="video"?"video":"file"} size=${13}/>
+                  ${t==="audio"?"Audio":t==="video"?"Video":"Doku"}
+                </button>`)}</div>
             </div>
-            <input ref=${fileRef} type="file" style=${{display:"none"}}
-              accept=${form.type==="audio"?"audio/*":form.type==="video"?"video/*":".pdf,.doc,.docx"}
-              onChange=${e=>handleUpload(e.target.files[0])}/>
+
+            <div class="form-row">
+              <label class="label">Titel *</label>
+              <input class="input" value=${form.title} onInput=${e=>setForm(f=>({...f,title:e.target.value}))} placeholder="z.B. Atemübung — 5 Minuten"/>
+            </div>
+            <div class="form-row">
+              <label class="label">Beschreibung</label>
+              <textarea class="textarea" rows=${2} value=${form.desc} onInput=${e=>setForm(f=>({...f,desc:e.target.value}))} placeholder="Kurze Beschreibung des Inhalts…"/>
+            </div>
+            <div class="form-row">
+              <label class="label">Stichwörter (kommagetrennt)</label>
+              <input class="input" value=${form.keywords} onInput=${e=>setForm(f=>({...f,keywords:e.target.value}))} placeholder="z.B. Atem, Entspannung, Morgen"/>
+            </div>
+
             <div class="modal-actions">
               <button class="btn btn-ghost" onClick=${()=>setShowUpload(false)}>Abbrechen</button>
-              <button class="btn btn-primary" onClick=${()=>fileRef.current?.click()}>
-                <${Ic} name="upload" size=${14}/> Datei wählen
+              <button class="btn btn-primary" onClick=${save} disabled=${uploading}>
+                <${Ic} name="upload" size=${13}/> Speichern
               </button>
             </div>
           </div>
         </div>`}
     </div>
-`;
+  `;
 }
+
 function DoodlePage({doodles,setDoodles,coachees}) {
   const [showCreate,setShowCreate] = useState(false);
   const [showResults,setShowResults] = useState(null);
