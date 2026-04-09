@@ -2332,7 +2332,7 @@ function LibraryPage({library,setLibrary}) {
 
       ${filtered.length===0&&html`
         <div style=${{textAlign:"center",padding:"44px",color:"var(--muted)"}}>
-          <p>${searchQ?"Keine Treffer für ""+searchQ+"".":"Noch keine Inhalte in dieser Kategorie."}</p>
+          <p>${searchQ?"Keine Treffer für '+searchQ+'":"Noch keine Inhalte in dieser Kategorie."}</p>
         </div>`}
 
       ${showUpload&&html`
