@@ -51,6 +51,7 @@
     window._fb = {
       auth: firebase.auth(),
       db:   firebase.firestore(),
+      storage: firebase.storage(),
       googleProvider: new firebase.auth.GoogleAuthProvider()
     };
     firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL);
@@ -1396,9 +1397,24 @@ function LoginPage() {
 function AdminApp({user}) {
   const [page,setPage] = useState("dashboard");
   const [coachees,setCoachees] = useState(INIT_COACHEES);
-  const [library,setLibrary] = useState(INIT_LIBRARY);
+  const [library,setLibrary] = useState([]);
   const [doodles,setDoodles] = useState(INIT_DOODLES);
   const totalUnread = coachees.reduce((a,c)=>a+(c.unread||0),0);
+
+  // ── Library Firebase Sync ──
+  useEffect(() => {
+    const firestore = db();
+    if(!firestore) { setLibrary(INIT_LIBRARY); return; }
+    const col = firestore.collection("library");
+    let unsub;
+    try {
+      unsub = col.orderBy("createdAt","desc").onSnapshot(snap => {
+        const items = snap.docs.map(d => ({id: d.id, ...d.data()}));
+        setLibrary(items.length > 0 ? items : INIT_LIBRARY);
+      }, () => { setLibrary(INIT_LIBRARY); });
+    } catch(e) { setLibrary(INIT_LIBRARY); }
+    return () => { if(unsub) unsub(); };
+  }, []);
 
   const NAV = [
     {id:"dashboard",icon:"home",label:"Home"},
@@ -2294,31 +2310,29 @@ function LibraryPage({library,setLibrary}) {
     const t = detectType(f);
     setForm(v=>({...v, type:t, title:v.title||f.name.replace(/\.[^.]+$/,"") }));
     setFileName(f.name);
+    setFileData(f); // store raw File object — uploaded to Storage on save
     setThumbData(null); setDuration("");
     setUploading(true);
     if(t==="foto") {
+      // Read preview for thumbnail only
       readFile(f).then(data => {
-        setFileData(data);
-        setThumbData(data);
+        setThumbData(data); // base64 preview for thumbnail in card
         setUploading(false);
       }).catch(() => { showToast("Fehler beim Lesen"); setUploading(false); });
     } else if(t==="video") {
       extractVideoThumb(f).then(({thumb,dur}) => {
         if(thumb) setThumbData(thumb);
         if(dur) setDuration(fmtDur(dur));
-        readFile(f).then(data => { setFileData(data); setUploading(false); })
-          .catch(() => { setUploading(false); showToast("Video gelesen (kein Thumb)"); });
+        setUploading(false);
       });
     } else if(t==="audio") {
       extractAudioWave(f).then(({wave,dur}) => {
         if(wave) setThumbData(JSON.stringify(wave));
         if(dur) setDuration(fmtDur(dur));
-        readFile(f).then(data => { setFileData(data); setUploading(false); })
-          .catch(() => { setUploading(false); });
+        setUploading(false);
       });
     } else {
-      readFile(f).then(data => { setFileData(data); setUploading(false); })
-        .catch(() => { showToast("Fehler beim Lesen"); setUploading(false); });
+      setUploading(false);
     }
     if(fileRef.current) fileRef.current.value = "";
   };
@@ -2326,42 +2340,73 @@ function LibraryPage({library,setLibrary}) {
   const handleInputChange = e => { handleFile(e.target.files[0]); e.target.value=""; };
   const handleDrop = e => { e.preventDefault(); setDrag(false); handleFile(e.dataTransfer.files[0]); };
 
-  const save = () => {
-    if(!form.title.trim()) return;
-    const item = {
-      id:Date.now(), ...form,
-      fileUrl: fileData||null,
-      fileName: fileName||null,
-      thumbData: thumbData||null,
-      duration: duration||null,
-      uploadedAt: new Date().toLocaleDateString("de-CH")
-    };
-    setLibrary(l=>[item,...l]);
-    setShowUpload(false);
-    setForm({title:"",desc:"",type:"audio",keywords:""});
-    setFileData(null); setFileName(""); setThumbData(null); setDuration("");
-    showToast("✓ Material gespeichert");
+  const save = async () => {
+    if(!form.title.trim()) { showToast("Bitte Titel eingeben"); return; }
+    const storage = window._fb?.storage;
+    const firestore = db();
+    if(!firestore) { showToast("Firebase nicht bereit"); return; }
+
+    setUploading(true);
+    try {
+      let fileUrl = null;
+      let storagePath = null;
+
+      if(fileData && storage) {
+        // Upload to Firebase Storage: library/{timestamp}_{filename}
+        const safeName = fileName.replace(/[^a-zA-Z0-9._-]/g, "_");
+        storagePath = `library/${Date.now()}_${safeName}`;
+        const ref = storage.ref(storagePath);
+        await ref.put(fileData);
+        fileUrl = await ref.getDownloadURL();
+      }
+
+      const id = "lib_" + Date.now();
+      const meta = {
+        id,
+        ...form,
+        fileUrl: fileUrl || null,
+        storagePath: storagePath || null,
+        fileName: fileName || null,
+        // thumbData stays as base64 (small preview image / waveform JSON — ok for Firestore)
+        thumbData: thumbData || null,
+        duration: duration || null,
+        uploadedAt: new Date().toLocaleDateString("de-CH"),
+        createdAt: Date.now()
+      };
+
+      await firestore.collection("library").doc(id).set(meta);
+      showToast("✓ Material gespeichert");
+    } catch(e) {
+      console.error("Upload-Fehler:", e);
+      showToast("Fehler beim Hochladen: " + (e.message||e.code||"unbekannt"));
+    } finally {
+      setUploading(false);
+      setShowUpload(false);
+      setForm({title:"",desc:"",type:"audio",keywords:""});
+      setFileData(null); setFileName(""); setThumbData(null); setDuration("");
+    }
   };
 
-  const del = id => { setLibrary(l=>l.filter(i=>i.id!==id)); showToast("Material gelöscht"); };
+  const del = async id => {
+    const firestore = db();
+    const storage = window._fb?.storage;
+    // Find storagePath in current library list to delete from Storage too
+    const item = library.find(i=>i.id===id);
+    if(item?.storagePath && storage) {
+      try { await storage.ref(item.storagePath).delete(); } catch(e) {}
+    }
+    if(firestore) firestore.collection("library").doc(String(id)).delete().catch(()=>{});
+    setLibrary(l=>l.filter(i=>i.id!==id));
+    showToast("Material gelöscht");
+  };
 
   const openViewer = item => {
     if(!item.fileUrl) return;
-    try {
-      const arr=item.fileUrl.split(',');
-      const mime=arr[0].match(/:(.*?);/)[1];
-      const bstr=atob(arr[1]); let n=bstr.length;
-      const u8=new Uint8Array(n); while(n--)u8[n]=bstr.charCodeAt(n);
-      const blob=new Blob([u8],{type:mime});
-      const url=URL.createObjectURL(blob);
-      setViewer({url, name:item.fileName||item.title, type:item.type, mime});
-    } catch(e){ window.open(item.fileUrl,'_blank'); }
+    // Firebase Storage download URLs work directly — no base64 conversion needed
+    setViewer({url: item.fileUrl, name: item.fileName||item.title, type: item.type});
   };
 
-  const closeViewer = () => {
-    if(viewer?.url) URL.revokeObjectURL(viewer.url);
-    setViewer(null);
-  };
+  const closeViewer = () => { setViewer(null); };
 
   const ThumbContent = ({item}) => {
     if(item.type==="foto") return html`
