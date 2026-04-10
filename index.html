@@ -2234,6 +2234,24 @@ function LibraryPage({library,setLibrary}) {
   `;
 }
 
+const REM_AREAS = ["Allgemein","Ich-Sein","Paar-Sein","Eltern-Sein"];
+const REM_AREA_COLOR = {
+  "Allgemein":  { bar:"#c4b8a8", bg:"#f0ede8", tag:"#e0d8cc", text:"#6b5a48" },
+  "Ich-Sein":   { bar:"#a0cb7b", bg:"#eef7e4", tag:"#d0ebbb", text:"#3a6820" },
+  "Paar-Sein":  { bar:"#efe454", bg:"#fafbe0", tag:"#f2f0a0", text:"#6b6200" },
+  "Eltern-Sein":{ bar:"#68b87d", bg:"#e8f7ee", tag:"#c4e8d0", text:"#2a6644" },
+};
+const SYMBOLS = [
+  {name:"Lebensbaum", desc:"Verwurzelung & Wachstum",    svg:'<svg viewBox="0 0 48 60" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M24 4 C18 12 10 16 10 24 C10 32 17 37 24 37 C31 37 38 32 38 24 C38 16 30 12 24 4Z" fill="#68b87d" opacity="0.8"/><path d="M24 4 C20 14 14 18 16 26 C18 32 22 36 24 37" fill="#4a9e62" opacity="0.6"/><rect x="22" y="37" width="4" height="18" rx="2" fill="#8B5E3C"/></svg>'},
+  {name:"Sonne",      desc:"Energie & Klarheit",          svg:'<svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="24" cy="24" r="10" fill="#efe454"/><line x1="24" y1="4" x2="24" y2="10" stroke="#efe454" stroke-width="2.5" stroke-linecap="round"/><line x1="24" y1="38" x2="24" y2="44" stroke="#efe454" stroke-width="2.5" stroke-linecap="round"/><line x1="4" y1="24" x2="10" y2="24" stroke="#efe454" stroke-width="2.5" stroke-linecap="round"/><line x1="38" y1="24" x2="44" y2="24" stroke="#efe454" stroke-width="2.5" stroke-linecap="round"/><line x1="9" y1="9" x2="13" y2="13" stroke="#efe454" stroke-width="2" stroke-linecap="round"/><line x1="35" y1="35" x2="39" y2="39" stroke="#efe454" stroke-width="2" stroke-linecap="round"/><line x1="39" y1="9" x2="35" y2="13" stroke="#efe454" stroke-width="2" stroke-linecap="round"/><line x1="9" y1="39" x2="13" y2="35" stroke="#efe454" stroke-width="2" stroke-linecap="round"/></svg>'},
+  {name:"Mond",       desc:"Intuition & Ruhe",             svg:'<svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M30 8 C18 10 10 18 10 28 C10 38 18 44 28 44 C36 44 42 40 44 34 C38 36 30 34 26 28 C22 22 22 14 30 8Z" fill="#a0cb7b"/></svg>'},
+  {name:"Welle",      desc:"Fluss & Bewegung",             svg:'<svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 24 C8 18 12 18 16 24 C20 30 24 30 28 24 C32 18 36 18 40 24 C44 30 44 30 44 30" stroke="#68b87d" stroke-width="3" stroke-linecap="round" fill="none"/><path d="M4 32 C8 26 12 26 16 32 C20 38 24 38 28 32 C32 26 36 26 40 32" stroke="#a0cb7b" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.6"/></svg>'},
+  {name:"Kompass",    desc:"Orientierung & Ziel",          svg:'<svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="24" cy="24" r="18" stroke="#68b87d" stroke-width="2.5"/><polygon points="24,8 27,24 24,22 21,24" fill="#e05c5c"/><polygon points="24,40 21,24 24,26 27,24" fill="#68b87d"/><circle cx="24" cy="24" r="2.5" fill="#1e3a2f"/></svg>'},
+  {name:"Herz",       desc:"Liebe & Verbindung",           svg:'<svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M24 40 C24 40 6 28 6 17 C6 11 11 7 17 7 C20 7 22 9 24 11 C26 9 28 7 31 7 C37 7 42 11 42 17 C42 28 24 40 24 40Z" fill="#e05c5c" opacity="0.85"/></svg>'},
+  {name:"Spirale",    desc:"Wachstum & Transformation",   svg:'<svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M24 24 C24 24 24 20 28 20 C32 20 34 24 32 28 C30 32 24 32 20 28 C16 24 18 16 24 14 C30 12 36 16 36 24 C36 32 30 38 22 38 C14 38 8 32 10 24" stroke="#a0cb7b" stroke-width="2.5" stroke-linecap="round" fill="none"/></svg>'},
+  {name:"Berg",       desc:"Beständigkeit & Kraft",        svg:'<svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6 40 L18 16 L24 28 L30 20 L42 40Z" fill="#68b87d" opacity="0.7"/><path d="M18 16 L24 8 L30 20 L24 28Z" fill="#4a9e62"/></svg>'},
+];
+
 const BLANK_FORM = {
   label:"", icon:"leaf", time:"08:00", recurrence:"daily",
   weekdays:[], monthDays:[], customWeekdays:[],
