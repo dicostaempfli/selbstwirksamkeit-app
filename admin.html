@@ -2664,7 +2664,7 @@ function DoodlePage({doodles,setDoodles,coachees}) {
       ${/* CREATE MODAL */showCreate&&html`
         <div class="overlay" onClick=${e=>{if(e.target===e.currentTarget)setShowCreate(false);}}>
           <div class="modal">
-            <div style=${{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4}}><h2 class="modal-title" style=${{marginBottom:0}}>Neuer Terminvorschlag</h2><button style=${{background:"none",border:"none",cursor:"pointer",color:"var(--muted)",padding:4,borderRadius:8,display:"flex"}} onClick=${()=>{const o=document.querySelector(".overlay");if(o)o.click();}}><\${Ic} name="x" size=\${20}/></button></div>
+            <div style=${{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4}}><h2 class="modal-title" style=${{marginBottom:0}}>Neuer Terminvorschlag</h2><button style=${{background:"none",border:"none",cursor:"pointer",color:"var(--muted)",padding:4,borderRadius:8,display:"flex"}} onClick=${()=>{const o=document.querySelector(".overlay");if(o)o.click();}}><${Ic} name="x" size=${20}/></button></div>
             <div class="form-row"><label class="label">Titel</label><input class="input" value=${newTitle} onInput=${e=>setNewTitle(e.target.value)} placeholder="z.B. Coaching-Session April"/></div>
             <div class="form-row"><label class="label">Beschreibung (optional)</label><textarea class="textarea" rows=${2} value=${newDesc} onInput=${e=>setNewDesc(e.target.value)} placeholder="z.B. Wähle bitte 2–3 Zeiten die dir passen."/></div>
             <div class="form-row">
@@ -2698,7 +2698,7 @@ function DoodlePage({doodles,setDoodles,coachees}) {
       ${/* RESULTS MODAL */showResults&&resultDoodle&&html`
         <div class="overlay" onClick=${e=>{if(e.target===e.currentTarget)setShowResults(null);}}>
           <div class="modal">
-            <div style=${{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4}}><h2 class="modal-title" style=${{marginBottom:0}}>${resultDoodle.title} — Ergebnisse</h2><button style=${{background:"none",border:"none",cursor:"pointer",color:"var(--muted)",padding:4,borderRadius:8,display:"flex"}} onClick=${()=>{const o=document.querySelector(".overlay");if(o)o.click();}}><\${Ic} name="x" size=\${20}/></button></div>
+            <div style=${{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4}}><h2 class="modal-title" style=${{marginBottom:0}}>${resultDoodle.title} — Ergebnisse</h2><button style=${{background:"none",border:"none",cursor:"pointer",color:"var(--muted)",padding:4,borderRadius:8,display:"flex"}} onClick=${()=>{const o=document.querySelector(".overlay");if(o)o.click();}}><${Ic} name="x" size=${20}/></button></div>
             ${(resultDoodle.slots||[]).map((s,i)=>{
               const best=bestSlotIdx(resultDoodle);
               const isBest=i===best&&Object.values(s.votes||{}).some(v=>v==="yes");
