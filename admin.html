@@ -2182,7 +2182,15 @@ function CoacheesPage({coachees,setCoachees,setPage}) {
               </button>
               <div style=${{display:"flex",gap:8}}>
                 <button class="btn btn-ghost" onClick=${()=>setEditId(null)}>Abbrechen</button>
-                <button class="btn btn-primfunction LibraryPage({library,setLibrary}) {
+                <button class="btn btn-primary" onClick=${saveEdit}>Speichern</button>
+              </div>
+            </div>
+          </div>
+        </div>`}
+    </div>`;
+}
+
+function LibraryPage({library,setLibrary}) {
   const [searchQ,setSearchQ]     = useState('');
   const [filter,setFilter]       = useState("all");
   const [showUpload,setShowUpload] = useState(false);
