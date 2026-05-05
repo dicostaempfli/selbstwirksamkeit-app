@@ -1179,6 +1179,7 @@ const IC = {
   mic:     ["M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z","M19 10v2a7 7 0 01-14 0v-2","M12 19v4","M8 23h8"],
   stop:    ["M18 3H6a3 3 0 00-3 3v12a3 3 0 003 3h12a3 3 0 003-3V6a3 3 0 00-3-3z"],
   ticket:  ["M2 9a1 1 0 01-1-1V5a2 2 0 012-2h18a2 2 0 012 2v3a1 1 0 01-1 1 2 2 0 000 4 1 1 0 011 1v3a2 2 0 01-2 2H3a2 2 0 01-2-2v-3a1 1 0 011-1 2 2 0 000-4","M12 5v2","M12 11v2","M12 17v2"],
+  impuls:  ["M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"],
 };
 
 const Ic = ({ name, size=16, style={} }) => {
@@ -1448,6 +1449,7 @@ function App({ user }) {
   const NAV_ITEMS = [
     {id:"dashboard", icon:"home",     label:"Home"},
     {id:"chat",      icon:"chat",     label:"Chat",      badge:totalUnreadVal},
+    {id:"impuls",    icon:"impuls",   label:"Impuls"},
     {id:"reminders", icon:"bell",     label:"Erinnerungen"},
     {id:"library",   icon:"library",  label:"Mediathek"},
     {id:"doodle",    icon:"calendar", label:"Termine"},
@@ -1458,6 +1460,7 @@ function App({ user }) {
     <div style=${{flex:1,display:'flex',overflow:'hidden',minWidth:0}}>
       ${page==="dashboard" && html`<${DashboardPage} coachees=${coachees} library=${library} reminders=${reminders} doodles=${doodles} setPage=${navTo} user=${user} onLogoTap=${handleLogoTap}/>`}
       ${page==="chat"      && html`<${ChatPage} coachees=${coachees} setCoachees=${setCoachees} mobileChatOpen=${mobileChatOpen} setMobileChatOpen=${setMobileChatOpen}/>`}
+      ${page==="impuls"    && html`<${ImpulsPage} user=${user}/>`}
       ${page==="library"   && html`<${LibraryPage} library=${library} setLibrary=${saveLibrary}/>`}
       ${page==="reminders" && html`<${RemindersPage} reminders=${reminders} setReminders=${saveReminders}/>`}
       ${page==="doodle"    && html`<${DoodlePage} doodles=${doodles} setDoodles=${saveDoodles} coachees=${coachees} events=${events}/>`}
@@ -1518,6 +1521,7 @@ function Sidebar({page,setPage,totalUnread,user,onLogoTap}) {
   const items = [
     {id:"dashboard",icon:"home",tip:"Übersicht"},
     {id:"chat",icon:"chat",tip:"Nachrichten",badge:totalUnread},
+    {id:"impuls",icon:"impuls",tip:"Tages-Impuls"},
     {id:"reminders",icon:"bell",tip:"Erinnerungen"},
     {id:"library",icon:"library",tip:"Mediathek"},
     {id:"doodle",   icon:"calendar",tip:"Termine & Events"},
@@ -1875,6 +1879,16 @@ function DashboardPage({coachees,library,reminders,doodles,setPage,user,onLogoTa
         <p class="quote-author">${quote.author}</p>
       </div>
       <div class="stat-grid">
+        <div class="stat-card" onClick=${()=>setPage("impuls")} style=${{cursor:"pointer",borderLeft:"4px solid var(--teal-dark)",padding:"16px 20px"}}>
+          <div style=${{display:"flex",alignItems:"center",gap:14}}>
+            <div style=${{width:42,height:42,borderRadius:12,background:"var(--teal-pale)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><${Ic} name="impuls" size=${20} style=${{color:"var(--teal-dark)"}}/></div>
+            <div style=${{flex:1}}>
+              <div style=${{fontFamily:"'Manuale',serif",fontWeight:700,fontSize:"1rem",color:"var(--text)"}}>Tages-Impuls</div>
+              <div style=${{fontSize:".82rem",color:"var(--muted)",marginTop:1}}>Dein Impuls für heute</div>
+            </div>
+            <${Ic} name="chevron" size=${16} style=${{color:"var(--border2)"}}/>
+          </div>
+        </div>
         <div class="stat-card" onClick=${()=>setPage("reminders")} style=${{cursor:"pointer",borderLeft:"4px solid var(--teal)",padding:"16px 20px"}}>
           <div style=${{display:"flex",alignItems:"center",gap:14}}>
             <div style=${{width:42,height:42,borderRadius:12,background:"var(--teal-pale)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><${Ic} name="bell" size=${20} style=${{color:"var(--teal-dark)"}}/></div>
@@ -1917,6 +1931,158 @@ function DashboardPage({coachees,library,reminders,doodles,setPage,user,onLogoTa
           <${Ic} name="send" size=${18} style=${{color:"var(--teal)",flexShrink:0}}/>
         </div>
       </div>
+    </div>`;
+}
+
+// ── IMPULS PAGE ──
+function ImpulsPage({ user }) {
+  const [step, setStep]             = useState(0); // 0=impuls, 1=reflexion, 2=koerper, 3=done
+  const [reflexion, setReflexion]   = useState("");
+  const [koerper, setKoerper]       = useState(null);
+  const [todayImpuls, setTodayImpuls] = useState(null);
+  const [saving, setSaving]         = useState(false);
+
+  const KOERPER_OPTS = ["Brust","Bauch","Kehle","Schultern","Nirgends","Weiss nicht"];
+
+  // Load today's impuls from Firestore settings
+  useEffect(() => {
+    const fbDb = window._fb?.db;
+    if (!fbDb) return;
+    fbDb.collection("settings").doc("tagesimpuls").get()
+      .then(doc => {
+        if (doc.exists) setTodayImpuls(doc.data());
+        else setTodayImpuls({ text: "Bitte heute jemanden bewusst um etwas — ohne dich dabei zu entschuldigen.", hint: "Nicht gross. Nicht mutig. Einfach einmal fragen — und beobachten, was passiert." });
+      })
+      .catch(() => setTodayImpuls({ text: "Bitte heute jemanden bewusst um etwas — ohne dich dabei zu entschuldigen.", hint: "Nicht gross. Nicht mutig. Einfach einmal fragen — und beobachten, was passiert." }));
+  }, []);
+
+  // Check if already done today
+  const [doneTodayFlag, setDoneTodayFlag] = useState(false);
+  useEffect(() => {
+    const fbDb = window._fb?.db;
+    if (!fbDb || !user?.uid) return;
+    const todayStr = new Date().toISOString().split("T")[0];
+    fbDb.collection("impulse").where("uid","==",user.uid).where("date","==",todayStr).limit(1).get()
+      .then(snap => { if (!snap.empty) setDoneTodayFlag(true); })
+      .catch(() => {});
+  }, [user]);
+
+  const saveAndFinish = () => {
+    setSaving(true);
+    const fbDb = window._fb?.db;
+    const uid = user?.uid;
+    if (fbDb && uid) {
+      const todayStr = new Date().toISOString().split("T")[0];
+      fbDb.collection("impulse").add({
+        uid,
+        date: todayStr,
+        impulsText: todayImpuls?.text || "",
+        reflexion: reflexion.trim(),
+        koerper: koerper || "",
+        createdAt: Date.now(),
+      }).catch(() => {}).finally(() => {
+        setSaving(false);
+        setStep(3);
+        setDoneTodayFlag(true);
+      });
+    } else {
+      setSaving(false);
+      setStep(3);
+    }
+  };
+
+  const dateStr = new Date().toLocaleDateString("de-CH", { weekday: "long", day: "numeric", month: "long" });
+
+  if (!todayImpuls) return html`<div class="content-main" style=${{display:"flex",alignItems:"center",justifyContent:"center",minHeight:200}}><div style=${{color:"var(--muted)",fontSize:".9rem"}}>Lade…</div></div>`;
+
+  return html`
+    <div class="content-main" style=${{maxWidth:520}}>
+
+      ${step === 0 && html`
+        <div>
+          <div style=${{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:24}}>
+            <span style=${{fontSize:".72rem",fontWeight:700,textTransform:"uppercase",letterSpacing:".07em",color:"var(--muted)"}}>Dein Impuls für heute</span>
+            <div style=${{display:"flex",gap:6}}>
+              ${[0,1,2].map(i => html`<div key=${i} style=${{width:6,height:6,borderRadius:"50%",background:i===0?"var(--teal)":"var(--border2)"}}></div>`)}
+            </div>
+          </div>
+          <div style=${{fontSize:".72rem",color:"var(--muted)",marginBottom:20,fontStyle:"italic"}}>${dateStr}</div>
+          <div style=${{borderTop:"1px solid var(--border)",marginBottom:24}}></div>
+          <p style=${{fontFamily:"'Manuale',serif",fontSize:"1.15rem",lineHeight:1.65,color:"var(--text)",marginBottom:20}}>${todayImpuls.text}</p>
+          <div style=${{borderTop:"1px solid var(--border)",marginBottom:20}}></div>
+          <p style=${{fontSize:".85rem",color:"var(--muted)",lineHeight:1.6,marginBottom:32}}>${todayImpuls.hint || ""}</p>
+          ${doneTodayFlag
+            ? html`<div style=${{background:"var(--sage-pale)",border:"1px solid var(--border)",borderRadius:12,padding:"14px 18px",fontSize:".88rem",color:"var(--forest)",marginBottom:12}}>Du hast den heutigen Impuls bereits abgeschlossen. Morgen gibt es einen neuen.</div>`
+            : html`
+              <button class="btn-primary" style=${{width:"100%",marginBottom:10}} onClick=${() => setStep(1)}>Ich nehme diesen Impuls mit →</button>
+              <button class="btn-secondary" style=${{width:"100%",fontSize:".83rem"}} onClick=${() => setStep(1)}>Heute nicht — trotzdem weiter</button>
+            `}
+        </div>
+      `}
+
+      ${step === 1 && html`
+        <div>
+          <div style=${{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:24}}>
+            <span style=${{fontSize:".72rem",fontWeight:700,textTransform:"uppercase",letterSpacing:".07em",color:"var(--muted)"}}>Reflexion</span>
+            <div style=${{display:"flex",gap:6}}>
+              ${[0,1,2].map(i => html`<div key=${i} style=${{width:6,height:6,borderRadius:"50%",background:i<=1?"var(--teal)":"var(--border2)"}}></div>`)}
+            </div>
+          </div>
+          <p style=${{fontSize:".72rem",fontWeight:700,textTransform:"uppercase",letterSpacing:".07em",color:"var(--muted)",marginBottom:10}}>Die eine Frage</p>
+          <p style=${{fontFamily:"'Manuale',serif",fontSize:"1.1rem",fontStyle:"italic",lineHeight:1.6,color:"var(--text)",marginBottom:24}}>«Was war heute anders als du erwartet hast?»</p>
+          <div style=${{borderTop:"1px solid var(--border)",marginBottom:20}}></div>
+          <textarea
+            class="form-input"
+            rows="4"
+            placeholder="Ein Satz reicht. Oder zwei. Oder kein Text — einfach einen Moment innehalten."
+            value=${reflexion}
+            onInput=${e => setReflexion(e.target.value)}
+            style=${{width:"100%",resize:"none",marginBottom:12,boxSizing:"border-box"}}
+          ></textarea>
+          <p style=${{fontSize:".75rem",color:"var(--muted)",marginBottom:28}}>Diese Antwort bleibt bei dir. Niemand ausser dir sieht sie.</p>
+          <button class="btn-primary" style=${{width:"100%",marginBottom:10}} onClick=${() => setStep(2)}>Weiter →</button>
+          <button class="btn-secondary" style=${{width:"100%",fontSize:".83rem"}} onClick=${() => setStep(2)}>Überspringen</button>
+        </div>
+      `}
+
+      ${step === 2 && html`
+        <div>
+          <div style=${{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:24}}>
+            <span style=${{fontSize:".72rem",fontWeight:700,textTransform:"uppercase",letterSpacing:".07em",color:"var(--muted)"}}>Körperanker</span>
+            <div style=${{display:"flex",gap:6}}>
+              ${[0,1,2].map(i => html`<div key=${i} style=${{width:6,height:6,borderRadius:"50%",background:"var(--teal)"}}></div>`)}
+            </div>
+          </div>
+          <p style=${{fontFamily:"'Manuale',serif",fontSize:"1.1rem",lineHeight:1.6,color:"var(--text)",marginBottom:8}}>Halt kurz inne.</p>
+          <p style=${{fontSize:".9rem",color:"var(--muted)",lineHeight:1.6,marginBottom:24}}>Wo spürst du den heutigen Moment gerade im Körper?</p>
+          <div style=${{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:28}}>
+            ${KOERPER_OPTS.map(opt => html`
+              <button key=${opt}
+                onClick=${() => setKoerper(opt)}
+                style=${{padding:"10px 6px",border:koerper===opt?"2px solid var(--teal)":"1.5px solid var(--border)",borderRadius:10,background:koerper===opt?"var(--sage)":"var(--surface)",color:koerper===opt?"var(--forest)":"var(--muted)",fontFamily:"'Exo 2',sans-serif",fontWeight:700,fontSize:".79rem",cursor:"pointer",transition:"all .15s"}}>
+                ${opt}
+              </button>`)}
+          </div>
+          <div style=${{borderTop:"1px solid var(--border)",marginBottom:20}}></div>
+          <p style=${{fontSize:".88rem",color:"var(--muted)",fontStyle:"italic",lineHeight:1.6,marginBottom:28}}>Atme einmal bewusst dorthin. Das war's.</p>
+          <button class="btn-primary" style=${{width:"100%"}} onClick=${saveAndFinish} disabled=${saving}>${saving ? "Speichern…" : "Abschliessen"}</button>
+        </div>
+      `}
+
+      ${step === 3 && html`
+        <div style=${{textAlign:"center",paddingTop:16}}>
+          <div style=${{width:52,height:52,borderRadius:"50%",background:"var(--teal)",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 20px"}}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+          <div style=${{background:"var(--surface)",border:"1px solid var(--border)",borderRadius:14,padding:"16px 18px",marginBottom:24,textAlign:"left"}}>
+            <p style=${{margin:0,fontSize:".9rem",fontWeight:700,color:"var(--text)",marginBottom:4}}>Dein Moment ist gespeichert.</p>
+            <p style=${{margin:0,fontSize:".83rem",color:"var(--muted)"}}>In 4 Wochen zeigen wir dir, was du heute gespürt hast.</p>
+          </div>
+          <div style=${{borderTop:"1px solid var(--border)",marginBottom:24}}></div>
+          <p style=${{fontSize:".95rem",color:"var(--muted)",lineHeight:1.7,marginBottom:28}}>Leg das Handy weg.<br/>Der Impuls läuft jetzt im Alltag.</p>
+          <button class="btn-secondary" style=${{fontSize:".83rem"}} onClick=${() => { setStep(0); setReflexion(""); setKoerper(null); }}>Von vorne ansehen</button>
+        </div>
+      `}
     </div>`;
 }
 
