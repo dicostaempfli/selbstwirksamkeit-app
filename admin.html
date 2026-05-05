@@ -1267,6 +1267,7 @@ const IC = {
   file:    ["M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z","M14 2v6h6"],
   user:    ["M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2","M12 11a4 4 0 100-8 4 4 0 000 8z"],
   chevron: ["M9 18l6-6-6-6"],
+  impuls:  ["M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"],
 };
 const Ic = ({name,size=16,style={}}) => {
   const d=IC[name]; if(!d) return null;
@@ -1421,6 +1422,7 @@ function AdminApp({user}) {
     {id:"chat",icon:"chat",label:"Chat",badge:totalUnread},
     {id:"coachees",icon:"users",label:"Coachees"},
     {id:"library",icon:"library",label:"Mediathek"},
+    {id:"impuls",icon:"impuls",label:"Impulse"},
     {id:"doodle",icon:"calendar",label:"Termine"},
   ];
 
@@ -1455,6 +1457,7 @@ function AdminApp({user}) {
         ${page==="chat"&&html`<${ChatPage} coachees=${coachees} setCoachees=${setCoachees}/>`}
         ${page==="coachees"&&html`<${CoacheesPage} coachees=${coachees} setCoachees=${setCoachees} setPage=${setPage}/>`}
         ${page==="library"&&html`<${LibraryPage} library=${library} setLibrary=${setLibrary}/>`}
+        ${page==="impuls"&&html`<${ImpulsAdminPage}/>`}
         ${page==="doodle"&&html`<${DoodlePage} doodles=${doodles} setDoodles=${setDoodles} coachees=${coachees}/>`}
       </div>
 
@@ -1514,6 +1517,11 @@ function DashboardPage({coachees,library,doodles,setPage,user}) {
           <div class="stat-label">Termine</div>
           <div class="stat-value">${openDoodles}</div>
           <div class="stat-hint">offen</div>
+        </div>
+        <div class="stat-card" onClick=${()=>setPage("impuls")} style=${{cursor:"pointer",borderLeft:"4px solid var(--teal-dark)"}}>
+          <div class="stat-label">Tages-Impuls</div>
+          <div class="stat-value"><${Ic} name="impuls" size=${20}/></div>
+          <div class="stat-hint">verwalten</div>
         </div>
       </div>
 
@@ -2627,6 +2635,102 @@ function LibraryPage({library,setLibrary}) {
     </div>
   `;
 }
+// ── IMPULS ADMIN PAGE ──
+function ImpulsAdminPage() {
+  const [impulsText, setImpulsText] = useState("");
+  const [impulsHint, setImpulsHint] = useState("");
+  const [saving, setSaving]         = useState(false);
+  const [saved, setSaved]           = useState(false);
+  const [loading, setLoading]       = useState(true);
+  const [history, setHistory]       = useState([]);
+
+  useEffect(() => {
+    const firestore = db();
+    if (!firestore) { setLoading(false); return; }
+    // Load current impuls
+    firestore.collection("settings").doc("tagesimpuls").get()
+      .then(doc => {
+        if (doc.exists) { setImpulsText(doc.data().text || ""); setImpulsHint(doc.data().hint || ""); }
+      }).catch(() => {}).finally(() => setLoading(false));
+    // Load impuls history
+    firestore.collection("impulse_archive").orderBy("createdAt","desc").limit(10).get()
+      .then(snap => setHistory(snap.docs.map(d => ({id:d.id,...d.data()}))))
+      .catch(() => {});
+  }, []);
+
+  const handleSave = () => {
+    const firestore = db();
+    if (!firestore || !impulsText.trim()) return;
+    setSaving(true);
+    const data = { text: impulsText.trim(), hint: impulsHint.trim(), updatedAt: Date.now() };
+    firestore.collection("settings").doc("tagesimpuls").set(data)
+      .then(() => {
+        // Archive the impuls
+        return firestore.collection("impulse_archive").add({ ...data, createdAt: Date.now() });
+      })
+      .then(() => {
+        setSaved(true);
+        setTimeout(() => setSaved(false), 2500);
+        setHistory(prev => [{ id: Date.now(), ...data }, ...prev.slice(0,9)]);
+      })
+      .catch(() => {})
+      .finally(() => setSaving(false));
+  };
+
+  if (loading) return html`<div class="content-area" style=${{display:"flex",alignItems:"center",justifyContent:"center",minHeight:200}}><div style=${{color:"var(--muted)"}}>Lade…</div></div>`;
+
+  return html`
+    <div class="content-area">
+      <h1 class="page-title">Tages-Impuls</h1>
+      <p style=${{color:"var(--muted)",fontSize:".9rem",marginBottom:28}}>Der aktuelle Tages-Impuls wird allen Coachees in der App angezeigt. Ändere ihn hier täglich oder wöchentlich.</p>
+
+      <div class="card" style=${{marginBottom:24}}>
+        <div class="card-title" style=${{marginBottom:16}}>Aktueller Impuls</div>
+
+        <label style=${{fontSize:".78rem",fontWeight:700,textTransform:"uppercase",letterSpacing:".06em",color:"var(--muted)",display:"block",marginBottom:6}}>Impuls-Text</label>
+        <textarea
+          class="form-input"
+          rows="3"
+          placeholder="z.B. Bitte heute jemanden bewusst um etwas — ohne dich dabei zu entschuldigen."
+          value=${impulsText}
+          onInput=${e => setImpulsText(e.target.value)}
+          style=${{width:"100%",resize:"vertical",marginBottom:16,boxSizing:"border-box"}}
+        ></textarea>
+
+        <label style=${{fontSize:".78rem",fontWeight:700,textTransform:"uppercase",letterSpacing:".06em",color:"var(--muted)",display:"block",marginBottom:6}}>Hinweis (optional)</label>
+        <textarea
+          class="form-input"
+          rows="2"
+          placeholder="z.B. Nicht gross. Nicht mutig. Einfach einmal fragen — und beobachten, was passiert."
+          value=${impulsHint}
+          onInput=${e => setImpulsHint(e.target.value)}
+          style=${{width:"100%",resize:"vertical",marginBottom:20,boxSizing:"border-box"}}
+        ></textarea>
+
+        <button
+          class="btn btn-primary"
+          onClick=${handleSave}
+          disabled=${saving || !impulsText.trim()}
+          style=${{minWidth:160}}
+        >
+          ${saving ? "Speichern…" : saved ? "✓ Gespeichert" : "Impuls veröffentlichen"}
+        </button>
+      </div>
+
+      ${history.length > 0 && html`
+        <div class="card">
+          <div class="card-title" style=${{marginBottom:16}}>Frühere Impulse</div>
+          ${history.map((h,i) => html`
+            <div key=${h.id} style=${{padding:"10px 0",borderBottom:i<history.length-1?"1px solid var(--border)":"none"}}>
+              <div style=${{fontSize:".88rem",color:"var(--text)",marginBottom:3,lineHeight:1.5}}>${h.text}</div>
+              ${h.hint && html`<div style=${{fontSize:".78rem",color:"var(--muted)",fontStyle:"italic"}}>${h.hint}</div>`}
+              <div style=${{fontSize:".72rem",color:"var(--muted)",marginTop:4}}>${h.updatedAt ? new Date(h.updatedAt).toLocaleDateString("de-CH",{day:"2-digit",month:"long",year:"numeric"}) : ""}</div>
+            </div>`)}
+        </div>
+      `}
+    </div>`;
+}
+
 function DoodlePage({doodles,setDoodles,coachees}) {
   const [showCreate,setShowCreate] = useState(false);
   const [showResults,setShowResults] = useState(null);
