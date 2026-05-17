@@ -2521,9 +2521,10 @@ function RemindersPage({reminders,setReminders}) {
           width:44,height:44,borderRadius:12,background:ac.bg,
           display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,overflow:"hidden"
         }}>
-          ${r.sacredSymbol
-            ? html`<img src=${SYMBOLS_B64[r.sacredSymbol]||""} style=${{width:32,height:32,objectFit:"contain",display:"block"}} alt=${r.sacredSymbol}/>`
-            : html`<${Ic} name=${r.icon||"bell"} size=${20} style=${{color:ac.text}}/>`}
+          ${(()=>{
+            if(!r.sacredSymbol) return html`<${Ic} name=${r.icon||"bell"} size=${20} style=${{color:ac.text}}/>`;
+            return html`<img src=${SYMBOLS_B64[r.sacredSymbol]||""} style=${{width:32,height:32,objectFit:"contain",display:"block"}} alt=${r.sacredSymbol}/>`;
+          })()}
         </div>
         <div style=${{flex:1,minWidth:0}}>
           <div style=${{fontWeight:700,fontSize:".92rem",color:"var(--text)",marginBottom:3,display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
@@ -2575,12 +2576,14 @@ function RemindersPage({reminders,setReminders}) {
             <div class="form-row"><label class="label">Symbole</label>
               <p style=${{fontSize:".76rem",color:"var(--muted)",marginBottom:8,marginTop:2}}>Wähle hier dein stimmiges Symbol aus</p>
               <button class="btn btn-ghost btn-sm" onClick=${()=>setShowSymbolPicker(true)} style=${{display:"flex",alignItems:"center",gap:8,padding:"8px 14px"}}>
-                ${form.sacredSymbol
-                  ? html`<span style=${{display:"flex",alignItems:"center",gap:8}}>
-                      <img src=${SYMBOLS_B64[form.sacredSymbol]||""} style=${{width:32,height:32,objectFit:"contain",display:"block"}} alt=${form.sacredSymbol}/>
-                      <span style=${{fontWeight:700,fontSize:".84rem"}}>${form.sacredSymbol}</span>
-                    </span>`
-                  : html`<span style=${{color:"var(--muted)"}}>Symbol wählen →</span>`}
+                ${(()=>{
+                  if(!form.sacredSymbol) return html`<span style=${{color:"var(--muted)"}}>Symbol wählen →</span>`;
+                  const symSrc = SYMBOLS_B64[form.sacredSymbol]||"";
+                  return html`<span style=${{display:"flex",alignItems:"center",gap:8}}>
+                    <img src=${symSrc} style=${{width:32,height:32,objectFit:"contain",display:"block"}} alt=${form.sacredSymbol}/>
+                    <span style=${{fontWeight:700,fontSize:".84rem"}}>${form.sacredSymbol}</span>
+                  </span>`;
+                })()}
               </button>
             </div>
             <div class="form-grid" style=${{gridTemplateColumns:'1fr 115px'}}>
