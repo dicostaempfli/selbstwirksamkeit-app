@@ -2426,6 +2426,29 @@ const BLANK_FORM = {
   photos:[], files:[], sacredSymbol:""
 };
 
+const SymbolCard = ({s, selected, onSelect}) => {
+  const src = SYMBOLS_B64[s.name]||"";
+  return html`<div key=${s.name} onClick=${onSelect}
+    style=${{background:selected?"var(--sage-pale)":"var(--surface2)",
+      border:"1.5px solid "+(selected?"var(--teal)":"var(--border)"),
+      borderRadius:12,padding:"12px 8px",textAlign:"center",cursor:"pointer",transition:"all .15s"}}>
+    <div style=${{height:60,width:"100%",display:"flex",alignItems:"center",justifyContent:"center",marginBottom:6,overflow:"hidden"}}>
+      <img src=${src} style=${{width:"100%",height:"100%",maxHeight:"60px",objectFit:"contain",display:"block"}} alt=${s.name}/>
+    </div>
+    <div style=${{fontSize:".72rem",fontWeight:700,color:"var(--text)",marginBottom:2}}>${s.name}</div>
+    <div style=${{fontSize:".62rem",color:"var(--muted)",lineHeight:1.3}}>${s.desc}</div>
+  </div>`;
+};
+
+const SymbolButton = ({sacredSymbol, onClick}) => {
+  if(!sacredSymbol) return html`<button class="btn btn-ghost btn-sm" onClick=${onClick} style=${{display:"flex",alignItems:"center",gap:8,padding:"8px 14px"}}><span style=${{color:"var(--muted)"}}>Symbol wählen →</span></button>`;
+  const src = SYMBOLS_B64[sacredSymbol]||"";
+  return html`<button class="btn btn-ghost btn-sm" onClick=${onClick} style=${{display:"flex",alignItems:"center",gap:8,padding:"8px 14px"}}>
+    <img src=${src} style=${{width:32,height:32,objectFit:"contain",display:"block"}} alt=${sacredSymbol}/>
+    <span style=${{fontWeight:700,fontSize:".84rem"}}>${sacredSymbol}</span>
+  </button>`;
+};
+
 function RemindersPage({reminders,setReminders}) {
   const [showModal,setShowModal] = useState(false);
   const [editId,setEditId]       = useState(null);
@@ -2509,6 +2532,10 @@ function RemindersPage({reminders,setReminders}) {
     const ac = REM_AREA_COLOR[r.area||"Allgemein"] || REM_AREA_COLOR["Allgemein"];
     const extraTimes = r.additionalTimes||[];
     const allTimes = [r.time, ...extraTimes].join(' · ');
+    const symbolSrc = r.sacredSymbol ? (SYMBOLS_B64[r.sacredSymbol]||"") : "";
+    const symbolEl = symbolSrc
+      ? html`<img src=${symbolSrc} style=${{width:32,height:32,objectFit:"contain",display:"block"}} alt=${r.sacredSymbol}/>`
+      : html`<${Ic} name=${r.icon||"bell"} size=${20} style=${{color:ac.text}}/>`;
     return html`
       <div onClick=${()=>openEdit(r)} style=${{
         background:"var(--surface)",borderRadius:14,marginBottom:8,
@@ -2521,10 +2548,7 @@ function RemindersPage({reminders,setReminders}) {
           width:44,height:44,borderRadius:12,background:ac.bg,
           display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,overflow:"hidden"
         }}>
-          ${(()=>{
-            if(!r.sacredSymbol) return html`<${Ic} name=${r.icon||"bell"} size=${20} style=${{color:ac.text}}/>`;
-            return html`<img src=${SYMBOLS_B64[r.sacredSymbol]||""} style=${{width:32,height:32,objectFit:"contain",display:"block"}} alt=${r.sacredSymbol}/>`;
-          })()}
+          ${symbolEl}
         </div>
         <div style=${{flex:1,minWidth:0}}>
           <div style=${{fontWeight:700,fontSize:".92rem",color:"var(--text)",marginBottom:3,display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
@@ -2575,16 +2599,7 @@ function RemindersPage({reminders,setReminders}) {
             <div style=${{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4}}><h2 class="modal-title" style=${{marginBottom:0}}>${editId?"Erinnerung bearbeiten":"Neue Erinnerung"}</h2><button style=${{background:"none",border:"none",cursor:"pointer",color:"var(--muted)",padding:4,borderRadius:8,display:"flex"}} onClick=${()=>setShowModal(false)}><${Ic} name="x" size=${20}/></button></div>
             <div class="form-row"><label class="label">Symbole</label>
               <p style=${{fontSize:".76rem",color:"var(--muted)",marginBottom:8,marginTop:2}}>Wähle hier dein stimmiges Symbol aus</p>
-              <button class="btn btn-ghost btn-sm" onClick=${()=>setShowSymbolPicker(true)} style=${{display:"flex",alignItems:"center",gap:8,padding:"8px 14px"}}>
-                ${(()=>{
-                  if(!form.sacredSymbol) return html`<span style=${{color:"var(--muted)"}}>Symbol wählen →</span>`;
-                  const symSrc = SYMBOLS_B64[form.sacredSymbol]||"";
-                  return html`<span style=${{display:"flex",alignItems:"center",gap:8}}>
-                    <img src=${symSrc} style=${{width:32,height:32,objectFit:"contain",display:"block"}} alt=${form.sacredSymbol}/>
-                    <span style=${{fontWeight:700,fontSize:".84rem"}}>${form.sacredSymbol}</span>
-                  </span>`;
-                })()}
-              </button>
+              <${SymbolButton} sacredSymbol=${form.sacredSymbol} onClick=${()=>setShowSymbolPicker(true)}/>
             </div>
             <div class="form-grid" style=${{gridTemplateColumns:'1fr 115px'}}>
               <div class="form-row" style=${{marginBottom:0}}><label class="label">Bezeichnung</label><input class="input" value=${form.label} onInput=${e=>setForm(f=>({...f,label:e.target.value}))} placeholder="z.B. Morgenroutine" style=${{borderColor:saveError&&!form.label.trim()?"var(--danger)":undefined}}/></div>
@@ -2736,17 +2751,7 @@ function RemindersPage({reminders,setReminders}) {
               <button style=${{background:"none",border:"none",cursor:"pointer",color:"var(--muted)",display:"flex"}} onClick=${()=>setShowSymbolPicker(false)}><${Ic} name="x" size=${18}/></button>
             </div>
             <div style=${{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10}}>
-              ${SYMBOLS.map(s=>html`
-                <div key=${s.name} onClick=${()=>{setForm(f=>({...f,sacredSymbol:s.name}));setShowSymbolPicker(false);}}
-                  style=${{background:form.sacredSymbol===s.name?"var(--sage-pale)":"var(--surface2)",
-                    border:"1.5px solid "+(form.sacredSymbol===s.name?"var(--teal)":"var(--border)"),
-                    borderRadius:12,padding:"12px 8px",textAlign:"center",cursor:"pointer",transition:"all .15s"}}>
-                  <div style=${{height:60,width:"100%",display:"flex",alignItems:"center",justifyContent:"center",marginBottom:6,overflow:"hidden"}}>
-                    <img src=${SYMBOLS_B64[s.name]||""} style=${{width:"100%",height:"100%",maxHeight:"60px",objectFit:"contain",display:"block"}} alt=${s.name}/>
-                  </div>
-                  <div style=${{fontSize:".72rem",fontWeight:700,color:"var(--text)",marginBottom:2}}>${s.name}</div>
-                  <div style=${{fontSize:".62rem",color:"var(--muted)",lineHeight:1.3}}>${s.desc}</div>
-                </div>`)}
+              ${SYMBOLS.map(s=>html`<${SymbolCard} key=${s.name} s=${s} selected=${form.sacredSymbol===s.name} onSelect=${()=>{setForm(f=>({...f,sacredSymbol:s.name}));setShowSymbolPicker(false);}}/>`)}
             </div>
           </div>
         </div>`}
