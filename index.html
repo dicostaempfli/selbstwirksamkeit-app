@@ -2506,7 +2506,7 @@ function RemindersPage({reminders,setReminders}) {
           display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,overflow:"hidden"
         }}>
           ${r.sacredSymbol
-            ? html`<span style=${{width:32,height:32,display:"flex",alignItems:"center",justifyContent:"center"}} dangerouslySetInnerHTML=${{__html:SYMBOLS.find(s=>s.name===r.sacredSymbol)?.svg||""}}/>`
+            ? html`<img src=${"data:image/svg+xml;base64,"+btoa(unescape(encodeURIComponent(SYMBOLS.find(s=>s.name===r.sacredSymbol)?.svg||"")))} style=${{width:32,height:32,objectFit:"contain",display:"block"}} alt=${r.sacredSymbol}/>`
             : html`<${Ic} name=${r.icon||"bell"} size=${20} style=${{color:ac.text}}/>`}
         </div>
         <div style=${{flex:1,minWidth:0}}>
@@ -2561,7 +2561,7 @@ function RemindersPage({reminders,setReminders}) {
               <button class="btn btn-ghost btn-sm" onClick=${()=>setShowSymbolPicker(true)} style=${{display:"flex",alignItems:"center",gap:8,padding:"8px 14px"}}>
                 ${form.sacredSymbol
                   ? html`<span style=${{display:"flex",alignItems:"center",gap:8}}>
-                      <span style=${{width:32,height:32,display:"flex",alignItems:"center",justifyContent:"center"}} dangerouslySetInnerHTML=${{__html:SYMBOLS.find(s=>s.name===form.sacredSymbol)?.svg||""}}/>
+                      <img src=${"data:image/svg+xml;base64,"+btoa(unescape(encodeURIComponent(SYMBOLS.find(s=>s.name===form.sacredSymbol)?.svg||"")))} style=${{width:32,height:32,objectFit:"contain",display:"block"}} alt=${form.sacredSymbol}/>
                       <span style=${{fontWeight:700,fontSize:".84rem"}}>${form.sacredSymbol}</span>
                     </span>`
                   : html`<span style=${{color:"var(--muted)"}}>Symbol wählen →</span>`}
@@ -2722,8 +2722,9 @@ function RemindersPage({reminders,setReminders}) {
                   style=${{background:form.sacredSymbol===s.name?"var(--sage-pale)":"var(--surface2)",
                     border:"1.5px solid "+(form.sacredSymbol===s.name?"var(--teal)":"var(--border)"),
                     borderRadius:12,padding:"12px 8px",textAlign:"center",cursor:"pointer",transition:"all .15s"}}>
-                  <div style=${{height:60,width:"100%",display:"flex",alignItems:"center",justifyContent:"center",marginBottom:6,overflow:"hidden"}}
-                    dangerouslySetInnerHTML=${{__html:s.svg.replace(/<svg /,'<svg style="width:100%;height:100%;max-height:60px" ')}}/>
+                  <div style=${{height:60,width:"100%",display:"flex",alignItems:"center",justifyContent:"center",marginBottom:6,overflow:"hidden"}}>
+                    <img src=${"data:image/svg+xml;base64,"+btoa(unescape(encodeURIComponent(s.svg)))} style=${{width:"100%",height:"100%",maxHeight:"60px",objectFit:"contain",display:"block"}} alt=${s.name}/>
+                  </div>
                   <div style=${{fontSize:".72rem",fontWeight:700,color:"var(--text)",marginBottom:2}}>${s.name}</div>
                   <div style=${{fontSize:".62rem",color:"var(--muted)",lineHeight:1.3}}>${s.desc}</div>
                 </div>`)}
