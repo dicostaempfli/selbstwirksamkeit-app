@@ -865,6 +865,38 @@
       border-color: #ece455;
     }
 
+
+    /* ── Impulse Sub-Tab Navigation ── */
+    .impulse-tab-wrap { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
+    .impulse-subtab-nav {
+      display: flex;
+      gap: 0;
+      padding: 12px 16px 0;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg);
+      flex-shrink: 0;
+    }
+    .impulse-subtab-btn {
+      flex: 1;
+      padding: 9px 12px;
+      background: none;
+      border: none;
+      border-bottom: 2.5px solid transparent;
+      color: var(--muted);
+      font-family: 'Exo 2', sans-serif;
+      font-size: .82rem;
+      font-weight: 700;
+      letter-spacing: .03em;
+      cursor: pointer;
+      transition: color .15s, border-color .15s;
+      margin-bottom: -1px;
+    }
+    .impulse-subtab-btn.active {
+      color: var(--teal);
+      border-bottom-color: var(--teal);
+    }
+    .impulse-tab-wrap > div:last-child { flex: 1; overflow-y: auto; }
+
     /* Adjust app layout for bottom nav */
     .chat-window { display:flex; flex-direction:column; flex:1; overflow:hidden; max-width:100%; }
   
@@ -1449,8 +1481,7 @@ function App({ user }) {
   const NAV_ITEMS = [
     {id:"dashboard", icon:"home",     label:"Home"},
     {id:"chat",      icon:"chat",     label:"Chat",      badge:totalUnreadVal},
-    {id:"impuls",    icon:"impuls",   label:"Impuls"},
-    {id:"reminders", icon:"bell",     label:"Erinnerungen"},
+    {id:"impulse",   icon:"impuls",   label:"Impulse"},
     {id:"library",   icon:"library",  label:"Mediathek"},
     {id:"doodle",    icon:"calendar", label:"Termine"},
   ];
@@ -1460,9 +1491,8 @@ function App({ user }) {
     <div style=${{flex:1,display:'flex',overflow:'hidden',minWidth:0}}>
       ${page==="dashboard" && html`<${DashboardPage} coachees=${coachees} library=${library} reminders=${reminders} doodles=${doodles} setPage=${navTo} user=${user} onLogoTap=${handleLogoTap}/>`}
       ${page==="chat"      && html`<${ChatPage} coachees=${coachees} setCoachees=${setCoachees} mobileChatOpen=${mobileChatOpen} setMobileChatOpen=${setMobileChatOpen}/>`}
-      ${page==="impuls"    && html`<${ImpulsPage} user=${user}/>`}
+      ${page==="impulse"   && html`<${ImpulseTab} user=${user} reminders=${reminders} setReminders=${saveReminders}/>`}
       ${page==="library"   && html`<${LibraryPage} library=${library} setLibrary=${saveLibrary}/>`}
-      ${page==="reminders" && html`<${RemindersPage} reminders=${reminders} setReminders=${saveReminders}/>`}
       ${page==="doodle"    && html`<${DoodlePage} doodles=${doodles} setDoodles=${saveDoodles} coachees=${coachees} events=${events}/>`}
     </div>
     <nav class="bottom-nav">
@@ -1472,14 +1502,6 @@ function App({ user }) {
           <span class="bottom-nav-label">${i.label}</span>
           ${(i.badge||0)>0&&html`<span class="bottom-nav-badge">${i.badge}</span>`}
         </div>`)}
-      <div class="bottom-nav-item" onClick=${()=>{ window._fb?.auth?.signOut().catch(()=>{}) }} title="Abmelden">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/>
-          <polyline points="16 17 21 12 16 7"/>
-          <line x1="21" y1="12" x2="9" y2="12"/>
-        </svg>
-        <span class="bottom-nav-label">Logout</span>
-      </div>
     </nav>`;
 }
 
@@ -1521,7 +1543,7 @@ function Sidebar({page,setPage,totalUnread,user,onLogoTap}) {
   const items = [
     {id:"dashboard",icon:"home",tip:"Übersicht"},
     {id:"chat",icon:"chat",tip:"Nachrichten",badge:totalUnread},
-    {id:"reminders",icon:"bell",tip:"Erinnerungen"},
+    {id:"impulse",icon:"impuls",tip:"Impulse & Erinnerungen"},
     {id:"library",icon:"library",tip:"Mediathek"},
     {id:"doodle",   icon:"calendar",tip:"Termine & Events"},
   ];
@@ -1878,7 +1900,7 @@ function DashboardPage({coachees,library,reminders,doodles,setPage,user,onLogoTa
         <p class="quote-author">${quote.author}</p>
       </div>
       <div class="stat-grid">
-        <div class="stat-card" onClick=${()=>setPage("reminders")} style=${{cursor:"pointer",borderLeft:"4px solid var(--teal)",padding:"16px 20px"}}>
+        <div class="stat-card" onClick=${()=>setPage("impulse")} style=${{cursor:"pointer",borderLeft:"4px solid var(--teal)",padding:"16px 20px"}}>
           <div style=${{display:"flex",alignItems:"center",gap:14}}>
             <div style=${{width:42,height:42,borderRadius:12,background:"var(--teal-pale)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><${Ic} name="bell" size=${20} style=${{color:"var(--teal-dark)"}}/></div>
             <div style=${{flex:1}}>
@@ -1920,6 +1942,31 @@ function DashboardPage({coachees,library,reminders,doodles,setPage,user,onLogoTa
           <${Ic} name="send" size=${18} style=${{color:"var(--teal)",flexShrink:0}}/>
         </div>
       </div>
+    </div>`;
+}
+
+// ── IMPULSE TAB (Sub-Tab: Meine + Tages-Impuls) ──
+function ImpulseTab({ user, reminders, setReminders }) {
+  const [activeSubTab, setActiveSubTab] = useState('meine');
+  const isMeine = activeSubTab === 'meine';
+  const isTagesimpuls = activeSubTab === 'tagesimpuls';
+  return html`
+    <div class="impulse-tab-wrap">
+      <div class="impulse-subtab-nav">
+        <button
+          class=${"impulse-subtab-btn" + (isMeine ? " active" : "")}
+          onClick=${() => setActiveSubTab('meine')}>
+          Meine
+        </button>
+        <button
+          class=${"impulse-subtab-btn" + (isTagesimpuls ? " active" : "")}
+          onClick=${() => setActiveSubTab('tagesimpuls')}>
+          Tages-Impuls
+        </button>
+      </div>
+      ${isMeine
+        ? html`<${RemindersPage} reminders=${reminders} setReminders=${setReminders}/>`
+        : html`<${ImpulsPage} user=${user}/>`}
     </div>`;
 }
 
