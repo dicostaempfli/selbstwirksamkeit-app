@@ -418,6 +418,64 @@
   /* ══════════════════════════════
      CONTENT PAGES (right side)
   ══════════════════════════════ */
+
+  /* ── Impulse Sub-Tab Navigation ── */
+  .impulse-tab-wrap { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
+  .impulse-subtab-nav {
+    display: flex;
+    gap: 8px;
+    padding: 14px 16px 12px;
+    background: var(--bg);
+    flex-shrink: 0;
+  }
+  .impulse-subtab-btn {
+    flex: 1;
+    padding: 8px 18px;
+    background: transparent;
+    border: 1.5px solid var(--border2);
+    border-radius: 10px;
+    color: var(--muted);
+    font-family: 'Exo 2', sans-serif;
+    font-size: .83rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all .18s;
+  }
+  .impulse-subtab-btn:hover:not(.active) {
+    border-color: var(--teal);
+    color: var(--text);
+  }
+  .impulse-subtab-btn.active {
+    background: var(--teal);
+    border-color: var(--teal);
+    color: #fff;
+  }
+  .impulse-tab-wrap > div:last-child { flex: 1; overflow-y: auto; }
+
+
+  @media (min-width: 769px) {
+    .impulse-tab-wrap {
+      padding-top: 32px;
+      padding-left: 36px;
+      padding-right: 36px;
+      overflow-y: auto;
+    }
+    .impulse-subtab-nav {
+      padding: 0 0 16px 0;
+      max-width: 520px;
+    }
+    .impulse-subtab-btn {
+      flex: 0 0 auto;
+      min-width: 140px;
+    }
+    .impulse-tab-wrap .content-main {
+      padding-left: 0;
+      padding-right: 0;
+      padding-top: 0;
+      overflow-y: visible;
+    }
+  }
+
   .content-main { flex:1; overflow-y:auto; padding:32px 36px; background:var(--bg); }
   .page-heading { font-family:'Manuale',serif; font-size:1.7rem; color:var(--text); margin-bottom:4px; }
   .page-sub { font-size:.87rem; color:var(--muted); margin-bottom:24px; }
@@ -865,61 +923,6 @@
       border-color: #ece455;
     }
 
-
-    /* ── Impulse Sub-Tab Navigation ── */
-    .impulse-tab-wrap { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
-    .impulse-subtab-nav {
-      display: flex;
-      gap: 8px;
-      padding: 14px 16px 12px;
-      background: var(--bg);
-      flex-shrink: 0;
-    }
-    .impulse-subtab-btn {
-      flex: 1;
-      padding: 8px 18px;
-      background: transparent;
-      border: 1.5px solid var(--border2);
-      border-radius: 10px;
-      color: var(--muted);
-      font-family: 'Exo 2', sans-serif;
-      font-size: .83rem;
-      font-weight: 700;
-      cursor: pointer;
-      transition: all .18s;
-    }
-    .impulse-subtab-btn:hover:not(.active) {
-      border-color: var(--teal);
-      color: var(--text);
-    }
-    .impulse-subtab-btn.active {
-      background: var(--teal);
-      border-color: var(--teal);
-      color: #fff;
-    }
-    .impulse-tab-wrap > div:last-child { flex: 1; overflow-y: auto; }
-    @media (min-width: 769px) {
-      .impulse-tab-wrap {
-        padding-top: 32px;
-        padding-left: 36px;
-        padding-right: 36px;
-        overflow-y: auto;
-      }
-      .impulse-subtab-nav {
-        padding: 0 0 16px 0;
-        max-width: 520px;
-      }
-      .impulse-subtab-btn {
-        flex: 0 0 auto;
-        min-width: 140px;
-      }
-      .impulse-tab-wrap .content-main {
-        padding-left: 0;
-        padding-right: 0;
-        padding-top: 0;
-        overflow-y: visible;
-      }
-    }
 
     /* Adjust app layout for bottom nav */
     .chat-window { display:flex; flex-direction:column; flex:1; overflow:hidden; max-width:100%; }
