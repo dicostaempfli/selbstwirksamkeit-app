@@ -1906,8 +1906,8 @@ function DashboardPage({coachees,library,reminders,doodles,setPage,user,onLogoTa
           <div style=${{display:"flex",alignItems:"center",gap:14}}>
             <div style=${{width:42,height:42,borderRadius:12,background:"var(--teal-pale)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><${Ic} name="bell" size=${20} style=${{color:"var(--teal-dark)"}}/></div>
             <div style=${{flex:1}}>
-              <div style=${{fontFamily:"'Manuale',serif",fontWeight:700,fontSize:"1rem",color:"var(--text)"}}>Erinnerungen</div>
-              <div style=${{fontSize:".82rem",color:"var(--muted)",marginTop:1}}>${(n=>n===1?"1 aktiver Impuls":n+" aktive Impulse")(reminders.filter(r=>r.enabled).length)}</div>
+              <div style=${{fontFamily:"'Manuale',serif",fontWeight:700,fontSize:"1rem",color:"var(--text)"}}>Meine Impulse</div>
+              <div style=${{fontSize:".82rem",color:"var(--muted)",marginTop:1}}>${(n=>n===1?"1 aktiver Impuls":n+" aktive Impulse"(reminders.filter(r=>r.enabled).length)}</div>
             </div>
             <${Ic} name="chevron" size=${16} style=${{color:"var(--border2)"}}/>
           </div>
@@ -2050,8 +2050,8 @@ function ImpulsPage({ user }) {
           ${doneTodayFlag
             ? html`<div style=${{background:"var(--sage-pale)",border:"1px solid var(--border)",borderRadius:12,padding:"14px 18px",fontSize:".88rem",color:"var(--forest)",marginBottom:12}}>Du hast den heutigen Impuls bereits abgeschlossen. Morgen gibt es einen neuen.</div>`
             : html`
-              <button class="btn-primary" style=${{width:"100%",marginBottom:10}} onClick=${() => setStep(1)}>Ich nehme diesen Impuls mit →</button>
-              <button class="btn-secondary" style=${{width:"100%",fontSize:".83rem"}} onClick=${() => setStep(1)}>Heute nicht — trotzdem weiter</button>
+              <button class="btn btn-primary" style=${{width:"100%",marginBottom:10}} onClick=${() => setStep(1)}>Ich nehme diesen Impuls mit →</button>
+              <button class="btn btn-ghost" style=${{width:"100%",fontSize:".83rem"}} onClick=${() => setStep(1)}>Heute nicht — trotzdem weiter</button>
             `}
         </div>
       `}
@@ -2075,8 +2075,8 @@ function ImpulsPage({ user }) {
             style=${{width:"100%",resize:"none",marginBottom:12,boxSizing:"border-box"}}
           ></textarea>
           <p style=${{fontSize:".75rem",color:"var(--muted)",marginBottom:28}}>Diese Antwort bleibt bei dir. Niemand ausser dir sieht sie.</p>
-          <button class="btn-primary" style=${{width:"100%",marginBottom:10}} onClick=${() => setStep(2)}>Weiter →</button>
-          <button class="btn-secondary" style=${{width:"100%",fontSize:".83rem"}} onClick=${() => setStep(2)}>Überspringen</button>
+          <button class="btn btn-primary" style=${{width:"100%",marginBottom:10}} onClick=${() => setStep(2)}>Weiter →</button>
+          <button class="btn btn-ghost" style=${{width:"100%",fontSize:".83rem"}} onClick=${() => setStep(2)}>Überspringen</button>
         </div>
       `}
       ${step === 2 && html`
@@ -2099,7 +2099,7 @@ function ImpulsPage({ user }) {
           </div>
           <div style=${{borderTop:"1px solid var(--border)",marginBottom:20}}></div>
           <p style=${{fontSize:".88rem",color:"var(--muted)",fontStyle:"italic",lineHeight:1.6,marginBottom:28}}>Atme einmal bewusst dorthin. Das war's.</p>
-          <button class="btn-primary" style=${{width:"100%"}} onClick=${saveAndFinish} disabled=${saving}>${saving ? "Speichern…" : "Abschliessen"}</button>
+          <button class="btn btn-primary" style=${{width:"100%"}} onClick=${saveAndFinish} disabled=${saving}>${saving ? "Speichern…" : "Abschliessen"}</button>
         </div>
       `}
       ${step === 3 && html`
@@ -2113,7 +2113,7 @@ function ImpulsPage({ user }) {
           </div>
           <div style=${{borderTop:"1px solid var(--border)",marginBottom:24}}></div>
           <p style=${{fontSize:".95rem",color:"var(--muted)",lineHeight:1.7,marginBottom:28}}>Leg das Handy weg.<br/>Der Impuls läuft jetzt im Alltag.</p>
-          <button class="btn-secondary" style=${{fontSize:".83rem"}} onClick=${() => { setStep(0); setReflexion(""); setKoerper(null); }}>Von vorne ansehen</button>
+          <button class="btn btn-ghost" style=${{fontSize:".83rem"}} onClick=${() => { setStep(0); setReflexion(""); setKoerper(null); }}>Von vorne ansehen</button>
         </div>
       `}
     </div>`;
@@ -2617,12 +2617,12 @@ function RemindersPage({reminders,setReminders}) {
     <div class="content-main">
       <div style=${{marginBottom:24}}>
         <div style=${{display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,marginBottom:8}}>
-          <h1 class="page-heading" style=${{marginBottom:0}}>Erinnerungen</h1>
+          <h1 class="page-heading" style=${{marginBottom:0}>Meine Impulse</h1>
           <button class="btn btn-primary" onClick=${openNew} style=${{flexShrink:0}}>
-            <${Ic} name="plus" size=${15}/> Neue Erinnerung
+            <${Ic} name="plus" size=${15}/> Neuer Impuls
           </button>
         </div>
-        <p class="page-sub" style=${{marginBottom:8}}>Richte Erinnerungs-Impulse für deinen Alltag ein.</p>
+        <p class="page-sub" style=${{marginBottom:8}}>Richte persönliche Impulse für deinen Alltag ein.</p>
         <p style=${{fontSize:".8rem",color:"var(--muted)",lineHeight:1.5,padding:"10px 14px",background:"var(--sage-pale)",borderRadius:10,borderLeft:"3px solid var(--sage)"}}>Wähle zwischen täglichen, wöchentlichen, monatlichen oder individuellen Erinnerungen. Füge Fotos als visuelle Anker hinzu.</p>
       </div>
       ${REM_AREAS.map(area=>{
@@ -2640,12 +2640,12 @@ function RemindersPage({reminders,setReminders}) {
             ${areaRems.map(r=>html`<${Row} key=${r.id} r=${r}/>`)}
           </div>`;
       })}
-      ${reminders.length===0&&html`<div style=${{textAlign:'center',padding:'44px',color:'var(--muted)'}}><p>Noch keine Erinnerungen. Leg jetzt eine an.</p></div>`}
+      ${reminders.length===0&&html`<div style=${{textAlign:'center',padding:'44px',color:'var(--muted)'}}><p>Noch keine Impulse. Leg jetzt einen an.</p></div>`}
 
       ${showModal&&html`
         <div class="overlay" onClick=${e=>{if(e.target===e.currentTarget)setShowModal(false);}}>
           <div class="modal" onClick=${e=>e.stopPropagation()}>
-            <div style=${{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4}}><h2 class="modal-title" style=${{marginBottom:0}}>${editId?"Erinnerung bearbeiten":"Neue Erinnerung"}</h2><button style=${{background:"none",border:"none",cursor:"pointer",color:"var(--muted)",padding:4,borderRadius:8,display:"flex"}} onClick=${()=>setShowModal(false)}><${Ic} name="x" size=${20}/></button></div>
+            <div style=${{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4}}><h2 class="modal-title" style=${{marginBottom:0}}>${editId?"Impuls bearbeiten":"Neuer Impuls"}</h2><button style=${{background:"none",border:"none",cursor:"pointer",color:"var(--muted)",padding:4,borderRadius:8,display:"flex"}} onClick=${()=>setShowModal(false)}><${Ic} name="x" size=${20}/></button></div>
             <div class="form-row"><label class="label">Symbole</label>
               <p style=${{fontSize:".76rem",color:"var(--muted)",marginBottom:8,marginTop:2}}>Wähle hier dein stimmiges Symbol aus</p>
               <${SymbolButton} sacredSymbol=${form.sacredSymbol} onClick=${()=>setShowSymbolPicker(true)}/>
