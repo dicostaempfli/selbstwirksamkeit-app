@@ -1966,9 +1966,8 @@ function ImpulseTab({ user, reminders, setReminders }) {
           Tages-Impuls
         </button>
       </div>
-      ${isMeine
-        ? html`<${RemindersPage} reminders=${reminders} setReminders=${setReminders}/>`
-        : html`<${ImpulsPage} user=${user}/>`}
+      ${isMeine && html`<${RemindersPage} reminders=${reminders} setReminders=${setReminders}/>`}
+      ${isTagesimpuls && html`<${ImpulsPage} user=${user}/>`}
     </div>`;
 }
 
