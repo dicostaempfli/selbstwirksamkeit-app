@@ -874,6 +874,7 @@
       padding: 14px 16px 12px;
       background: var(--bg);
       flex-shrink: 0;
+      max-width: 400px;
     }
     .impulse-subtab-btn {
       flex: 1;
@@ -1904,7 +1905,7 @@ function DashboardPage({coachees,library,reminders,doodles,setPage,user,onLogoTa
       <div class="stat-grid">
         <div class="stat-card" onClick=${()=>setPage("impulse")} style=${{cursor:"pointer",borderLeft:"4px solid var(--teal)",padding:"16px 20px"}}>
           <div style=${{display:"flex",alignItems:"center",gap:14}}>
-            <div style=${{width:42,height:42,borderRadius:12,background:"var(--teal-pale)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><${Ic} name="impuls" size=${20} style=${{color:"var(--teal-dark)"}}/></div>
+            <div style=${{width:42,height:42,borderRadius:12,background:"var(--teal-pale)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><${Ic} name="impuls" size=${22} style=${{color:"var(--teal-dark)"}}/></div>
             <div style=${{flex:1}}>
               <div style=${{fontFamily:"'Manuale',serif",fontWeight:700,fontSize:"1rem",color:"var(--text)"}}>Meine Impulse</div>
               <div style=${{fontSize:".82rem",color:"var(--muted)",marginTop:1}}>${(n=>n===1?"1 aktiver Impuls":n+" aktive Impulse")(reminders.filter(r=>r.enabled).length)}</div>
