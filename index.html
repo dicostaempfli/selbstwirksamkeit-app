@@ -1952,6 +1952,9 @@ function ImpulseTab({ user, reminders, setReminders }) {
   const [activeSubTab, setActiveSubTab] = useState('meine');
   const isMeine = activeSubTab === 'meine';
   const isTagesimpuls = activeSubTab === 'tagesimpuls';
+  const subContent = isMeine
+    ? h(RemindersPage, { reminders, setReminders })
+    : h(ImpulsPage, { user });
   return html`
     <div class="impulse-tab-wrap">
       <div class="impulse-subtab-nav">
@@ -1966,8 +1969,7 @@ function ImpulseTab({ user, reminders, setReminders }) {
           Tages-Impuls
         </button>
       </div>
-      ${isMeine && html`<${RemindersPage} reminders=${reminders} setReminders=${setReminders}/>`}
-      ${isTagesimpuls && html`<${ImpulsPage} user=${user}/>`}
+      ${subContent}
     </div>`;
 }
 
