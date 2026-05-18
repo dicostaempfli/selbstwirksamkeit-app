@@ -1545,7 +1545,7 @@ function Sidebar({page,setPage,totalUnread,user,onLogoTap}) {
   const items = [
     {id:"dashboard",icon:"home",tip:"Übersicht"},
     {id:"chat",icon:"chat",tip:"Nachrichten",badge:totalUnread},
-    {id:"impulse",icon:"impuls",tip:"Impulse & Erinnerungen"},
+    {id:"impulse",icon:"impuls",tip:"Meine Impulse"},
     {id:"library",icon:"library",tip:"Mediathek"},
     {id:"doodle",   icon:"calendar",tip:"Termine & Events"},
   ];
@@ -1904,7 +1904,7 @@ function DashboardPage({coachees,library,reminders,doodles,setPage,user,onLogoTa
       <div class="stat-grid">
         <div class="stat-card" onClick=${()=>setPage("impulse")} style=${{cursor:"pointer",borderLeft:"4px solid var(--teal)",padding:"16px 20px"}}>
           <div style=${{display:"flex",alignItems:"center",gap:14}}>
-            <div style=${{width:42,height:42,borderRadius:12,background:"var(--teal-pale)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><${Ic} name="bell" size=${20} style=${{color:"var(--teal-dark)"}}/></div>
+            <div style=${{width:42,height:42,borderRadius:12,background:"var(--teal-pale)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><${Ic} name="impuls" size=${20} style=${{color:"var(--teal-dark)"}}/></div>
             <div style=${{flex:1}}>
               <div style=${{fontFamily:"'Manuale',serif",fontWeight:700,fontSize:"1rem",color:"var(--text)"}}>Meine Impulse</div>
               <div style=${{fontSize:".82rem",color:"var(--muted)",marginTop:1}}>${(n=>n===1?"1 aktiver Impuls":n+" aktive Impulse")(reminders.filter(r=>r.enabled).length)}</div>
@@ -2624,7 +2624,7 @@ function RemindersPage({reminders,setReminders}) {
           </button>
         </div>
         <p class="page-sub" style=${{marginBottom:8}}>Richte persönliche Impulse für deinen Alltag ein.</p>
-        <p style=${{fontSize:".8rem",color:"var(--muted)",lineHeight:1.5,padding:"10px 14px",background:"var(--sage-pale)",borderRadius:10,borderLeft:"3px solid var(--sage)"}}>Wähle zwischen täglichen, wöchentlichen, monatlichen oder individuellen Erinnerungen. Füge Fotos als visuelle Anker hinzu.</p>
+        <p style=${{fontSize:".8rem",color:"var(--muted)",lineHeight:1.5,padding:"10px 14px",background:"var(--sage-pale)",borderRadius:10,borderLeft:"3px solid var(--sage)"}}>Wähle zwischen täglichen, wöchentlichen, monatlichen oder individuellen Impulsen. Füge Fotos als visuelle Anker hinzu.</p>
       </div>
       ${REM_AREAS.map(area=>{
         const areaRems = reminders.filter(r=>(r.area||"Allgemein")===area);
@@ -2671,7 +2671,7 @@ function RemindersPage({reminders,setReminders}) {
 
             <div class="form-row" style=${{marginTop:12}}>
               <label class="label">Weitere Uhrzeiten</label>
-              <p style=${{fontSize:".76rem",color:"var(--muted)",marginBottom:8,marginTop:2}}>Für mehrfache tägliche Erinnerungen — z.B. Atemübung 3× täglich.</p>
+              <p style=${{fontSize:".76rem",color:"var(--muted)",marginBottom:8,marginTop:2}}>Für mehrfache tägliche Impulse — z.B. Atemübung 3× täglich.</p>
               <div style=${{display:"flex",flexDirection:"column",gap:5,marginBottom:8}}>
                 ${(form.additionalTimes||[]).map((t,i)=>html`
                   <div key=${i} style=${{display:"flex",alignItems:"center",gap:8,background:"var(--sage-pale)",borderRadius:8,padding:"6px 10px"}}>
