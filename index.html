@@ -874,7 +874,6 @@
       padding: 14px 16px 12px;
       background: var(--bg);
       flex-shrink: 0;
-      max-width: 400px;
     }
     .impulse-subtab-btn {
       flex: 1;
@@ -899,6 +898,16 @@
       color: #fff;
     }
     .impulse-tab-wrap > div:last-child { flex: 1; overflow-y: auto; }
+    @media (min-width: 769px) {
+      .impulse-subtab-nav {
+        padding: 28px 36px 16px;
+        max-width: 520px;
+      }
+      .impulse-subtab-btn {
+        flex: 0 0 auto;
+        min-width: 140px;
+      }
+    }
 
     /* Adjust app layout for bottom nav */
     .chat-window { display:flex; flex-direction:column; flex:1; overflow:hidden; max-width:100%; }
