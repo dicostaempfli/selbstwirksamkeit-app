@@ -899,13 +899,25 @@
     }
     .impulse-tab-wrap > div:last-child { flex: 1; overflow-y: auto; }
     @media (min-width: 769px) {
+      .impulse-tab-wrap {
+        padding-top: 32px;
+        padding-left: 36px;
+        padding-right: 36px;
+        overflow-y: auto;
+      }
       .impulse-subtab-nav {
-        padding: 28px 36px 16px;
+        padding: 0 0 16px 0;
         max-width: 520px;
       }
       .impulse-subtab-btn {
         flex: 0 0 auto;
         min-width: 140px;
+      }
+      .impulse-tab-wrap .content-main {
+        padding-left: 0;
+        padding-right: 0;
+        padding-top: 0;
+        overflow-y: visible;
       }
     }
 
