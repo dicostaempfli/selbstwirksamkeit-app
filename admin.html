@@ -145,13 +145,14 @@ window.addEventListener('orientationchange', ()=>setTimeout(setVH,150));
   .sb-wordmark { font-family:'Exo 2',sans-serif; font-size:.52rem; font-weight:700; color:rgba(255,255,255,.55); text-align:center; letter-spacing:.3px; line-height:1.3; }
   .sb-nav { display:flex; flex-direction:column; gap:4px; width:100%; padding:0 10px; flex:1; }
   .sb-item {
-    width:56px; height:48px; border-radius:14px;
-    display:flex; align-items:center; justify-content:center;
+    width:60px; height:54px; border-radius:14px;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px;
     cursor:pointer; transition:background .18s,color .18s;
     position:relative; color:var(--sidebar-icon);
   }
   .sb-item:hover { background:var(--sidebar-hover); color:#fff; }
   .sb-item.active { background:var(--sidebar-active); color:var(--text); }
+  .sb-item-label { font-family:'Exo 2',sans-serif; font-size:.44rem; font-weight:700; letter-spacing:.3px; line-height:1; text-align:center; }
   .sb-badge {
     position: absolute;
     top: 4px;
@@ -180,7 +181,15 @@ window.addEventListener('orientationchange', ()=>setTimeout(setVH,150));
     background:var(--lime); font-size:.56rem; font-weight:700;
     color:#1a2e22; display:flex; align-items:center; justify-content:center;
   }
-  .sb-bottom { padding:0 10px; display:flex; justify-content:center; }
+  .sb-bottom { padding:0 10px; display:flex; flex-direction:column; align-items:center; gap:8px; }
+  .sb-logout-btn {
+    width:60px; height:36px; border-radius:10px; border:none;
+    background:rgba(255,255,255,.12); color:rgba(255,255,255,.7);
+    font-family:'Exo 2',sans-serif; font-size:.44rem; font-weight:700;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px;
+    cursor:pointer; transition:background .15s;
+  }
+  .sb-logout-btn:hover { background:rgba(255,255,255,.22); color:#fff; }
   .sb-avatar {
     width:40px; height:40px; border-radius:50%;
     background:var(--lime); display:flex; align-items:center; justify-content:center;
@@ -1441,7 +1450,8 @@ function AdminApp({user}) {
         <div class="sb-nav">
           ${NAV.map(n=>html`
             <div key=${n.id} class=${"sb-item"+(page===n.id?" active":"")} onClick=${()=>setPage(n.id)} title=${n.label}>
-              <${Ic} name=${n.icon} size=${24}/>
+              <${Ic} name=${n.icon} size=${18}/>
+              <span class="sb-item-label">${n.label}</span>
               ${(n.badge||0)>0&&html`<span class="sb-badge">${n.badge}</span>`}
             </div>`)}
         </div>
@@ -1449,8 +1459,9 @@ function AdminApp({user}) {
           <div class="sb-avatar" title=${user?.email||"Admin"} style=${{fontSize:".6rem"}}>
             ${user?.photoURL?html`<img src=${user.photoURL} style=${{width:"100%",height:"100%",borderRadius:"50%",objectFit:"cover"}} alt=""/>`:user?.email?.[0]?.toUpperCase()||"A"}
           </div>
-          <button class="sb-logout" onClick=${doLogout}>
-            <${Ic} name="logout" size=${14}/><span>Logout</span>
+          <button class="sb-logout-btn" onClick=${doLogout}>
+            <${Ic} name="logout" size=${14}/>
+            <span>Logout</span>
           </button>
         </div>
       </div>
@@ -2832,7 +2843,7 @@ function ImpulsPhasenTab() {
     if (!firestore) { setLoading(false); return; }
     firestore.collection("users").get()
       .then(snap => {
-        const list = snap.docs.map(d => { const data = d.data(); return { uid: d.id, ...data, activePhase: data.activePhase ? Number(data.activePhase) : null }; });
+        const list = snap.docs.map(d => { const data = d.data(); return { uid: d.id, ...data, activePhase: data.activePhase != null ? parseInt(data.activePhase, 10) || null : null }; });
         setCoachees(list);
       })
       .catch(() => {})
