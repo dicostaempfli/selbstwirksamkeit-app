@@ -2844,7 +2844,18 @@ function ImpulsPhasenTab() {
     if (!firestore) { setLoading(false); return; }
     firestore.collection("users").get()
       .then(snap => {
-        const list = snap.docs.map(d => { const data = d.data(); const raw = data.activePhase; const phase = raw != null ? (typeof raw === 'object' && raw.toMillis ? null : parseInt(String(raw), 10) || null) : null; return { uid: d.id, ...data, activePhase: phase }; });
+        const list = snap.docs.map(d => {
+          const data = d.data();
+          const raw = data.activePhase;
+          let phase = null;
+          if (raw != null) {
+            if (typeof raw === 'number') phase = raw;
+            else if (typeof raw === 'string') phase = parseInt(raw, 10) || null;
+            else if (typeof raw.toNumber === 'function') phase = raw.toNumber();
+            else if (typeof raw.valueOf === 'function') phase = parseInt(raw.valueOf(), 10) || null;
+          }
+          return { uid: d.id, ...data, activePhase: phase };
+        });
         setCoachees(list);
       })
       .catch(() => {})
