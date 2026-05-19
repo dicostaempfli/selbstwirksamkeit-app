@@ -2058,7 +2058,9 @@ function ImpulsPage({ user }) {
       .then(doc => {
         const getData = (data) => {
           fbDb.collection("users").doc(user.uid).get().then(uDoc => {
-            const activePhase = uDoc.exists ? (uDoc.data().activePhase || 1) : 1;
+            const uData = uDoc.exists ? uDoc.data() : {};
+            const activePhase = uData.activePhase || 1;
+            const nextImpulseAt = uData.nextImpulseAt || 0;
             const phase = (data.phases || []).find(p => p.id === activePhase);
             const impulse = phase ? (phase.impulse || []) : [];
             fbDb.collection("impulse_entries").where("uid","==",user.uid)
@@ -2073,6 +2075,8 @@ function ImpulsPage({ user }) {
                   if (s === "active") setStep(1);
                   else if (s === "done") setStep(4);
                   else setStep(5);
+                } else if (nextImpulseAt > Date.now()) {
+                  setStep(5);
                 }
               }).catch(() => setImpuls(impulse[0] || null));
           }).catch(() => {});
@@ -2120,6 +2124,12 @@ function ImpulsPage({ user }) {
     setStep(5);
   };
 
+  const calcNextImpulseAt = (packageType) => {
+    const rand = (min, max) => Math.floor(Math.random() * (max - min + 1) + min);
+    const days = packageType === "paar" ? rand(4,7) : packageType === "integration" ? rand(5,9) : rand(2,3);
+    return Date.now() + days * 24 * 60 * 60 * 1000;
+  };
+
   const saveAndFinish = () => {
     setSaving(true);
     const fbDb = window._fb?.db;
@@ -2130,6 +2140,10 @@ function ImpulsPage({ user }) {
         .then(snap => {
           if (!snap.empty) snap.docs[0].ref.update(update).catch(() => {});
           else if (impuls) fbDb.collection("impulse_entries").add({ uid:user.uid, date:todayStr, impulsId:impuls.id, impulsText:impuls.text, ...update, createdAt: Date.now() }).catch(() => {});
+          fbDb.collection("users").doc(user.uid).get().then(uDoc => {
+            const pkg = uDoc.exists ? (uDoc.data().packageType || "einzel") : "einzel";
+            fbDb.collection("users").doc(user.uid).update({ nextImpulseAt: calcNextImpulseAt(pkg) }).catch(() => {});
+          }).catch(() => {});
         }).catch(() => {}).finally(() => { setSaving(false); setStep(4); });
     } else { setSaving(false); setStep(4); }
   };
