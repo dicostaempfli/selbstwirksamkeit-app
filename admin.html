@@ -631,8 +631,8 @@ window.addEventListener('orientationchange', ()=>setTimeout(setVH,150));
   .imp-sub-nav{display:flex;gap:8px;margin-bottom:24px;flex-wrap:wrap}
   .page-title{font-family:'Manuale',serif;font-size:1.4rem;font-weight:700;color:var(--text);margin:0 0 20px 0;}
   .imp-sub-btn{padding:8px 18px;border-radius:10px;border:1.5px solid #a0c8b0;background:transparent;color:#5a8a6a;font-family:'Exo 2',sans-serif;font-weight:700;font-size:.83rem;cursor:pointer;transition:all .15s}
-  .imp-sub-btn:hover:not(.imp-sub-active){border-color:var(--teal);color:var(--forest)}
-  .imp-sub-active{background:var(--forest);color:#fff !important;border-color:var(--forest)}
+  .imp-sub-btn:hover:not(.imp-sub-active){border-color:#3B6D11;color:#3B6D11}
+  .imp-sub-active{background:#639922 !important;color:#fff !important;border:2.5px solid #3B6D11 !important}
   .sub-tab:hover:not(.active){border-color:var(--teal);color:var(--forest)}
   /* toast */
   .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--forest);color:white;padding:12px 20px;border-radius:10px;font-size:.85rem;font-weight:600;z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,.2);transition:opacity .3s;pointer-events:none}
@@ -2930,7 +2930,7 @@ function ImpulsPhasenTab() {
                   `)}
                 </div>
                 ${[1,2,3,4].map(n => {
-                  const isActive = phase === n;
+                  const isActive = phase == n;
                   return html`
                     <button key=${n} onClick=${() => setPhase(c.uid, n)} disabled=${isSaving}
                       title=${"Phase " + n}
