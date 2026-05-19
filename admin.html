@@ -2876,6 +2876,20 @@ function ImpulsPhasenTab() {
       .finally(() => setSaving(s => ({...s, [uid]: false})));
   };
 
+  const setPackage = (uid, pkg) => {
+    const firestore = db();
+    if (!firestore) return;
+    firestore.collection("users").doc(uid).set({ packageType: pkg }, { merge: true })
+      .then(() => setCoachees(cs => cs.map(c => c.uid === uid ? {...c, packageType: pkg} : c)))
+      .catch(() => {});
+  };
+
+  const INTERVALS = {
+    einzel:      { label: "Einzelcoaching",        sub: "6 Impulse · 2 Wochen · alle 2–3 Tage",            color: "#4a9e62" },
+    paar:        { label: "Paar- / Elterncoaching", sub: "6 Impulse · 4 Wochen · alle 4–7 Tage",            color: "#2d7a9a" },
+    integration: { label: "Integrationsphase",      sub: "1 Impuls/Woche · zufälliger Tag · 6 Monate",      color: "#7a6a2d" }
+  };
+
   if (loading) return html`<div style=${{color:"var(--muted)",padding:"40px 0",textAlign:"center"}}>Lade Coachees…</div>`;
 
   if (!coachees.length) return html`
@@ -2885,44 +2899,60 @@ function ImpulsPhasenTab() {
 
   return html`
     <div>
-      <p style=${{color:"var(--muted)",fontSize:".9rem",marginBottom:24}}>Wähle die aktive Phase pro Coachee. Die App spielt automatisch die Impulse der gewählten Phase aus.</p>
+      <p style=${{color:"var(--muted)",fontSize:".9rem",marginBottom:24}}>Wähle Package-Typ und aktive Phase pro Coachee.</p>
       ${coachees.map(c => {
         const phase = c.activePhase || null;
+        const pkg = c.packageType || null;
         const isSaving = saving[c.uid];
         const isSaved = saved[c.uid];
         const name = c.name || c.email || c.uid.slice(0,8);
+        const interval = pkg ? INTERVALS[pkg] : null;
         return html`
-          <div key=${c.uid} class="card" style=${{marginBottom:12,display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:12}}>
-            <div>
-              <div style=${{fontWeight:700,fontSize:".95rem",color:"var(--text)"}}>${name}</div>
-              <div style=${{fontSize:".78rem",color:"var(--muted)",marginTop:2}}>${c.email || c.uid.slice(0,12)+"…"}</div>
+          <div key=${c.uid} class="card" style=${{marginBottom:12}}>
+            <div style=${{display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:12,marginBottom:interval?10:0}}>
+              <div>
+                <div style=${{fontWeight:700,fontSize:".95rem",color:"var(--text)"}}>${name}</div>
+                <div style=${{fontSize:".78rem",color:"var(--muted)",marginTop:2}}>${c.email || c.uid.slice(0,12)+"…"}</div>
+              </div>
+              <div style=${{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}}>
+                <div style=${{display:"flex",gap:4,marginRight:8}}>
+                  ${["einzel","paar","integration"].map(p => html`
+                    <button key=${p} onClick=${() => setPackage(c.uid, p)}
+                      style=${{
+                        padding:"4px 10px", borderRadius:6, border:"1.5px solid",
+                        borderColor: pkg===p ? INTERVALS[p].color : "#a0c8b0",
+                        background: pkg===p ? INTERVALS[p].color : "transparent",
+                        color: pkg===p ? "#fff" : "#5a8a6a",
+                        fontSize:".72rem", fontWeight:700, cursor:"pointer", transition:"all .15s",
+                        whiteSpace:"nowrap"
+                      }}
+                    >${p==="einzel"?"Einzel":p==="paar"?"Paar/Eltern":"Integration"}</button>
+                  `)}
+                </div>
+                ${[1,2,3,4].map(n => {
+                  const isActive = phase === n;
+                  return html`
+                    <button key=${n} onClick=${() => setPhase(c.uid, n)} disabled=${isSaving}
+                      title=${"Phase " + n}
+                      style=${{
+                        width:38, height:38, borderRadius:"50%",
+                        border: isActive ? "2.5px solid #3B6D11" : "1px solid #a0c8b0",
+                        background: isActive ? "#639922" : "transparent",
+                        color: isActive ? "#fff" : "#5a8a6a",
+                        fontWeight:500, fontSize:"14px", cursor:"pointer",
+                        transition:"all .15s", display:"flex", alignItems:"center", justifyContent:"center",
+                        flexShrink:0
+                      }}
+                    >${n}</button>`;
+                })}
+                ${isSaved && html`<span style=${{fontSize:".78rem",color:"var(--forest)",fontWeight:700,marginLeft:4}}>✓</span>`}
+              </div>
             </div>
-            <div style=${{display:"flex",gap:6,alignItems:"center"}}>
-              ${[1,2,3,4].map(n => {
-                const isActive = phase === n;
-                return html`
-                  <button
-                    key=${n}
-                    onClick=${() => setPhase(c.uid, n)}
-                    disabled=${isSaving}
-                    title=${"Phase " + n}
-                    style=${{
-                      width: 38, height: 38,
-                      borderRadius:"50%",
-                      border: isActive ? "2.5px solid #3B6D11" : "1px solid #a0c8b0",
-                      background: isActive ? "#639922" : "transparent",
-                      color: isActive ? "#fff" : "#5a8a6a",
-                      fontWeight: 500,
-                      fontSize: "14px",
-                      cursor:"pointer",
-                      transition:"all .15s",
-                      display:"flex", alignItems:"center", justifyContent:"center",
-                      flexShrink: 0
-                    }}
-                  >${n}</button>`
-              })}
-              ${isSaved && html`<span style=${{fontSize:".78rem",color:"var(--forest)",fontWeight:700,marginLeft:4}}>✓</span>`}
-            </div>
+            ${interval && html`
+              <div style=${{display:"flex",alignItems:"center",gap:8,paddingTop:8,borderTop:"1px solid var(--border)"}}>
+                <div style=${{width:8,height:8,borderRadius:"50%",background:interval.color,flexShrink:0}}></div>
+                <div style=${{fontSize:".78rem",color:"var(--muted)"}}>${interval.sub}${phase ? " · Phase " + phase + " aktiv" : " · Keine Phase gewählt"}</div>
+              </div>`}
           </div>`;
       })}
     </div>`;
