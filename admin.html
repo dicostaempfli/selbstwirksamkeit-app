@@ -629,6 +629,7 @@ window.addEventListener('orientationchange', ()=>setTimeout(setVH,150));
   .sub-tab{padding:7px 16px;border-radius:99px;border:1.5px solid var(--border);background:var(--surface);color:var(--muted);font-family:'Exo 2',sans-serif;font-weight:700;font-size:.8rem;cursor:pointer;transition:all .15s}
   .sub-tab.active{background:var(--forest);color:white;border-color:var(--forest)}
   .imp-sub-nav{display:flex;gap:8px;margin-bottom:24px;flex-wrap:wrap}
+  .page-title{font-family:'Manuale',serif;font-size:1.4rem;font-weight:700;color:var(--text);margin:0 0 20px 0;}
   .imp-sub-btn{padding:8px 18px;border-radius:10px;border:1.5px solid #a0c8b0;background:transparent;color:#5a8a6a;font-family:'Exo 2',sans-serif;font-weight:700;font-size:.83rem;cursor:pointer;transition:all .15s}
   .imp-sub-btn:hover:not(.imp-sub-active){border-color:var(--teal);color:var(--forest)}
   .imp-sub-active{background:var(--forest);color:#fff !important;border-color:var(--forest)}
@@ -2661,7 +2662,7 @@ function ImpulsAdminPage() {
       : h(ImpulsPhasenTab, {});
 
   return html`
-    <div class="content-area">
+    <div class="page">
       <h1 class="page-title">Impulse</h1>
       <div class="imp-sub-nav">
         <button class=${"imp-sub-btn" + (activeSubTab==="aktuell" ? " imp-sub-active" : "")} onClick=${()=>setActiveSubTab("aktuell")}>Aktuell</button>
