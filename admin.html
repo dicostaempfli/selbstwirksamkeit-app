@@ -183,13 +183,13 @@ window.addEventListener('orientationchange', ()=>setTimeout(setVH,150));
   }
   .sb-bottom { padding:0 10px; display:flex; flex-direction:column; align-items:center; gap:8px; }
   .sb-logout-btn {
-    width:60px; height:36px; border-radius:10px; border:none;
-    background:rgba(255,255,255,.12); color:rgba(255,255,255,.7);
-    font-family:'Exo 2',sans-serif; font-size:.44rem; font-weight:700;
-    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px;
+    width:60px; height:30px; border-radius:8px; border:none;
+    background:rgba(255,255,255,.10); color:rgba(255,255,255,.6);
+    font-family:'Exo 2',sans-serif; font-size:.42rem; font-weight:700;
+    display:flex; align-items:center; justify-content:center; gap:4px;
     cursor:pointer; transition:background .15s;
   }
-  .sb-logout-btn:hover { background:rgba(255,255,255,.22); color:#fff; }
+  .sb-logout-btn:hover { background:rgba(255,255,255,.20); color:#fff; }
   .sb-avatar {
     width:40px; height:40px; border-radius:50%;
     background:var(--lime); display:flex; align-items:center; justify-content:center;
@@ -629,9 +629,9 @@ window.addEventListener('orientationchange', ()=>setTimeout(setVH,150));
   .sub-tab{padding:7px 16px;border-radius:99px;border:1.5px solid var(--border);background:var(--surface);color:var(--muted);font-family:'Exo 2',sans-serif;font-weight:700;font-size:.8rem;cursor:pointer;transition:all .15s}
   .sub-tab.active{background:var(--forest);color:white;border-color:var(--forest)}
   .imp-sub-nav{display:flex;gap:8px;margin-bottom:24px;flex-wrap:wrap}
-  .imp-sub-btn{padding:8px 18px;border-radius:10px;border:1.5px solid var(--border);background:transparent;color:var(--muted);font-family:'Exo 2',sans-serif;font-weight:700;font-size:.83rem;cursor:pointer;transition:all .15s}
+  .imp-sub-btn{padding:8px 18px;border-radius:10px;border:1.5px solid #a0c8b0;background:transparent;color:#5a8a6a;font-family:'Exo 2',sans-serif;font-weight:700;font-size:.83rem;cursor:pointer;transition:all .15s}
   .imp-sub-btn:hover:not(.imp-sub-active){border-color:var(--teal);color:var(--forest)}
-  .imp-sub-active{background:var(--forest);color:#fff;border-color:var(--forest)}
+  .imp-sub-active{background:var(--forest);color:#fff !important;border-color:var(--forest)}
   .sub-tab:hover:not(.active){border-color:var(--teal);color:var(--forest)}
   /* toast */
   .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--forest);color:white;padding:12px 20px;border-radius:10px;font-size:.85rem;font-weight:600;z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,.2);transition:opacity .3s;pointer-events:none}
