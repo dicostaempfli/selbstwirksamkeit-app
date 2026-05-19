@@ -426,6 +426,9 @@
   ══════════════════════════════ */
 
   /* ── Impulse Sub-Tab Navigation ── */
+  .impuls-anker { display:flex; align-items:center; gap:12px; background:var(--surface); border:1px solid var(--border); border-left:3px solid var(--teal); border-radius:var(--radius); padding:14px 16px; cursor:pointer; transition:transform .15s; }
+  .impuls-anker:active { transform:scale(.98); }
+  .impuls-anker-dot { width:10px; height:10px; border-radius:50%; background:var(--teal); flex-shrink:0; }
   .impulse-tab-wrap { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
   .impulse-subtab-nav {
     display: flex;
@@ -1924,6 +1927,7 @@ function DashboardPage({coachees,library,reminders,doodles,setPage,user,onLogoTa
   const hour = new Date().getHours();
   const greeting = hour<12?"Guten Morgen":hour<18?"Guten Tag":"Guten Abend";
   const [quote,setQuote] = useState(QUOTES[0]);
+  const [activeImpuls, setActiveImpuls] = useState(null);
   useEffect(()=>{
     const fbDb=window._fb?.db;
     if(!fbDb) return;
@@ -1931,6 +1935,15 @@ function DashboardPage({coachees,library,reminders,doodles,setPage,user,onLogoTa
       .then(doc=>{ if(doc.exists&&doc.data().text) setQuote(doc.data()); })
       .catch(()=>{});
   },[]);
+  useEffect(()=>{
+    const fbDb=window._fb?.db;
+    if(!fbDb||!user?.uid) return;
+    const todayStr = new Date().toISOString().split("T")[0];
+    fbDb.collection("impulse_entries")
+      .where("uid","==",user.uid).where("date","==",todayStr).where("status","==","active").limit(1).get()
+      .then(snap=>{ if(!snap.empty) setActiveImpuls(snap.docs[0].data()); else setActiveImpuls(null); })
+      .catch(()=>{});
+  },[user]);
   return html`
     <div class="content-main">
       <div style=${{marginBottom:24,textAlign:"center",display:"flex",flexDirection:"column",alignItems:"center",paddingTop:8}}>
@@ -1941,6 +1954,19 @@ function DashboardPage({coachees,library,reminders,doodles,setPage,user,onLogoTa
         <p class="quote-text">${quote.text}</p>
         <p class="quote-author">${quote.author}</p>
       </div>
+      ${activeImpuls && h("div", {
+        class:"impuls-anker", style:{marginBottom:14},
+        onClick:()=>{ setPage("impulse"); }
+      },
+        h("div",{class:"impuls-anker-dot"}),
+        h("div",{style:{flex:1}},
+          h("div",{style:{fontWeight:700,fontSize:".88rem",color:"var(--text)",marginBottom:2}},"Aktiver Impuls"),
+          h("div",{style:{fontSize:".78rem",color:"var(--muted)",lineHeight:1.4,overflow:"hidden",display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical"}}, activeImpuls.impulsText || "")
+        ),
+        h("svg",{width:16,height:16,viewBox:"0 0 24 24",fill:"none",stroke:"var(--border2)",strokeWidth:2,strokeLinecap:"round",strokeLinejoin:"round"},
+          h("polyline",{points:"9 18 15 12 9 6"})
+        )
+      )}
       <div class="stat-grid">
         <div class="stat-card" onClick=${()=>setPage("impulse")} style=${{cursor:"pointer",borderLeft:"4px solid var(--teal)",padding:"16px 20px"}}>
           <div style=${{display:"flex",alignItems:"center",gap:14}}>
@@ -2016,147 +2042,163 @@ function ImpulseTab({ user, reminders, setReminders }) {
 // ── GOALS PAGE ──
 // ── IMPULS PAGE ──
 function ImpulsPage({ user }) {
-  const [step, setStep]             = useState(0); // 0=impuls, 1=reflexion, 2=koerper, 3=done
-  const [reflexion, setReflexion]   = useState("");
-  const [koerper, setKoerper]       = useState(null);
-  const [todayImpuls, setTodayImpuls] = useState(null);
-  const [saving, setSaving]         = useState(false);
+  const [step, setStep]           = useState(0);
+  const [reflexion, setReflexion] = useState("");
+  const [koerper, setKoerper]     = useState(null);
+  const [impuls, setImpuls]       = useState(null);
+  const [saving, setSaving]       = useState(false);
 
-  const KOERPER_OPTS = ["Brust","Bauch","Kehle","Schultern","Nirgends","Weiss nicht"];
+  const KOERPER_OPTS = ["Kopf","Kehle","Herz","Brust","Bauch","Schultern","Arme","Beine"];
 
-  useEffect(() => {
-    const fbDb = window._fb?.db;
-    if (!fbDb) return;
-    fbDb.collection("settings").doc("tagesimpuls").get()
-      .then(doc => {
-        if (doc.exists) setTodayImpuls(doc.data());
-        else setTodayImpuls({ text: "Bitte heute jemanden bewusst um etwas — ohne dich dabei zu entschuldigen.", hint: "Nicht gross. Nicht mutig. Einfach einmal fragen — und beobachten, was passiert." });
-      })
-      .catch(() => setTodayImpuls({ text: "Bitte heute jemanden bewusst um etwas — ohne dich dabei zu entschuldigen.", hint: "Nicht gross. Nicht mutig. Einfach einmal fragen — und beobachten, was passiert." }));
-  }, []);
-
-  const [doneTodayFlag, setDoneTodayFlag] = useState(false);
   useEffect(() => {
     const fbDb = window._fb?.db;
     if (!fbDb || !user?.uid) return;
     const todayStr = new Date().toISOString().split("T")[0];
-    fbDb.collection("impulse").where("uid","==",user.uid).where("date","==",todayStr).limit(1).get()
-      .then(snap => { if (!snap.empty) setDoneTodayFlag(true); })
-      .catch(() => {});
+    fbDb.collection("settings").doc("impulse_library").get()
+      .then(doc => {
+        const getData = (data) => {
+          fbDb.collection("users").doc(user.uid).get().then(uDoc => {
+            const activePhase = uDoc.exists ? (uDoc.data().activePhase || 1) : 1;
+            const phase = (data.phases || []).find(p => p.id === activePhase);
+            const impulse = phase ? (phase.impulse || []) : [];
+            fbDb.collection("impulse_entries").where("uid","==",user.uid)
+              .orderBy("createdAt","desc").limit(30).get()
+              .then(snap => {
+                const done = snap.docs.map(d => d.data().impulsId).filter(Boolean);
+                const next = impulse.find(imp => !done.includes(imp.id)) || impulse[0];
+                setImpuls(next || null);
+                const todayEntry = snap.docs.find(d => d.data().date === todayStr);
+                if (todayEntry) {
+                  const s = todayEntry.data().status;
+                  if (s === "active") setStep(1);
+                  else if (s === "done") setStep(4);
+                  else setStep(5);
+                }
+              }).catch(() => setImpuls(impulse[0] || null));
+          }).catch(() => {});
+        };
+        if (doc.exists) getData(doc.data());
+        else setImpuls({ id:"fallback", text:"Beobachte heute eine Situation, in der du automatisch reagiert hast — Ärger, Rückzug, Anspannung. Halte danach kurz inne: Was war der Reiz? Was war deine Reaktion?", hint:"Nur beobachten, nicht bewerten." });
+      }).catch(() => {
+        setImpuls({ id:"fallback", text:"Beobachte heute eine Situation, in der du automatisch reagiert hast — Ärger, Rückzug, Anspannung. Halte danach kurz inne: Was war der Reiz? Was war deine Reaktion?", hint:"Nur beobachten, nicht bewerten." });
+      });
   }, [user]);
+
+  const todayStr = new Date().toISOString().split("T")[0];
+  const dateStr  = new Date().toLocaleDateString("de-CH", { weekday:"long", day:"numeric", month:"long" });
+
+  const handleAnnehmen = () => {
+    const fbDb = window._fb?.db;
+    if (fbDb && user?.uid && impuls) {
+      fbDb.collection("impulse_entries").add({
+        uid: user.uid, date: todayStr, impulsId: impuls.id,
+        impulsText: impuls.text, status: "active", createdAt: Date.now()
+      }).catch(() => {});
+    }
+    setStep(1);
+  };
+
+  const handleHeuteNicht = () => {
+    const fbDb = window._fb?.db;
+    if (fbDb && user?.uid && impuls) {
+      fbDb.collection("impulse_entries").add({
+        uid: user.uid, date: todayStr, impulsId: impuls.id,
+        impulsText: impuls.text, status: "skipped", createdAt: Date.now()
+      }).catch(() => {});
+    }
+    setStep(5);
+  };
+
+  const handleNeinHeute = () => {
+    const fbDb = window._fb?.db;
+    if (fbDb && user?.uid) {
+      fbDb.collection("impulse_entries")
+        .where("uid","==",user.uid).where("date","==",todayStr).where("status","==","active").limit(1).get()
+        .then(snap => { if (!snap.empty) snap.docs[0].ref.update({ status:"closed_no_reflexion", closedAt: Date.now() }); })
+        .catch(() => {});
+    }
+    setStep(5);
+  };
 
   const saveAndFinish = () => {
     setSaving(true);
     const fbDb = window._fb?.db;
-    const uid = user?.uid;
-    if (fbDb && uid) {
-      const todayStr = new Date().toISOString().split("T")[0];
-      fbDb.collection("impulse").add({
-        uid,
-        date: todayStr,
-        impulsText: todayImpuls?.text || "",
-        reflexion: reflexion.trim(),
-        koerper: koerper || "",
-        createdAt: Date.now(),
-      }).catch(() => {}).finally(() => {
-        setSaving(false);
-        setStep(3);
-        setDoneTodayFlag(true);
-      });
-    } else {
-      setSaving(false);
-      setStep(3);
-    }
+    if (fbDb && user?.uid) {
+      const update = { status:"done", reflexion: reflexion.trim(), koerper: koerper || "", closedAt: Date.now() };
+      fbDb.collection("impulse_entries")
+        .where("uid","==",user.uid).where("date","==",todayStr).where("status","==","active").limit(1).get()
+        .then(snap => {
+          if (!snap.empty) snap.docs[0].ref.update(update).catch(() => {});
+          else if (impuls) fbDb.collection("impulse_entries").add({ uid:user.uid, date:todayStr, impulsId:impuls.id, impulsText:impuls.text, ...update, createdAt: Date.now() }).catch(() => {});
+        }).catch(() => {}).finally(() => { setSaving(false); setStep(4); });
+    } else { setSaving(false); setStep(4); }
   };
 
-  const dateStr = new Date().toLocaleDateString("de-CH", { weekday: "long", day: "numeric", month: "long" });
+  if (!impuls) return html`<div class="content-main" style=${{display:"flex",alignItems:"center",justifyContent:"center",minHeight:200}}><div style=${{color:"var(--muted)",fontSize:".9rem"}}>Lade…</div></div>`;
 
-  if (!todayImpuls) return html`<div class="content-main" style=${{display:"flex",alignItems:"center",justifyContent:"center",minHeight:200}}><div style=${{color:"var(--muted)",fontSize:".9rem"}}>Lade…</div></div>`;
+  if (step === 5) return html`
+    <div class="content-main" style=${{maxWidth:520,textAlign:"center",paddingTop:40}}>
+      <p style=${{color:"var(--muted)",fontSize:"1rem",lineHeight:1.7}}>Der nächste Impuls erscheint morgen früh.</p>
+    </div>`;
+
+  if (step === 4) return html`
+    <div class="content-main" style=${{maxWidth:520,textAlign:"center",paddingTop:24}}>
+      <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style=${{margin:"0 auto 20px",display:"block"}}><circle cx="12" cy="12" r="10"/><polyline points="9 12 12 15 16 9"/></svg>
+      <p style=${{fontSize:"1.1rem",fontWeight:700,color:"var(--text)",marginBottom:16}}>Impuls abgeschlossen</p>
+      <div style=${{borderTop:"1px solid var(--border)",marginBottom:20}}></div>
+      <p style=${{fontSize:".9rem",color:"var(--muted)",lineHeight:1.7,fontStyle:"italic"}}>«Du hast etwas Neues erlebt — das zählt.<br/>Leg das Handy weg und geniess den Abend.»</p>
+    </div>`;
+
+  if (step === 3) return html`
+    <div class="content-main" style=${{maxWidth:520}}>
+      <span style=${{fontSize:".72rem",fontWeight:700,textTransform:"uppercase",letterSpacing:".07em",color:"var(--muted)"}}>Reflexion</span>
+      <p style=${{fontFamily:"'Manuale',serif",fontSize:"1.1rem",fontStyle:"italic",lineHeight:1.6,color:"var(--text)",margin:"16px 0 8px"}}>«Was war anders als du erwartet hast?»</p>
+      <div style=${{borderTop:"1px solid var(--border)",marginBottom:20}}></div>
+      <textarea class="form-input" rows="4"
+        placeholder="Ein Satz reicht. Oder zwei. Oder einfach kurz innehalten."
+        value=${reflexion} onInput=${e => setReflexion(e.target.value)}
+        style=${{width:"100%",resize:"none",marginBottom:20,boxSizing:"border-box"}}></textarea>
+      <p style=${{fontSize:".85rem",fontWeight:700,color:"var(--text)",marginBottom:4}}>Wo spürst du das im Körper?</p>
+      <p style=${{fontSize:".78rem",color:"var(--muted)",marginBottom:12}}>Atme einmal bewusst hinein.</p>
+      <div style=${{display:"flex",flexWrap:"wrap",gap:8,marginBottom:28}}>
+        ${KOERPER_OPTS.map(opt => h("button", {
+          key: opt, onClick: () => setKoerper(opt),
+          style: { padding:"8px 14px", border: koerper===opt ? "2px solid var(--teal)" : "1.5px solid var(--border)", borderRadius:20, background: koerper===opt ? "var(--sage)" : "var(--surface)", color: koerper===opt ? "var(--forest)" : "var(--muted)", fontFamily:"'Exo 2',sans-serif", fontWeight:700, fontSize:".8rem", cursor:"pointer", transition:"all .15s" }
+        }, opt))}
+      </div>
+      <button class="btn btn-primary" style=${{width:"100%"}} onClick=${saveAndFinish} disabled=${saving}>${saving ? "Speichern…" : "Abschliessen"}</button>
+    </div>`;
+
+  if (step === 2) return html`
+    <div class="content-main" style=${{maxWidth:520}}>
+      <span style=${{fontSize:".72rem",fontWeight:700,textTransform:"uppercase",letterSpacing:".07em",color:"var(--muted)"}}>Reflexion</span>
+      <p style=${{fontFamily:"'Manuale',serif",fontSize:"1.1rem",lineHeight:1.65,color:"var(--text)",margin:"20px 0 32px"}}>Möchtest du deine heutige neue Erfahrung reflektieren?</p>
+      <button class="btn btn-primary" style=${{width:"100%",marginBottom:10}} onClick=${() => setStep(3)}>Ja gerne</button>
+      <button class="btn btn-ghost" style=${{width:"100%",fontSize:".83rem"}} onClick=${handleNeinHeute}>Nein, heute nicht</button>
+    </div>`;
+
+  if (step === 1) return html`
+    <div class="content-main" style=${{maxWidth:520}}>
+      <span style=${{fontSize:".72rem",fontWeight:700,textTransform:"uppercase",letterSpacing:".07em",color:"var(--muted)"}}>Tages-Impuls</span>
+      <div style=${{borderTop:"1px solid var(--border)",margin:"16px 0 20px"}}></div>
+      <p style=${{fontFamily:"'Manuale',serif",fontSize:"1.1rem",lineHeight:1.65,color:"var(--text)",marginBottom:24}}>${impuls.text}</p>
+      <p style=${{fontSize:".83rem",color:"var(--muted)",lineHeight:1.6,marginBottom:32}}>${impuls.hint || ""}</p>
+      <button class="btn btn-primary" style=${{width:"100%",marginBottom:10}} onClick=${() => setStep(2)}>Ich habe die Erfahrung gemacht</button>
+      <button class="btn btn-ghost" style=${{width:"100%",fontSize:".83rem"}} onClick=${() => setStep(0)}>Impuls nochmals lesen</button>
+    </div>`;
 
   return html`
     <div class="content-main" style=${{maxWidth:520}}>
-      ${step === 0 && html`
-        <div>
-          <div style=${{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:24}}>
-            <span style=${{fontSize:".72rem",fontWeight:700,textTransform:"uppercase",letterSpacing:".07em",color:"var(--muted)"}}>Dein Impuls für heute</span>
-            <div style=${{display:"flex",gap:6}}>
-              ${[0,1,2].map(i => html`<div key=${i} style=${{width:6,height:6,borderRadius:"50%",background:i===0?"var(--teal)":"var(--border2)"}}></div>`)}
-            </div>
-          </div>
-          <div style=${{fontSize:".72rem",color:"var(--muted)",marginBottom:20,fontStyle:"italic"}}>${dateStr}</div>
-          <div style=${{borderTop:"1px solid var(--border)",marginBottom:24}}></div>
-          <p style=${{fontFamily:"'Manuale',serif",fontSize:"1.15rem",lineHeight:1.65,color:"var(--text)",marginBottom:20}}>${todayImpuls.text}</p>
-          <div style=${{borderTop:"1px solid var(--border)",marginBottom:20}}></div>
-          <p style=${{fontSize:".85rem",color:"var(--muted)",lineHeight:1.6,marginBottom:32}}>${todayImpuls.hint || ""}</p>
-          ${doneTodayFlag
-            ? html`<div style=${{background:"var(--sage-pale)",border:"1px solid var(--border)",borderRadius:12,padding:"14px 18px",fontSize:".88rem",color:"var(--forest)",marginBottom:12}}>Du hast den heutigen Impuls bereits abgeschlossen. Morgen gibt es einen neuen.</div>`
-            : html`
-              <button class="btn btn-primary" style=${{width:"100%",marginBottom:10}} onClick=${() => setStep(1)}>Ich nehme diesen Impuls mit →</button>
-              <button class="btn btn-ghost" style=${{width:"100%",fontSize:".83rem"}} onClick=${() => setStep(1)}>Heute nicht — trotzdem weiter</button>
-            `}
-        </div>
-      `}
-      ${step === 1 && html`
-        <div>
-          <div style=${{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:24}}>
-            <span style=${{fontSize:".72rem",fontWeight:700,textTransform:"uppercase",letterSpacing:".07em",color:"var(--muted)"}}>Reflexion</span>
-            <div style=${{display:"flex",gap:6}}>
-              ${[0,1,2].map(i => html`<div key=${i} style=${{width:6,height:6,borderRadius:"50%",background:i<=1?"var(--teal)":"var(--border2)"}}></div>`)}
-            </div>
-          </div>
-          <p style=${{fontSize:".72rem",fontWeight:700,textTransform:"uppercase",letterSpacing:".07em",color:"var(--muted)",marginBottom:10}}>Die eine Frage</p>
-          <p style=${{fontFamily:"'Manuale',serif",fontSize:"1.1rem",fontStyle:"italic",lineHeight:1.6,color:"var(--text)",marginBottom:24}}>«Was war heute anders als du erwartet hast?»</p>
-          <div style=${{borderTop:"1px solid var(--border)",marginBottom:20}}></div>
-          <textarea
-            class="form-input"
-            rows="4"
-            placeholder="Ein Satz reicht. Oder zwei. Oder kein Text — einfach einen Moment innehalten."
-            value=${reflexion}
-            onInput=${e => setReflexion(e.target.value)}
-            style=${{width:"100%",resize:"none",marginBottom:12,boxSizing:"border-box"}}
-          ></textarea>
-          <p style=${{fontSize:".75rem",color:"var(--muted)",marginBottom:28}}>Diese Antwort bleibt bei dir. Niemand ausser dir sieht sie.</p>
-          <button class="btn btn-primary" style=${{width:"100%",marginBottom:10}} onClick=${() => setStep(2)}>Weiter →</button>
-          <button class="btn btn-ghost" style=${{width:"100%",fontSize:".83rem"}} onClick=${() => setStep(2)}>Überspringen</button>
-        </div>
-      `}
-      ${step === 2 && html`
-        <div>
-          <div style=${{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:24}}>
-            <span style=${{fontSize:".72rem",fontWeight:700,textTransform:"uppercase",letterSpacing:".07em",color:"var(--muted)"}}>Körperanker</span>
-            <div style=${{display:"flex",gap:6}}>
-              ${[0,1,2].map(i => html`<div key=${i} style=${{width:6,height:6,borderRadius:"50%",background:"var(--teal)"}}></div>`)}
-            </div>
-          </div>
-          <p style=${{fontFamily:"'Manuale',serif",fontSize:"1.1rem",lineHeight:1.6,color:"var(--text)",marginBottom:8}}>Halt kurz inne.</p>
-          <p style=${{fontSize:".9rem",color:"var(--muted)",lineHeight:1.6,marginBottom:24}}>Wo spürst du den heutigen Moment gerade im Körper?</p>
-          <div style=${{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:28}}>
-            ${KOERPER_OPTS.map(opt => html`
-              <button key=${opt}
-                onClick=${() => setKoerper(opt)}
-                style=${{padding:"10px 6px",border:koerper===opt?"2px solid var(--teal)":"1.5px solid var(--border)",borderRadius:10,background:koerper===opt?"var(--sage)":"var(--surface)",color:koerper===opt?"var(--forest)":"var(--muted)",fontFamily:"'Exo 2',sans-serif",fontWeight:700,fontSize:".79rem",cursor:"pointer",transition:"all .15s"}}>
-                ${opt}
-              </button>`)}
-          </div>
-          <div style=${{borderTop:"1px solid var(--border)",marginBottom:20}}></div>
-          <p style=${{fontSize:".88rem",color:"var(--muted)",fontStyle:"italic",lineHeight:1.6,marginBottom:28}}>Atme einmal bewusst dorthin. Das war's.</p>
-          <button class="btn btn-primary" style=${{width:"100%"}} onClick=${saveAndFinish} disabled=${saving}>${saving ? "Speichern…" : "Abschliessen"}</button>
-        </div>
-      `}
-      ${step === 3 && html`
-        <div style=${{textAlign:"center",paddingTop:16}}>
-          <div style=${{width:52,height:52,borderRadius:"50%",background:"var(--teal)",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 20px"}}>
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-          </div>
-          <div style=${{background:"var(--surface)",border:"1px solid var(--border)",borderRadius:14,padding:"16px 18px",marginBottom:24,textAlign:"left"}}>
-            <p style=${{margin:0,fontSize:".9rem",fontWeight:700,color:"var(--text)",marginBottom:4}}>Dein Moment ist gespeichert.</p>
-            <p style=${{margin:0,fontSize:".83rem",color:"var(--muted)"}}>In 4 Wochen zeigen wir dir, was du heute gespürt hast.</p>
-          </div>
-          <div style=${{borderTop:"1px solid var(--border)",marginBottom:24}}></div>
-          <p style=${{fontSize:".95rem",color:"var(--muted)",lineHeight:1.7,marginBottom:28}}>Leg das Handy weg.<br/>Der Impuls läuft jetzt im Alltag.</p>
-          <button class="btn btn-ghost" style=${{fontSize:".83rem"}} onClick=${() => { setStep(0); setReflexion(""); setKoerper(null); }}>Von vorne ansehen</button>
-        </div>
-      `}
+      <div style=${{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+        <span style=${{fontSize:".72rem",fontWeight:700,textTransform:"uppercase",letterSpacing:".07em",color:"var(--muted)"}}>Tages-Impuls</span>
+        <span style=${{fontSize:".72rem",color:"var(--muted)",fontStyle:"italic"}}>${dateStr}</span>
+      </div>
+      <div style=${{borderTop:"1px solid var(--border)",marginBottom:20}}></div>
+      <p style=${{fontFamily:"'Manuale',serif",fontSize:"1.15rem",lineHeight:1.65,color:"var(--text)",marginBottom:16}}>${impuls.text}</p>
+      <div style=${{borderTop:"1px solid var(--border)",marginBottom:16}}></div>
+      <p style=${{fontSize:".85rem",color:"var(--muted)",lineHeight:1.6,marginBottom:32}}>${impuls.hint || ""}</p>
+      <button class="btn btn-primary" style=${{width:"100%",marginBottom:10}} onClick=${handleAnnehmen}>Ich nehme diesen Impuls mit</button>
+      <button class="btn btn-ghost" style=${{width:"100%",fontSize:".83rem"}} onClick=${handleHeuteNicht}>Heute nicht</button>
     </div>`;
 }
 
