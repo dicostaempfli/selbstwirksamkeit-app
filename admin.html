@@ -2896,18 +2896,17 @@ function ImpulsPhasenTab() {
                     disabled=${isSaving}
                     title=${"Phase " + n}
                     style=${{
-                      width: isActive ? 44 : 36,
-                      height: isActive ? 44 : 36,
+                      width: 38, height: 38,
                       borderRadius:"50%",
-                      border: isActive ? "3px solid var(--forest)" : "2px solid #a0c8b0",
-                      background: isActive ? "var(--forest)" : "transparent",
+                      border: isActive ? "2.5px solid #3B6D11" : "1px solid #a0c8b0",
+                      background: isActive ? "#639922" : "transparent",
                       color: isActive ? "#fff" : "#5a8a6a",
-                      fontWeight: 700,
-                      fontSize: isActive ? "1rem" : ".82rem",
+                      fontWeight: 500,
+                      fontSize: "14px",
                       cursor:"pointer",
                       transition:"all .15s",
                       display:"flex", alignItems:"center", justifyContent:"center",
-                      boxShadow: isActive ? "0 2px 8px rgba(74,158,98,.35)" : "none"
+                      flexShrink: 0
                     }}
                   >${n}</button>`
               })}
