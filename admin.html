@@ -2832,7 +2832,7 @@ function ImpulsPhasenTab() {
     if (!firestore) { setLoading(false); return; }
     firestore.collection("users").get()
       .then(snap => {
-        const list = snap.docs.map(d => ({ uid: d.id, ...d.data() }));
+        const list = snap.docs.map(d => { const data = d.data(); return { uid: d.id, ...data, activePhase: data.activePhase ? Number(data.activePhase) : null }; });
         setCoachees(list);
       })
       .catch(() => {})
