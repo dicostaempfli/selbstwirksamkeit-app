@@ -619,6 +619,10 @@ window.addEventListener('orientationchange', ()=>setTimeout(setVH,150));
   .sub-tabs{display:flex;gap:6px;margin-bottom:20px}
   .sub-tab{padding:7px 16px;border-radius:99px;border:1.5px solid var(--border);background:var(--surface);color:var(--muted);font-family:'Exo 2',sans-serif;font-weight:700;font-size:.8rem;cursor:pointer;transition:all .15s}
   .sub-tab.active{background:var(--forest);color:white;border-color:var(--forest)}
+  .imp-sub-nav{display:flex;gap:8px;margin-bottom:24px;flex-wrap:wrap}
+  .imp-sub-btn{padding:8px 18px;border-radius:10px;border:1.5px solid var(--border);background:transparent;color:var(--muted);font-family:'Exo 2',sans-serif;font-weight:700;font-size:.83rem;cursor:pointer;transition:all .15s}
+  .imp-sub-btn:hover:not(.imp-sub-active){border-color:var(--teal);color:var(--forest)}
+  .imp-sub-active{background:var(--forest);color:#fff;border-color:var(--forest)}
   .sub-tab:hover:not(.active){border-color:var(--teal);color:var(--forest)}
   /* toast */
   .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--forest);color:white;padding:12px 20px;border-radius:10px;font-size:.85rem;font-weight:600;z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,.2);transition:opacity .3s;pointer-events:none}
@@ -2637,6 +2641,27 @@ function LibraryPage({library,setLibrary}) {
 }
 // ── IMPULS ADMIN PAGE ──
 function ImpulsAdminPage() {
+  const [activeSubTab, setActiveSubTab] = useState("aktuell");
+
+  const subContent = activeSubTab === "aktuell"
+    ? h(ImpulsAktuellTab, {})
+    : activeSubTab === "bibliothek"
+      ? h(ImpulsBibliothekTab, {})
+      : h(ImpulsPhasenTab, {});
+
+  return html`
+    <div class="content-area">
+      <h1 class="page-title">Impulse</h1>
+      <div class="imp-sub-nav">
+        <button class=${"imp-sub-btn" + (activeSubTab==="aktuell" ? " imp-sub-active" : "")} onClick=${()=>setActiveSubTab("aktuell")}>Aktuell</button>
+        <button class=${"imp-sub-btn" + (activeSubTab==="bibliothek" ? " imp-sub-active" : "")} onClick=${()=>setActiveSubTab("bibliothek")}>Bibliothek</button>
+        <button class=${"imp-sub-btn" + (activeSubTab==="phasen" ? " imp-sub-active" : "")} onClick=${()=>setActiveSubTab("phasen")}>Phasen der Coachees</button>
+      </div>
+      ${subContent}
+    </div>`;
+}
+
+function ImpulsAktuellTab() {
   const [impulsText, setImpulsText] = useState("");
   const [impulsHint, setImpulsHint] = useState("");
   const [saving, setSaving]         = useState(false);
@@ -2647,12 +2672,10 @@ function ImpulsAdminPage() {
   useEffect(() => {
     const firestore = db();
     if (!firestore) { setLoading(false); return; }
-    // Load current impuls
     firestore.collection("settings").doc("tagesimpuls").get()
       .then(doc => {
         if (doc.exists) { setImpulsText(doc.data().text || ""); setImpulsHint(doc.data().hint || ""); }
       }).catch(() => {}).finally(() => setLoading(false));
-    // Load impuls history
     firestore.collection("impulse_archive").orderBy("createdAt","desc").limit(10).get()
       .then(snap => setHistory(snap.docs.map(d => ({id:d.id,...d.data()}))))
       .catch(() => {});
@@ -2664,10 +2687,7 @@ function ImpulsAdminPage() {
     setSaving(true);
     const data = { text: impulsText.trim(), hint: impulsHint.trim(), updatedAt: Date.now() };
     firestore.collection("settings").doc("tagesimpuls").set(data)
-      .then(() => {
-        // Archive the impuls
-        return firestore.collection("impulse_archive").add({ ...data, createdAt: Date.now() });
-      })
+      .then(() => firestore.collection("impulse_archive").add({ ...data, createdAt: Date.now() }))
       .then(() => {
         setSaved(true);
         setTimeout(() => setSaved(false), 2500);
@@ -2677,46 +2697,21 @@ function ImpulsAdminPage() {
       .finally(() => setSaving(false));
   };
 
-  if (loading) return html`<div class="content-area" style=${{display:"flex",alignItems:"center",justifyContent:"center",minHeight:200}}><div style=${{color:"var(--muted)"}}>Lade…</div></div>`;
+  if (loading) return html`<div style=${{color:"var(--muted)",padding:"40px 0",textAlign:"center"}}>Lade…</div>`;
 
   return html`
-    <div class="content-area">
-      <h1 class="page-title">Tages-Impuls</h1>
-      <p style=${{color:"var(--muted)",fontSize:".9rem",marginBottom:28}}>Der aktuelle Tages-Impuls wird allen Coachees in der App angezeigt. Ändere ihn hier täglich oder wöchentlich.</p>
-
+    <div>
+      <p style=${{color:"var(--muted)",fontSize:".9rem",marginBottom:24}}>Der aktuelle Tages-Impuls wird allen Coachees in der App angezeigt.</p>
       <div class="card" style=${{marginBottom:24}}>
         <div class="card-title" style=${{marginBottom:16}}>Aktueller Impuls</div>
-
         <label style=${{fontSize:".78rem",fontWeight:700,textTransform:"uppercase",letterSpacing:".06em",color:"var(--muted)",display:"block",marginBottom:6}}>Impuls-Text</label>
-        <textarea
-          class="form-input"
-          rows="3"
-          placeholder="z.B. Bitte heute jemanden bewusst um etwas — ohne dich dabei zu entschuldigen."
-          value=${impulsText}
-          onInput=${e => setImpulsText(e.target.value)}
-          style=${{width:"100%",resize:"vertical",marginBottom:16,boxSizing:"border-box"}}
-        ></textarea>
-
+        <textarea class="form-input" rows="3" placeholder="z.B. Bitte heute jemanden bewusst um etwas — ohne dich dabei zu entschuldigen." value=${impulsText} onInput=${e=>setImpulsText(e.target.value)} style=${{width:"100%",resize:"vertical",marginBottom:16,boxSizing:"border-box"}}></textarea>
         <label style=${{fontSize:".78rem",fontWeight:700,textTransform:"uppercase",letterSpacing:".06em",color:"var(--muted)",display:"block",marginBottom:6}}>Hinweis (optional)</label>
-        <textarea
-          class="form-input"
-          rows="2"
-          placeholder="z.B. Nicht gross. Nicht mutig. Einfach einmal fragen — und beobachten, was passiert."
-          value=${impulsHint}
-          onInput=${e => setImpulsHint(e.target.value)}
-          style=${{width:"100%",resize:"vertical",marginBottom:20,boxSizing:"border-box"}}
-        ></textarea>
-
-        <button
-          class="btn btn-primary"
-          onClick=${handleSave}
-          disabled=${saving || !impulsText.trim()}
-          style=${{minWidth:160}}
-        >
+        <textarea class="form-input" rows="2" placeholder="z.B. Nicht gross. Nicht mutig. Einfach einmal fragen — und beobachten, was passiert." value=${impulsHint} onInput=${e=>setImpulsHint(e.target.value)} style=${{width:"100%",resize:"vertical",marginBottom:20,boxSizing:"border-box"}}></textarea>
+        <button class="btn btn-primary" onClick=${handleSave} disabled=${saving || !impulsText.trim()} style=${{minWidth:160}}>
           ${saving ? "Speichern…" : saved ? "✓ Gespeichert" : "Impuls veröffentlichen"}
         </button>
       </div>
-
       ${history.length > 0 && html`
         <div class="card">
           <div class="card-title" style=${{marginBottom:16}}>Frühere Impulse</div>
@@ -2726,8 +2721,179 @@ function ImpulsAdminPage() {
               ${h.hint && html`<div style=${{fontSize:".78rem",color:"var(--muted)",fontStyle:"italic"}}>${h.hint}</div>`}
               <div style=${{fontSize:".72rem",color:"var(--muted)",marginTop:4}}>${h.updatedAt ? new Date(h.updatedAt).toLocaleDateString("de-CH",{day:"2-digit",month:"long",year:"numeric"}) : ""}</div>
             </div>`)}
-        </div>
-      `}
+        </div>`}
+    </div>`;
+}
+
+function ImpulsBibliothekTab() {
+  const [jsonText, setJsonText]     = useState("");
+  const [preview, setPreview]       = useState(null);
+  const [parseErr, setParseErr]     = useState("");
+  const [importing, setImporting]   = useState(false);
+  const [importOk, setImportOk]     = useState(false);
+  const [existing, setExisting]     = useState(null);
+  const [loadingEx, setLoadingEx]   = useState(true);
+
+  useEffect(() => {
+    const firestore = db();
+    if (!firestore) { setLoadingEx(false); return; }
+    firestore.collection("settings").doc("impulse_library").get()
+      .then(doc => { if (doc.exists) setExisting(doc.data()); })
+      .catch(() => {})
+      .finally(() => setLoadingEx(false));
+  }, []);
+
+  const handleParse = () => {
+    setParseErr("");
+    setPreview(null);
+    try {
+      const parsed = JSON.parse(jsonText.trim());
+      if (!parsed.phases || !Array.isArray(parsed.phases)) throw new Error("Kein 'phases'-Array gefunden.");
+      const counts = parsed.phases.map(p => ({ id: p.id, title: p.title, count: (p.impulse || []).length }));
+      setPreview({ parsed, counts });
+    } catch(e) {
+      setParseErr("JSON-Fehler: " + e.message);
+    }
+  };
+
+  const handleImport = () => {
+    if (!preview) return;
+    const firestore = db();
+    if (!firestore) return;
+    setImporting(true);
+    const data = { ...preview.parsed, importedAt: Date.now() };
+    firestore.collection("settings").doc("impulse_library").set(data)
+      .then(() => {
+        setImportOk(true);
+        setExisting(data);
+        setJsonText("");
+        setPreview(null);
+        setTimeout(() => setImportOk(false), 3000);
+      })
+      .catch(e => setParseErr("Firestore-Fehler: " + e.message))
+      .finally(() => setImporting(false));
+  };
+
+  return html`
+    <div>
+      <p style=${{color:"var(--muted)",fontSize:".9rem",marginBottom:24}}>Impuls-Bibliothek aus JSON importieren. Das JSON wird unter <code>settings/impulse_library</code> gespeichert.</p>
+
+      ${loadingEx ? html`<div style=${{color:"var(--muted)",marginBottom:16}}>Prüfe bestehende Bibliothek…</div>` : existing ? html`
+        <div class="card" style=${{marginBottom:24,borderLeft:"3px solid var(--teal)"}}>
+          <div style=${{fontSize:".82rem",fontWeight:700,color:"var(--teal)",marginBottom:6}}>✓ Bibliothek vorhanden</div>
+          <div style=${{fontSize:".82rem",color:"var(--muted)"}}>Version: ${existing.version || "–"} · Importiert: ${existing.importedAt ? new Date(existing.importedAt).toLocaleDateString("de-CH") : "–"}</div>
+          <div style=${{marginTop:8,display:"flex",flexWrap:"wrap",gap:6}}>
+            ${(existing.phases || []).map(p => html`
+              <span key=${p.id} style=${{background:"var(--surface-2,#f3f4f6)",borderRadius:6,padding:"3px 10px",fontSize:".78rem",color:"var(--text)"}}>Phase ${p.id}: ${(p.impulse||[]).length} Impulse</span>
+            `)}
+          </div>
+        </div>` : html`
+        <div class="card" style=${{marginBottom:24,borderLeft:"3px solid var(--muted)"}}>
+          <div style=${{fontSize:".82rem",color:"var(--muted)"}}>Noch keine Bibliothek in Firestore gefunden.</div>
+        </div>`}
+
+      <div class="card" style=${{marginBottom:16}}>
+        <div class="card-title" style=${{marginBottom:12}}>JSON einfügen</div>
+        <textarea
+          class="form-input"
+          rows="10"
+          placeholder='{"version":"1.0","phases":[{"id":1,"title":"...","impulse":[...]}]}'
+          value=${jsonText}
+          onInput=${e => { setJsonText(e.target.value); setPreview(null); setParseErr(""); }}
+          style=${{width:"100%",resize:"vertical",fontFamily:"monospace",fontSize:".8rem",boxSizing:"border-box",marginBottom:12}}
+        ></textarea>
+        <button class="btn btn-secondary" onClick=${handleParse} disabled=${!jsonText.trim()} style=${{marginRight:10}}>Vorschau prüfen</button>
+        ${parseErr && html`<div style=${{color:"#e53e3e",fontSize:".82rem",marginTop:8}}>${parseErr}</div>`}
+      </div>
+
+      ${preview && html`
+        <div class="card" style=${{marginBottom:16,borderLeft:"3px solid var(--forest)"}}>
+          <div class="card-title" style=${{marginBottom:10,color:"var(--forest)"}}>Vorschau</div>
+          <div style=${{display:"flex",flexWrap:"wrap",gap:6,marginBottom:14}}>
+            ${preview.counts.map(c => html`
+              <span key=${c.id} style=${{background:"#e6f4ea",borderRadius:6,padding:"4px 12px",fontSize:".82rem",color:"var(--forest)",fontWeight:700}}>Phase ${c.id} — ${c.title}: ${c.count} Impulse</span>
+            `)}
+          </div>
+          <button class="btn btn-primary" onClick=${handleImport} disabled=${importing || importOk}>
+            ${importing ? "Importiere…" : importOk ? "✓ Erfolgreich importiert!" : "Jetzt importieren"}
+          </button>
+        </div>`}
+    </div>`;
+}
+
+function ImpulsPhasenTab() {
+  const [coachees, setCoachees] = useState([]);
+  const [loading, setLoading]   = useState(true);
+  const [saving, setSaving]     = useState({});
+  const [saved, setSaved]       = useState({});
+
+  useEffect(() => {
+    const firestore = db();
+    if (!firestore) { setLoading(false); return; }
+    firestore.collection("users").get()
+      .then(snap => {
+        const list = snap.docs.map(d => ({ uid: d.id, ...d.data() }));
+        setCoachees(list);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  const setPhase = (uid, phase) => {
+    const firestore = db();
+    if (!firestore) return;
+    setSaving(s => ({...s, [uid]: true}));
+    firestore.collection("users").doc(uid).set({ activePhase: phase }, { merge: true })
+      .then(() => {
+        setCoachees(cs => cs.map(c => c.uid === uid ? {...c, activePhase: phase} : c));
+        setSaved(s => ({...s, [uid]: true}));
+        setTimeout(() => setSaved(s => ({...s, [uid]: false})), 1800);
+      })
+      .catch(() => {})
+      .finally(() => setSaving(s => ({...s, [uid]: false})));
+  };
+
+  if (loading) return html`<div style=${{color:"var(--muted)",padding:"40px 0",textAlign:"center"}}>Lade Coachees…</div>`;
+
+  if (!coachees.length) return html`
+    <div class="card" style=${{marginTop:16}}>
+      <div style=${{color:"var(--muted)",fontSize:".9rem"}}>Keine Coachees in der <code>users</code>-Collection gefunden. Stelle sicher dass die Firestore Rules deployed sind und Coachees sich mindestens einmal eingeloggt haben.</div>
+    </div>`;
+
+  return html`
+    <div>
+      <p style=${{color:"var(--muted)",fontSize:".9rem",marginBottom:24}}>Wähle die aktive Phase pro Coachee. Die App spielt automatisch die Impulse der gewählten Phase aus.</p>
+      ${coachees.map(c => {
+        const phase = c.activePhase || null;
+        const isSaving = saving[c.uid];
+        const isSaved = saved[c.uid];
+        const name = c.name || c.email || c.uid.slice(0,8);
+        return html`
+          <div key=${c.uid} class="card" style=${{marginBottom:12,display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:12}}>
+            <div>
+              <div style=${{fontWeight:700,fontSize:".95rem",color:"var(--text)"}}>${name}</div>
+              <div style=${{fontSize:".78rem",color:"var(--muted)",marginTop:2}}>${c.email || c.uid.slice(0,12)+"…"}</div>
+            </div>
+            <div style=${{display:"flex",gap:8,alignItems:"center"}}>
+              ${[1,2,3,4].map(n => html`
+                <button
+                  key=${n}
+                  onClick=${() => setPhase(c.uid, n)}
+                  disabled=${isSaving}
+                  style=${{
+                    width:36, height:36, borderRadius:"50%", border:"2px solid",
+                    borderColor: phase===n ? "var(--forest)" : "var(--border)",
+                    background: phase===n ? "var(--forest)" : "transparent",
+                    color: phase===n ? "#fff" : "var(--muted)",
+                    fontWeight:700, fontSize:".88rem", cursor:"pointer",
+                    transition:"all .15s", display:"flex", alignItems:"center", justifyContent:"center"
+                  }}
+                >${n}</button>
+              `)}
+              ${isSaved && html`<span style=${{fontSize:".78rem",color:"var(--forest)",fontWeight:700}}>✓</span>`}
+            </div>
+          </div>`;
+      })}
     </div>`;
 }
 
