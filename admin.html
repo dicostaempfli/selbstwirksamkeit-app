@@ -2844,7 +2844,7 @@ function ImpulsPhasenTab() {
     if (!firestore) { setLoading(false); return; }
     firestore.collection("users").get()
       .then(snap => {
-        const list = snap.docs.map(d => { const data = d.data(); return { uid: d.id, ...data, activePhase: data.activePhase != null ? parseInt(data.activePhase, 10) || null : null }; });
+        const list = snap.docs.map(d => { const data = d.data(); const raw = data.activePhase; const phase = raw != null ? (typeof raw === 'object' && raw.toMillis ? null : parseInt(String(raw), 10) || null) : null; return { uid: d.id, ...data, activePhase: phase }; });
         setCoachees(list);
       })
       .catch(() => {})
@@ -2886,23 +2886,32 @@ function ImpulsPhasenTab() {
               <div style=${{fontWeight:700,fontSize:".95rem",color:"var(--text)"}}>${name}</div>
               <div style=${{fontSize:".78rem",color:"var(--muted)",marginTop:2}}>${c.email || c.uid.slice(0,12)+"…"}</div>
             </div>
-            <div style=${{display:"flex",gap:8,alignItems:"center"}}>
-              ${[1,2,3,4].map(n => html`
-                <button
-                  key=${n}
-                  onClick=${() => setPhase(c.uid, n)}
-                  disabled=${isSaving}
-                  style=${{
-                    width:36, height:36, borderRadius:"50%", border:"2px solid",
-                    borderColor: phase===n ? "var(--forest)" : "var(--border)",
-                    background: phase===n ? "var(--forest)" : "transparent",
-                    color: phase===n ? "#fff" : "var(--muted)",
-                    fontWeight:700, fontSize:".88rem", cursor:"pointer",
-                    transition:"all .15s", display:"flex", alignItems:"center", justifyContent:"center"
-                  }}
-                >${n}</button>
-              `)}
-              ${isSaved && html`<span style=${{fontSize:".78rem",color:"var(--forest)",fontWeight:700}}>✓</span>`}
+            <div style=${{display:"flex",gap:6,alignItems:"center"}}>
+              ${[1,2,3,4].map(n => {
+                const isActive = phase === n;
+                return html`
+                  <button
+                    key=${n}
+                    onClick=${() => setPhase(c.uid, n)}
+                    disabled=${isSaving}
+                    title=${"Phase " + n}
+                    style=${{
+                      width: isActive ? 44 : 36,
+                      height: isActive ? 44 : 36,
+                      borderRadius:"50%",
+                      border: isActive ? "3px solid var(--forest)" : "2px solid #a0c8b0",
+                      background: isActive ? "var(--forest)" : "transparent",
+                      color: isActive ? "#fff" : "#5a8a6a",
+                      fontWeight: 700,
+                      fontSize: isActive ? "1rem" : ".82rem",
+                      cursor:"pointer",
+                      transition:"all .15s",
+                      display:"flex", alignItems:"center", justifyContent:"center",
+                      boxShadow: isActive ? "0 2px 8px rgba(74,158,98,.35)" : "none"
+                    }}
+                  >${n}</button>`
+              })}
+              ${isSaved && html`<span style=${{fontSize:".78rem",color:"var(--forest)",fontWeight:700,marginLeft:4}}>✓</span>`}
             </div>
           </div>`;
       })}
