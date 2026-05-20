@@ -1940,6 +1940,7 @@ function DashboardPage({coachees,library,reminders,doodles,setPage,user,onLogoTa
   useEffect(()=>{
     const fbDb=window._fb?.db;
     if(!fbDb||!user?.uid) return;
+    if(impulsCleared>0) setActiveImpuls(null);
     const todayStr = new Date().toISOString().split("T")[0];
     fbDb.collection("impulse_entries")
       .where("uid","==",user.uid).where("date","==",todayStr).where("status","==","active").limit(1).get()
