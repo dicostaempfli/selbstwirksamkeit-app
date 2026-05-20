@@ -2111,7 +2111,7 @@ function ImpulsPage({ user, setPage, setActiveImpuls }) {
     const fbDb = window._fb?.db;
     if (!fbDb || !user?.uid) return;
     fbDb.collection("impulse_entries")
-      .where("uid","==",user.uid).where("date","==",todayStr).limit(10).get()
+      .where("uid","==",user.uid).where("date","==",todayStr).get()
       .then(snap => {
         snap.docs.forEach(doc => {
           if (doc.data().status === "active") {
