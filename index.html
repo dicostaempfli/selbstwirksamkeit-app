@@ -2056,6 +2056,8 @@ function ImpulsPage({ user, setPage, setActiveImpuls, activeImpuls }) {
   const KOERPER_OPTS = ["Kopf","Kehle","Herz","Brust","Bauch","Schultern","Arme","Beine"];
 
   useEffect(() => {
+    // Wenn activeImpuls bereits null ist (nach «Heute nicht»), Tab sofort leeren
+    if (activeImpuls === null && step === 0) { setStep(6); return; }
     const fbDb = window._fb?.db;
     if (!fbDb || !user?.uid) return;
     const todayStr = new Date().toISOString().split("T")[0];
@@ -2093,7 +2095,7 @@ function ImpulsPage({ user, setPage, setActiveImpuls, activeImpuls }) {
       }).catch(() => {
         setImpuls({ id:"fallback", text:"Beobachte heute eine Situation, in der du automatisch reagiert hast — Ärger, Rückzug, Anspannung. Halte danach kurz inne: Was war der Reiz? Was war deine Reaktion?", hint:"Nur beobachten, nicht bewerten." });
       });
-  }, [user]);
+  }, [user, activeImpuls]);
 
   const todayStr = new Date().toISOString().split("T")[0];
   const dateStr  = new Date().toLocaleDateString("de-CH", { weekday:"long", day:"numeric", month:"long" });
