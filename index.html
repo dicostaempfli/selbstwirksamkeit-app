@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- v202605201753 cache-bust: v1779299601 -->
+<!-- v202605201756 cache-bust: v1779299786 -->
 <html lang="de">
 <head>
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
@@ -1719,19 +1719,19 @@ function ChatWindow({coachee,recipient,setRecipient,onSend,onSendImg,onSendFile,
           </div>
         </div>
         <div style=${{display:"flex",gap:8,width:"100%"}}>
-          ${["Diana","Rico"].map(name=>html`
-            <button key=${name} onClick=${()=>setRecipient(name)}
-              style=${{flex:"1 1 0",height:"40px",maxHeight:"40px",display:"flex",alignItems:"center",
-                justifyContent:"center",gap:"7px",padding:"8px 18px",
-                border:"1.5px solid "+(recipient===name?"var(--teal)":"var(--border2)"),
-                borderRadius:"10px",
-                background:recipient===name?"var(--teal)":"transparent",
-                color:recipient===name?"#fff":"var(--muted)",
-                fontFamily:"'Exo 2',sans-serif",fontSize:".83rem",fontWeight:700,
-                cursor:"pointer",transition:"all .18s"}}>
-              <${Ic} name="user" size=${15}/>
-              ${name}
-            </button>`)}
+          ${["Diana","Rico"].map(name=>h("button",{
+            key:name,
+            onClick:()=>setRecipient(name),
+            style:{flex:"1 1 0",height:"40px",maxHeight:"40px",display:"flex",alignItems:"center",
+              justifyContent:"center",gap:"7px",padding:"8px 18px",
+              border:"1.5px solid "+(recipient===name?"var(--teal)":"var(--border2)"),
+              borderRadius:"10px",
+              background:recipient===name?"var(--teal)":"transparent",
+              color:recipient===name?"#fff":"var(--muted)",
+              fontFamily:"'Exo 2',sans-serif",fontSize:".83rem",fontWeight:700,
+              cursor:"pointer",transition:"all .18s"}
+          }, h(Ic,{name:"user",size:15}), " "+name))}
+        </div>
         </div>
         </div>
       </div>
@@ -3074,35 +3074,26 @@ function DoodlePage({doodles,setDoodles,coachees,events}) {
       <div style=${{display:"flex",gap:8,marginBottom:16}}>
         ${(()=>{
           const openCount = doodles.filter(d=>d.recipients.includes(1)&&!submitted[d.id]).length;
-          return html`
-            <button onClick=${()=>setSubTab("coachee")}
-              style=${{flex:"1 1 0",height:"40px",maxHeight:"40px",display:"flex",alignItems:"center",
-                justifyContent:"center",gap:"7px",padding:"8px 18px",position:"relative",
-                border:"1.5px solid "+(subTab==="coachee"?"var(--teal)":"var(--border2)"),
-                borderRadius:"10px",
-                background:subTab==="coachee"?"var(--teal)":"transparent",
-                color:subTab==="coachee"?"#fff":"var(--muted)",
-                fontFamily:"'Exo 2',sans-serif",fontSize:".83rem",fontWeight:700,
-                cursor:"pointer",transition:"all .18s"}}>
-              <${Ic} name="calendar" size=${15}/>
-              Termine
-              ${openCount>0&&html`<span style=${{position:"absolute",top:"-7px",right:"-5px",
-                background:"#efe454",color:"#3a3000",fontSize:"9px",fontWeight:700,
-                padding:"1px 5px",borderRadius:"99px",
-                border:"1.5px solid var(--bg)",lineHeight:1.4}}>${openCount}</span>`}
-            </button>
-            <button onClick=${()=>setSubTab("events")}
-              style=${{flex:"1 1 0",height:"40px",maxHeight:"40px",display:"flex",alignItems:"center",
-                justifyContent:"center",gap:"7px",padding:"8px 18px",
-                border:"1.5px solid "+(subTab==="events"?"var(--teal)":"var(--border2)"),
-                borderRadius:"10px",
-                background:subTab==="events"?"var(--teal)":"transparent",
-                color:subTab==="events"?"#fff":"var(--muted)",
-                fontFamily:"'Exo 2',sans-serif",fontSize:".83rem",fontWeight:700,
-                cursor:"pointer",transition:"all .18s"}}>
-              <${Ic} name="ticket" size=${15}/>
-              Events
-            </button>`;
+          const btnStyle = (active) => ({
+            flex:"1 1 0",height:"40px",maxHeight:"40px",display:"flex",alignItems:"center",
+            justifyContent:"center",gap:"7px",padding:"8px 18px",position:"relative",
+            border:"1.5px solid "+(active?"var(--teal)":"var(--border2)"),
+            borderRadius:"10px",
+            background:active?"var(--teal)":"transparent",
+            color:active?"#fff":"var(--muted)",
+            fontFamily:"'Exo 2',sans-serif",fontSize:".83rem",fontWeight:700,
+            cursor:"pointer",transition:"all .18s"
+          });
+          const badge = openCount>0 ? h("span",{style:{position:"absolute",top:"-7px",right:"-5px",
+            background:"#efe454",color:"#3a3000",fontSize:"9px",fontWeight:700,
+            padding:"1px 5px",borderRadius:"99px",
+            border:"1.5px solid var(--bg)",lineHeight:1.4}}, openCount) : null;
+          return [
+            h("button",{key:"coachee",onClick:()=>setSubTab("coachee"),style:btnStyle(subTab==="coachee")},
+              h(Ic,{name:"calendar",size:15}), " Termine", badge),
+            h("button",{key:"events",onClick:()=>setSubTab("events"),style:btnStyle(subTab==="events")},
+              h(Ic,{name:"ticket",size:15}), " Events")
+          ];
         })()}
       </div>
 
