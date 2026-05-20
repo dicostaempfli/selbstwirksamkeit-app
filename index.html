@@ -1941,8 +1941,11 @@ function DashboardPage({coachees,library,reminders,doodles,setPage,user,onLogoTa
     if(!fbDb||!user?.uid) return;
     const todayStr = new Date().toISOString().split("T")[0];
     const unsub = fbDb.collection("impulse_entries")
-      .where("uid","==",user.uid).where("date","==",todayStr).where("status","==","active").limit(1)
-      .onSnapshot(snap=>{ setActiveImpuls(!snap.empty ? snap.docs[0].data() : null); }, ()=>{});
+      .where("uid","==",user.uid).where("date","==",todayStr).limit(5)
+      .onSnapshot(snap=>{
+        const active = snap.docs.find(d=>d.data().status==="active");
+        setActiveImpuls(active ? active.data() : null);
+      }, e=>console.error("snap err",e));
     return unsub;
   },[user]);
   return html`
