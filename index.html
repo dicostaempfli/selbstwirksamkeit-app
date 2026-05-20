@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- v202605201837 cache-bust: v1779302237 -->
+<!-- v202605201841 cache-bust: v1779302500 -->
 <html lang="de">
 <head>
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
@@ -2179,12 +2179,12 @@ function ImpulsPage({ user, setPage, setActiveImpuls, activeImpuls }) {
   if (!impuls) return html`<div class="content-main" style=${{display:"flex",alignItems:"center",justifyContent:"center",minHeight:200}}><div style=${{color:"var(--muted)",fontSize:".9rem"}}>Lade…</div></div>`;
 
   if (step === 5) return html`
-    <div class="content-main" style=${{maxWidth:520,textAlign:"center",paddingTop:40}}>
+    <div class="content-main" style=${{maxWidth:520,textAlign:"center",paddingTop:40,marginLeft:"auto",marginRight:"auto"}}>
       <p style=${{color:"var(--muted)",fontSize:"1rem",lineHeight:1.7}}>Alles klar. Der nächste Impuls kommt.</p>
     </div>`;
 
   if (step === 4) return html`
-    <div class="content-main" style=${{maxWidth:520,textAlign:"center",paddingTop:24}}>
+    <div class="content-main" style=${{maxWidth:520,textAlign:"center",paddingTop:24,marginLeft:"auto",marginRight:"auto"}}>
       <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style=${{margin:"0 auto 20px",display:"block"}}><circle cx="12" cy="12" r="10"/><polyline points="9 12 12 15 16 9"/></svg>
       <p style=${{fontSize:"1.1rem",fontWeight:700,color:"var(--text)",marginBottom:16}}>Impuls abgeschlossen</p>
       <div style=${{borderTop:"1px solid var(--border)",marginBottom:20}}></div>
@@ -2192,7 +2192,7 @@ function ImpulsPage({ user, setPage, setActiveImpuls, activeImpuls }) {
     </div>`;
 
   if (step === 3) return html`
-    <div class="content-main" style=${{maxWidth:520}}>
+    <div class="content-main" style=${{maxWidth:520,marginLeft:"auto",marginRight:"auto"}}>
       <span style=${{fontSize:".72rem",fontWeight:700,textTransform:"uppercase",letterSpacing:".07em",color:"var(--muted)"}}>Reflexion</span>
       <p style=${{fontFamily:"'Manuale',serif",fontSize:"1.1rem",fontStyle:"italic",lineHeight:1.6,color:"var(--text)",margin:"16px 0 8px"}}>«Was war anders als du erwartet hast?»</p>
       <div style=${{borderTop:"1px solid var(--border)",marginBottom:20}}></div>
@@ -2212,14 +2212,14 @@ function ImpulsPage({ user, setPage, setActiveImpuls, activeImpuls }) {
     </div>`;
 
   if (step === 2) return html`
-    <div class="content-main" style=${{maxWidth:520}}>
+    <div class="content-main" style=${{maxWidth:520,marginLeft:"auto",marginRight:"auto"}}>
       <span style=${{fontSize:".72rem",fontWeight:700,textTransform:"uppercase",letterSpacing:".07em",color:"var(--muted)"}}>Reflexion</span>
       <p style=${{fontFamily:"'Manuale',serif",fontSize:"1.1rem",lineHeight:1.65,color:"var(--text)",margin:"20px 0 32px"}}>Möchtest du deine heutige neue Erfahrung reflektieren?</p>
       <button class="btn btn-primary" style=${{width:"100%",marginBottom:10}} onClick=${() => setStep(3)}>Ja gerne</button>
       <button class="btn btn-ghost" style=${{width:"100%",fontSize:".83rem"}} onClick=${handleNeinHeute}>Nein, heute nicht</button>
     </div>`;
 
-  if (step === 0.5) return h("div", {class:"content-main", style:{maxWidth:520, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", minHeight:320, textAlign:"center", paddingTop:40}},
+  if (step === 0.5) return h("div", {class:"content-main", style:{maxWidth:520, marginLeft:"auto", marginRight:"auto", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", minHeight:320, textAlign:"center", paddingTop:40}},
     h("div", {style:{width:52, height:52, borderRadius:"50%", background:"var(--sage-pale)", display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 20px"}},
       h("svg", {width:26, height:26, viewBox:"0 0 24 24", fill:"none", stroke:"var(--teal)", strokeWidth:1.8, strokeLinecap:"round", strokeLinejoin:"round"},
         h("line", {x1:9, y1:18, x2:15, y2:18}),
@@ -2234,7 +2234,7 @@ function ImpulsPage({ user, setPage, setActiveImpuls, activeImpuls }) {
     h("button", {class:"btn btn-ghost", style:{fontSize:".95rem", padding:"12px 28px", width:"100%"}, onClick:()=>{ if(setPage) setPage("dashboard"); }}, "Ich bin bereit")
   );
 
-  if (step === 1) return h("div", {class:"content-main", style:{maxWidth:520}},
+  if (step === 1) return h("div", {class:"content-main", style:{maxWidth:520, marginLeft:"auto", marginRight:"auto"}},
     h("span", {style:{fontSize:".72rem", fontWeight:700, textTransform:"uppercase", letterSpacing:".07em", color:"var(--muted)"}}, "Tages-Impuls"),
     h("div", {style:{borderTop:"1px solid var(--border)", margin:"16px 0 20px"}}),
     h("p", {style:{fontFamily:"'Manuale',serif", fontSize:"1.1rem", lineHeight:1.65, color:"var(--text)", marginBottom:24}}, impuls.text),
@@ -2244,7 +2244,7 @@ function ImpulsPage({ user, setPage, setActiveImpuls, activeImpuls }) {
   );
 
   return html`
-    <div class="content-main" style=${{maxWidth:520}}>
+    <div class="content-main" style=${{maxWidth:520,marginLeft:"auto",marginRight:"auto"}}>
       <div style=${{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
         <span style=${{fontSize:".72rem",fontWeight:700,textTransform:"uppercase",letterSpacing:".07em",color:"var(--muted)"}}>Tages-Impuls</span>
         <span style=${{fontSize:".72rem",color:"var(--muted)",fontStyle:"italic"}}>${dateStr}</span>
