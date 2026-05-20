@@ -2079,6 +2079,7 @@ function ImpulsPage({ user, setPage, setActiveImpuls }) {
                   const s = todayEntry.data().status;
                   if (s === "active") { setStep(1); setActiveEntryRef(todayEntry.ref); }
                   else if (s === "done") setStep(4);
+                  else if (s === "skipped") setStep(6);
                   else setStep(5);
                 } else if (nextImpulseAt > Date.now()) {
                   setStep(5);
@@ -2162,6 +2163,8 @@ function ImpulsPage({ user, setPage, setActiveImpuls }) {
   };
 
   if (!impuls) return html`<div class="content-main" style=${{display:"flex",alignItems:"center",justifyContent:"center",minHeight:200}}><div style=${{color:"var(--muted)",fontSize:".9rem"}}>Lade…</div></div>`;
+
+  if (step === 6) return null;
 
   if (step === 5) return html`
     <div class="content-main" style=${{maxWidth:520,textAlign:"center",paddingTop:40}}>
