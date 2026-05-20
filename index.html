@@ -1381,7 +1381,7 @@ function App({ user }) {
   const [events]                 = useState(INIT_EVENTS);
   const [mobileChatOpen,setMobileChatOpen] = useState(false);
   const [impulseDefaultTab,setImpulseDefaultTab] = useState('meine');
-  const [impulsCleared,setImpulsCleared]         = useState(0);
+  const [activeImpuls,setActiveImpuls]           = useState(null);
   const [tapCount,setTapCount]             = useState(0);
   const tapTimer                           = useRef(null);
   const handleLogoTap = () => {
@@ -1527,9 +1527,9 @@ function App({ user }) {
   return html`
     <${Sidebar} page=${page} setPage=${navTo} totalUnread=${totalUnreadVal} user=${user} onLogoTap=${handleLogoTap}/>
     <div style=${{flex:1,display:'flex',overflow:'hidden',minWidth:0}}>
-      ${page==="dashboard" && html`<${DashboardPage} coachees=${coachees} library=${library} reminders=${reminders} doodles=${doodles} setPage=${navTo} user=${user} onLogoTap=${handleLogoTap} setImpulseDefaultTab=${setImpulseDefaultTab} page=${page} impulsCleared=${impulsCleared}/>`}
+      ${page==="dashboard" && html`<${DashboardPage} coachees=${coachees} library=${library} reminders=${reminders} doodles=${doodles} setPage=${navTo} user=${user} onLogoTap=${handleLogoTap} setImpulseDefaultTab=${setImpulseDefaultTab} page=${page} activeImpuls=${activeImpuls} setActiveImpuls=${setActiveImpuls}/>`}
       ${page==="chat"      && html`<${ChatPage} coachees=${coachees} setCoachees=${setCoachees} mobileChatOpen=${mobileChatOpen} setMobileChatOpen=${setMobileChatOpen}/>`}
-      ${page==="impulse"   && html`<${ImpulseTab} user=${user} reminders=${reminders} setReminders=${saveReminders} setPage=${navTo} defaultSubTab=${impulseDefaultTab} setDefaultSubTab=${setImpulseDefaultTab} setImpulsCleared=${setImpulsCleared}/>`}
+      ${page==="impulse"   && html`<${ImpulseTab} user=${user} reminders=${reminders} setReminders=${saveReminders} setPage=${navTo} defaultSubTab=${impulseDefaultTab} setDefaultSubTab=${setImpulseDefaultTab} setActiveImpuls=${setActiveImpuls}/>`}
       ${page==="library"   && html`<${LibraryPage} library=${library} setLibrary=${saveLibrary}/>`}
       ${page==="doodle"    && html`<${DoodlePage} doodles=${doodles} setDoodles=${saveDoodles} coachees=${coachees} events=${events}/>`}
     </div>
@@ -1924,12 +1924,11 @@ function ChatWindow({coachee,recipient,setRecipient,onSend,onSendImg,onSendFile,
 }
 
 
-function DashboardPage({coachees,library,reminders,doodles,setPage,user,onLogoTap,setImpulseDefaultTab,page,impulsCleared}) {
+function DashboardPage({coachees,library,reminders,doodles,setPage,user,onLogoTap,setImpulseDefaultTab,page,activeImpuls,setActiveImpuls}) {
   const avgProg = 0; // goals removed
   const hour = new Date().getHours();
   const greeting = hour<12?"Guten Morgen":hour<18?"Guten Tag":"Guten Abend";
   const [quote,setQuote] = useState(QUOTES[0]);
-  const [activeImpuls, setActiveImpuls] = useState(null);
   useEffect(()=>{
     const fbDb=window._fb?.db;
     if(!fbDb) return;
@@ -1940,13 +1939,12 @@ function DashboardPage({coachees,library,reminders,doodles,setPage,user,onLogoTa
   useEffect(()=>{
     const fbDb=window._fb?.db;
     if(!fbDb||!user?.uid) return;
-    if(impulsCleared>0) setActiveImpuls(null);
     const todayStr = new Date().toISOString().split("T")[0];
     fbDb.collection("impulse_entries")
       .where("uid","==",user.uid).where("date","==",todayStr).where("status","==","active").limit(1).get()
       .then(snap=>{ if(!snap.empty) setActiveImpuls(snap.docs[0].data()); else setActiveImpuls(null); })
       .catch(()=>{});
-  },[user, page, impulsCleared]);
+  },[user, page]);
   return html`
     <div class="content-main">
       <div style=${{marginBottom:24,textAlign:"center",display:"flex",flexDirection:"column",alignItems:"center",paddingTop:8}}>
@@ -2017,13 +2015,13 @@ function DashboardPage({coachees,library,reminders,doodles,setPage,user,onLogoTa
 }
 
 // ── IMPULSE TAB (Sub-Tab: Meine Impulse + Tages-Impuls) ──
-function ImpulseTab({ user, reminders, setReminders, setPage, defaultSubTab, setDefaultSubTab, setImpulsCleared }) {
+function ImpulseTab({ user, reminders, setReminders, setPage, defaultSubTab, setDefaultSubTab, setActiveImpuls }) {
   const [activeSubTab, setActiveSubTab] = useState(defaultSubTab || 'meine');
   const isMeine = activeSubTab === 'meine';
   const isTagesimpuls = activeSubTab === 'tagesimpuls';
   const subContent = isMeine
     ? h(RemindersPage, { reminders, setReminders })
-    : h(ImpulsPage, { user, setPage, setImpulsCleared });
+    : h(ImpulsPage, { user, setPage, setActiveImpuls });
   return html`
     <div class="impulse-tab-wrap">
       <div class="impulse-subtab-nav">
@@ -2044,7 +2042,7 @@ function ImpulseTab({ user, reminders, setReminders, setPage, defaultSubTab, set
 
 // ── GOALS PAGE ──
 // ── IMPULS PAGE ──
-function ImpulsPage({ user, setPage, setImpulsCleared }) {
+function ImpulsPage({ user, setPage, setActiveImpuls }) {
   const [step, setStep]           = useState(0);
   const [reflexion, setReflexion] = useState("");
   const [koerper, setKoerper]     = useState(null);
@@ -2119,7 +2117,7 @@ function ImpulsPage({ user, setPage, setImpulsCleared }) {
       }
     }
     setActiveEntryRef(null);
-    if (setImpulsCleared) setImpulsCleared(c => c + 1);
+    if (setActiveImpuls) setActiveImpuls(null);
     setStep(5);
   };
 
