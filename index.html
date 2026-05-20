@@ -1526,7 +1526,7 @@ function App({ user }) {
   return html`
     <${Sidebar} page=${page} setPage=${navTo} totalUnread=${totalUnreadVal} user=${user} onLogoTap=${handleLogoTap}/>
     <div style=${{flex:1,display:'flex',overflow:'hidden',minWidth:0}}>
-      ${page==="dashboard" && html`<${DashboardPage} coachees=${coachees} library=${library} reminders=${reminders} doodles=${doodles} setPage=${navTo} user=${user} onLogoTap=${handleLogoTap} setImpulseDefaultTab=${setImpulseDefaultTab}/>`}
+      ${page==="dashboard" && html`<${DashboardPage} coachees=${coachees} library=${library} reminders=${reminders} doodles=${doodles} setPage=${navTo} user=${user} onLogoTap=${handleLogoTap}/>`}
       ${page==="chat"      && html`<${ChatPage} coachees=${coachees} setCoachees=${setCoachees} mobileChatOpen=${mobileChatOpen} setMobileChatOpen=${setMobileChatOpen}/>`}
       ${page==="impulse"   && html`<${ImpulseTab} user=${user} reminders=${reminders} setReminders=${saveReminders} setPage=${navTo} defaultSubTab=${impulseDefaultTab} setDefaultSubTab=${setImpulseDefaultTab}/>`}
       ${page==="library"   && html`<${LibraryPage} library=${library} setLibrary=${saveLibrary}/>`}
@@ -1923,7 +1923,7 @@ function ChatWindow({coachee,recipient,setRecipient,onSend,onSendImg,onSendFile,
 }
 
 
-function DashboardPage({coachees,library,reminders,doodles,setPage,user,onLogoTap,setImpulseDefaultTab}) {
+function DashboardPage({coachees,library,reminders,doodles,setPage,user,onLogoTap}) {
   const avgProg = 0; // goals removed
   const hour = new Date().getHours();
   const greeting = hour<12?"Guten Morgen":hour<18?"Guten Tag":"Guten Abend";
@@ -2193,18 +2193,14 @@ function ImpulsPage({ user, setPage }) {
     </div>`;
 
   if (step === 0.5) return h("div", {class:"content-main", style:{maxWidth:520, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", minHeight:320, textAlign:"center", paddingTop:40}},
-    h("div", {style:{width:52, height:52, borderRadius:"50%", background:"var(--sage-pale)", display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 20px"}},
-      h("svg", {width:26, height:26, viewBox:"0 0 24 24", fill:"none", stroke:"var(--teal)", strokeWidth:1.8, strokeLinecap:"round", strokeLinejoin:"round"},
-        h("line", {x1:9, y1:18, x2:15, y2:18}),
-        h("line", {x1:10, y1:22, x2:14, y2:22}),
-        h("path", {d:"M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0018 8 6 6 0 006 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 018.91 14"})
-      )
+    h("div", {style:{width:52, height:52, borderRadius:12, background:"var(--teal-pale)", display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 20px"}},
+      h(Ic, {name:"impuls", size:26, style:{color:"var(--teal)"}})
     ),
     h("p", {style:{fontFamily:"'Manuale',serif", fontSize:"1.05rem", lineHeight:1.75, color:"var(--text)", fontStyle:"italic", marginBottom:8}}, "Gut."),
     h("p", {style:{fontFamily:"'Manuale',serif", fontSize:"1.05rem", lineHeight:1.75, color:"var(--text)", fontStyle:"italic", marginBottom:8}}, "Der Impuls begleitet dich heute."),
     h("p", {style:{fontFamily:"'Manuale',serif", fontSize:"1.05rem", lineHeight:1.75, color:"var(--text)", fontStyle:"italic", marginBottom:8}}, "Du findest ihn jederzeit auf deinem Homescreen."),
     h("p", {style:{fontSize:".85rem", color:"var(--muted)", lineHeight:1.6, marginBottom:32}}, "Heute Abend laden wir dich ein, deine Erfahrung zu reflektieren."),
-    h("button", {class:"btn btn-ghost", style:{fontSize:".95rem", padding:"12px 28px", width:"100%"}, onClick:()=>{ if(setPage) setPage("dashboard"); }}, "Ich bin bereit")
+    h("button", {class:"btn btn-primary", style:{width:"100%"}, onClick:()=>{ if(setPage) setPage("dashboard"); }}, "Ich bin bereit")
   );
 
   if (step === 1) return h("div", {class:"content-main", style:{maxWidth:520}},
