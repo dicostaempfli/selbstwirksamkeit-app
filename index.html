@@ -2112,16 +2112,18 @@ function ImpulsPage({ user, setPage, setActiveImpuls }) {
     setActiveEntryRef(null);
     setStep(5);
     const fbDb = window._fb?.db;
-    if (!fbDb || !user?.uid) return;
-    fbDb.collection("impulse_entries")
-      .where("uid","==",user.uid).where("date","==",todayStr).get()
-      .then(snap => {
-        snap.docs.forEach(doc => {
-          if (doc.data().status === "active") {
-            doc.ref.update({ status: "skipped", closedAt: Date.now() }).catch(() => {});
-          }
-        });
-      }).catch(() => {});
+    if (fbDb && user?.uid) {
+      fbDb.collection("impulse_entries")
+        .where("uid","==",user.uid).where("date","==",todayStr).get()
+        .then(snap => {
+          snap.docs.forEach(doc => {
+            if (doc.data().status === "active") {
+              doc.ref.update({ status: "skipped", closedAt: Date.now() }).catch(() => {});
+            }
+          });
+        }).catch(() => {});
+    }
+    setTimeout(() => { if (setPage) setPage("dashboard"); }, 1800);
   };
 
   const handleNeinHeute = () => {
@@ -2163,7 +2165,7 @@ function ImpulsPage({ user, setPage, setActiveImpuls }) {
 
   if (step === 5) return html`
     <div class="content-main" style=${{maxWidth:520,textAlign:"center",paddingTop:40}}>
-      <p style=${{color:"var(--muted)",fontSize:"1rem",lineHeight:1.7,fontStyle:"italic"}}>«Dein nächster Impuls kommt — lass dich überraschen.»</p>
+      <p style=${{color:"var(--muted)",fontSize:"1rem",lineHeight:1.7,fontStyle:"italic"}}>Alles klar. Der nächste Impuls kommt.</p>
     </div>`;
 
   if (step === 4) return html`
