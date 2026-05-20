@@ -1940,10 +1940,13 @@ function DashboardPage({coachees,library,reminders,doodles,setPage,user,onLogoTa
     const fbDb=window._fb?.db;
     if(!fbDb||!user?.uid) return;
     const todayStr = new Date().toISOString().split("T")[0];
-    fbDb.collection("impulse_entries")
-      .where("uid","==",user.uid).where("date","==",todayStr).where("status","==","active").limit(1).get()
-      .then(snap=>{ if(!snap.empty) setActiveImpuls(snap.docs[0].data()); else setActiveImpuls(null); })
-      .catch(()=>{});
+    const unsub = fbDb.collection("impulse_entries")
+      .where("uid","==",user.uid).where("date","==",todayStr).limit(5)
+      .onSnapshot(snap=>{
+        const active = snap.docs.find(d=>d.data().status==="active");
+        setActiveImpuls(active ? active.data() : null);
+      }, ()=>{});
+    return unsub;
   },[user]);
   return html`
     <div class="content-main">
