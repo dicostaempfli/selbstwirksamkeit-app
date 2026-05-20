@@ -1527,7 +1527,7 @@ function App({ user }) {
   return html`
     <${Sidebar} page=${page} setPage=${navTo} totalUnread=${totalUnreadVal} user=${user} onLogoTap=${handleLogoTap}/>
     <div style=${{flex:1,display:'flex',overflow:'hidden',minWidth:0}}>
-      ${page==="dashboard" && html`<${DashboardPage} coachees=${coachees} library=${library} reminders=${reminders} doodles=${doodles} setPage=${navTo} user=${user} onLogoTap=${handleLogoTap} setImpulseDefaultTab=${setImpulseDefaultTab} page=${page} activeImpuls=${activeImpuls} setActiveImpuls=${setActiveImpuls}/>`}
+      ${page==="dashboard" && html`<${DashboardPage} coachees=${coachees} library=${library} reminders=${reminders} doodles=${doodles} setPage=${navTo} user=${user} onLogoTap=${handleLogoTap} setImpulseDefaultTab=${setImpulseDefaultTab} activeImpuls=${activeImpuls} setActiveImpuls=${setActiveImpuls}/>`}
       ${page==="chat"      && html`<${ChatPage} coachees=${coachees} setCoachees=${setCoachees} mobileChatOpen=${mobileChatOpen} setMobileChatOpen=${setMobileChatOpen}/>`}
       ${page==="impulse"   && html`<${ImpulseTab} user=${user} reminders=${reminders} setReminders=${saveReminders} setPage=${navTo} defaultSubTab=${impulseDefaultTab} setDefaultSubTab=${setImpulseDefaultTab} setActiveImpuls=${setActiveImpuls}/>`}
       ${page==="library"   && html`<${LibraryPage} library=${library} setLibrary=${saveLibrary}/>`}
@@ -1924,7 +1924,7 @@ function ChatWindow({coachee,recipient,setRecipient,onSend,onSendImg,onSendFile,
 }
 
 
-function DashboardPage({coachees,library,reminders,doodles,setPage,user,onLogoTap,setImpulseDefaultTab,page,activeImpuls,setActiveImpuls}) {
+function DashboardPage({coachees,library,reminders,doodles,setPage,user,onLogoTap,setImpulseDefaultTab,activeImpuls,setActiveImpuls}) {
   const avgProg = 0; // goals removed
   const hour = new Date().getHours();
   const greeting = hour<12?"Guten Morgen":hour<18?"Guten Tag":"Guten Abend";
@@ -1944,7 +1944,7 @@ function DashboardPage({coachees,library,reminders,doodles,setPage,user,onLogoTa
       .where("uid","==",user.uid).where("date","==",todayStr).where("status","==","active").limit(1).get()
       .then(snap=>{ if(!snap.empty) setActiveImpuls(snap.docs[0].data()); else setActiveImpuls(null); })
       .catch(()=>{});
-  },[user, page]);
+  },[user]);
   return html`
     <div class="content-main">
       <div style=${{marginBottom:24,textAlign:"center",display:"flex",flexDirection:"column",alignItems:"center",paddingTop:8}}>
@@ -2116,8 +2116,8 @@ function ImpulsPage({ user, setPage, setActiveImpuls }) {
         }).catch(() => {});
       }
     }
-    setActiveEntryRef(null);
     if (setActiveImpuls) setActiveImpuls(null);
+    setActiveEntryRef(null);
     setStep(5);
   };
 
