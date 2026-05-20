@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- v202605201747 cache-bust: v1779299239 -->
+<!-- v202605201753 cache-bust: v1779299601 -->
 <html lang="de">
 <head>
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
@@ -1720,20 +1720,19 @@ function ChatWindow({coachee,recipient,setRecipient,onSend,onSendImg,onSendFile,
         </div>
         <div style=${{display:"flex",gap:8,width:"100%"}}>
           ${["Diana","Rico"].map(name=>html`
-            <div key=${name} class="stat-card" onClick=${()=>setRecipient(name)}
-              style=${{cursor:"pointer",flex:"1 1 0",minWidth:0,padding:"9px 12px",transition:"all .2s",
-                borderLeft:"4px solid "+(recipient===name?"#1e3a2f":"#68b87d"),
-                background:recipient===name?"#68b87d":"#dff0cc"}}>
-              <div style=${{display:"flex",alignItems:"center",gap:9}}>
-                <div style=${{width:28,height:28,borderRadius:8,flexShrink:0,
-                  display:"flex",alignItems:"center",justifyContent:"center",
-                  background:recipient===name?"rgba(255,255,255,.3)":"rgba(104,184,125,.2)"}}>
-                  <${Ic} name="user" size=${15} style=${{color:recipient===name?"white":"#1e3a2f"}}/>
-                </div>
-                <div style=${{fontFamily:"'Manuale',serif",fontWeight:700,fontSize:".85rem",
-                  color:recipient===name?"white":"#1e3a2f"}}>${name}</div>
-              </div>
-            </div>`)}
+            <button key=${name} onClick=${()=>setRecipient(name)}
+              style=${{flex:"1 1 0",height:"40px",maxHeight:"40px",display:"flex",alignItems:"center",
+                justifyContent:"center",gap:"7px",padding:"8px 18px",
+                border:"1.5px solid "+(recipient===name?"var(--teal)":"var(--border2)"),
+                borderRadius:"10px",
+                background:recipient===name?"var(--teal)":"transparent",
+                color:recipient===name?"#fff":"var(--muted)",
+                fontFamily:"'Exo 2',sans-serif",fontSize:".83rem",fontWeight:700,
+                cursor:"pointer",transition:"all .18s"}}>
+              <${Ic} name="user" size=${15}/>
+              ${name}
+            </button>`)}
+        </div>
         </div>
       </div>
 
@@ -3073,46 +3072,38 @@ function DoodlePage({doodles,setDoodles,coachees,events}) {
       <p class="page-sub" style=${{marginBottom:16}}>Deine Terminvorschläge und Events von Diana & Rico.</p>
 
       <div style=${{display:"flex",gap:8,marginBottom:16}}>
-        <div class="stat-card" onClick=${()=>setSubTab("coachee")}
-          style=${{cursor:"pointer",flex:"1 1 0",padding:"9px 12px",transition:"all .2s",
-            borderLeft:"4px solid "+(subTab==="coachee"?"#1e3a2f":"#68b87d"),
-            background:subTab==="coachee"?"#68b87d":"#dff0cc"}}>
-          <div style=${{display:"flex",alignItems:"center",gap:9}}>
-            <div style=${{width:32,height:32,borderRadius:8,flexShrink:0,
-              display:"flex",alignItems:"center",justifyContent:"center",
-              background:subTab==="coachee"?"rgba(255,255,255,.3)":"rgba(104,184,125,.2)"}}>
-              <${Ic} name="calendar" size=${17} style=${{color:subTab==="coachee"?"white":"#1e3a2f"}}/>
-            </div>
-            <div style=${{minWidth:0}}>
-              <div style=${{fontFamily:"'Manuale',serif",fontWeight:700,fontSize:".85rem",
-                color:subTab==="coachee"?"white":"#1e3a2f",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>Terminvorschläge</div>
-              <div style=${{fontSize:".72rem",marginTop:1,
-                color:subTab==="coachee"?"rgba(255,255,255,.85)":"#3a6040"}}>
-                ${doodles.filter(d=>d.recipients.includes(1)&&!submitted[d.id]).length} offen
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="stat-card" onClick=${()=>setSubTab("events")}
-          style=${{cursor:"pointer",flex:"1 1 0",padding:"9px 12px",transition:"all .2s",
-            borderLeft:"4px solid "+(subTab==="events"?"#1e3a2f":"#68b87d"),
-            background:subTab==="events"?"#68b87d":"#dff0cc"}}>
-          <div style=${{display:"flex",alignItems:"center",gap:9}}>
-            <div style=${{width:32,height:32,borderRadius:8,flexShrink:0,
-              display:"flex",alignItems:"center",justifyContent:"center",
-              background:subTab==="events"?"rgba(255,255,255,.3)":"rgba(104,184,125,.2)"}}>
-              <${Ic} name="ticket" size=${17} style=${{color:subTab==="events"?"white":"#1e3a2f"}}/>
-            </div>
-            <div style=${{minWidth:0}}>
-              <div style=${{fontFamily:"'Manuale',serif",fontWeight:700,fontSize:".85rem",
-                color:subTab==="events"?"white":"#1e3a2f"}}>Events</div>
-              <div style=${{fontSize:".72rem",marginTop:1,
-                color:subTab==="events"?"rgba(255,255,255,.85)":"#3a6040"}}>
-                ${events.length} bevorstehend
-              </div>
-            </div>
-          </div>
-        </div>
+        ${(()=>{
+          const openCount = doodles.filter(d=>d.recipients.includes(1)&&!submitted[d.id]).length;
+          return html`
+            <button onClick=${()=>setSubTab("coachee")}
+              style=${{flex:"1 1 0",height:"40px",maxHeight:"40px",display:"flex",alignItems:"center",
+                justifyContent:"center",gap:"7px",padding:"8px 18px",position:"relative",
+                border:"1.5px solid "+(subTab==="coachee"?"var(--teal)":"var(--border2)"),
+                borderRadius:"10px",
+                background:subTab==="coachee"?"var(--teal)":"transparent",
+                color:subTab==="coachee"?"#fff":"var(--muted)",
+                fontFamily:"'Exo 2',sans-serif",fontSize:".83rem",fontWeight:700,
+                cursor:"pointer",transition:"all .18s"}}>
+              <${Ic} name="calendar" size=${15}/>
+              Termine
+              ${openCount>0&&html`<span style=${{position:"absolute",top:"-7px",right:"-5px",
+                background:"#efe454",color:"#3a3000",fontSize:"9px",fontWeight:700,
+                padding:"1px 5px",borderRadius:"99px",
+                border:"1.5px solid var(--bg)",lineHeight:1.4}}>${openCount}</span>`}
+            </button>
+            <button onClick=${()=>setSubTab("events")}
+              style=${{flex:"1 1 0",height:"40px",maxHeight:"40px",display:"flex",alignItems:"center",
+                justifyContent:"center",gap:"7px",padding:"8px 18px",
+                border:"1.5px solid "+(subTab==="events"?"var(--teal)":"var(--border2)"),
+                borderRadius:"10px",
+                background:subTab==="events"?"var(--teal)":"transparent",
+                color:subTab==="events"?"#fff":"var(--muted)",
+                fontFamily:"'Exo 2',sans-serif",fontSize:".83rem",fontWeight:700,
+                cursor:"pointer",transition:"all .18s"}}>
+              <${Ic} name="ticket" size=${15}/>
+              Events
+            </button>`;
+        })()}
       </div>
 
       <div style=${{marginBottom:28}}></div>
