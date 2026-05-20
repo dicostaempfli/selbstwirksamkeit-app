@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- v2026052015 cache-bust: v1779283794 -->
+<!-- v1774874126 cache-bust: v941173 -->
 <html lang="de">
 <head>
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
@@ -449,6 +449,8 @@
     font-weight: 700;
     cursor: pointer;
     transition: all .18s;
+    height: 40px;
+    max-height: 40px;
   }
   .impulse-subtab-btn:hover:not(.active) {
     border-color: var(--teal);
@@ -2039,7 +2041,7 @@ function ImpulseTab({ user, reminders, setReminders, setPage, defaultSubTab, set
           Tages-Impuls
         </button>
       </div>
-      ${subContent}
+      <div style=${{flex:1,overflowY:"auto"}}>${subContent}</div>
     </div>`;
 }
 
