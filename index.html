@@ -1940,11 +1940,10 @@ function DashboardPage({coachees,library,reminders,doodles,setPage,user,onLogoTa
     const fbDb=window._fb?.db;
     if(!fbDb||!user?.uid) return;
     const todayStr = new Date().toISOString().split("T")[0];
-    const unsub = fbDb.collection("impulse_entries")
-      .where("uid","==",user.uid).where("date","==",todayStr).where("status","==","active").limit(1)
-      .onSnapshot(snap=>{ if(!snap.empty) setActiveImpuls(snap.docs[0].data()); else setActiveImpuls(null); },
-        ()=>{});
-    return unsub;
+    fbDb.collection("impulse_entries")
+      .where("uid","==",user.uid).where("date","==",todayStr).where("status","==","active").limit(1).get()
+      .then(snap=>{ if(!snap.empty) setActiveImpuls(snap.docs[0].data()); else setActiveImpuls(null); })
+      .catch(()=>{});
   },[user]);
   return html`
     <div class="content-main">
@@ -2108,14 +2107,18 @@ function ImpulsPage({ user, setPage, setActiveImpuls }) {
   const handleHeuteNicht = () => {
     const fbDb = window._fb?.db;
     if (fbDb && user?.uid) {
-      if (activeEntryRef) {
-        activeEntryRef.update({ status: "skipped", closedAt: Date.now() }).catch(() => {});
-      } else if (impuls) {
-        fbDb.collection("impulse_entries").add({
-          uid: user.uid, date: todayStr, impulsId: impuls.id,
-          impulsText: impuls.text, status: "skipped", createdAt: Date.now()
+      fbDb.collection("impulse_entries")
+        .where("uid","==",user.uid).where("date","==",todayStr).where("status","==","active").limit(1).get()
+        .then(snap => {
+          if (!snap.empty) {
+            snap.docs[0].ref.update({ status: "skipped", closedAt: Date.now() }).catch(() => {});
+          } else if (impuls) {
+            fbDb.collection("impulse_entries").add({
+              uid: user.uid, date: todayStr, impulsId: impuls.id,
+              impulsText: impuls.text, status: "skipped", createdAt: Date.now()
+            }).catch(() => {});
+          }
         }).catch(() => {});
-      }
     }
     if (setActiveImpuls) setActiveImpuls(null);
     setActiveEntryRef(null);
