@@ -1529,7 +1529,7 @@ function App({ user }) {
     <div style=${{flex:1,display:'flex',overflow:'hidden',minWidth:0}}>
       ${page==="dashboard" && html`<${DashboardPage} coachees=${coachees} library=${library} reminders=${reminders} doodles=${doodles} setPage=${navTo} user=${user} onLogoTap=${handleLogoTap} setImpulseDefaultTab=${setImpulseDefaultTab} activeImpuls=${activeImpuls} setActiveImpuls=${setActiveImpuls}/>`}
       ${page==="chat"      && html`<${ChatPage} coachees=${coachees} setCoachees=${setCoachees} mobileChatOpen=${mobileChatOpen} setMobileChatOpen=${setMobileChatOpen}/>`}
-      ${page==="impulse"   && html`<${ImpulseTab} user=${user} reminders=${reminders} setReminders=${saveReminders} setPage=${navTo} defaultSubTab=${impulseDefaultTab} setDefaultSubTab=${setImpulseDefaultTab} setActiveImpuls=${setActiveImpuls}/>`}
+      ${page==="impulse"   && html`<${ImpulseTab} user=${user} reminders=${reminders} setReminders=${saveReminders} setPage=${navTo} defaultSubTab=${impulseDefaultTab} setDefaultSubTab=${setImpulseDefaultTab} setActiveImpuls=${setActiveImpuls} activeImpuls=${activeImpuls}/>`}
       ${page==="library"   && html`<${LibraryPage} library=${library} setLibrary=${saveLibrary}/>`}
       ${page==="doodle"    && html`<${DoodlePage} doodles=${doodles} setDoodles=${saveDoodles} coachees=${coachees} events=${events}/>`}
     </div>
@@ -2056,8 +2056,12 @@ function ImpulsPage({ user, setPage, setActiveImpuls, activeImpuls }) {
   const KOERPER_OPTS = ["Kopf","Kehle","Herz","Brust","Bauch","Schultern","Arme","Beine"];
 
   useEffect(() => {
-    // Wenn activeImpuls bereits null ist (nach «Heute nicht»), Tab sofort leeren
-    if (activeImpuls === null && step === 0) { setStep(6); return; }
+    // Fix: localStorage-Check zuerst — unabhängig von Firestore
+    const todayStr2 = new Date().toISOString().split("T")[0];
+    const dismissedKey = "impuls_dismissed_" + (user?.uid || "guest");
+    const dismissedDate = localStorage.getItem(dismissedKey);
+    if (dismissedDate === todayStr2) { setStep(6); return; }
+
     const fbDb = window._fb?.db;
     if (!fbDb || !user?.uid) return;
     const todayStr = new Date().toISOString().split("T")[0];
@@ -2095,7 +2099,7 @@ function ImpulsPage({ user, setPage, setActiveImpuls, activeImpuls }) {
       }).catch(() => {
         setImpuls({ id:"fallback", text:"Beobachte heute eine Situation, in der du automatisch reagiert hast — Ärger, Rückzug, Anspannung. Halte danach kurz inne: Was war der Reiz? Was war deine Reaktion?", hint:"Nur beobachten, nicht bewerten." });
       });
-  }, [user, activeImpuls]);
+  }, [user]);
 
   const todayStr = new Date().toISOString().split("T")[0];
   const dateStr  = new Date().toLocaleDateString("de-CH", { weekday:"long", day:"numeric", month:"long" });
@@ -2112,9 +2116,13 @@ function ImpulsPage({ user, setPage, setActiveImpuls, activeImpuls }) {
   };
 
   const handleHeuteNicht = () => {
+    // localStorage-Flag setzen — sofort, unabhängig von Firestore
+    const todayStr3 = new Date().toISOString().split("T")[0];
+    const dismissedKey = "impuls_dismissed_" + (user?.uid || "guest");
+    localStorage.setItem(dismissedKey, todayStr3);
     if (setActiveImpuls) setActiveImpuls(null);
     setActiveEntryRef(null);
-    setStep(5);
+    setStep(6);
     const fbDb = window._fb?.db;
     if (fbDb && user?.uid) {
       fbDb.collection("impulse_entries")
@@ -2165,9 +2173,9 @@ function ImpulsPage({ user, setPage, setActiveImpuls, activeImpuls }) {
     } else { setSaving(false); setStep(4); }
   };
 
-  if (!impuls) return html`<div class="content-main" style=${{display:"flex",alignItems:"center",justifyContent:"center",minHeight:200}}><div style=${{color:"var(--muted)",fontSize:".9rem"}}>Lade…</div></div>`;
-
   if (step === 6) return null;
+
+  if (!impuls) return html`<div class="content-main" style=${{display:"flex",alignItems:"center",justifyContent:"center",minHeight:200}}><div style=${{color:"var(--muted)",fontSize:".9rem"}}>Lade…</div></div>`;
 
   if (step === 5) return html`
     <div class="content-main" style=${{maxWidth:520,textAlign:"center",paddingTop:40}}>
