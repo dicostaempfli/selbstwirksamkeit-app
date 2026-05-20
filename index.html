@@ -2024,7 +2024,7 @@ function ImpulseTab({ user, reminders, setReminders, setPage, defaultSubTab, set
   const isTagesimpuls = activeSubTab === 'tagesimpuls';
   const subContent = isMeine
     ? h(RemindersPage, { reminders, setReminders })
-    : h(ImpulsPage, { user, setPage, setActiveImpuls });
+    : h(ImpulsPage, { user, setPage, setActiveImpuls, activeImpuls });
   return html`
     <div class="impulse-tab-wrap">
       <div class="impulse-subtab-nav">
@@ -2045,7 +2045,7 @@ function ImpulseTab({ user, reminders, setReminders, setPage, defaultSubTab, set
 
 // ── GOALS PAGE ──
 // ── IMPULS PAGE ──
-function ImpulsPage({ user, setPage, setActiveImpuls }) {
+function ImpulsPage({ user, setPage, setActiveImpuls, activeImpuls }) {
   const [step, setStep]           = useState(0);
   const [reflexion, setReflexion] = useState("");
   const [koerper, setKoerper]     = useState(null);
@@ -2088,6 +2088,8 @@ function ImpulsPage({ user, setPage, setActiveImpuls }) {
           }).catch(() => {});
         };
         if (doc.exists) getData(doc.data());
+        // Wenn activeImpuls null (gecleant via handleHeuteNicht): Tab leeren
+        if (!doc.exists && activeImpuls === null) setStep(6);
         else setImpuls({ id:"fallback", text:"Beobachte heute eine Situation, in der du automatisch reagiert hast — Ärger, Rückzug, Anspannung. Halte danach kurz inne: Was war der Reiz? Was war deine Reaktion?", hint:"Nur beobachten, nicht bewerten." });
       }).catch(() => {
         setImpuls({ id:"fallback", text:"Beobachte heute eine Situation, in der du automatisch reagiert hast — Ärger, Rückzug, Anspannung. Halte danach kurz inne: Was war der Reiz? Was war deine Reaktion?", hint:"Nur beobachten, nicht bewerten." });
