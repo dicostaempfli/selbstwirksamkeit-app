@@ -2018,7 +2018,7 @@ function DashboardPage({coachees,library,reminders,doodles,setPage,user,onLogoTa
 }
 
 // ── IMPULSE TAB (Sub-Tab: Meine Impulse + Tages-Impuls) ──
-function ImpulseTab({ user, reminders, setReminders, setPage, defaultSubTab, setDefaultSubTab, setActiveImpuls }) {
+function ImpulseTab({ user, reminders, setReminders, setPage, defaultSubTab, setDefaultSubTab, setActiveImpuls, activeImpuls }) {
   const [activeSubTab, setActiveSubTab] = useState(defaultSubTab || 'meine');
   const isMeine = activeSubTab === 'meine';
   const isTagesimpuls = activeSubTab === 'tagesimpuls';
@@ -2088,8 +2088,7 @@ function ImpulsPage({ user, setPage, setActiveImpuls, activeImpuls }) {
           }).catch(() => {});
         };
         if (doc.exists) getData(doc.data());
-        // Wenn activeImpuls null (gecleant via handleHeuteNicht): Tab leeren
-        if (!doc.exists && activeImpuls === null) setStep(6);
+        else if (activeImpuls === null) { setStep(6); return; }
         else setImpuls({ id:"fallback", text:"Beobachte heute eine Situation, in der du automatisch reagiert hast — Ärger, Rückzug, Anspannung. Halte danach kurz inne: Was war der Reiz? Was war deine Reaktion?", hint:"Nur beobachten, nicht bewerten." });
       }).catch(() => {
         setImpuls({ id:"fallback", text:"Beobachte heute eine Situation, in der du automatisch reagiert hast — Ärger, Rückzug, Anspannung. Halte danach kurz inne: Was war der Reiz? Was war deine Reaktion?", hint:"Nur beobachten, nicht bewerten." });
