@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- v202605211200 cache-bust: v1779393600 -->
+<!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
 <head>
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
@@ -3138,22 +3138,18 @@ function DoodlePage({doodles,setDoodles,coachees,events}) {
       `}
 
       ${subTab==="events" && html`
-        ${events.map((e,ei)=>html`
-          <div key=${e.id} class="event-card-row">
-            <div class="event-date-blk" style=${{background:ei%3===0?'#efe454':ei%3===1?'#a0cb7b':'#68b87d'}}>
-              <div class="event-day-big">${e.day}</div>
-              <div class="event-month-sm">${e.month}</div>
-            </div>
-            <div class="event-body-c">
-              <div class="event-title-c">${e.title}</div>
-              <div class="event-meta-c">${e.time} · ${e.location}</div>
-              <div class="event-desc-c">${e.desc}</div>
-              <a href=${e.url || "https://www.selbstwirksamkeit.ch/events"} target="_blank"
-                style=${{fontSize:".78rem",fontWeight:700,color:"var(--teal-dark)",textDecoration:"none",display:"inline-flex",alignItems:"center",gap:4,marginTop:4}}>
-                Anmelden →
-              </a>
-            </div>
-          </div>`)}
+        <div style=${{display:"flex",flexDirection:"column",alignItems:"center",textAlign:"center",padding:"32px 16px 24px",gap:16}}>
+          <div style=${{width:64,height:64,borderRadius:"50%",background:"var(--sage-pale)",display:"flex",alignItems:"center",justifyContent:"center"}}>
+            <${Ic} name="calendar" size=${28} style=${{color:"var(--teal)"}}/>
+          </div>
+          <p style=${{fontFamily:"'Manuale',serif",fontSize:"1.1rem",fontWeight:600,color:"var(--text)",margin:0,lineHeight:1.35}}>Aktuelle Veranstaltungen</p>
+          <p style=${{fontSize:".88rem",color:"var(--muted)",lineHeight:1.6,margin:0,maxWidth:280}}>Alle öffentlichen Events von Diana & Rico findest du direkt auf der Website — immer aktuell.</p>
+          <a href="https://www.selbstwirksamkeit.ch/veranstaltungen" target="_blank" rel="noopener"
+            style=${{display:"inline-flex",alignItems:"center",gap:7,background:"var(--teal)",color:"#fff",fontWeight:700,fontSize:".88rem",padding:"12px 22px",borderRadius:11,textDecoration:"none",marginTop:4,fontFamily:"'Exo 2',sans-serif"}}>
+            <${Ic} name="chevron" size=${14} style=${{color:"#fff",transform:"rotate(-90deg)"}}/>
+            Zu den Veranstaltungen
+          </a>
+        </div>
       `}
 
       ${/* CREATE MODAL */showCreate&&html`
