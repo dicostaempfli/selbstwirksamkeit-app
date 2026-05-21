@@ -2224,11 +2224,7 @@ function ImpulsPage({ user, setPage, setActiveImpuls, activeImpuls }) {
 
   if (step === 0.5) return h("div", {class:"content-main", style:{maxWidth:520, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", minHeight:320, textAlign:"center", paddingTop:40}},
     h("div", {style:{width:52, height:52, borderRadius:"50%", background:"var(--sage-pale)", display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 20px"}},
-      h("svg", {width:26, height:26, viewBox:"0 0 24 24", fill:"none", stroke:"var(--teal)", strokeWidth:1.8, strokeLinecap:"round", strokeLinejoin:"round"},
-        h("line", {x1:9, y1:18, x2:15, y2:18}),
-        h("line", {x1:10, y1:22, x2:14, y2:22}),
-        h("path", {d:"M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0018 8 6 6 0 006 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 018.91 14"})
-      )
+      h(Ic, {name:"impuls", size:26, style:{color:"var(--teal)"}})
     ),
     h("p", {style:{fontFamily:"'Manuale',serif", fontSize:"1.05rem", lineHeight:1.75, color:"var(--text)", fontStyle:"italic", marginBottom:8}}, "Gut."),
     h("p", {style:{fontFamily:"'Manuale',serif", fontSize:"1.05rem", lineHeight:1.75, color:"var(--text)", fontStyle:"italic", marginBottom:8}}, "Der Impuls begleitet dich heute."),
@@ -2977,18 +2973,21 @@ const INIT_EVENTS = [
    location:"St. Gallen, Heiligkreuzstrasse 28",
    time:"19:00 – 21:30 Uhr",
    desc:"Ein inspirierender Abend für Paare, die ihre Verbindung vertiefen möchten.",
+   url:"https://www.selbstwirksamkeit.ch/events/abend-fuer-paare",
    spots:8,registered:5},
   {id:2,day:"26",month:"Apr",color:"#a0cb7b",
    title:"Workshop: Ich-Sein stärken",
    location:"Online via Zoom",
    time:"09:00 – 12:00 Uhr",
    desc:"Entdecke, was dich wirklich ausmacht — ein halber Tag für dich.",
+   url:"https://www.selbstwirksamkeit.ch/events/workshop-ich-sein",
    spots:12,registered:7},
   {id:3,day:"10",month:"Mai",color:"#68b87d",
    title:"Vortrag: Selbstwirksamkeit in der Familie",
    location:"Pädagogische Hochschule St. Gallen",
    time:"18:30 – 20:00 Uhr",
    desc:"Rico Stämpfli spricht über Selbstwirksamkeit im Familienalltag.",
+   url:"https://www.selbstwirksamkeit.ch/events/vortrag-selbstwirksamkeit-familie",
    spots:50,registered:28},
 ];
 function fmtDt(dt) {
@@ -3149,7 +3148,7 @@ function DoodlePage({doodles,setDoodles,coachees,events}) {
               <div class="event-title-c">${e.title}</div>
               <div class="event-meta-c">${e.time} · ${e.location}</div>
               <div class="event-desc-c">${e.desc}</div>
-              <a href="https://www.selbstwirksamkeit.ch/events" target="_blank"
+              <a href=${e.url || "https://www.selbstwirksamkeit.ch/events"} target="_blank"
                 style=${{fontSize:".78rem",fontWeight:700,color:"var(--teal-dark)",textDecoration:"none",display:"inline-flex",alignItems:"center",gap:4,marginTop:4}}>
                 Anmelden →
               </a>
