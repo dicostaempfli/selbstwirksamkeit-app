@@ -1636,8 +1636,11 @@ function ChatPage({coachees,setCoachees}) {
   const [mobileView,setMobileView] = useState("list");
   const [mobileOpen,setMobileOpen] = useState(false);
 
-  const [showFilter,setShowFilter] = useState(false);
-  const [filterCat,setFilterCat]   = useState(null);
+  const [showFilter,setShowFilter]       = useState(false);
+  const [filterCat,setFilterCat]         = useState(null);
+  const [showBroadcast,setShowBroadcast] = useState(false);
+  const [broadcastCat,setBroadcastCat]   = useState(null);
+  const [broadcastMsg,setBroadcastMsg]   = useState("");
   const filtered = coachees.filter(c=>{
     const nameMatch = c.name.toLowerCase().includes(search.toLowerCase())||c.topic.toLowerCase().includes(search.toLowerCase());
     if(!filterCat||filterCat==="Alle") return nameMatch;
@@ -1646,6 +1649,15 @@ function ChatPage({coachees,setCoachees}) {
   });
   const active = coachees.find(c=>c.id===activeId);
   const filterCount = filterCat&&filterCat!=="Alle" ? coachees.filter(c=>{const cats=[...(Array.isArray(c.coaching)?c.coaching:(c.coaching?[c.coaching]:[])), ...(Array.isArray(c.gender)?c.gender:(c.gender?[c.gender]:[])), ...(c.categories||[])]; return cats.includes(filterCat);}).length : coachees.length;
+  const getCatCoachees = cat => !cat ? coachees : coachees.filter(c=>{const cats=[...(Array.isArray(c.coaching)?c.coaching:(c.coaching?[c.coaching]:[])), ...(Array.isArray(c.gender)?c.gender:(c.gender?[c.gender]:[])), ...(c.categories||[])]; return cats.includes(cat);});
+  const broadcastRecipients = getCatCoachees(broadcastCat);
+  const sendBroadcast = () => {
+    if(!broadcastMsg.trim()||!broadcastRecipients.length) return;
+    const msg={id:Date.now(),from:"admin",sender:"Diana",text:broadcastMsg.trim(),time:nowTime(),date:"Heute",seen:false};
+    setCoachees(cs=>cs.map(c=>broadcastRecipients.find(r=>r.id===c.id)?{...c,messages:[...(c.messages||[]),msg],lastTime:nowTime(),unread:(c.unread||0)+1}:c));
+    setBroadcastMsg(""); setBroadcastCat(null); setShowBroadcast(false);
+    showToast("✓ Nachricht gesendet an "+broadcastRecipients.length+" Coachee"+(broadcastRecipients.length!==1?"s":""));
+  };
 
     const selectCoachee = id => {
     setActiveId(id);
@@ -1687,28 +1699,45 @@ function ChatPage({coachees,setCoachees}) {
                 <span class="search-icon"><${Ic} name="search" size=${14}/></span>
                 <input class="search-input" value=${search} onInput=${e=>setSearch(e.target.value)} placeholder="Coachee suchen…"/>
               </div>
-              <div style=${{display:"flex",alignItems:"center",gap:8,marginTop:8}}>
-                <button onClick=${()=>setShowFilter(true)} style=${{display:"flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:9,border:"1.5px solid var(--border2)",background:filterCat&&filterCat!=="Alle"?"var(--sage)":"var(--surface)",color:filterCat&&filterCat!=="Alle"?"var(--forest)":"var(--muted)",fontSize:".8rem",fontWeight:700,cursor:"pointer",fontFamily:"'Exo 2',sans-serif"}}>
-                  <${Ic} name="sliders" size=${13}/> ${filterCat&&filterCat!=="Alle"?filterCat:"Zielgruppe"}
-                </button>
-                ${filterCat&&filterCat!=="Alle"&&h("button",{onClick:()=>setFilterCat(null),style:{padding:"6px 10px",borderRadius:9,border:"1.5px solid var(--border2)",background:"var(--surface)",color:"var(--muted)",fontSize:".8rem",cursor:"pointer",fontFamily:"'Exo 2',sans-serif"}},"✕ Alle")}
-                <span style=${{fontSize:".75rem",color:"var(--muted)",marginLeft:"auto"}}>${filterCount} Coachee${filterCount!==1?"s":""}</span>
+              <div onClick=${()=>setShowBroadcast(true)} style=${{display:"flex",alignItems:"center",gap:10,marginTop:8,background:"var(--sage-pale)",border:"1px solid var(--border)",borderRadius:10,padding:"9px 12px",cursor:"pointer"}}>
+                <div style=${{width:30,height:30,borderRadius:8,background:"var(--teal)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                  <${Ic} name="send" size=${14} style=${{color:"#fff"}}/>
+                </div>
+                <div style=${{flex:1,minWidth:0}}>
+                  <div style=${{fontSize:".82rem",fontWeight:700,color:"var(--forest)",fontFamily:"'Exo 2',sans-serif"}}>Neue Nachricht an Zielgruppe</div>
+                  <div style=${{fontSize:".72rem",color:"var(--muted)",marginTop:1}}>Paare · Eltern · Einzel · Männer · Frauen · Alle</div>
+                </div>
+                <${Ic} name="chevron" size=${14} style=${{color:"var(--muted)",transform:"rotate(-90deg)",flexShrink:0}}/>
               </div>
             </div>
-            ${showFilter&&h("div",{style:{position:"fixed",inset:0,background:"rgba(0,0,0,0.35)",zIndex:200,display:"flex",alignItems:"flex-end",justifyContent:"center"},onClick:e=>{if(e.target===e.currentTarget)setShowFilter(false);}},
+            ${showBroadcast&&h("div",{style:{position:"fixed",inset:0,background:"rgba(0,0,0,0.35)",zIndex:200,display:"flex",alignItems:"flex-end",justifyContent:"center"},onClick:e=>{if(e.target===e.currentTarget){setShowBroadcast(false);setBroadcastCat(null);setBroadcastMsg("");}}},
               h("div",{style:{background:"var(--surface)",borderRadius:"20px 20px 0 0",padding:"20px 18px 32px",width:"100%",maxWidth:480}},
-                h("div",{style:{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16}},
-                  h("span",{style:{fontFamily:"'Manuale',serif",fontSize:"1.1rem",fontWeight:700,color:"var(--text)"}},"Nachricht senden an"),
-                  h("button",{onClick:()=>setShowFilter(false),style:{background:"none",border:"none",cursor:"pointer",color:"var(--muted)",fontSize:"1.2rem"}},"✕")
+                h("div",{style:{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4}},
+                  h("span",{style:{fontFamily:"'Manuale',serif",fontSize:"1.1rem",fontWeight:700,color:"var(--text)"}},"Neue Nachricht"),
+                  h("button",{onClick:()=>{setShowBroadcast(false);setBroadcastCat(null);setBroadcastMsg("");},style:{background:"none",border:"none",cursor:"pointer",color:"var(--muted)",fontSize:"1.2rem"}},"✕")
                 ),
-                h("p",{style:{fontSize:".8rem",color:"var(--muted)",marginBottom:12,marginTop:-8}},"Die App wählt automatisch alle passenden Coachees."),
-                h("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:16}},
+                h("p",{style:{fontSize:".8rem",color:"var(--muted)",marginBottom:14,marginTop:2}},"Wähle eine Zielgruppe — die App selektiert automatisch."),
+                h("p",{style:{fontSize:".72rem",fontWeight:700,color:"var(--muted)",textTransform:"uppercase",letterSpacing:".06em",marginBottom:8}},"1 — Zielgruppe"),
+                h("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:14}},
                   ...["Paare","Einzel","Eltern","Männer","Frauen","Alle"].map(cat=>
-                    h("div",{key:cat,onClick:()=>{setFilterCat(cat==="Alle"?null:cat);setShowFilter(false);},
-                      style:{height:44,borderRadius:9,border:"1.5px solid "+(filterCat===cat?"var(--teal)":"var(--border2)"),background:filterCat===cat?"var(--sage)":"var(--surface)",color:filterCat===cat?"var(--forest)":"var(--text)",fontSize:".85rem",fontWeight:700,fontFamily:"'Exo 2',sans-serif",display:"flex",alignItems:"center",justifyContent:"center",gap:6,cursor:"pointer"}},
+                    h("div",{key:cat,onClick:()=>setBroadcastCat(cat==="Alle"?null:cat),
+                      style:{height:40,borderRadius:9,border:"1.5px solid "+(broadcastCat===cat||(cat==="Alle"&&!broadcastCat)?"var(--teal)":"var(--border2)"),background:broadcastCat===cat||(cat==="Alle"&&!broadcastCat)?"var(--sage)":"var(--surface)",color:broadcastCat===cat||(cat==="Alle"&&!broadcastCat)?"var(--forest)":"var(--text)",fontSize:".82rem",fontWeight:700,fontFamily:"'Exo 2',sans-serif",display:"flex",alignItems:"center",justifyContent:"center",gap:6,cursor:"pointer"}},
                       cat
                     )
                   )
+                ),
+                h("p",{style:{fontSize:".72rem",fontWeight:700,color:"var(--muted)",textTransform:"uppercase",letterSpacing:".06em",marginBottom:6}},"2 — Empfänger"),
+                h("div",{style:{background:"var(--sage-pale)",borderRadius:9,padding:"8px 12px",marginBottom:12,display:"flex",alignItems:"center",gap:10}},
+                  h("span",{style:{fontSize:"1.3rem",fontWeight:700,color:"var(--teal)",minWidth:24}},""+broadcastRecipients.length),
+                  h("div",{},
+                    h("div",{style:{fontSize:".82rem",fontWeight:700,color:"var(--forest)"}},"Coachee"+(broadcastRecipients.length!==1?"s":"")+" ausgewählt"),
+                    h("div",{style:{fontSize:".74rem",color:"var(--muted)"}},broadcastRecipients.length?broadcastRecipients.map(c=>c.name.split(" ")[0]).join(", "):"Keine Coachees in dieser Kategorie")
+                  )
+                ),
+                h("p",{style:{fontSize:".72rem",fontWeight:700,color:"var(--muted)",textTransform:"uppercase",letterSpacing:".06em",marginBottom:6}},"3 — Nachricht"),
+                h("textarea",{class:"textarea",rows:3,placeholder:"Nachricht verfassen…",value:broadcastMsg,onInput:e=>setBroadcastMsg(e.target.value),style:{width:"100%",marginBottom:10,boxSizing:"border-box",resize:"none"}}),
+                h("button",{onClick:sendBroadcast,disabled:!broadcastMsg.trim()||!broadcastRecipients.length,class:"btn btn-primary",style:{width:"100%",opacity:(!broadcastMsg.trim()||!broadcastRecipients.length)?0.5:1}},
+                  "An "+broadcastRecipients.length+" Coachee"+(broadcastRecipients.length!==1?"s":"")+" senden"
                 )
               )
             )}
