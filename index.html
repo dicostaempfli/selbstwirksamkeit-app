@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- v202605211045 cache-bust: v1779389100 -->
+<!-- v202605211115 cache-bust: v1779390000 -->
 <html lang="de">
 <head>
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
@@ -3531,9 +3531,15 @@ function Root() {
 
 // ── MOUNT ──
 function BreathPortal() {
-  const [show, setShow] = useState(true);
+  const today = new Date().toISOString().split("T")[0];
+  const alreadyShown = localStorage.getItem("atemball_shown") === today;
+  const [show, setShow] = useState(!alreadyShown);
+  const handleDone = () => {
+    localStorage.setItem("atemball_shown", today);
+    setShow(false);
+  };
   if(!show) return null;
-  return html`<${BreathOverlay} onDone=${()=>setShow(false)}/>`;
+  return html`<${BreathOverlay} onDone=${handleDone}/>`;
 }
 
 render(h(Root, null), document.getElementById('app'));
