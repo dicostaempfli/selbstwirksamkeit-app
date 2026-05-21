@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- v202605201844 cache-bust: v1779302678 -->
+<!-- v202605211045 cache-bust: v1779389100 -->
 <html lang="de">
 <head>
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
@@ -2222,16 +2222,33 @@ function ImpulsPage({ user, setPage, setActiveImpuls, activeImpuls }) {
       <button class="btn btn-ghost" style=${{width:"100%",fontSize:".83rem"}} onClick=${handleNeinHeute}>Nein, heute nicht</button>
     </div>`;
 
-  if (step === 0.5) return h("div", {class:"content-main", style:{maxWidth:520, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", minHeight:320, textAlign:"center", paddingTop:40}},
-    h("div", {style:{width:52, height:52, borderRadius:"50%", background:"var(--sage-pale)", display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 20px"}},
-      h(Ic, {name:"impuls", size:26, style:{color:"var(--teal)"}})
-    ),
-    h("p", {style:{fontFamily:"'Manuale',serif", fontSize:"1.05rem", lineHeight:1.75, color:"var(--text)", fontStyle:"italic", marginBottom:8}}, "Gut."),
-    h("p", {style:{fontFamily:"'Manuale',serif", fontSize:"1.05rem", lineHeight:1.75, color:"var(--text)", fontStyle:"italic", marginBottom:8}}, "Der Impuls begleitet dich heute."),
-    h("p", {style:{fontFamily:"'Manuale',serif", fontSize:"1.05rem", lineHeight:1.75, color:"var(--text)", fontStyle:"italic", marginBottom:8}}, "Du findest ihn jederzeit auf deinem Homescreen."),
-    h("p", {style:{fontSize:".85rem", color:"var(--muted)", lineHeight:1.6, marginBottom:32}}, "Heute Abend laden wir dich ein, deine Erfahrung zu reflektieren."),
-    h("button", {class:"btn btn-ghost", style:{fontSize:".95rem", padding:"12px 28px", width:"100%"}, onClick:()=>{ if(setPage) setPage("dashboard"); }}, "Ich bin bereit")
-  );
+  if (step === 0.5) {
+    const infoBlocks = [
+      { icon: "anchor", label: "Dein Anker auf dem Homescreen", desc: "Solange der Impuls aktiv ist, siehst du ihn auf der Startseite. Tippe drauf, wenn du ihn erlebt hast." },
+      { icon: "moon", label: "Abends kurz innehalten — wenn du magst", desc: "Falls du am Abend spürst, dass etwas anders war — die App lädt dich ein zu reflektieren." },
+      { icon: "device-mobile-off", label: "Kein weiteres Zutun nötig", desc: "Du musst nichts dokumentieren oder abhaken. Der Impuls wirkt, wenn du ihn lebst." }
+    ];
+    return h("div", {class:"content-main", style:{maxWidth:520, display:"flex", flexDirection:"column", alignItems:"center", paddingTop:32, paddingBottom:32}},
+      h("div", {style:{width:64, height:64, borderRadius:"50%", background:"var(--sage-pale)", display:"flex", alignItems:"center", justifyContent:"center", marginBottom:16}},
+        h(Ic, {name:"check", size:30, style:{color:"var(--teal)"}})
+      ),
+      h("span", {style:{background:"var(--sage-pale)", color:"var(--teal)", fontSize:".75rem", fontWeight:700, padding:"4px 14px", borderRadius:99, marginBottom:14, display:"inline-block", letterSpacing:".04em"}}, "Impuls angenommen"),
+      h("p", {style:{fontFamily:"'Manuale',serif", fontSize:"1.1rem", fontWeight:600, lineHeight:1.35, color:"var(--text)", textAlign:"center", marginBottom:6}}, "So begleitet dich der Impuls durch den Tag"),
+      h("div", {style:{width:"100%", height:"0.5px", background:"var(--border)", margin:"10px 0 14px"}}),
+      ...infoBlocks.map(b =>
+        h("div", {style:{width:"100%", background:"var(--surface)", borderRadius:14, padding:"13px 14px", marginBottom:10, display:"flex", gap:11, alignItems:"flex-start"}},
+          h("div", {style:{width:30, height:30, borderRadius:8, background:"var(--sage-pale)", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0}},
+            h(Ic, {name:b.icon, size:15, style:{color:"var(--teal)"}})
+          ),
+          h("div", {},
+            h("div", {style:{fontSize:".82rem", fontWeight:700, color:"var(--text)", marginBottom:2}}, b.label),
+            h("div", {style:{fontSize:".77rem", color:"var(--muted)", lineHeight:1.5}}, b.desc)
+          )
+        )
+      ),
+      h("button", {class:"btn btn-primary", style:{width:"100%", marginTop:8, fontSize:".95rem"}, onClick:()=>{ if(setPage) setPage("dashboard"); }}, "Ich bin offen für eine neue Erfahrung")
+    );
+  }
 
   if (step === 1) return h("div", {class:"content-main", style:{maxWidth:520}},
     h("span", {style:{fontSize:".72rem", fontWeight:700, textTransform:"uppercase", letterSpacing:".07em", color:"var(--muted)"}}, "Tages-Impuls"),
