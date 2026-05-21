@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- v202605211115 cache-bust: v1779390000 -->
+<!-- v202605211200 cache-bust: v1779393600 -->
 <html lang="de">
 <head>
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
@@ -494,7 +494,7 @@
 
   .content-main { flex:1; overflow-y:auto; padding:32px 36px; background:var(--bg); }
   .page-heading { font-family:'Manuale',serif; font-size:1.7rem; color:var(--text); margin-bottom:4px; }
-  .page-sub { font-size:.87rem; color:var(--muted); margin-bottom:24px; }
+  .page-sub { font-size:.92rem; color:var(--muted); margin-bottom:24px; }
 
   .card { background:var(--surface); border-radius:var(--radius); box-shadow:var(--shadow); padding:22px; margin-bottom:16px; }
   .card-title {
@@ -584,7 +584,7 @@
   .rec-tab { padding:7px 13px; border-radius:10px; border:1.5px solid var(--border); background:var(--surface); color:var(--muted); font-family:'Exo 2'; font-weight:700; font-size:.81rem; cursor:pointer; display:flex; align-items:center; gap:6px; transition:all .15s; }
   .rec-tab:hover { border-color:var(--teal); color:var(--text); }
   .rec-tab.active { border-color:var(--teal); background:var(--sage); color:var(--text); }
-  .rec-preview { background:var(--lime-pale); border-left:3px solid var(--lime-dark); border-radius:0 8px 8px 0; padding:11px 13px; font-size:.82rem; color:var(--muted); margin-top:10px; line-height:1.6; }
+  .rec-preview { background:var(--lime-pale); border-left:3px solid var(--lime-dark); border-radius:0 8px 8px 0; padding:11px 13px; font-size:.88rem; color:var(--muted); margin-top:10px; line-height:1.6; }
   .rec-preview strong { color:var(--text); }
   .day-picker { display:flex; gap:5px; }
   .day-btn { width:38px; height:38px; border-radius:9px; border:1.5px solid var(--border); background:var(--surface2); color:var(--muted); font-family:'Exo 2'; font-weight:700; font-size:.72rem; cursor:pointer; transition:all .15s; }
@@ -645,7 +645,7 @@
   .lib-play-btn { width:40px; height:40px; border-radius:50%; background:#fff; display:flex; align-items:center; justify-content:center; color:var(--text); box-shadow:0 2px 8px rgba(0,0,0,.2); }
   .lib-card-body { padding:12px; border-left-width:3px; border-left-style:solid; }
   .lib-card-title { font-weight:700; font-size:.88rem; margin-bottom:3px; color:var(--text); }
-  .lib-card-desc { font-size:.76rem; color:var(--muted); line-height:1.5; }
+  .lib-card-desc { font-size:.88rem; color:var(--muted); line-height:1.5; }
   .lib-card-meta { display:flex; justify-content:space-between; align-items:center; margin-top:9px; font-size:.71rem; color:var(--muted); }
 
   /* Upload zone */
@@ -660,7 +660,7 @@
   .doodle-card:hover{transform:translateY(-1px)}
   .doodle-card.closed{border-left-color:var(--border2);opacity:.7}
   .doodle-title{font-family:'Manuale',serif;font-weight:700;font-size:1rem;color:var(--text);margin-bottom:6px}
-  .doodle-meta{font-size:.78rem;color:var(--muted);display:flex;align-items:center;gap:14px;margin-bottom:10px;flex-wrap:wrap}
+  .doodle-meta{font-size:.84rem;color:var(--muted);display:flex;align-items:center;gap:14px;margin-bottom:10px;flex-wrap:wrap}
   .doodle-recipients{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px}
   .recipient-chip{font-size:.72rem;font-weight:700;padding:3px 10px;border-radius:99px;background:var(--sage-pale);color:var(--text)}
   .doodle-actions{display:flex;gap:7px;flex-wrap:wrap}
@@ -700,8 +700,8 @@
   .event-month-sm{font-size:.68rem;font-weight:700;color:rgba(255,255,255,.8);text-transform:uppercase;letter-spacing:.5px}
   .event-body-c{flex:1;padding:14px 16px}
   .event-title-c{font-family:'Manuale',serif;font-size:.97rem;font-weight:700;color:var(--text);margin-bottom:3px}
-  .event-meta-c{font-size:.76rem;color:var(--muted);margin-bottom:7px}
-  .event-desc-c{font-size:.81rem;color:var(--text);line-height:1.55;margin-bottom:9px}
+  .event-meta-c{font-size:.84rem;color:var(--muted);margin-bottom:7px}
+  .event-desc-c{font-size:.88rem;color:var(--text);line-height:1.55;margin-bottom:9px}
   .event-bar{height:4px;background:var(--border);border-radius:99px;margin-top:6px;overflow:hidden}
   .event-bar-fill{height:100%;border-radius:99px;transition:width .4s}
   /* sub-tabs inside doodle page */
@@ -789,7 +789,7 @@
       height: 100%;
     }
     .page-heading { font-size: 1.35rem; }
-    .page-sub { font-size: .82rem; margin-bottom: 16px; }
+    .page-sub { font-size: .88rem; margin-bottom: 16px; }
 
     /* Chat panel: hide list when chatting on mobile */
     .panel {
@@ -2222,33 +2222,16 @@ function ImpulsPage({ user, setPage, setActiveImpuls, activeImpuls }) {
       <button class="btn btn-ghost" style=${{width:"100%",fontSize:".83rem"}} onClick=${handleNeinHeute}>Nein, heute nicht</button>
     </div>`;
 
-  if (step === 0.5) {
-    const infoBlocks = [
-      { icon: "anchor", label: "Dein Anker auf dem Homescreen", desc: "Solange der Impuls aktiv ist, siehst du ihn auf der Startseite. Tippe drauf, wenn du ihn erlebt hast." },
-      { icon: "moon", label: "Abends kurz innehalten — wenn du magst", desc: "Falls du am Abend spürst, dass etwas anders war — die App lädt dich ein zu reflektieren." },
-      { icon: "device-mobile-off", label: "Kein weiteres Zutun nötig", desc: "Du musst nichts dokumentieren oder abhaken. Der Impuls wirkt, wenn du ihn lebst." }
-    ];
-    return h("div", {class:"content-main", style:{maxWidth:520, display:"flex", flexDirection:"column", alignItems:"center", paddingTop:32, paddingBottom:32}},
-      h("div", {style:{width:64, height:64, borderRadius:"50%", background:"var(--sage-pale)", display:"flex", alignItems:"center", justifyContent:"center", marginBottom:16}},
-        h(Ic, {name:"check", size:30, style:{color:"var(--teal)"}})
-      ),
-      h("span", {style:{background:"var(--sage-pale)", color:"var(--teal)", fontSize:".75rem", fontWeight:700, padding:"4px 14px", borderRadius:99, marginBottom:14, display:"inline-block", letterSpacing:".04em"}}, "Impuls angenommen"),
-      h("p", {style:{fontFamily:"'Manuale',serif", fontSize:"1.1rem", fontWeight:600, lineHeight:1.35, color:"var(--text)", textAlign:"center", marginBottom:6}}, "So begleitet dich der Impuls durch den Tag"),
-      h("div", {style:{width:"100%", height:"0.5px", background:"var(--border)", margin:"10px 0 14px"}}),
-      ...infoBlocks.map(b =>
-        h("div", {style:{width:"100%", background:"var(--surface)", borderRadius:14, padding:"13px 14px", marginBottom:10, display:"flex", gap:11, alignItems:"flex-start"}},
-          h("div", {style:{width:30, height:30, borderRadius:8, background:"var(--sage-pale)", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0}},
-            h(Ic, {name:b.icon, size:15, style:{color:"var(--teal)"}})
-          ),
-          h("div", {},
-            h("div", {style:{fontSize:".82rem", fontWeight:700, color:"var(--text)", marginBottom:2}}, b.label),
-            h("div", {style:{fontSize:".77rem", color:"var(--muted)", lineHeight:1.5}}, b.desc)
-          )
-        )
-      ),
-      h("button", {class:"btn btn-primary", style:{width:"100%", marginTop:8, fontSize:".95rem"}, onClick:()=>{ if(setPage) setPage("dashboard"); }}, "Ich bin offen für eine neue Erfahrung")
-    );
-  }
+  if (step === 0.5) return h("div", {class:"content-main", style:{maxWidth:520, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", minHeight:320, textAlign:"center", paddingTop:40}},
+    h("div", {style:{width:52, height:52, borderRadius:"50%", background:"var(--sage-pale)", display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 20px"}},
+      h(Ic, {name:"impuls", size:26, style:{color:"var(--teal)"}})
+    ),
+    h("p", {style:{fontFamily:"'Manuale',serif", fontSize:"1.05rem", lineHeight:1.75, color:"var(--text)", fontStyle:"italic", marginBottom:8}}, "Gut."),
+    h("p", {style:{fontFamily:"'Manuale',serif", fontSize:"1.05rem", lineHeight:1.75, color:"var(--text)", fontStyle:"italic", marginBottom:8}}, "Der Impuls begleitet dich heute."),
+    h("p", {style:{fontFamily:"'Manuale',serif", fontSize:"1.05rem", lineHeight:1.75, color:"var(--text)", fontStyle:"italic", marginBottom:8}}, "Du findest ihn jederzeit auf deinem Homescreen."),
+    h("p", {style:{fontSize:".85rem", color:"var(--muted)", lineHeight:1.6, marginBottom:32}}, "Heute Abend laden wir dich ein, deine Erfahrung zu reflektieren."),
+    h("button", {class:"btn btn-ghost", style:{fontSize:".95rem", padding:"12px 28px", width:"100%"}, onClick:()=>{ if(setPage) setPage("dashboard"); }}, "Ich bin bereit")
+  );
 
   if (step === 1) return h("div", {class:"content-main", style:{maxWidth:520}},
     h("span", {style:{fontSize:".72rem", fontWeight:700, textTransform:"uppercase", letterSpacing:".07em", color:"var(--muted)"}}, "Tages-Impuls"),
@@ -3531,15 +3514,9 @@ function Root() {
 
 // ── MOUNT ──
 function BreathPortal() {
-  const today = new Date().toISOString().split("T")[0];
-  const alreadyShown = localStorage.getItem("atemball_shown") === today;
-  const [show, setShow] = useState(!alreadyShown);
-  const handleDone = () => {
-    localStorage.setItem("atemball_shown", today);
-    setShow(false);
-  };
+  const [show, setShow] = useState(true);
   if(!show) return null;
-  return html`<${BreathOverlay} onDone=${handleDone}/>`;
+  return html`<${BreathOverlay} onDone=${()=>setShow(false)}/>`;
 }
 
 render(h(Root, null), document.getElementById('app'));
