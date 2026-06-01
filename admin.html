@@ -1,4 +1,4 @@
-<!-- Version: 2026-06-01 14:26 admin -->
+<!-- Version: 2026-06-01 14:38 admin -->
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -123,6 +123,22 @@ window.addEventListener('orientationchange', ()=>setTimeout(setVH,150));
     --accent2:     #eaed53;
     --danger:      #c0392b;
 
+    /* ── Semantic / extended ── */
+    --forest:        #639922;    /* Impuls-Buttons aktiv */
+    --forest-dark:   #3B6D11;    /* Impuls-Buttons Rand + Hover */
+    --overlay-dark:  #1e3a2f;    /* dunkle Header/Overlays */
+    --neutral:       #c4b8a8;    /* neutraler Beige-Ton */
+    --surface-neutral: #f0f0f0;  /* geschlossene Status-Chips */
+    --text-neutral:  #777777;    /* gedämpfter Text auf neutral */
+    --danger-pale:   #fff0ef;    /* Danger-Hintergrund blass */
+    --danger-border: #f5c0bc;    /* Danger-Rand */
+    --danger-dark:   #a03020;    /* Danger dunkel */
+    --sky:           #7ec8e3;
+    --sky-pale:      #e0f5fb;    /* Foto-Badge */
+    --pkg-einzel:    #4a9e62;    /* Package: Einzelcoaching */
+    --pkg-paar:      #2d7a9a;    /* Package: Paar/Elterncoaching */
+    --pkg-integration: #7a6a2d;  /* Package: Integrationsphase */
+
     --radius:  16px;
     --shadow:  0 2px 16px rgba(62,122,74,.10);
     --shadow2: 0 6px 28px rgba(62,122,74,.14);
@@ -162,8 +178,8 @@ window.addEventListener('orientationchange', ()=>setTimeout(setVH,150));
     height: 16px;
     border-radius: 99px;
     padding: 0 4px;
-    background: #efe454;
-    color: #1a3322;
+    background: var(--lime);
+    color: var(--text);
     font-size: .55rem;
     font-weight: 700;
     display: flex;
@@ -173,14 +189,14 @@ window.addEventListener('orientationchange', ()=>setTimeout(setVH,150));
     box-sizing: border-box;
   }
   .sb-item.active .sb-badge {
-    background: #a0cb7b;
-    border-color: #ece455;
+    background: var(--sage);
+    border-color: var(--sidebar-active);
   }
   .sb-item .badge {
     position:absolute; top:7px; right:7px;
     width:14px; height:14px; border-radius:50%;
     background:var(--lime); font-size:.56rem; font-weight:700;
-    color:#1a2e22; display:flex; align-items:center; justify-content:center;
+    color:var(--text); display:flex; align-items:center; justify-content:center;
   }
   .sb-bottom { padding:0 10px; display:flex; flex-direction:column; align-items:center; gap:8px; }
   .sb-logout-btn {
@@ -545,11 +561,11 @@ window.addEventListener('orientationchange', ()=>setTimeout(setVH,150));
   /* Library */
   .lib-filter { display:flex; gap:7px; margin-bottom:18px; flex-wrap:wrap; }
   .lib-filter-btn { padding:6px 14px; border-radius:99px; border:1.5px solid var(--border); background:var(--surface); color:var(--muted); font-family:'Exo 2'; font-weight:700; font-size:.79rem; cursor:pointer; display:flex; align-items:center; gap:6px; transition:all .15s; }
-  .lib-filter-btn.sel               { border-color:#c4b8a8; background:#c4b8a8; color:#3a3028; }
-  .lib-filter-btn[data-type="audio"].sel { border-color:#68b87d; background:#68b87d; color:white; }
-  .lib-filter-btn[data-type="video"].sel { border-color:#a0cb7b; background:#a0cb7b; color:#1e3a2f; }
-  .lib-filter-btn[data-type="dokus"].sel { border-color:#efe454; background:#efe454; color:#5a4800; }
-  .lib-filter-btn[data-type="foto"].sel  { border-color:#7ec8e3; background:#7ec8e3; color:#0a3a4a; }
+  .lib-filter-btn.sel               { border-color:var(--neutral); background:var(--neutral); color:#3a3028; }
+  .lib-filter-btn[data-type="audio"].sel { border-color:var(--teal); background:var(--teal); color:white; }
+  .lib-filter-btn[data-type="video"].sel { border-color:var(--sage); background:var(--sage); color:var(--overlay-dark); }
+  .lib-filter-btn[data-type="dokus"].sel { border-color:var(--lime); background:var(--lime); color:#5a4800; }
+  .lib-filter-btn[data-type="foto"].sel  { border-color:var(--sky); background:var(--sky); color:#0a3a4a; }
   /* All filter buttons use same forest color when selected */
   .lib-filter-btn:hover { border-color:var(--teal); }
   .lib-grid { display:grid; grid-template-columns:1fr 1fr; gap:13px; margin-bottom:20px; }
@@ -558,10 +574,10 @@ window.addEventListener('orientationchange', ()=>setTimeout(setVH,150));
   .lib-thumb { width:100%; height:130px; display:flex; align-items:center; justify-content:center; color:var(--muted); position:relative; }
   .lib-thumb img { width:100%; height:100%; object-fit:cover; }
   .lib-type-badge { position:absolute; top:9px; left:9px; padding:3px 9px; border-radius:99px; font-size:.67rem; font-weight:700; display:flex; align-items:center; gap:4px; }
-  .badge-audio { background:#68b87d; color:white; }
-  .badge-video { background:#a0cb7b; color:#1e3a2f; }
-  .badge-dokus { background:#efe454; color:#3a3000; }
-  .badge-foto  { background:#7ec8e3; color:#0a3a4a; }
+  .badge-audio { background:var(--teal); color:white; }
+  .badge-video { background:var(--sage); color:var(--overlay-dark); }
+  .badge-dokus { background:var(--lime); color:#3a3000; }
+  .badge-foto  { background:var(--sky); color:#0a3a4a; }
   .lib-play-overlay { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(30,60,35,.2); }
   .lib-play-btn { width:40px; height:40px; border-radius:50%; background:#fff; display:flex; align-items:center; justify-content:center; color:var(--text); box-shadow:0 2px 8px rgba(0,0,0,.2); }
   .lib-card-body { padding:12px; border-left-width:3px; border-left-style:solid; }
@@ -591,14 +607,14 @@ window.addEventListener('orientationchange', ()=>setTimeout(setVH,150));
   .votes-wrap{display:flex;gap:4px;flex-wrap:wrap}
   .vote-chip{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.63rem;font-weight:700}
   .vote-yes-chip{background:var(--teal);color:white}
-  .vote-no-chip{background:#ffe0de;color:var(--danger)}
-  .vote-unknown-chip{background:#f0f0f0;color:#999}
+  .vote-no-chip{background:var(--danger-pale);color:var(--danger)}
+  .vote-unknown-chip{background:var(--surface-neutral);color:var(--text-neutral)}
   .vote-count-label{font-size:.76rem;font-weight:700;color:var(--muted);min-width:44px}
   .vote-count-label.best{color:var(--teal-dark)}
   .best-badge{font-size:.62rem;font-weight:700;background:var(--teal);color:white;padding:1px 7px;border-radius:99px;margin-left:6px}
   .status-pill{display:inline-flex;align-items:center;gap:5px;font-size:.72rem;font-weight:700;padding:3px 10px;border-radius:99px}
   .status-open{background:var(--lime-pale);color:#6b6200}
-  .status-closed{background:#f0f0f0;color:#777}
+  .status-closed{background:var(--surface-neutral);color:var(--text-neutral)}
   .slot-list-build{display:flex;flex-direction:column;gap:5px;margin-bottom:10px}
   .slot-item-build{display:flex;align-items:center;justify-content:space-between;background:var(--sage-pale);border-radius:8px;padding:7px 12px;font-size:.85rem;font-weight:600;color:var(--text)}
   .coachee-check-row{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:9px;cursor:pointer;transition:background .15s;border:1.5px solid transparent;margin-bottom:5px}
@@ -608,11 +624,11 @@ window.addEventListener('orientationchange', ()=>setTimeout(setVH,150));
   /* vote rows coachee */
   .vote-row-c{display:flex;align-items:center;gap:10px;padding:10px 13px;border-radius:10px;margin-bottom:6px;background:var(--surface2);border:1.5px solid transparent;transition:all .15s}
   .vote-row-c.sel-yes{background:var(--teal-pale);border-color:var(--teal)}
-  .vote-row-c.sel-no{background:#fff0ef;border-color:#f5c0bc}
+  .vote-row-c.sel-no{background:var(--danger-pale);border-color:var(--danger-border)}
   .vbtn{width:36px;height:36px;border-radius:50%;border:2px solid var(--border);background:var(--surface);cursor:pointer;font-size:.95rem;transition:all .15s;display:flex;align-items:center;justify-content:center;flex-shrink:0}
   .vbtn:hover{transform:scale(1.1)}
   .vbtn.yes.on{background:var(--teal);border-color:var(--teal-dark)}
-  .vbtn.no.on{background:var(--danger);border-color:#a03020;color:white}
+  .vbtn.no.on{background:var(--danger);border-color:var(--danger-dark);color:white}
   /* event cards */
   .event-card-row{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;margin-bottom:12px;display:flex;transition:transform .15s}
   .event-card-row:hover{transform:translateY(-2px)}
@@ -631,9 +647,9 @@ window.addEventListener('orientationchange', ()=>setTimeout(setVH,150));
   .sub-tab.active{background:var(--forest);color:white;border-color:var(--forest)}
   .imp-sub-nav{display:flex;gap:8px;margin-bottom:24px;flex-wrap:wrap}
   .page-title{font-family:'Manuale',serif;font-size:1.4rem;font-weight:700;color:var(--text);margin:0 0 20px 0;}
-  .imp-sub-btn{padding:8px 18px;border-radius:10px;border:1.5px solid #a0c8b0;background:transparent;color:#5a8a6a;font-family:'Exo 2',sans-serif;font-weight:700;font-size:.83rem;cursor:pointer;transition:all .15s}
-  .imp-sub-btn:hover:not(.imp-sub-active){border-color:#3B6D11;color:#3B6D11}
-  .imp-sub-active{background:#639922 !important;color:#fff !important;border:2.5px solid #3B6D11 !important}
+  .imp-sub-btn{padding:8px 18px;border-radius:10px;border:1.5px solid var(--border2);background:transparent;color:var(--muted);font-family:'Exo 2',sans-serif;font-weight:700;font-size:.83rem;cursor:pointer;transition:all .15s}
+  .imp-sub-btn:hover:not(.imp-sub-active){border-color:var(--forest-dark);color:var(--forest-dark)}
+  .imp-sub-active{background:var(--forest) !important;color:#fff !important;border:2.5px solid var(--forest-dark) !important}
   .sub-tab:hover:not(.active){border-color:var(--teal);color:var(--forest)}
   /* toast */
   .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--forest);color:white;padding:12px 20px;border-radius:10px;font-size:.85rem;font-weight:600;z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,.2);transition:opacity .3s;pointer-events:none}
@@ -810,10 +826,10 @@ window.addEventListener('orientationchange', ()=>setTimeout(setVH,150));
       top: 7px; right: 6px;
       min-width: 18px; height: 18px;
       border-radius: 99px; padding: 0 4px;
-      background: #efe454;
+      background: var(--lime);
       font-size: .6rem;
       font-weight: 700;
-      color: #1a3322;
+      color: var(--text);
       display: flex; align-items: center; justify-content: center;
       border: 2px solid var(--sidebar-bg); box-sizing: border-box;
     }
@@ -948,7 +964,7 @@ window.addEventListener('orientationchange', ()=>setTimeout(setVH,150));
 .conv-preview { font-size:.74rem; color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-top:1px; }
 .conv-meta { display:flex; flex-direction:column; align-items:flex-end; gap:4px; flex-shrink:0; }
 .conv-time { font-size:.68rem; color:var(--muted); }
-.conv-unread { background:#a0cb7b; color:#1a3322; border-radius:99px; padding:2px 6px; font-size:.65rem; font-weight:700; min-width:18px; text-align:center; }
+.conv-unread { background:var(--sage); color:var(--text); border-radius:99px; padding:2px 6px; font-size:.65rem; font-weight:700; min-width:18px; text-align:center; }
 .chat-input-bar { background:var(--surface); border-top:1px solid var(--border); padding:10px 14px; display:flex; align-items:flex-end; gap:8px; flex-shrink:0; }
 .chat-textarea { flex:1; background:var(--bg); border:1.5px solid var(--border); border-radius:20px; padding:9px 15px; font-family:'Exo 2'; font-size:16px; color:var(--text); resize:none; max-height:100px; overflow-y:auto; line-height:1.45; }
 .chat-textarea:focus { outline:none; border-color:var(--teal); }
@@ -984,7 +1000,7 @@ window.addEventListener('orientationchange', ()=>setTimeout(setVH,150));
 .vote-row { display:flex; align-items:center; gap:12px; padding:10px 14px; border:1px solid var(--border); border-radius:10px; margin-bottom:6px; background:var(--surface); }
 .vote-dt { font-size:.85rem; font-weight:700; color:var(--text); flex:1; }
 .vc-yes { background:var(--teal); color:white; border:none; border-radius:6px; padding:4px 10px; font-size:.75rem; font-weight:700; cursor:pointer; }
-.vc-no { background:#fde8e8; color:var(--danger); border:none; border-radius:6px; padding:4px 10px; font-size:.75rem; font-weight:700; cursor:pointer; }
+.vc-no { background:var(--danger-pale); color:var(--danger); border:none; border-radius:6px; padding:4px 10px; font-size:.75rem; font-weight:700; cursor:pointer; }
 .vc-none { background:var(--border); color:var(--muted); border:none; border-radius:6px; padding:4px 10px; font-size:.75rem; font-weight:700; cursor:pointer; }
 .best-row { background:var(--lime-pale); border-color:var(--lime-dark); }
 .slot-item { display:flex; align-items:center; justify-content:space-between; padding:8px 12px; background:var(--bg); border-radius:8px; margin-bottom:4px; font-size:.85rem; }
@@ -1057,8 +1073,8 @@ window.addEventListener('orientationchange', ()=>setTimeout(setVH,150));
   height: 18px;
   border-radius: 99px;
   padding: 0 4px;
-  background: #efe454;
-  color: #1a3322;
+  background: var(--lime);
+  color: var(--text);
   font-size: .6rem;
   font-weight: 700;
   display: flex;
@@ -1068,8 +1084,8 @@ window.addEventListener('orientationchange', ()=>setTimeout(setVH,150));
   box-sizing: border-box;
 }
 .bn-item.active .bn-badge {
-  background: #a0cb7b;
-  border-color: #ece455;
+  background: var(--sage);
+  border-color: var(--sidebar-active);
 }
 
 /* v1775051783 */
@@ -1377,7 +1393,7 @@ function LoginPage() {
           </div>
         </div>
 
-        ${error&&html`<div style=${{background:"#fff0ef",border:"1px solid #f5c0bc",borderRadius:10,padding:"10px 14px",fontSize:".83rem",color:"var(--danger)",marginBottom:14}}>${error}</div>`}
+        ${error&&html`<div style=${{background:"var(--danger-pale)",border:"1px solid var(--danger-border)",borderRadius:10,padding:"10px 14px",fontSize:".83rem",color:"var(--danger)",marginBottom:14}}>${error}</div>`}
 
         <button onClick=${doGoogle} disabled=${loading}
           style=${{width:"100%",padding:"11px",borderRadius:10,border:"1.5px solid var(--border)",background:"var(--surface)",cursor:"pointer",fontFamily:"'Exo 2',sans-serif",fontWeight:700,fontSize:".88rem",color:"var(--text)",display:"flex",alignItems:"center",justifyContent:"center",gap:10,marginBottom:14}}>
@@ -1531,7 +1547,7 @@ function DashboardPage({coachees,library,doodles,setPage,user}) {
           <div class="stat-value">${library.length}</div>
           <div class="stat-hint">Materialien</div>
         </div>
-        <div class="stat-card" onClick=${()=>setPage("doodle")} style=${{cursor:"pointer",borderLeft:"4px solid #c4b8a8"}}>
+        <div class="stat-card" onClick=${()=>setPage("doodle")} style=${{cursor:"pointer",borderLeft:"4px solid var(--neutral)"}}>
           <div class="stat-label">Termine</div>
           <div class="stat-value">${openDoodles}</div>
           <div class="stat-hint">offen</div>
@@ -1976,10 +1992,10 @@ function ChatWindow({coachee,onSend,onSendImg,onSendFile,onBack,mobileOpen}) {
         <button class="attach-btn" onClick=${()=>attachRef.current?.click()}><${Ic} name="attach" size=${18}/></button>
         <button class="attach-btn"
           onClick=${recording?stopRecording:startRecording}
-          style=${{color:recording?"#e53e3e":"var(--muted)",position:"relative"}}>
+          style=${{color:recording?"var(--danger)":"var(--muted)",position:"relative"}}>
           <${Ic} name=${recording?"stop":"mic"} size=${18}/>
           ${recording&&html`<span style=${{position:"absolute",top:1,right:1,width:7,height:7,
-            borderRadius:"50%",background:"#e53e3e",border:"2px solid var(--surface)"}}/>`}
+            borderRadius:"50%",background:"var(--danger)",border:"2px solid var(--surface)"}}/>`}
         </button>
         <textarea ref=${textRef} class="input-box" rows=${1} value=${input}
           onInput=${e=>setInput(e.target.value)} onKeyDown=${handleKey}
@@ -2050,7 +2066,7 @@ function ChatWindow({coachee,onSend,onSendImg,onSendFile,onBack,mobileOpen}) {
           zIndex:99999,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
           <div style=${{width:"90vw",height:"82vh",background:"white",borderRadius:12,display:"flex",flexDirection:"column",overflow:"hidden"}}>
             <div style=${{display:"flex",alignItems:"center",justifyContent:"space-between",
-              padding:"10px 14px",background:"#1e3a2f",flexShrink:0,gap:10}}>
+              padding:"10px 14px",background:"var(--overlay-dark)",flexShrink:0,gap:10}}>
               <div style=${{display:"flex",alignItems:"center",gap:8,minWidth:0,flex:1,overflow:"hidden"}}>
                 <${Ic} name="file" size=${16} style=${{color:"rgba(255,255,255,.7)",flexShrink:0}}/>
                 <span style=${{fontSize:".85rem",fontWeight:600,color:"white",overflow:"hidden",
@@ -2177,7 +2193,7 @@ function CoacheesPage({coachees,setCoachees,setPage}) {
               <button style=${{background:"none",border:"none",cursor:"pointer",color:"var(--muted)",padding:4,borderRadius:8,display:"flex"}} onClick=${()=>setShowAdd(false)}><${Ic} name="x" size=${20}/></button>
             </div>
             <div class="modal-preview">
-              <div style=${{width:46,height:46,borderRadius:"50%",background:form.firstname?AVATAR_BG[[...form.firstname].length%AVATAR_BG.length]:AVATAR_BG[0],display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,fontSize:".9rem",color:"#1a3322",flexShrink:0}}>
+              <div style=${{width:46,height:46,borderRadius:"50%",background:form.firstname?AVATAR_BG[[...form.firstname].length%AVATAR_BG.length]:AVATAR_BG[0],display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,fontSize:".9rem",color:"var(--text)",flexShrink:0}}>
                 ${[form.firstname,form.lastname].filter(Boolean).join(" ").split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase()||"?"}
               </div>
               <div style=${{flex:1,minWidth:0}}>
@@ -2599,14 +2615,14 @@ function LibraryPage({library,setLibrary}) {
       <div class="lib-grid">
         ${filtered.map(item=>html`
           <div key=${item.id} class="lib-card" onClick=${()=>openViewer(item)}>
-            <div class="lib-thumb" style=${{background:BG[item.type]||"#f0ede8",borderBottom:"2px solid "+(COLOR[item.type]||"#c4b8a8"),position:"relative",overflow:"hidden"}}>
+            <div class="lib-thumb" style=${{background:BG[item.type]||"#f0ede8",borderBottom:"2px solid "+(COLOR[item.type]||"var(--neutral)"),position:"relative",overflow:"hidden"}}>
               <${ThumbContent} item=${item}/>
               <span class=${"lib-type-badge "+(BadgeCls[item.type]||"badge-dokus")}>
                 <${Ic} name=${item.type==="audio"?"music":item.type==="video"?"video":item.type==="foto"?"image":"file"} size=${10}/>
                 ${item.type==="audio"?"Audio":item.type==="video"?"Video":item.type==="foto"?"Foto":"Doku"}
               </span>
             </div>
-            <div class="lib-card-body" style=${{borderLeft:"3px solid "+(COLOR[item.type]||"#c4b8a8")}}>
+            <div class="lib-card-body" style=${{borderLeft:"3px solid "+(COLOR[item.type]||"var(--neutral)")}}>
               <div class="lib-card-title">${item.title}</div>
               ${item.desc&&html`<div class="lib-card-desc">${item.desc}</div>`}
               ${item.keywords&&html`<div style=${{marginTop:5,display:"flex",flexWrap:"wrap",gap:4}}>
@@ -2634,7 +2650,7 @@ function LibraryPage({library,setLibrary}) {
 
       ${viewer&&html`
         <div style=${{position:"fixed",inset:0,background:"rgba(0,0,0,.9)",zIndex:99999,display:"flex",flexDirection:"column"}} onClick=${closeViewer}>
-          <div style=${{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 14px",background:"#1e3a2f",flexShrink:0,gap:10}} onClick=${e=>e.stopPropagation()}>
+          <div style=${{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 14px",background:"var(--overlay-dark)",flexShrink:0,gap:10}} onClick=${e=>e.stopPropagation()}>
             <div style=${{display:"flex",alignItems:"center",gap:8,minWidth:0,flex:1,overflow:"hidden"}}>
               <${Ic} name=${viewer.type==="audio"?"music":viewer.type==="video"?"video":viewer.type==="foto"?"image":"file"} size=${16} style=${{color:"rgba(255,255,255,.7)",flexShrink:0}}/>
               <span style=${{fontSize:".85rem",fontWeight:600,color:"white",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>${viewer.name}</span>
@@ -2659,7 +2675,7 @@ function LibraryPage({library,setLibrary}) {
             <div style=${{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:16,padding:24}} onClick=${e=>e.stopPropagation()}>
               <embed src=${viewer.url} type="application/pdf" style=${{width:"100%",flex:1,borderRadius:8,minHeight:200}} onError=${()=>{}}/>
               <a href=${viewer.url} download=${viewer.name} target="_blank" rel="noopener"
-                style=${{display:"flex",alignItems:"center",gap:8,padding:"10px 20px",background:"#4a9e62",color:"white",borderRadius:10,fontFamily:"'Exo 2',sans-serif",fontWeight:700,fontSize:".85rem",textDecoration:"none",flexShrink:0}}>
+                style=${{display:"flex",alignItems:"center",gap:8,padding:"10px 20px",background:"var(--sidebar-bg)",color:"white",borderRadius:10,fontFamily:"'Exo 2',sans-serif",fontWeight:700,fontSize:".85rem",textDecoration:"none",flexShrink:0}}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                 Öffnen / Herunterladen
               </a>
@@ -2692,7 +2708,7 @@ function LibraryPage({library,setLibrary}) {
                   <button key=${t} onClick=${()=>setForm(f=>({...f,type:t}))}
                     style=${{padding:"7px 10px",borderRadius:10,border:"1.5px solid",fontFamily:"'Exo 2',sans-serif",fontWeight:700,fontSize:".79rem",cursor:"pointer",display:"flex",alignItems:"center",gap:6,
                     borderColor:form.type===t?(COLOR[t]||"var(--teal)"):"var(--border)",
-                    background:form.type===t?(t==="audio"?"#e8f7ee":t==="video"?"#eef7e4":t==="foto"?"#e0f5fb":"var(--sage)"):"var(--surface)",
+                    background:form.type===t?(t==="audio"?"var(--teal-pale)":t==="video"?"var(--sage-pale)":t==="foto"?"var(--sky-pale)":"var(--sage)"):"var(--surface)",
                     color:"var(--text)"}}>
                     <${Ic} name=${t==="audio"?"music":t==="video"?"video":t==="foto"?"image":"file"} size=${13}/>
                     ${t==="audio"?"Audio":t==="video"?"Video":t==="foto"?"Foto":"Doku"}
@@ -2886,7 +2902,7 @@ function ImpulsBibliothekTab() {
           style=${{width:"100%",resize:"vertical",fontFamily:"monospace",fontSize:".8rem",boxSizing:"border-box",marginBottom:12}}
         ></textarea>
         <button class="btn btn-secondary" onClick=${handleParse} disabled=${!jsonText.trim()} style=${{marginRight:10}}>Vorschau prüfen</button>
-        ${parseErr && html`<div style=${{color:"#e53e3e",fontSize:".82rem",marginTop:8}}>${parseErr}</div>`}
+        ${parseErr && html`<div style=${{color:"var(--danger)",fontSize:".82rem",marginTop:8}}>${parseErr}</div>`}
       </div>
 
       ${preview && html`
@@ -2956,9 +2972,9 @@ function ImpulsPhasenTab() {
   };
 
   const INTERVALS = {
-    einzel:      { label: "Einzelcoaching",        sub: "6 Impulse · 2 Wochen · alle 2–3 Tage",            color: "#4a9e62" },
-    paar:        { label: "Paar- / Elterncoaching", sub: "6 Impulse · 4 Wochen · alle 4–7 Tage",            color: "#2d7a9a" },
-    integration: { label: "Integrationsphase",      sub: "1 Impuls/Woche · zufälliger Tag · 6 Monate",      color: "#7a6a2d" }
+    einzel:      { label: "Einzelcoaching",        sub: "6 Impulse · 2 Wochen · alle 2–3 Tage",            color: "var(--pkg-einzel)" },
+    paar:        { label: "Paar- / Elterncoaching", sub: "6 Impulse · 4 Wochen · alle 4–7 Tage",            color: "var(--pkg-paar)" },
+    integration: { label: "Integrationsphase",      sub: "1 Impuls/Woche · zufälliger Tag · 6 Monate",      color: "var(--pkg-integration)" }
   };
 
   if (loading) return html`<div style=${{color:"var(--muted)",padding:"40px 0",textAlign:"center"}}>Lade Coachees…</div>`;
@@ -2991,9 +3007,9 @@ function ImpulsPhasenTab() {
                     <button key=${p} onClick=${() => setPackage(c.uid, p)}
                       style=${{
                         padding:"4px 10px", borderRadius:6, border:"1.5px solid",
-                        borderColor: pkg===p ? INTERVALS[p].color : "#a0c8b0",
+                        borderColor: pkg===p ? INTERVALS[p].color : "var(--border2)",
                         background: pkg===p ? INTERVALS[p].color : "transparent",
-                        color: pkg===p ? "#fff" : "#5a8a6a",
+                        color: pkg===p ? "#fff" : "var(--muted)",
                         fontSize:".72rem", fontWeight:700, cursor:"pointer", transition:"all .15s",
                         whiteSpace:"nowrap"
                       }}
@@ -3007,9 +3023,9 @@ function ImpulsPhasenTab() {
                       title=${"Phase " + n}
                       style=${{
                         width:38, height:38, borderRadius:"50%",
-                        border: isActive ? "2.5px solid #3B6D11" : "1px solid #a0c8b0",
-                        background: isActive ? "#639922" : "transparent",
-                        color: isActive ? "#fff" : "#5a8a6a",
+                        border: isActive ? "2.5px solid var(--forest-dark)" : "1px solid var(--border2)",
+                        background: isActive ? "var(--forest)" : "transparent",
+                        color: isActive ? "#fff" : "var(--muted)",
                         fontWeight:500, fontSize:"14px", cursor:"pointer",
                         transition:"all .15s", display:"flex", alignItems:"center", justifyContent:"center",
                         flexShrink:0
