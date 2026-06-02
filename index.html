@@ -1,5 +1,5 @@
-<!-- Version: 2026-06-02 22:04 coachee -->
-<!-- v202606022204 cache-bust: v1780430653 -->
+<!-- Version: 2026-06-02 22:08 coachee -->
+<!-- v202606022208 cache-bust: v1780430892 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
 <head>
@@ -2475,7 +2475,7 @@ function LibraryPage({library}) {
 
     if(item.type==='video') return html`
       <div>
-        <div style=${{width:'100%',maxHeight:320,aspectRatio:'16/9',background:'#111',position:'relative',overflow:'hidden'}}>
+        <div style=${{width:'100%',maxWidth:560,maxHeight:320,aspectRatio:'16/9',background:'#111',position:'relative',overflow:'hidden',margin:'0 auto'}}>
           ${item.thumbData&&html`<img src=${item.thumbData} style=${{width:'100%',height:'100%',objectFit:'cover'}}/>`}
           <div style=${{position:'absolute',inset:0,background:'rgba(0,0,0,.3)',display:'flex',alignItems:'center',justifyContent:'center'}}>
             <div style=${{width:52,height:52,borderRadius:'50%',background:'rgba(255,255,255,.92)',display:'flex',alignItems:'center',justifyContent:'center'}}>
