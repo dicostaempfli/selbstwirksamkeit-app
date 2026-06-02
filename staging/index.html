@@ -1,5 +1,5 @@
-<!-- Version: 2026-06-01 23:30 coachee-staging -->
-<!-- v202606012330 cache-bust: v1780349433 -->
+<!-- Version: 2026-06-02 09:00 coachee-staging -->
+<!-- v202606020900 cache-bust: v1780383627 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
 <head>
@@ -1166,7 +1166,7 @@
     margin-bottom:36px;
     animation:bh-done-glow 3s ease-in-out infinite;
   }
-  @keyframes bh-done-glow{0%,100%{box-shadow:0 0 30px rgba(80,200,100,.12)}50%{box-shadow:0 0 60px rgba(80,200,100,.35)}}
+  @keyframes bh-done-glow{0%,100%{box-shadow:0 0 30px rgba(21,110,110,.15)}50%{box-shadow:0 0 60px rgba(21,110,110,.38)}}
 
   </style>
 </head>
@@ -3425,7 +3425,7 @@ function BreathOverlay({ onDone }) {
             el.innerHTML = '';
             el.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;z-index:9999;background:var(--atemball-bg);display:flex;flex-direction:column;align-items:center;justify-content:center;';
             const ball = document.createElement('div');
-            ball.style.cssText = 'width:100px;height:100px;border-radius:50%;flex-shrink:0;margin-bottom:36px;background:radial-gradient(circle at 33% 28%,#faf4e8 0%,#d4e8b0 18%,var(--accent) 40%,var(--accent) 64%,var(--accent-dark) 84%,#163d24 100%);box-shadow:0 0 40px rgba(21,110,110,.22);';
+            ball.style.cssText = 'width:100px;height:100px;border-radius:50%;flex-shrink:0;margin-bottom:36px;background:radial-gradient(circle at 33% 28%,#f0ebe0 0%,#a8d4d4 18%,#3a9e9e 40%,#156e6e 64%,#0a4040 84%,#031c1c 100%);box-shadow:0 0 40px rgba(21,110,110,.22);';
             const w1 = document.createElement('div');
             w1.style.cssText = "font-family:'Exo 2',sans-serif;font-size:2rem;font-weight:300;color:rgba(255,255,255,.65);letter-spacing:6px;text-align:center;margin-bottom:20px;";
             w1.textContent = 'Ich bin.';
