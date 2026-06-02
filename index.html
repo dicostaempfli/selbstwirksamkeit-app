@@ -1,5 +1,5 @@
-<!-- Version: 2026-06-02 17:26 coachee -->
-<!-- v202606021726 cache-bust: v1780414003 -->
+<!-- Version: 2026-06-02 17:41 coachee -->
+<!-- v202606021741 cache-bust: v1780414894 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
 <head>
@@ -2427,10 +2427,10 @@ function LibraryPage({library}) {
   const [searchQ, setSearchQ] = useState('');
 
   const SECTIONS = [
-    {type:'video', label:'Video',  icon:'video',      color:'#2a6644', bg:'#eef7e4', border:'#b8ddb0'},
-    {type:'audio', label:'Audio',  icon:'music',      color:'#156e6e', bg:'#d8f0e0', border:'#a0d4c8'},
-    {type:'foto',  label:'Fotos',  icon:'photo',      color:'#0e7490', bg:'#e0f5fb', border:'#a0d8e8'},
-    {type:'dokus', label:'Dokus',  icon:'file-text',  color:'#7a7010', bg:'#fafbe0', border:'#d0cc80'},
+    {type:'video', label:'Video',  icon:'video',      color:'#156e6e', bg:'#e0eded', border:'#b0d4d4'},
+    {type:'audio', label:'Audio',  icon:'music',      color:'#156e6e', bg:'#e0eded', border:'#b0d4d4'},
+    {type:'foto',  label:'Fotos',  icon:'photo',      color:'#156e6e', bg:'#e0eded', border:'#b0d4d4'},
+    {type:'dokus', label:'Dokus',  icon:'file-text',  color:'#156e6e', bg:'#e0eded', border:'#b0d4d4'},
   ];
 
   const matches = item => !searchQ ||
@@ -2441,9 +2441,6 @@ function LibraryPage({library}) {
   const toggle = id => setOpenId(v => v === id ? null : id);
 
   const ThumbSmall = ({item, sec}) => {
-    if((item.type==='video'||item.type==='foto') && item.thumbData) {
-      return html`<img src=${item.thumbData} style=${{width:'100%',height:'100%',objectFit:'cover',borderRadius:9,display:'block'}}/>`;
-    }
     return html`
       <div style=${{width:'100%',height:'100%',background:sec.bg,borderRadius:9,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:3}}>
         ${item.type==='audio' ? html`
