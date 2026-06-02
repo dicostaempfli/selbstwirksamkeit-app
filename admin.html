@@ -1,4 +1,4 @@
-<!-- Version: 2026-06-02 21:45 admin -->
+<!-- Version: 2026-06-02 21:50 admin -->
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -1527,7 +1527,7 @@ function DashboardPage({coachees,library,doodles,setPage,user}) {
         <div>
           <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.3rem",fontWeight:700,color:"var(--text)"}}>${greeting}</div>
           <div style=${{fontSize:".88rem",color:"var(--muted)",marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"calc(100vw - 120px)"}}>Admin-Portal · Raum für Selbstwirksamkeit</div>
-          <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-06-02 21:45 · Doku v3.16 · 2026-06-02 21:45
+          <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-06-02 21:50 · Doku v3.16 · 2026-06-02 21:50
           </div>
         </div>
       </div>
@@ -2435,6 +2435,7 @@ function CoacheesPage({coachees,setCoachees,setPage}) {
 function LibraryPage({library,setLibrary}) {
   const [openId, setOpenId]       = useState(null);
   const [searchQ, setSearchQ]     = useState('');
+  const [photoOverlay, setPhotoOverlay] = useState(null);
   const [showUpload, setShowUpload] = useState(false);
   const [form, setForm]           = useState({title:'',desc:'',type:'audio',keywords:''});
   const [fileData, setFileData]   = useState(null);
@@ -2635,7 +2636,7 @@ function LibraryPage({library,setLibrary}) {
         <div style=${{width:'100%',maxHeight:400,background:'#111',overflow:'hidden',display:'flex',alignItems:'center',justifyContent:'center',position:'relative'}}>
           ${(item.fileUrl||item.thumbData)
             ? html`<img src=${item.fileUrl||item.thumbData} style=${{maxWidth:'100%',maxHeight:400,objectFit:'contain',display:'block',cursor:'zoom-in'}}
-                onClick=${()=>{ const w=window.open('','_blank'); w.document.write('<html><body style="margin:0;background:#000;display:flex;align-items:center;justify-content:center;min-height:100vh"><img src="'+encodeURI(item.fileUrl||item.thumbData)+'" style="max-width:100%;max-height:100vh;object-fit:contain"/><button onclick="window.close()" style="position:fixed;top:12px;right:12px;background:#156e6e;color:white;border:none;border-radius:8px;padding:8px 16px;font-size:14px;font-weight:700;cursor:pointer">✕ Schliessen</button></body></html>'); }}/>`
+                onClick=${()=>setPhotoOverlay(item.fileUrl||item.thumbData)}/>`
             : html`<div style=${{padding:40,color:'rgba(255,255,255,.3)',fontSize:'.85rem'}}>Kein Vorschaubild</div>`}
           <button onClick=${()=>setOpenId(null)} style=${{position:'absolute',top:10,right:10,width:32,height:32,borderRadius:'50%',background:'rgba(0,0,0,.55)',color:'white',border:'none',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -2654,8 +2655,10 @@ function LibraryPage({library,setLibrary}) {
     if(item.type==='dokus') return html`
       <div style=${{position:'relative'}}>
         ${item.fileUrl&&html`
-          <div style=${{width:'100%',overflowX:'hidden',overflowY:'auto'}}>
-            <iframe src=${item.fileUrl} style=${{width:'100%',height:'70vh',border:'none',display:'block',background:'#f5f5f5',maxWidth:'100%'}}
+          <div style=${{width:'100%',overflow:'hidden',position:'relative'}}>
+            <iframe src=${item.fileUrl}
+              style=${{width:'100%',height:'70vh',border:'none',display:'block',background:'#f5f5f5',maxWidth:'100%',touchAction:'pan-y'}}
+              scrolling="yes"
               title=${item.title}/>
           </div>`}
         ${!item.fileUrl&&html`
@@ -2801,6 +2804,16 @@ function LibraryPage({library,setLibrary}) {
           </div>
         </div>`}
     </div>
+      ${photoOverlay&&html`
+        <div style=${{position:'fixed',inset:0,background:'rgba(0,0,0,.95)',zIndex:999,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center'}}
+          onClick=${()=>setPhotoOverlay(null)}>
+          <button onClick=${e=>{e.stopPropagation();setPhotoOverlay(null);}}
+            style=${{position:'fixed',top:14,right:14,width:36,height:36,borderRadius:'50%',background:'rgba(255,255,255,.15)',color:'white',border:'none',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',zIndex:1000}}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+          <img src=${photoOverlay} style=${{maxWidth:'100%',maxHeight:'90vh',objectFit:'contain',display:'block'}}
+            onClick=${e=>e.stopPropagation()}/>
+        </div>`}
   `;
 }
 
