@@ -1,4 +1,4 @@
-<!-- Version: 2026-06-02 14:14 admin -->
+<!-- Version: 2026-06-02 14:55 admin -->
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -1428,43 +1428,10 @@ function LoginPage() {
 // ── MAIN APP ──
 function AdminApp({user}) {
   const [page,setPage] = useState("dashboard");
-  const [coachees,setCoachees] = useState([]);
+  const [coachees,setCoachees] = useState(INIT_COACHEES);
   const [library,setLibrary] = useState([]);
   const [doodles,setDoodles] = useState(INIT_DOODLES);
   const totalUnread = coachees.reduce((a,c)=>a+(c.unread||0),0);
-
-  // ── Coachees from Firestore users ──
-  useEffect(() => {
-    const firestore = db();
-    if(!firestore) return;
-    const unsub = firestore.collection("users").onSnapshot(snap => {
-      const list = snap.docs.map(d => {
-        const data = d.data();
-        const initials = (data.name||"?").split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase();
-        return {
-          id: d.id,          // Firebase UID — used for Doodle recipients
-          uid: d.id,
-          name: data.name || data.email || d.id.slice(0,8),
-          initials,
-          color: AVATAR_BG[snap.docs.indexOf(snap.docs.find(x=>x.id===d.id)) % AVATAR_BG.length],
-          photo: null,
-          online: false,
-          topic: [data.packageType, data.modell].filter(Boolean).join(" · ") || "Coachee",
-          unread: 0,
-          lastTime: "",
-          messages: [],
-          coaching: data.coaching || [],
-          gender: data.gender || [],
-          categories: data.categories || [],
-          notes: data.notes || "",
-          activePhase: data.activePhase || null,
-          packageType: data.packageType || null,
-        };
-      });
-      setCoachees(list);
-    }, () => {});
-    return () => unsub();
-  }, []);
 
   // ── Library Firebase Sync ──
   useEffect(() => {
@@ -2124,23 +2091,31 @@ function ChatWindow({coachee,onSend,onSendImg,onSendFile,onBack,mobileOpen}) {
 
 function CoacheesPage({coachees,setCoachees,setPage}) {
   const [showAdd,setShowAdd]         = useState(false);
-  const [form,setForm]               = useState({firstname:"",lastname:"",notes:"",modell:"",coaching:[],kids:false,gender:[]});
+  const [form,setForm]               = useState({firstname:"",lastname:"",email:"",password:"",notes:"",modell:"",coaching:[],kids:false,gender:[]});
   const [editId,setEditId]           = useState(null);
+  const [showEmail,setShowEmail]     = useState(null);
   const [editForm,setEditForm]       = useState({});
 
   const addCoachee = () => {
     const fname = form.firstname.trim();
-    if(!fname) return;
+    if(!fname||!form.email.trim()) return;
     const fullname = [fname, form.lastname.trim()].filter(Boolean).join(" ");
     const initials = fullname.split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase();
-    const topic = [...(form.coaching||[]), form.kids?"mit Kids":""].filter(Boolean).join(", ") || form.modell || "Coaching";
-    const nc={id:"c"+Date.now(),name:fullname,initials,color:AVATAR_BG[coachees.length%AVATAR_BG.length],photo:null,online:false,
-      topic,modell:form.modell,coaching:form.coaching||[],kids:form.kids,gender:form.gender||[],notes:form.notes,categories:[...(form.coaching||[]),...(form.gender||[])],
-      unread:0,lastTime:"Jetzt",messages:[]};
-    setCoachees(cs=>[...cs,nc]);
+    const pw = form.password.trim() || "Selbstwirksamkeit2026!";
+    const firestore = db();
+    if(firestore) {
+      firestore.collection("users_pending").add({
+        name:fullname, email:form.email.trim(),
+        packageType:(form.coaching||[])[0]?.toLowerCase()||form.modell?.toLowerCase()||"einzel",
+        coaching:form.coaching||[], gender:form.gender||[],
+        categories:[...(form.coaching||[]),...(form.gender||[])],
+        modell:form.modell, notes:form.notes, kids:form.kids,
+        activePhase:1, createdAt:Date.now()
+      }).then(()=>showToast("✓ In Firestore gespeichert")).catch(()=>{});
+    }
+    setShowEmail({name:fullname, email:form.email.trim(), password:pw});
     setShowAdd(false);
-    setForm({firstname:"",lastname:"",notes:"",modell:"",coaching:[],kids:false,gender:[]});
-    showToast("✓ Coachee hinzugefügt");
+    setForm({firstname:"",lastname:"",email:"",password:"",notes:"",modell:"",coaching:[],kids:false,gender:[]});
   };
 
   const openEdit = (c) => { setEditId(c.id); setEditForm({firstname:c.name.split(" ")[0]||"",lastname:c.name.split(" ").slice(1).join(" ")||"",notes:c.notes||"",modell:c.modell||"",coaching:c.coaching||"",kids:c.kids||false,gender:c.gender||""}); };
@@ -2252,6 +2227,14 @@ function CoacheesPage({coachees,setCoachees,setPage}) {
               </div>
             </div>
             <div class="form-row">
+              <label class="label">E-Mail *</label>
+              <input class="input" type="email" value=${form.email} onInput=${e=>setForm(f=>({...f,email:e.target.value}))} placeholder="anna.meier@example.ch"/>
+            </div>
+            <div class="form-row">
+              <label class="label">Passwort <span style=${{fontSize:".7rem",fontWeight:400,textTransform:"none",color:"var(--muted)"}}>— leer = automatisch</span></label>
+              <input class="input" value=${form.password} onInput=${e=>setForm(f=>({...f,password:e.target.value}))} placeholder="Selbstwirksamkeit2026!"/>
+            </div>
+            <div class="form-row">
               <label class="label">Bemerkungen</label>
               <textarea class="textarea" rows=${2} value=${form.notes} onInput=${e=>setForm(f=>({...f,notes:e.target.value}))} placeholder="Notizen zum Coachee…"/>
             </div>
@@ -2284,10 +2267,41 @@ function CoacheesPage({coachees,setCoachees,setPage}) {
             </div>
             <div class="modal-actions">
               <button class="btn btn-ghost" onClick=${()=>setShowAdd(false)}>Abbrechen</button>
-              <button class="btn btn-primary" onClick=${addCoachee}>Erstellen</button>
+              <button class="btn btn-primary" onClick=${addCoachee} disabled=${!form.firstname.trim()||!form.email.trim()}>Erstellen & E-Mail anzeigen</button>
             </div>
           </div>
         </div>`}
+
+      ${showEmail&&h("div",{style:{position:"fixed",inset:0,background:"rgba(0,0,0,0.45)",zIndex:300,display:"flex",alignItems:"center",justifyContent:"center",padding:"20px"}},
+        h("div",{style:{background:"var(--surface)",borderRadius:18,padding:28,maxWidth:560,width:"100%",maxHeight:"90dvh",overflowY:"auto",boxShadow:"0 8px 40px rgba(0,0,0,.18)"}},
+          h("div",{style:{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16}},
+            h("div",{style:{fontFamily:"'Manuale',serif",fontSize:"1.15rem",fontWeight:700,color:"var(--text)"}},"Willkommens-E-Mail"),
+            h("button",{onClick:()=>setShowEmail(null),style:{background:"none",border:"none",cursor:"pointer",color:"var(--muted)",fontSize:"1.3rem"}},"\u2715")
+          ),
+          h("div",{style:{background:"var(--sage-pale)",border:"1px solid var(--border)",borderRadius:12,padding:"14px 16px",marginBottom:16,fontSize:".82rem",color:"var(--muted)",lineHeight:1.6}},
+            h("strong",{style:{color:"var(--forest)",display:"block",marginBottom:6}},"\u26a0\ufe0f Noch zu tun: Firebase Auth-User anlegen"),
+            h("span",null,"Gehe zu "),
+            h("a",{href:"https://console.firebase.google.com/project/selbstwirksamkeits-app/authentication/users",target:"_blank",rel:"noopener",style:{color:"var(--teal)",fontWeight:700}},"Firebase Console \u2192 Authentication"),
+            h("span",null," \u2192 \u00abNutzer hinzuf\u00fcgen\u00bb \u2192 E-Mail: "),
+            h("strong",null,showEmail&&showEmail.email),
+            h("span",null," \u00b7 Passwort: "),
+            h("strong",null,showEmail&&showEmail.password)
+          ),
+          h("div",{className:"email-copy-area",style:{background:"var(--bg)",border:"1.5px solid var(--border)",borderRadius:12,padding:"16px 18px",fontFamily:"Georgia,serif",fontSize:".88rem",lineHeight:1.9,color:"var(--text)",whiteSpace:"pre-wrap",userSelect:"all",marginBottom:16}},
+            showEmail&&("Liebe/r "+showEmail.name+"\n\nHerzlich willkommen bei Raum f\u00fcr Selbstwirksamkeit!\n\nWir freuen uns sehr, dich auf diesem Weg begleiten zu d\u00fcrfen. Deine pers\u00f6nliche Coaching-App ist jetzt f\u00fcr dich freigeschaltet.\n\nSo gelangst du zur App:\nhttps://dicostaempfli.github.io/selbstwirksamkeit-app/\n\nDeine Zugangsdaten:\nE-Mail: "+showEmail.email+"\nPasswort: "+showEmail.password+"\n\nWas dich erwartet:\n\u2022 Tages-Impuls \u2014 ein t\u00e4glicher Impuls vom Denken ins F\u00fchlen\n\u2022 Atemball \u2014 dein t\u00e4gliches Ritual zur Zentrierung\n\u2022 Meine Impulse \u2014 deine pers\u00f6nlichen Erinnerungen\n\u2022 Chat \u2014 direkte Verbindung zu uns\n\nDie App ist bewusst einfach gehalten \u2014 kein Zeitfresser, sondern ein sanfter Anker im Alltag.\n\nWir freuen uns auf den gemeinsamen Weg.\n\nHerzlich,\nDiana & Rico\nRaum f\u00fcr Selbstwirksamkeit\nwww.selbstwirksamkeit.ch")
+          ),
+          h("div",{style:{display:"flex",gap:10}},
+            h("button",{
+              onClick:()=>{
+                const el=document.querySelector(".email-copy-area");
+                if(el){try{navigator.clipboard.writeText(el.innerText).then(()=>showToast("\u2713 E-Mail kopiert!")).catch(()=>{});}catch(e){}}
+              },
+              style:{flex:1,height:42,background:"var(--teal)",color:"#fff",border:"none",borderRadius:10,fontWeight:700,fontFamily:"'Exo 2',sans-serif",fontSize:".85rem",cursor:"pointer"}
+            },"E-Mail-Text kopieren"),
+            h("button",{onClick:()=>setShowEmail(null),style:{height:42,padding:"0 18px",background:"none",border:"1.5px solid var(--border2)",borderRadius:10,fontWeight:700,fontFamily:"'Exo 2',sans-serif",fontSize:".85rem",cursor:"pointer",color:"var(--muted)"}},"Schliessen")
+          )
+        )
+      )}
 
       ${editId&&html`
         <div class="coachee-edit-sheet" onClick=${e=>{if(e.target===e.currentTarget)setEditId(null);}}>
