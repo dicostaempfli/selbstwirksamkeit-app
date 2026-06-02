@@ -1,5 +1,5 @@
-<!-- Version: 2026-06-02 21:22 coachee -->
-<!-- v202606022122 cache-bust: v1780428146 -->
+<!-- Version: 2026-06-02 21:39 coachee -->
+<!-- v202606022139 cache-bust: v1780429182 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
 <head>
@@ -2509,17 +2509,27 @@ function LibraryPage({library}) {
       </div>`;
 
     if(item.type==='dokus') return html`
-      <div>
-        <div style=${{padding:'12px 16px',background:sec.bg,borderTop:'0.5px solid '+sec.border}}>
-          <div style=${{fontSize:'.8rem',color:'var(--muted)',marginBottom:10,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>${item.fileName||item.title}</div>
-          <div style=${{display:'flex',gap:8}}>
+      <div style=${{position:'relative'}}>
+        ${item.fileUrl&&html`
+          <iframe src=${item.fileUrl} style=${{width:'100%',height:'70vh',border:'none',display:'block',background:'#f5f5f5'}}
+            title=${item.title}/>`}
+        ${!item.fileUrl&&html`
+          <div style=${{padding:'24px 16px',textAlign:'center',color:'var(--muted)',fontSize:'.85rem'}}>Keine Datei verfügbar</div>`}
+        <button onClick=${()=>setOpenId(null)}
+          style=${{position:'absolute',top:10,right:10,width:32,height:32,borderRadius:'50%',background:'rgba(0,0,0,.55)',color:'white',border:'none',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',zIndex:10}}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+        <div style=${{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'8px 14px',background:'var(--surface)',borderTop:'0.5px solid var(--border)'}}>
+          <span style=${{fontSize:'.75rem',color:'var(--muted)',flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',marginRight:8}}>${item.fileName||item.title}</span>
+          <div style=${{display:'flex',gap:6,flexShrink:0}}>
             ${item.fileUrl&&html`
               <a href=${item.fileUrl} target="_blank" rel="noopener"
-                style=${{flex:1,display:'flex',alignItems:'center',justifyContent:'center',gap:6,padding:'8px 14px',background:'#156e6e',color:'white',borderRadius:8,fontFamily:"'Exo 2',sans-serif",fontWeight:700,fontSize:'.8rem',textDecoration:'none'}}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                Öffnen
+                style=${{display:'flex',alignItems:'center',gap:5,padding:'5px 11px',background:'#156e6e',color:'white',borderRadius:7,fontFamily:"'Exo 2',sans-serif",fontWeight:700,fontSize:'.75rem',textDecoration:'none'}}>
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Download
               </a>`}
-            <button onClick=${()=>setOpenId(null)} style=${{display:'flex',alignItems:'center',gap:5,padding:'8px 14px',background:'none',color:'#156e6e',border:'1.5px solid #156e6e',borderRadius:8,fontFamily:"'Exo 2',sans-serif",fontWeight:700,fontSize:'.8rem',cursor:'pointer',flexShrink:0}}>
+            <button onClick=${()=>setOpenId(null)}
+              style=${{display:'flex',alignItems:'center',gap:5,padding:'5px 11px',background:'none',color:'#156e6e',border:'1.5px solid #156e6e',borderRadius:7,fontFamily:"'Exo 2',sans-serif",fontWeight:700,fontSize:'.75rem',cursor:'pointer'}}>
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#156e6e" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Schliessen
             </button>
           </div>
