@@ -1,5 +1,5 @@
-<!-- Version: 2026-06-02 17:41 coachee -->
-<!-- v202606021741 cache-bust: v1780414894 -->
+<!-- Version: 2026-06-02 17:48 coachee -->
+<!-- v202606021748 cache-bust: v1780415335 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
 <head>
@@ -2427,10 +2427,10 @@ function LibraryPage({library}) {
   const [searchQ, setSearchQ] = useState('');
 
   const SECTIONS = [
-    {type:'video', label:'Video',  icon:'video',      color:'#156e6e', bg:'#e0eded', border:'#b0d4d4'},
-    {type:'audio', label:'Audio',  icon:'music',      color:'#156e6e', bg:'#e0eded', border:'#b0d4d4'},
-    {type:'foto',  label:'Fotos',  icon:'photo',      color:'#156e6e', bg:'#e0eded', border:'#b0d4d4'},
-    {type:'dokus', label:'Dokus',  icon:'file-text',  color:'#156e6e', bg:'#e0eded', border:'#b0d4d4'},
+    {type:'video', label:'Video',  icon:'play',   color:'#156e6e', bg:'#e0eded', border:'#b0d4d4'},
+    {type:'audio', label:'Audio',  icon:'music',  color:'#156e6e', bg:'#e0eded', border:'#b0d4d4'},
+    {type:'foto',  label:'Fotos',  icon:'image',  color:'#156e6e', bg:'#e0eded', border:'#b0d4d4'},
+    {type:'dokus', label:'Dokus',  icon:'file',   color:'#156e6e', bg:'#e0eded', border:'#b0d4d4'},
   ];
 
   const matches = item => !searchQ ||
@@ -2441,6 +2441,16 @@ function LibraryPage({library}) {
   const toggle = id => setOpenId(v => v === id ? null : id);
 
   const ThumbSmall = ({item, sec}) => {
+    if((item.type==='video'||item.type==='foto') && item.thumbData) return html`
+      <div style=${{width:'100%',height:'100%',position:'relative',overflow:'hidden'}}>
+        <img src=${item.thumbData} style=${{width:'100%',height:'100%',objectFit:'cover',display:'block',borderRadius:9}}/>
+        ${item.type==='video'&&html`<div style=${{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center'}}>
+          <div style=${{width:22,height:22,borderRadius:'50%',background:'rgba(255,255,255,.88)',display:'flex',alignItems:'center',justifyContent:'center'}}>
+            <svg width="8" height="8" viewBox="0 0 24 24" fill="#156e6e"><path d="M5 3l14 9-14 9V3z"/></svg>
+          </div>
+        </div>`}
+        ${item.duration&&html`<div style=${{position:'absolute',bottom:2,right:3,background:'rgba(0,0,0,.6)',color:'white',fontSize:'6px',fontWeight:700,padding:'1px 3px',borderRadius:3}}>${item.duration}</div>`}
+      </div>`;
     return html`
       <div style=${{width:'100%',height:'100%',background:sec.bg,borderRadius:9,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:3}}>
         ${item.type==='audio' ? html`
