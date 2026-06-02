@@ -1,5 +1,5 @@
-<!-- Version: 2026-06-02 21:39 coachee -->
-<!-- v202606022139 cache-bust: v1780429182 -->
+<!-- Version: 2026-06-02 21:45 coachee -->
+<!-- v202606022145 cache-bust: v1780429502 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
 <head>
@@ -2511,8 +2511,10 @@ function LibraryPage({library}) {
     if(item.type==='dokus') return html`
       <div style=${{position:'relative'}}>
         ${item.fileUrl&&html`
-          <iframe src=${item.fileUrl} style=${{width:'100%',height:'70vh',border:'none',display:'block',background:'#f5f5f5'}}
-            title=${item.title}/>`}
+          <div style=${{width:'100%',overflowX:'hidden',overflowY:'auto'}}>
+            <iframe src=${item.fileUrl} style=${{width:'100%',height:'70vh',border:'none',display:'block',background:'#f5f5f5',maxWidth:'100%'}}
+              title=${item.title}/>
+          </div>`}
         ${!item.fileUrl&&html`
           <div style=${{padding:'24px 16px',textAlign:'center',color:'var(--muted)',fontSize:'.85rem'}}>Keine Datei verfügbar</div>`}
         <button onClick=${()=>setOpenId(null)}
