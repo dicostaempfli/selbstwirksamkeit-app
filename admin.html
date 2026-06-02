@@ -1,4 +1,4 @@
-<!-- Version: 2026-06-02 09:59 admin -->
+<!-- Version: 2026-06-02 14:14 admin -->
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -1428,10 +1428,43 @@ function LoginPage() {
 // ── MAIN APP ──
 function AdminApp({user}) {
   const [page,setPage] = useState("dashboard");
-  const [coachees,setCoachees] = useState(INIT_COACHEES);
+  const [coachees,setCoachees] = useState([]);
   const [library,setLibrary] = useState([]);
   const [doodles,setDoodles] = useState(INIT_DOODLES);
   const totalUnread = coachees.reduce((a,c)=>a+(c.unread||0),0);
+
+  // ── Coachees from Firestore users ──
+  useEffect(() => {
+    const firestore = db();
+    if(!firestore) return;
+    const unsub = firestore.collection("users").onSnapshot(snap => {
+      const list = snap.docs.map(d => {
+        const data = d.data();
+        const initials = (data.name||"?").split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase();
+        return {
+          id: d.id,          // Firebase UID — used for Doodle recipients
+          uid: d.id,
+          name: data.name || data.email || d.id.slice(0,8),
+          initials,
+          color: AVATAR_BG[snap.docs.indexOf(snap.docs.find(x=>x.id===d.id)) % AVATAR_BG.length],
+          photo: null,
+          online: false,
+          topic: [data.packageType, data.modell].filter(Boolean).join(" · ") || "Coachee",
+          unread: 0,
+          lastTime: "",
+          messages: [],
+          coaching: data.coaching || [],
+          gender: data.gender || [],
+          categories: data.categories || [],
+          notes: data.notes || "",
+          activePhase: data.activePhase || null,
+          packageType: data.packageType || null,
+        };
+      });
+      setCoachees(list);
+    }, () => {});
+    return () => unsub();
+  }, []);
 
   // ── Library Firebase Sync ──
   useEffect(() => {

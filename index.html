@@ -1,5 +1,5 @@
-<!-- Version: 2026-06-02 13:56 coachee -->
-<!-- v202606021353 cache-bust: v1780401210 -->
+<!-- Version: 2026-06-02 14:14 coachee -->
+<!-- v202606021414 cache-bust: v1780402467 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
 <head>
@@ -1171,6 +1171,7 @@
   </style>
 </head>
 <body>
+<div id="test-banner" style="position:fixed;top:0;left:0;right:0;z-index:99999;background:#e53e3e;color:rgba(255,255,255,.9);text-align:center;padding:2px 8px;font-size:10px;font-weight:500;letter-spacing:0.3px;">✏️ TESTVERSION — Rico Stämpfli</div>
 <div id="app"></div>
 <div id="breath-portal"></div>
 
@@ -1405,7 +1406,6 @@ function App({ user }) {
   const [library,setLibrary]     = useState(INIT_LIBRARY);
   const [doodles,setDoodles]     = useState(INIT_DOODLES);
   const [events]                 = useState(INIT_EVENTS);
-  const [journal,setJournalState]= useState(INIT_JOURNAL);
   const [mobileChatOpen,setMobileChatOpen] = useState(false);
   const [impulseDefaultTab,setImpulseDefaultTab] = useState('meine');
   const [activeImpuls,setActiveImpuls]           = useState(null);
@@ -1474,14 +1474,7 @@ function App({ user }) {
       snap => { if(!snap.empty) setDoodles(snap.docs.map(d=>({...d.data(),id:d.id}))); },
       ()=>{}
     );
-    // Journal Firestore sync
-    const journalRef = fbDb.collection("journal").doc(uid).collection("entries");
-    const unsubJournal = journalRef.orderBy("ts","desc").limitToLast(50).onSnapshot(
-      snap => { if(!snap.empty) setJournalState(snap.docs.map(d=>({...d.data(),id:d.id}))); },
-      ()=>{}
-    );
-
-    return () => { unsubRem(); unsubLib(); unsubDoodle(); unsubJournal(); };
+    return () => { unsubRem(); unsubLib(); unsubDoodle(); };
   }, [uid]);
 
   // ── Firebase save helpers ──
@@ -1542,29 +1535,6 @@ function App({ user }) {
 
   // ── Firebase save helpers ──
 
-  const saveJournal = (newEntriesOrFn) => {
-    setJournalState(prev => {
-      const newEntries = typeof newEntriesOrFn === 'function' ? newEntriesOrFn(prev) : newEntriesOrFn;
-      const fbDb = window._fb?.db;
-      if(fbDb && uid) {
-        const ref = fbDb.collection("journal").doc(uid).collection("entries");
-        // Add new entries (those without Firestore id yet)
-        newEntries.forEach(e => {
-          if(!prev.find(p=>p.id===e.id)) {
-            ref.add({...e, uid, ts: e.id}).catch(()=>{});
-          }
-        });
-        // Delete removed entries
-        prev.forEach(e => {
-          if(!newEntries.find(n=>n.id===e.id)) {
-            ref.doc(String(e.id)).delete().catch(()=>{});
-          }
-        });
-      }
-      return newEntries;
-    });
-  };
-
 
 
 
@@ -1585,10 +1555,10 @@ function App({ user }) {
     <${Sidebar} page=${page} setPage=${navTo} totalUnread=${totalUnreadVal} user=${user} onLogoTap=${handleLogoTap}/>
     <div style=${{flex:1,display:'flex',overflow:'hidden',minWidth:0}}>
       ${page==="dashboard" && html`<${DashboardPage} coachees=${coachees} library=${library} reminders=${reminders} doodles=${doodles} setPage=${navTo} user=${user} onLogoTap=${handleLogoTap} setImpulseDefaultTab=${setImpulseDefaultTab} activeImpuls=${activeImpuls} setActiveImpuls=${setActiveImpuls}/>`}
-      ${page==="chat"      && html`<${ChatPage} user=${user} coachees=${coachees} setCoachees=${setCoachees} mobileChatOpen=${mobileChatOpen} setMobileChatOpen=${setMobileChatOpen}/>`}
-      ${page==="impulse"   && html`<${ImpulseTab} user=${user} reminders=${reminders} setReminders=${saveReminders} journal=${journal} setJournal=${saveJournal} setPage=${navTo} defaultSubTab=${impulseDefaultTab} setDefaultSubTab=${setImpulseDefaultTab} setActiveImpuls=${setActiveImpuls} activeImpuls=${activeImpuls}/>`}
+      ${page==="chat"      && html`<${ChatPage} coachees=${coachees} setCoachees=${setCoachees} mobileChatOpen=${mobileChatOpen} setMobileChatOpen=${setMobileChatOpen}/>`}
+      ${page==="impulse"   && html`<${ImpulseTab} user=${user} reminders=${reminders} setReminders=${saveReminders} setPage=${navTo} defaultSubTab=${impulseDefaultTab} setDefaultSubTab=${setImpulseDefaultTab} setActiveImpuls=${setActiveImpuls} activeImpuls=${activeImpuls}/>`}
       ${page==="library"   && html`<${LibraryPage} library=${library} setLibrary=${saveLibrary}/>`}
-      ${page==="doodle"    && html`<${DoodlePage} doodles=${doodles} setDoodles=${saveDoodles} coachees=${coachees} events=${events}/>`}
+      ${page==="doodle"    && html`<${DoodlePage} user=${user} doodles=${doodles} setDoodles=${saveDoodles} coachees=${coachees} events=${events}/>`}
     </div>
     <nav class="bottom-nav">
       ${NAV_ITEMS.map(i=>html`
@@ -1609,51 +1579,35 @@ function App({ user }) {
 }
 
 // ── SIDEBAR ──
-function ChatPage({user,coachees,setCoachees,mobileChatOpen,setMobileChatOpen}) {
-  const uid = user?.uid || null;
-  const fbDb = window._fb?.db;
-  const coachee = {id:"coach",name:"Diana & Rico",initials:"DR",color:"var(--accent)",photo:null,online:true,topic:"Dein Coaching",messages:[]};
-  const [messages,setMessages] = useState([]);
+function ChatPage({coachees,setCoachees,mobileChatOpen,setMobileChatOpen}) {
+  const coachee = coachees[0] || {id:"c1",name:"Diana & Rico Stämpfli",initials:"DR",color:"var(--accent)",photo:null,online:true,topic:"Diana & Rico",messages:[]};
   const [recipient,setRecipient] = useState("Diana");
 
-  useEffect(() => {
-    if(!uid||!fbDb) return;
-    const ref = fbDb.collection("chats").doc(uid).collection("messages").orderBy("ts","asc").limitToLast(80);
-    const unsub = ref.onSnapshot(snap => {
-      setMessages(snap.docs.map(d=>({...d.data(),id:d.id})));
-    }, ()=>{});
-    return () => unsub();
-  }, [uid]);
-
-  const coacheeWithMsgs = {...coachee, messages};
-
   const sendMsg = text => {
-    if(!text.trim()||!uid||!fbDb) return;
+    if(!text.trim()) return;
     const t = new Date().toLocaleTimeString('de-CH',{hour:'2-digit',minute:'2-digit'});
-    const d = new Date().toLocaleDateString('de-CH',{day:'2-digit',month:'2-digit',year:'numeric'});
-    const msg = {from:"coachee",sender:uid,recipient,text:text.trim(),time:t,date:d,ts:Date.now(),seen:false};
-    fbDb.collection("chats").doc(uid).collection("messages").add(msg).catch(()=>{});
+    const msg = {id:Date.now(),from:"coachee",text:text.trim(),time:t,date:"Heute",seen:false};
+    setCoachees(cs=>cs.map(c=>c.id===coachee.id?{...c,messages:[...(c.messages||[]),msg],lastTime:t}:c));
   };
 
   const sendImg = (dataUrl, isVideo=false) => {
-    if(!uid||!fbDb) return;
     const t = new Date().toLocaleTimeString('de-CH',{hour:'2-digit',minute:'2-digit'});
-    const d = new Date().toLocaleDateString('de-CH',{day:'2-digit',month:'2-digit',year:'numeric'});
-    const msg = {from:"coachee",sender:uid,recipient,imgSrc:dataUrl,isVideo,text:"",time:t,date:d,ts:Date.now()};
-    fbDb.collection("chats").doc(uid).collection("messages").add(msg).catch(()=>{});
+    const msg = {id:Date.now(),from:"coachee",imgSrc:dataUrl,isVideo,text:"",time:t,date:"Heute"};
+    setCoachees(cs=>cs.map(c=>c.id===coachee.id?{...c,messages:[...(c.messages||[]),msg],lastTime:t}:c));
   };
 
   const sendFile = file => {
-    if(!uid||!fbDb) return;
     const t = new Date().toLocaleTimeString('de-CH',{hour:'2-digit',minute:'2-digit'});
-    const d = new Date().toLocaleDateString('de-CH',{day:'2-digit',month:'2-digit',year:'numeric'});
-    const msg = {from:"coachee",sender:uid,recipient,file,text:"",time:t,date:d,ts:Date.now()};
-    fbDb.collection("chats").doc(uid).collection("messages").add(msg).catch(()=>{});
+    const msg = {id:Date.now(),from:"coachee",file,text:"",time:t,date:"Heute"};
+    setCoachees(cs=>cs.map(c=>c.id===coachee.id?{...c,messages:[...(c.messages||[]),msg],lastTime:t}:c));
   };
+
+
 
   return html`
     <div style=${{flex:1,display:"flex",flexDirection:"column",overflow:"hidden",minWidth:0,background:"var(--bg)"}}>
-      <${ChatWindow} coachee=${coacheeWithMsgs} recipient=${recipient} setRecipient=${setRecipient} onSend=${sendMsg} onSendImg=${sendImg} onSendFile=${sendFile} onBack=${()=>setMobileChatOpen&&setMobileChatOpen(false)}/>
+
+      <${ChatWindow} coachee=${coachee} recipient=${recipient} setRecipient=${setRecipient} onSend=${sendMsg} onSendImg=${sendImg} onSendFile=${sendFile} onBack=${()=>setMobileChatOpen&&setMobileChatOpen(false)}/>
     </div>`;
 }
 
@@ -1990,6 +1944,7 @@ function ChatWindow({coachee,recipient,setRecipient,onSend,onSendImg,onSendFile,
 
 
 function DashboardPage({coachees,library,reminders,doodles,setPage,user,onLogoTap,setImpulseDefaultTab,activeImpuls,setActiveImpuls}) {
+  const uid = user?.uid || null;
   const avgProg = 0; // goals removed
   const hour = new Date().getHours();
   const greeting = hour<12?"Guten Morgen":hour<18?"Guten Tag":"Guten Abend";
@@ -2062,7 +2017,7 @@ function DashboardPage({coachees,library,reminders,doodles,setPage,user,onLogoTa
             <div style=${{width:42,height:42,borderRadius:12,background:"var(--lime-pale)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><${Ic} name="calendar" size=${20} style=${{color:"var(--lime-dark)"}}/></div>
             <div style=${{flex:1}}>
               <div style=${{fontFamily:"'Manuale',serif",fontWeight:700,fontSize:"1rem",color:"var(--text)"}}>Termine & Events</div>
-              <div style=${{fontSize:".82rem",color:"var(--muted)",marginTop:1}}>${(n=>n===1?"1 offener Terminvorschlag":n===0?"Keine offenen Termine":n+" offene Terminvorschläge")(doodles.filter(d=>d.recipients.includes(1)&&!d.submitted).length)}</div>
+              <div style=${{fontSize:".82rem",color:"var(--muted)",marginTop:1}}>${(n=>n===1?"1 offener Terminvorschlag":n===0?"Keine offenen Termine":n+" offene Terminvorschläge")(doodles.filter(d=>(d.recipients||[]).includes(uid)&&!d.submitted).length)}</div>
             </div>
             <${Ic} name="chevron" size=${16} style=${{color:"var(--border2)"}}/>
           </div>
@@ -2082,17 +2037,14 @@ function DashboardPage({coachees,library,reminders,doodles,setPage,user,onLogoTa
     </div>`;
 }
 
-// ── IMPULSE TAB (Sub-Tab: Meine Impulse + Tages-Impuls + Journal) ──
-function ImpulseTab({ user, reminders, setReminders, journal, setJournal, setPage, defaultSubTab, setDefaultSubTab, setActiveImpuls, activeImpuls }) {
+// ── IMPULSE TAB (Sub-Tab: Meine Impulse + Tages-Impuls) ──
+function ImpulseTab({ user, reminders, setReminders, setPage, defaultSubTab, setDefaultSubTab, setActiveImpuls, activeImpuls }) {
   const [activeSubTab, setActiveSubTab] = useState(defaultSubTab || 'meine');
   const isMeine = activeSubTab === 'meine';
   const isTagesimpuls = activeSubTab === 'tagesimpuls';
-  const isJournal = activeSubTab === 'journal';
   const subContent = isMeine
     ? h(RemindersPage, { reminders, setReminders })
-    : isTagesimpuls
-      ? h(ImpulsPage, { user, setPage, setActiveImpuls, activeImpuls })
-      : h(JournalPage, { journal: journal||[], setJournal });
+    : h(ImpulsPage, { user, setPage, setActiveImpuls, activeImpuls });
   return html`
     <div class="impulse-tab-wrap">
       <div class="impulse-subtab-nav">
@@ -2105,11 +2057,6 @@ function ImpulseTab({ user, reminders, setReminders, journal, setJournal, setPag
           class=${"impulse-subtab-btn" + (isTagesimpuls ? " active" : "")}
           onClick=${() => setActiveSubTab('tagesimpuls')}>
           Tages-Impuls
-        </button>
-        <button
-          class=${"impulse-subtab-btn" + (isJournal ? " active" : "")}
-          onClick=${() => setActiveSubTab('journal')}>
-          Journal
         </button>
       </div>
       <div style=${{flex:1,overflowY:"auto",minHeight:0}}>${subContent}</div>
@@ -3082,7 +3029,8 @@ function showToastMsg(msg) {
 }
 
 
-function DoodlePage({doodles,setDoodles,coachees,events}) {
+function DoodlePage({user,doodles,setDoodles,coachees,events}) {
+  const uid = user?.uid || null;
   const [subTab,setSubTab]       = useState("coachee");
   const [showCreate,setShowCreate] = useState(false);
   const [showResults,setShowResults] = useState(null);
@@ -3128,7 +3076,7 @@ function DoodlePage({doodles,setDoodles,coachees,events}) {
     const d=doodles.find(x=>x.id===did);
     const votes=coacheeVotes[did]||{};
     setDoodles(ds=>ds.map(x=>x.id!==did?x:{...x,
-      slots:x.slots.map((s,i)=>votes[i]?{...s,votes:{...s.votes,1:votes[i]}}:s)
+      slots:x.slots.map((s,i)=>votes[i]&&uid?{...s,votes:{...s.votes,[uid]:votes[i]}}:s)
     }));
     setSubmitted(s=>({...s,[did]:true}));
     showToastMsg("✓ Deine Antwort wurde gesendet!");
@@ -3149,7 +3097,7 @@ function DoodlePage({doodles,setDoodles,coachees,events}) {
 
       <div style=${{display:"flex",gap:8,marginBottom:16}}>
         ${(()=>{
-          const openCount = doodles.filter(d=>d.recipients.includes(1)&&!submitted[d.id]).length;
+          const openCount = doodles.filter(d=>(d.recipients||[]).includes(uid)&&!submitted[d.id]).length;
           const btnStyle = (active) => ({
             flex:"1 1 0",height:"40px",maxHeight:"40px",display:"flex",alignItems:"center",
             justifyContent:"center",gap:"7px",padding:"8px 18px",position:"relative",
@@ -3176,7 +3124,7 @@ function DoodlePage({doodles,setDoodles,coachees,events}) {
       <div style=${{marginBottom:28}}></div>
 
       ${subTab==="coachee" && html`
-        ${doodles.filter(d=>d.recipients.includes(1)).map(d=>html`
+        ${doodles.filter(d=>(d.recipients||[]).includes(uid)).map(d=>html`
           <div key=${d.id} style=${{background:"var(--surface)",borderRadius:"var(--radius)",boxShadow:"var(--shadow)",padding:24,marginBottom:14}}>
             ${submitted[d.id]
               ? html`<div style=${{textAlign:"center",padding:"24px 0"}}>
@@ -3203,7 +3151,7 @@ function DoodlePage({doodles,setDoodles,coachees,events}) {
                 <button class="btn btn-primary" style=${{marginTop:12}} onClick=${()=>submitVotes(d.id)}>Abstimmung senden</button>
               `}
           </div>`)}
-        ${doodles.filter(d=>d.recipients.includes(1)).length===0&&html`<div style=${{textAlign:"center",padding:"32px",color:"var(--muted)"}}><p>Keine offenen Terminvorschläge.</p></div>`}
+        ${doodles.filter(d=>(d.recipients||[]).includes(uid)).length===0&&html`<div style=${{textAlign:"center",padding:"32px",color:"var(--muted)"}}><p>Keine offenen Terminvorschläge.</p></div>`}
       `}
 
       ${subTab==="events" && html`
