@@ -1,5 +1,5 @@
-<!-- Version: 2026-06-02 09:07 coachee-staging -->
-<!-- v202606020907 cache-bust: v1780384059 -->
+<!-- Version: 2026-06-02 09:19 coachee-staging -->
+<!-- v202606020919 cache-bust: v1780384779 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
 <head>
@@ -1735,18 +1735,13 @@ function ChatWindow({coachee,recipient,setRecipient,onSend,onSendImg,onSendFile,
     <div class="chat-area">
       <div class="chat-topbar" style=${{flexDirection:"column",alignItems:"stretch",height:"auto",paddingTop:"max(52px, calc(env(safe-area-inset-top, 0px) + 44px))",paddingLeft:"14px",paddingRight:"14px",paddingBottom:"10px",gap:8}}>
         <div style=${{display:"flex",alignItems:"center",gap:10}}>
-          <svg width="36" height="36" viewBox="0 0 100 100" style=${{flexShrink:0,borderRadius:"50%"}}>
-            <circle cx="50" cy="50" r="50" fill="var(--accent)"/>
-            <circle cx="57.94" cy="50.79" r="37.3" fill="var(--accent)"/>
-            <circle cx="66.67" cy="50.79" r="20.63" fill="var(--accent)"/>
-          </svg>
-          <div style=${{flex:1,minWidth:0}}>
-            <div class="ct-name">${recipient} Stämpfli</div>
-            <div class="ct-status" style=${{display:"flex",alignItems:"center",gap:5}}>
-              <span class="status-dot"/>
-              <span>Online · Dein Coaching-Team</span>
-            </div>
+        <div>
+          <div class="ct-name" style=${{fontSize:"1.05rem",letterSpacing:"-.2px"}}>${recipient} Stämpfli</div>
+          <div class="ct-status" style=${{display:"flex",alignItems:"center",gap:5}}>
+            <span class="status-dot"/>
+            <span>Online · Dein Coaching-Team</span>
           </div>
+        </div>
         </div>
         <div style=${{display:"flex",gap:8,width:"100%"}}>
           ${["Diana","Rico"].map(name=>h("button",{
