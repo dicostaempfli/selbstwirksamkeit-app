@@ -1,4 +1,4 @@
-<!-- Version: 2026-06-02 09:27 admin -->
+<!-- Version: 2026-06-02 09:49 admin -->
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -12,7 +12,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-title" content="Admin"/>
-<meta name="theme-color" content="var(--accent)"/>
+<meta name="theme-color" content="#4a9e62"/>
 <title>Admin — Raum für Selbstwirksamkeit</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manuale:wght@400;600;700&family=Exo+2:wght@400;600;700&display=swap"/>
@@ -85,66 +85,63 @@ window.addEventListener('orientationchange', ()=>setTimeout(setVH,150));
   *,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
 
   :root {
-    /* ── Einziger Akzent: Teal ── */
-    --accent:      #156e6e;
-    --accent-dark: #0e4e4e;
-    --accent-pale: #e0f0f0;
+    /* ── Brand: use the three brand colors as primary UI ── */
+    --lime:       #efe454;
+    --lime-dark:  #c8c420;
+    --lime-muted: #d8d840;
+    --lime-pale:  #fafbe0;
+    --sage:       #a0cb7b;
+    --sage-dark:  #7ab55e;
+    --sage-pale:  #dff0cc;
+    --teal:       #68b87d;
+    --teal-dark:  #4ea066;
+    --teal-pale:  #c8e8d0;
 
-    /* ── Papier-Basis (warm) ── */
-    --bg:          #F9F7F3;
-    --surface:     #EFECE5;
-    --surface2:    #F4F1EA;
-    --border:      #E3DFDA;
-    --border2:     #D0CBC4;
+    /* ── Sidebar uses sage as background ── */
+    --sidebar-bg:      #4a9e62;
+    --sidebar-active:  #ece455;
+    --sidebar-hover:   rgba(255,255,255,.12);
+    --sidebar-icon:    rgba(255,255,255,.55);
 
-    /* ── Tinte ── */
-    --text:        #1C1914;
-    --muted:       #7C7268;
-    --muted2:      #B8B0A6;
+    /* ── Surfaces ── */
+    --bg:          #f0faf3;      /* very light sage-tinted page */
+    --surface:     #ffffff;
+    --surface2:    #f5fbf7;
+    --border:      #cce8d4;
+    --border2:     #b8ddc4;
 
-    /* ── Sidebar: Nacht ── */
-    --sidebar-bg:      #1C2118;
-    --sidebar-active:  #156e6e;
-    --sidebar-hover:   rgba(21,110,110,.10);
-    --sidebar-icon:    rgba(240,234,224,.45);
+    /* ── Text ── */
+    --text:        #1a3322;
+    --muted:       #5a7a65;
 
     /* ── Chat bubbles ── */
-    --bubble-out:  #122828;
-    --bubble-in:   #EFECE5;
+    --bubble-out:  #3d7a4a;    /* outgoing: dark teal-green */
+    --bubble-in:   #ffffff;
 
-    /* ── Aliases (Kompatibilität) ── */
-    --lime:       #156e6e;
-    --lime-dark:  #0e4e4e;
-    --lime-muted: #1a8080;
-    --lime-pale:  #e0f0f0;
-    --sage:       #156e6e;
-    --sage-dark:  #0e4e4e;
-    --sage-pale:  #e0f0f0;
-    --teal:       #156e6e;
-    --teal-dark:  #0e4e4e;
-    --teal-pale:  #e0f0f0;
-    --overlay-dark:  #1C2118;
-    --neutral:       #C8C4BA;
-    --surface-neutral: #E3DFDA;
-    --text-neutral:  #7C7268;
-    --forest:        #156e6e;
-    --forest-dark:   #0e4e4e;
-    --accent2:       #156e6e;
-    --sky:           #156e6e;
-    --sky-pale:      #e0f0f0;
-    --pkg-einzel:    #156e6e;
-    --pkg-paar:      #1a8080;
-    --pkg-integration: #0e4e4e;
-
-    /* ── Danger ── */
+    /* ── Accents ── */
+    --accent:      #62ba7a;
+    --accent2:     #eaed53;
     --danger:      #c0392b;
-    --danger-pale: #fff0ef;
-    --danger-border:#f5c0bc;
-    --danger-dark: #a03020;
+
+    /* ── Semantic / extended ── */
+    --forest:        #639922;    /* Impuls-Buttons aktiv */
+    --forest-dark:   #3B6D11;    /* Impuls-Buttons Rand + Hover */
+    --overlay-dark:  #1e3a2f;    /* dunkle Header/Overlays */
+    --neutral:       #c4b8a8;    /* neutraler Beige-Ton */
+    --surface-neutral: #f0f0f0;  /* geschlossene Status-Chips */
+    --text-neutral:  #777777;    /* gedämpfter Text auf neutral */
+    --danger-pale:   #fff0ef;    /* Danger-Hintergrund blass */
+    --danger-border: #f5c0bc;    /* Danger-Rand */
+    --danger-dark:   #a03020;    /* Danger dunkel */
+    --sky:           #7ec8e3;
+    --sky-pale:      #e0f5fb;    /* Foto-Badge */
+    --pkg-einzel:    #4a9e62;    /* Package: Einzelcoaching */
+    --pkg-paar:      #2d7a9a;    /* Package: Paar/Elterncoaching */
+    --pkg-integration: #7a6a2d;  /* Package: Integrationsphase */
 
     --radius:  16px;
-    --shadow:  0 2px 16px rgba(28,25,20,.10);
-    --shadow2: 0 6px 28px rgba(28,25,20,.14);
+    --shadow:  0 2px 16px rgba(62,122,74,.10);
+    --shadow2: 0 6px 28px rgba(62,122,74,.14);
   }
 
 
@@ -171,7 +168,7 @@ window.addEventListener('orientationchange', ()=>setTimeout(setVH,150));
     position:relative; color:var(--sidebar-icon);
   }
   .sb-item:hover { background:var(--sidebar-hover); color:#fff; }
-  .sb-item.active { background:rgba(21,110,110,.12); color:#fff; border-left:2.5px solid var(--accent); }
+  .sb-item.active { background:var(--sidebar-active); color:var(--text); }
   .sb-item-label { font-family:'Exo 2',sans-serif; font-size:.44rem; font-weight:700; letter-spacing:.3px; line-height:1; text-align:center; }
   .sb-badge {
     position: absolute;
@@ -256,7 +253,7 @@ window.addEventListener('orientationchange', ()=>setTimeout(setVH,150));
   .conv-avatar {
     width:44px; height:44px; border-radius:50%;
     display:flex; align-items:center; justify-content:center;
-    font-size:.86rem; font-weight:700; color:#fff;
+    font-size:.86rem; font-weight:700; color:var(--text);
     flex-shrink:0; position:relative; overflow:hidden;
   }
   .conv-avatar img { width:100%; height:100%; object-fit:cover; border-radius:50%; }
@@ -291,7 +288,7 @@ window.addEventListener('orientationchange', ()=>setTimeout(setVH,150));
   .ct-avatar {
     width:40px; height:40px; border-radius:50%;
     display:flex; align-items:center; justify-content:center;
-    font-size:.86rem; font-weight:700; color:#fff;
+    font-size:.86rem; font-weight:700; color:var(--text);
     position:relative; overflow:hidden; cursor:pointer; flex-shrink:0;
   }
   .ct-avatar img { width:100%; height:100%; object-fit:cover; border-radius:50%; }
@@ -470,13 +467,13 @@ window.addEventListener('orientationchange', ()=>setTimeout(setVH,150));
 
   /* Buttons */
   .btn { padding:8px 18px; border:none; border-radius:10px; cursor:pointer; font-family:'Exo 2'; font-weight:700; font-size:.83rem; transition:all .18s; display:flex; align-items:center; justify-content:center; gap:6px; }
-  .btn-primary { background:var(--surface); border:1.5px solid var(--accent); color:var(--text); }
-  .btn-primary:hover { background:var(--accent-pale); border-color:var(--accent-dark); }
-  .btn-sage { background:transparent; border:1.5px solid var(--accent); color:var(--accent); }
-  .btn-sage:hover { background:var(--accent-pale); }
-  .btn-lime { background:var(--accent); color:#fff; border:none; }
-  .btn-lime:hover { background:var(--accent-dark); }
-  .btn-ghost { background:transparent; border:1px solid var(--border); color:var(--muted2); }
+  .btn-primary { background:var(--teal); color:#fff; }
+  .btn-primary:hover { background:var(--teal-dark); }
+  .btn-sage { background:var(--sage); color:var(--text); }
+  .btn-sage:hover { background:var(--sage-dark); }
+  .btn-lime { background:var(--lime); color:var(--text); }
+  .btn-lime:hover { background:var(--lime-dark); }
+  .btn-ghost { background:transparent; border:1.5px solid var(--border2); color:var(--muted); }
   .btn-ghost:hover { border-color:var(--teal); color:var(--text); }
   .btn-danger { background:var(--danger); color:#fff; }
   .btn-sm { padding:4px 10px; font-size:.75rem; }
@@ -514,21 +511,21 @@ window.addEventListener('orientationchange', ()=>setTimeout(setVH,150));
   .icon-picker { display:flex; gap:6px; flex-wrap:wrap; }
   .icon-pick-btn { width:38px; height:38px; border-radius:9px; border:1.5px solid var(--border); background:var(--surface2); cursor:pointer; display:flex; align-items:center; justify-content:center; color:var(--muted); transition:all .15s; }
   .icon-pick-btn:hover { border-color:var(--teal); color:var(--teal-dark); }
-  .icon-pick-btn.selected { border-color:var(--accent); background:var(--accent); color:#fff; }
+  .icon-pick-btn.selected { border-color:var(--teal); background:var(--sage); color:var(--text); }
 
   /* Recurrence */
   .rec-tabs { display:flex; gap:6px; flex-wrap:wrap; }
   .rec-tab { padding:7px 13px; border-radius:10px; border:1.5px solid var(--border); background:var(--surface); color:var(--muted); font-family:'Exo 2'; font-weight:700; font-size:.81rem; cursor:pointer; display:flex; align-items:center; gap:6px; transition:all .15s; }
   .rec-tab:hover { border-color:var(--teal); color:var(--text); }
-  .rec-tab.active { border-color:var(--accent); background:var(--accent); color:#fff; }
+  .rec-tab.active { border-color:var(--teal); background:var(--sage); color:var(--text); }
   .rec-preview { background:var(--lime-pale); border-left:3px solid var(--lime-dark); border-radius:0 8px 8px 0; padding:11px 13px; font-size:.88rem; color:var(--muted); margin-top:10px; line-height:1.6; }
   .rec-preview strong { color:var(--text); }
   .day-picker { display:flex; gap:5px; }
   .day-btn { width:38px; height:38px; border-radius:9px; border:1.5px solid var(--border); background:var(--surface2); color:var(--muted); font-family:'Exo 2'; font-weight:700; font-size:.72rem; cursor:pointer; transition:all .15s; }
-  .day-btn.sel { border-color:var(--accent); background:var(--accent); color:#fff; }
+  .day-btn.sel { border-color:var(--teal); background:var(--sage); color:var(--text); }
   .mday-grid { display:flex; gap:4px; flex-wrap:wrap; max-width:360px; }
   .mday-btn { width:33px; height:33px; border-radius:8px; border:1.5px solid var(--border); background:var(--surface2); color:var(--muted); font-family:'Exo 2'; font-weight:700; font-size:.73rem; cursor:pointer; transition:all .15s; }
-  .mday-btn.sel { border-color:var(--accent); background:var(--accent); color:#fff; }
+  .mday-btn.sel { border-color:var(--teal); background:var(--sage); color:var(--text); }
 
   /* Modal */
   .overlay { position:fixed; inset:0; background:rgba(20,50,30,.3); z-index:9999; display:flex; align-items:center; justify-content:center; }
@@ -967,7 +964,7 @@ window.addEventListener('orientationchange', ()=>setTimeout(setVH,150));
 .conv-preview { font-size:.74rem; color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-top:1px; }
 .conv-meta { display:flex; flex-direction:column; align-items:flex-end; gap:4px; flex-shrink:0; }
 .conv-time { font-size:.68rem; color:var(--muted); }
-.conv-unread { background:var(--accent); color:#fff; border-radius:99px; padding:2px 6px; font-size:.65rem; font-weight:700; min-width:18px; text-align:center; }
+.conv-unread { background:var(--sage); color:var(--text); border-radius:99px; padding:2px 6px; font-size:.65rem; font-weight:700; min-width:18px; text-align:center; }
 .chat-input-bar { background:var(--surface); border-top:1px solid var(--border); padding:10px 14px; display:flex; align-items:flex-end; gap:8px; flex-shrink:0; }
 .chat-textarea { flex:1; background:var(--bg); border:1.5px solid var(--border); border-radius:20px; padding:9px 15px; font-family:'Exo 2'; font-size:16px; color:var(--text); resize:none; max-height:100px; overflow-y:auto; line-height:1.45; }
 .chat-textarea:focus { outline:none; border-color:var(--teal); }
@@ -1261,9 +1258,9 @@ const auth = () => window._fb?.auth;
 // ── LOGO ──
 const Logo = ({size=40}) => html`
   <svg width=${size} height=${size} viewBox="0 0 100 100" fill="none">
-    <circle cx="50" cy="50" r="50" fill="var(--accent)"/>
-    <circle cx="57.94" cy="50.79" r="37.3" fill="var(--accent)"/>
-    <circle cx="66.67" cy="50.79" r="20.63" fill="var(--accent)"/>
+    <circle cx="50"    cy="50"    r="50"    fill="#eaed53"/>
+    <circle cx="57.94" cy="50.79" r="37.30" fill="#9dd979"/>
+    <circle cx="66.67" cy="50.79" r="20.63" fill="#62ba7a"/>
   </svg>`;
 
 // ── ICONS ──
@@ -1311,7 +1308,7 @@ const Ic = ({name,size=16,style={}}) => {
 };
 
 // ── SEED DATA ──
-const AVATAR_BG = ["var(--accent)","var(--accent)","var(--accent)","#bfe9cb","var(--accent)","#c4e8d0"];
+const AVATAR_BG = ["#9dd979","#eaed53","#62ba7a","#bfe9cb","#a0cb7b","#c4e8d0"];
 const INIT_COACHEES = [
   {id:"c1",name:"Lena Müller",initials:"LM",color:AVATAR_BG[0],photo:null,online:true,topic:"Paarbeziehung & Kommunikation",unread:2,lastTime:"09:14",messages:[
     {id:"m1",from:"coachee",text:"Guten Morgen! Das Gespräch gestern war viel ruhiger als erwartet.",time:"09:10",date:"Heute"},
@@ -1915,7 +1912,7 @@ function ChatWindow({coachee,onSend,onSendImg,onSendFile,onBack,mobileOpen}) {
               const isOut = msg.from==="admin";
               const sender = msg.sender||"Diana";
               const prevSame = i>0&&msgs[i-1].from===msg.from&&(msgs[i-1].sender||"Diana")===sender;
-              const avatarColor = sender==="Rico" ? "var(--accent)" : "var(--accent)";
+              const avatarColor = sender==="Rico" ? "#a0cb7b" : "#68b87d";
               const initial = sender[0];
               return html`
                 <div key=${msg.id} class=${"msg-row "+(isOut?"out":"in")} style=${{marginBottom:prevSame?1:8,alignItems:"flex-end"}}>
@@ -2079,7 +2076,7 @@ function ChatWindow({coachee,onSend,onSendImg,onSendFile,onBack,mobileOpen}) {
                 style=${{background:"white",border:"none",cursor:"pointer",
                   width:36,height:36,borderRadius:"50%",display:"flex",alignItems:"center",
                   justifyContent:"center",flexShrink:0}}>
-                <svg width="16" height="16" viewBox="0 0 24 24" stroke="var(--overlay-dark)" stroke-width="2.5" fill="none">
+                <svg width="16" height="16" viewBox="0 0 24 24" stroke="#1e3a2f" stroke-width="2.5" fill="none">
                   <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
                 </svg>
               </div>
@@ -2342,7 +2339,7 @@ function LibraryPage({library,setLibrary}) {
     {id:"foto",  label:"Fotos", icon:"image"},
   ];
   const ACCEPT = "audio/*,video/*,image/*,.pdf,.doc,.docx,.txt,.xlsx,.xls,.ppt,.pptx,.mp3,.m4a,.mp4,.mov,.avi,.mkv,.jpg,.jpeg,.png,.gif,.webp";
-  const COLOR    = {audio:"var(--accent)",video:"var(--accent)",dokus:"var(--accent)",foto:"#7ec8e3"};
+  const COLOR    = {audio:"#68b87d",video:"#a0cb7b",dokus:"#efe454",foto:"#7ec8e3"};
   const BG       = {audio:"#d8f0e0",video:"#eef7e4",dokus:"#fafbe0",foto:"#e0f5fb"};
   const BadgeCls = {audio:"badge-audio",video:"badge-video",dokus:"badge-dokus",foto:"badge-foto"};
 
@@ -2659,7 +2656,7 @@ function LibraryPage({library,setLibrary}) {
               <span style=${{fontSize:".85rem",fontWeight:600,color:"white",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>${viewer.name}</span>
             </div>
             <div onClick=${closeViewer} style=${{background:"white",cursor:"pointer",width:36,height:36,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-              <svg width="16" height="16" viewBox="0 0 24 24" stroke="var(--overlay-dark)" stroke-width="2.5" fill="none"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" stroke="#1e3a2f" stroke-width="2.5" fill="none"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
             </div>
           </div>
           ${viewer.type==="foto"&&html`
