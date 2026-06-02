@@ -1,4 +1,4 @@
-<!-- Version: 2026-06-02 15:27 admin -->
+<!-- Version: 2026-06-02 15:33 admin -->
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -1527,7 +1527,7 @@ function DashboardPage({coachees,library,doodles,setPage,user}) {
         <div>
           <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.3rem",fontWeight:700,color:"var(--text)"}}>${greeting}</div>
           <div style=${{fontSize:".88rem",color:"var(--muted)",marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"calc(100vw - 120px)"}}>Admin-Portal · Raum für Selbstwirksamkeit</div>
-          <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-06-02 15:27 · Doku v3.13 · 2026-06-02 15:27
+          <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-06-02 15:33 · Doku v3.14 · 2026-06-02 15:33
           </div>
         </div>
       </div>
@@ -1654,6 +1654,8 @@ function ChatPage({coachees,setCoachees}) {
   const [search,setSearch] = useState("");
   const [mobileView,setMobileView] = useState("list");
   const [mobileOpen,setMobileOpen] = useState(false);
+  const [chatMessages,setChatMessages] = useState([]);
+  const chatUnsubRef = useRef(null);
 
   const [showFilter,setShowFilter]       = useState(false);
   const [filterCat,setFilterCat]         = useState(null);
@@ -1677,33 +1679,59 @@ function ChatPage({coachees,setCoachees}) {
       });
   const sendBroadcast = () => {
     if(!broadcastMsg.trim()||!broadcastRecipients.length) return;
-    const msg={id:Date.now(),from:"admin",sender:"Diana",text:broadcastMsg.trim(),time:nowTime(),date:"Heute",seen:false};
-    setCoachees(cs=>cs.map(c=>broadcastRecipients.find(r=>r.id===c.id)?{...c,messages:[...(c.messages||[]),msg],lastTime:nowTime(),unread:(c.unread||0)+1}:c));
+    const firestore = db();
+    const now = new Date();
+    const t = now.toLocaleTimeString("de-CH",{hour:"2-digit",minute:"2-digit"});
+    const d = "Heute";
+    broadcastRecipients.forEach(c=>{
+      const msg={from:"admin",sender:"Diana",recipient:c.id,text:broadcastMsg.trim(),time:t,date:d,ts:Date.now(),seen:false};
+      if(firestore) firestore.collection("chats").doc(c.id).collection("messages").add(msg).catch(()=>{});
+    });
     setBroadcastMsg(""); setBroadcastCat([]); setShowBroadcast(false);
     showToast("✓ Nachricht gesendet an "+broadcastRecipients.length+" Coachee"+(broadcastRecipients.length!==1?"s":""));
   };
 
     const selectCoachee = id => {
     setActiveId(id);
-    setCoachees(cs=>cs.map(c=>c.id===id?{...c,unread:0}:c));
+    setChatMessages([]);
     setMobileOpen(true);
-  };;
+    if(chatUnsubRef.current) { chatUnsubRef.current(); chatUnsubRef.current=null; }
+    const firestore = db();
+    if(firestore && id) {
+      const ref = firestore.collection("chats").doc(id).collection("messages").orderBy("ts","asc").limitToLast(80);
+      chatUnsubRef.current = ref.onSnapshot(snap=>{
+        const msgs = snap.docs.map(d=>({id:d.id,...d.data()}));
+        setChatMessages(msgs);
+        // unread zurücksetzen
+        setCoachees(cs=>cs.map(c=>c.id===id?{...c,unread:0}:c));
+      }, ()=>{});
+    }
+  };
 
   const sendMsg = (text, sender="Diana") => {
-    if(!text.trim()||!active) return;
-    const msg={id:Date.now(),from:"admin",sender:sender,text:text.trim(),time:nowTime(),date:"Heute",seen:false};
-    setCoachees(cs=>cs.map(c=>c.id===activeId?{...c,messages:[...(c.messages||[]),msg],lastTime:nowTime()}:c));
+    if(!text.trim()||!activeId) return;
+    const firestore = db();
+    const now = new Date();
+    const t = now.toLocaleTimeString("de-CH",{hour:"2-digit",minute:"2-digit"});
+    const msg={from:"admin",sender,recipient:activeId,text:text.trim(),time:t,date:"Heute",ts:Date.now(),seen:false};
+    if(firestore) firestore.collection("chats").doc(activeId).collection("messages").add(msg).catch(()=>{});
   };
 
   const sendImg = (dataUrl, isVideo=false, sender="Diana") => {
-    if(!active) return;
-    const msg={id:Date.now(),from:"admin",sender,imgSrc:dataUrl,isVideo,text:"",time:nowTime(),date:"Heute"};
-    setCoachees(cs=>cs.map(c=>c.id===activeId?{...c,messages:[...(c.messages||[]),msg],lastTime:nowTime()}:c));
+    if(!activeId) return;
+    const firestore = db();
+    const now = new Date();
+    const t = now.toLocaleTimeString("de-CH",{hour:"2-digit",minute:"2-digit"});
+    const msg={from:"admin",sender,recipient:activeId,imgSrc:dataUrl,isVideo,text:"",time:t,date:"Heute",ts:Date.now()};
+    if(firestore) firestore.collection("chats").doc(activeId).collection("messages").add(msg).catch(()=>{});
   };
   const sendFile = (file, sender="Diana") => {
-    if(!active) return;
-    const msg={id:Date.now(),from:"admin",sender,file,text:"",time:nowTime(),date:"Heute"};
-    setCoachees(cs=>cs.map(c=>c.id===activeId?{...c,messages:[...(c.messages||[]),msg],lastTime:nowTime()}:c));
+    if(!activeId) return;
+    const firestore = db();
+    const now = new Date();
+    const t = now.toLocaleTimeString("de-CH",{hour:"2-digit",minute:"2-digit"});
+    const msg={from:"admin",sender,recipient:activeId,file,text:"",time:t,date:"Heute",ts:Date.now()};
+    if(firestore) firestore.collection("chats").doc(activeId).collection("messages").add(msg).catch(()=>{});
   };
 
   return html`
@@ -1793,7 +1821,7 @@ function ChatPage({coachees,setCoachees}) {
         : html`
           <div style=${{display:"flex",flexDirection:"column",width:"100%",flex:1,minHeight:0,overflow:"hidden"}}>
             ${active
-              ? html`<${ChatWindow} coachee=${active} onSend=${sendMsg} onSendImg=${sendImg} onSendFile=${sendFile} setLightbox=${()=>{}} onBack=${()=>setMobileOpen(false)} mobileOpen=${true}/>`
+              ? html`<${ChatWindow} coachee=${{...active,messages:chatMessages}} onSend=${sendMsg} onSendImg=${sendImg} onSendFile=${sendFile} setLightbox=${()=>{}} onBack=${()=>setMobileOpen(false)} mobileOpen=${true}/>`
               : html`<div style=${{display:"flex",alignItems:"center",justifyContent:"center",flex:1,flexDirection:"column",gap:12,color:"var(--muted)"}}>
                   <${Logo} size=${60}/>
                   <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.1rem"}}>Wähle ein Gespräch</div>
