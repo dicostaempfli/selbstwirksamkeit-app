@@ -1,4 +1,4 @@
-<!-- Version: 2026-06-02 17:14 admin -->
+<!-- Version: 2026-06-02 17:26 admin -->
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -1527,7 +1527,7 @@ function DashboardPage({coachees,library,doodles,setPage,user}) {
         <div>
           <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.3rem",fontWeight:700,color:"var(--text)"}}>${greeting}</div>
           <div style=${{fontSize:".88rem",color:"var(--muted)",marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"calc(100vw - 120px)"}}>Admin-Portal · Raum für Selbstwirksamkeit</div>
-          <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-06-02 17:14 · Doku v3.16 · 2026-06-02 17:14
+          <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-06-02 17:26 · Doku v3.16 · 2026-06-02 17:26
           </div>
         </div>
       </div>
@@ -2433,430 +2433,311 @@ function CoacheesPage({coachees,setCoachees,setPage}) {
 }
 
 function LibraryPage({library,setLibrary}) {
-  const [searchQ,setSearchQ]     = useState('');
-  const [filter,setFilter]       = useState("all");
-  const [showUpload,setShowUpload] = useState(false);
-  const [viewer,setViewer]       = useState(null);
-  const [drag,setDrag]           = useState(false);
-  const [form,setForm]           = useState({title:"",desc:"",type:"audio",keywords:""});
-  const [fileData,setFileData]   = useState(null);
-  const [fileName,setFileName]   = useState("");
-  const [thumbData,setThumbData] = useState(null);
-  const [duration,setDuration]   = useState("");
-  const [uploading,setUploading] = useState(false);
-  const fileRef = useRef(null);
+  const [openId, setOpenId]       = useState(null);
+  const [searchQ, setSearchQ]     = useState('');
+  const [showUpload, setShowUpload] = useState(false);
+  const [form, setForm]           = useState({title:'',desc:'',type:'audio',keywords:''});
+  const [fileData, setFileData]   = useState(null);
+  const [fileName, setFileName]   = useState('');
+  const [thumbData, setThumbData] = useState(null);
+  const [duration, setDuration]   = useState('');
+  const [uploading, setUploading] = useState(false);
+  const [drag, setDrag]           = useState(false);
+  const fileRef                   = useRef(null);
 
-  const TYPES = [
-    {id:"all",   label:"Alle",  icon:"library"},
-    {id:"audio", label:"Audio", icon:"music"},
-    {id:"video", label:"Video", icon:"video"},
-    {id:"dokus", label:"Dokus", icon:"file"},
-    {id:"foto",  label:"Fotos", icon:"image"},
+  const SECTIONS = [
+    {type:'video', label:'Video',  icon:'video',      color:'#2a6644', bg:'#eef7e4', border:'#b8ddb0'},
+    {type:'audio', label:'Audio',  icon:'music',      color:'#156e6e', bg:'#d8f0e0', border:'#a0d4c8'},
+    {type:'foto',  label:'Fotos',  icon:'photo',      color:'#0e7490', bg:'#e0f5fb', border:'#a0d8e8'},
+    {type:'dokus', label:'Dokus',  icon:'file-text',  color:'#7a7010', bg:'#fafbe0', border:'#d0cc80'},
   ];
-  const ACCEPT = "audio/*,video/*,image/*,.pdf,.doc,.docx,.txt,.xlsx,.xls,.ppt,.pptx,.mp3,.m4a,.mp4,.mov,.avi,.mkv,.jpg,.jpeg,.png,.gif,.webp";
-  const COLOR    = {audio:"#68b87d",video:"#a0cb7b",dokus:"#efe454",foto:"#7ec8e3"};
-  const BG       = {audio:"#d8f0e0",video:"#eef7e4",dokus:"#fafbe0",foto:"#e0f5fb"};
-  const BadgeCls = {audio:"badge-audio",video:"badge-video",dokus:"badge-dokus",foto:"badge-foto"};
 
-  const filtered = (filter==="all"?library:library.filter(i=>i.type===filter))
-    .filter(i=>!searchQ||i.title.toLowerCase().includes(searchQ.toLowerCase())||
-      (i.desc&&i.desc.toLowerCase().includes(searchQ.toLowerCase()))||
-      (i.keywords&&i.keywords.toLowerCase().includes(searchQ.toLowerCase())));
-
+  const fmtDur = s => { const m=Math.floor(s/60),r=Math.round(s%60); return m+':'+(r<10?'0':'')+r; };
   const detectType = f => {
-    if(!f) return "dokus";
-    if(f.type.startsWith("image")) return "foto";
-    if(f.type.startsWith("audio")) return "audio";
-    if(f.type.startsWith("video")) return "video";
-    const ext = f.name.split('.').pop().toLowerCase();
-    if(["jpg","jpeg","png","gif","webp","heic","heif"].includes(ext)) return "foto";
-    if(["mp3","m4a","aac","wav","ogg","flac"].includes(ext)) return "audio";
-    if(["mp4","mov","avi","mkv","webm","m4v"].includes(ext)) return "video";
-    return "dokus";
-  };
-
-  const fmtDur = s => {
-    s = Math.round(s);
-    const m = Math.floor(s/60), sec = s%60;
-    return m+":"+(sec<10?"0":"")+sec;
+    if(f.type.startsWith('video')) return 'video';
+    if(f.type.startsWith('audio')) return 'audio';
+    if(f.type.startsWith('image')) return 'foto';
+    return 'dokus';
   };
 
   const readFile = f => new Promise((res,rej) => {
     const r = new FileReader();
     r.onload = e => res(e.target.result);
-    r.onerror = () => rej(new Error("Lesefehler"));
+    r.onerror = () => rej(new Error('Lesefehler'));
     r.readAsDataURL(f);
   });
 
   const extractVideoThumb = f => new Promise(res => {
     const objUrl = URL.createObjectURL(f);
-    const vid = document.createElement("video");
-    vid.muted = true; vid.playsInline = true; vid.preload = "metadata";
-    vid.onloadedmetadata = () => { vid.currentTime = Math.min(0.5, vid.duration * 0.1); };
+    const vid = document.createElement('video');
+    vid.muted=true; vid.playsInline=true; vid.preload='metadata';
+    vid.onloadedmetadata = () => { vid.currentTime = Math.min(0.5, vid.duration*.1); };
     vid.onseeked = () => {
       try {
-        const c = document.createElement("canvas");
-        c.width = 320; c.height = Math.round(vid.videoHeight/vid.videoWidth*320)||180;
-        c.getContext("2d").drawImage(vid, 0, 0, c.width, c.height);
-        res({thumb: c.toDataURL("image/jpeg",0.75), dur: vid.duration});
-      } catch(e) { res({thumb:null, dur:vid.duration||0}); }
+        const c=document.createElement('canvas');
+        c.width=320; c.height=Math.round(vid.videoHeight/vid.videoWidth*320)||180;
+        c.getContext('2d').drawImage(vid,0,0,c.width,c.height);
+        res({thumb:c.toDataURL('image/jpeg',.75), dur:vid.duration});
+      } catch(e){res({thumb:null,dur:vid.duration||0});}
       URL.revokeObjectURL(objUrl);
     };
-    vid.onerror = () => { URL.revokeObjectURL(objUrl); res({thumb:null, dur:0}); };
-    setTimeout(() => { URL.revokeObjectURL(objUrl); res({thumb:null, dur:0}); }, 8000);
-    vid.src = objUrl;
+    vid.onerror=()=>{URL.revokeObjectURL(objUrl);res({thumb:null,dur:0});};
+    setTimeout(()=>{URL.revokeObjectURL(objUrl);res({thumb:null,dur:0});},8000);
+    vid.src=objUrl;
   });
 
   const extractAudioWave = f => new Promise(res => {
     try {
-      const ctx = new (window.AudioContext||window.webkitAudioContext)();
-      const reader = new FileReader();
-      reader.onload = e => {
-        ctx.decodeAudioData(e.target.result.slice(0), decoded => {
-          const data = decoded.getChannelData(0);
-          const bars = 40, step = Math.floor(data.length/bars);
-          const peaks = [];
-          for(let i=0;i<bars;i++){
-            let max=0;
-            for(let j=0;j<step;j++) max=Math.max(max,Math.abs(data[i*step+j]||0));
-            peaks.push(max);
-          }
-          const norm = Math.max(...peaks)||1;
-          res({wave: peaks.map(p=>Math.max(0.08,p/norm)), dur: decoded.duration});
+      const ctx=new(window.AudioContext||window.webkitAudioContext)();
+      const reader=new FileReader();
+      reader.onload=e=>{
+        ctx.decodeAudioData(e.target.result.slice(0),decoded=>{
+          const data=decoded.getChannelData(0);
+          const bars=40,step=Math.floor(data.length/bars),peaks=[];
+          for(let i=0;i<bars;i++){let max=0;for(let j=0;j<step;j++)max=Math.max(max,Math.abs(data[i*step+j]||0));peaks.push(max);}
+          const norm=Math.max(...peaks)||1;
+          res({wave:peaks.map(p=>Math.max(.08,p/norm)),dur:decoded.duration});
           ctx.close();
-        }, () => res({wave:null, dur:0}));
+        },()=>res({wave:null,dur:0}));
       };
-      reader.onerror = () => res({wave:null, dur:0});
+      reader.onerror=()=>res({wave:null,dur:0});
       reader.readAsArrayBuffer(f);
-    } catch(e) { res({wave:null, dur:0}); }
+    }catch(e){res({wave:null,dur:0});}
   });
 
   const handleFile = f => {
     if(!f) return;
-    const t = detectType(f);
-    setForm(v=>({...v, type:t, title:v.title||f.name.replace(/\.[^.]+$/,"") }));
-    setFileName(f.name);
-    setFileData(f); // store raw File object — uploaded to Storage on save
-    setThumbData(null); setDuration("");
+    const t=detectType(f);
+    setForm(v=>({...v,type:t,title:v.title||f.name.replace(/\.[^.]+$/,'')}));
+    setFileName(f.name); setFileData(f); setThumbData(null); setDuration('');
     setUploading(true);
-    if(t==="foto") {
-      // Resize to max 400px for Firestore (1MB limit)
-      const objUrl = URL.createObjectURL(f);
-      const img = new Image();
-      img.onload = () => {
-        const maxW = 400;
-        const scale = img.width > maxW ? maxW / img.width : 1;
-        const c = document.createElement("canvas");
-        c.width = Math.round(img.width * scale);
-        c.height = Math.round(img.height * scale);
-        c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
-        setThumbData(c.toDataURL("image/jpeg", 0.6));
-        URL.revokeObjectURL(objUrl);
-        setUploading(false);
+    if(t==='foto'){
+      const objUrl=URL.createObjectURL(f);
+      const img=new Image();
+      img.onload=()=>{
+        const maxW=400,scale=img.width>maxW?maxW/img.width:1;
+        const c=document.createElement('canvas');
+        c.width=Math.round(img.width*scale); c.height=Math.round(img.height*scale);
+        c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+        setThumbData(c.toDataURL('image/jpeg',.6));
+        URL.revokeObjectURL(objUrl); setUploading(false);
       };
-      img.onerror = () => { URL.revokeObjectURL(objUrl); showToast("Fehler beim Lesen"); setUploading(false); };
-      img.src = objUrl;
-    } else if(t==="video") {
-      extractVideoThumb(f).then(({thumb,dur}) => {
-        if(thumb) setThumbData(thumb);
-        if(dur) setDuration(fmtDur(dur));
-        setUploading(false);
+      img.onerror=()=>{URL.revokeObjectURL(objUrl);showToast('Fehler beim Lesen');setUploading(false);};
+      img.src=objUrl;
+    } else if(t==='video'){
+      extractVideoThumb(f).then(({thumb,dur})=>{
+        if(thumb)setThumbData(thumb); if(dur)setDuration(fmtDur(dur)); setUploading(false);
       });
-    } else if(t==="audio") {
-      extractAudioWave(f).then(({wave,dur}) => {
-        if(wave) setThumbData(JSON.stringify(wave));
-        if(dur) setDuration(fmtDur(dur));
-        setUploading(false);
+    } else if(t==='audio'){
+      extractAudioWave(f).then(({wave,dur})=>{
+        if(wave)setThumbData(JSON.stringify(wave)); if(dur)setDuration(fmtDur(dur)); setUploading(false);
       });
-    } else {
-      setUploading(false);
-    }
-    if(fileRef.current) fileRef.current.value = "";
+    } else { setUploading(false); }
+    if(fileRef.current)fileRef.current.value='';
   };
 
-  const handleInputChange = e => { handleFile(e.target.files[0]); e.target.value=""; };
+  const handleInputChange = e => { handleFile(e.target.files[0]); e.target.value=''; };
   const handleDrop = e => { e.preventDefault(); setDrag(false); handleFile(e.dataTransfer.files[0]); };
 
   const save = async () => {
-    if(!form.title.trim()) { showToast("Bitte Titel eingeben"); return; }
-    const storage = window._fb?.storage;
-    const firestore = db();
-    if(!firestore) { showToast("Firebase nicht bereit"); return; }
-
+    if(!form.title.trim()){showToast('Bitte Titel eingeben');return;}
+    const storage=window._fb?.storage, firestore=db();
+    if(!firestore){showToast('Firebase nicht bereit');return;}
     setUploading(true);
     try {
-      let fileUrl = null;
-      let storagePath = null;
-
-      if(fileData && storage) {
-        // Upload to Firebase Storage: library/{timestamp}_{filename}
-        const safeName = fileName.replace(/[^a-zA-Z0-9._-]/g, "_");
-        storagePath = `library/${Date.now()}_${safeName}`;
-        const ref = storage.ref(storagePath);
+      let fileUrl=null,storagePath=null;
+      if(fileData&&storage){
+        const safeName=fileName.replace(/[^a-zA-Z0-9._-]/g,'_');
+        storagePath=`library/${Date.now()}_${safeName}`;
+        const ref=storage.ref(storagePath);
         await ref.put(fileData);
-        fileUrl = await ref.getDownloadURL();
+        fileUrl=await ref.getDownloadURL();
       }
-
-      const id = "lib_" + Date.now();
-      const meta = {
-        id,
-        ...form,
-        fileUrl: fileUrl || null,
-        storagePath: storagePath || null,
-        fileName: fileName || null,
-        // thumbData stays as base64 (small preview image / waveform JSON — ok for Firestore)
-        thumbData: thumbData || null,
-        duration: duration || null,
-        uploadedAt: new Date().toLocaleDateString("de-CH"),
-        createdAt: Date.now()
-      };
-
-      await firestore.collection("library").doc(id).set(meta);
-      showToast("✓ Material gespeichert");
-    } catch(e) {
-      console.error("Upload-Fehler:", e);
-      showToast("Fehler beim Hochladen: " + (e.message||e.code||"unbekannt"));
-    } finally {
-      setUploading(false);
-      setShowUpload(false);
-      setForm({title:"",desc:"",type:"audio",keywords:""});
-      setFileData(null); setFileName(""); setThumbData(null); setDuration("");
+      const id='lib_'+Date.now();
+      const meta={id,...form,fileUrl:fileUrl||null,storagePath:storagePath||null,
+        fileName:fileName||null,thumbData:thumbData||null,duration:duration||null,
+        uploadedAt:new Date().toLocaleDateString('de-CH'),createdAt:Date.now()};
+      await firestore.collection('library').doc(id).set(meta);
+      showToast('✓ Material gespeichert');
+    }catch(e){showToast('Fehler beim Hochladen: '+(e.message||e.code||'unbekannt'));}
+    finally{
+      setUploading(false); setShowUpload(false);
+      setForm({title:'',desc:'',type:'audio',keywords:''});
+      setFileData(null); setFileName(''); setThumbData(null); setDuration('');
     }
   };
 
   const del = async id => {
-    const firestore = db();
-    const storage = window._fb?.storage;
-    // Find storagePath in current library list to delete from Storage too
-    const item = library.find(i=>i.id===id);
-    if(item?.storagePath && storage) {
-      try { await storage.ref(item.storagePath).delete(); } catch(e) {}
-    }
-    if(firestore) firestore.collection("library").doc(String(id)).delete().catch(()=>{});
+    const firestore=db(),storage=window._fb?.storage;
+    const item=library.find(i=>i.id===id);
+    if(item?.storagePath&&storage){try{await storage.ref(item.storagePath).delete();}catch(e){}}
+    if(firestore)firestore.collection('library').doc(String(id)).delete().catch(()=>{});
     setLibrary(l=>l.filter(i=>i.id!==id));
-    showToast("Material gelöscht");
+    if(openId===id)setOpenId(null);
+    showToast('Material gelöscht');
   };
 
-  const openViewer = item => {
-    if(!item.fileUrl) return;
-    // Firebase Storage download URLs work directly — no base64 conversion needed
-    setViewer({url: item.fileUrl, name: item.fileName||item.title, type: item.type});
-  };
+  const toggle = id => setOpenId(v=>v===id?null:id);
 
-  const closeViewer = () => { setViewer(null); };
+  const matches = item => !searchQ||
+    item.title?.toLowerCase().includes(searchQ.toLowerCase())||
+    item.desc?.toLowerCase().includes(searchQ.toLowerCase())||
+    item.keywords?.toLowerCase().includes(searchQ.toLowerCase());
 
-  const ThumbContent = ({item}) => {
-    if(item.type==="foto") return html`
-      <div style=${{position:"relative",height:"100%",overflow:"hidden"}}>
-        <img src=${item.thumbData||item.fileUrl} style=${{width:"100%",height:"100%",objectFit:"cover",display:"block"}}/>
-        <div style=${{position:"absolute",bottom:8,right:8,width:28,height:28,borderRadius:"50%",background:"rgba(255,255,255,.85)",display:"flex",alignItems:"center",justifyContent:"center"}}>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#1a4a5a" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/><path d="M11 8v6M8 11h6"/></svg>
-        </div>
-      </div>`;
-    if(item.type==="video") {
-      if(item.thumbData) return html`
-        <div style=${{position:"relative",height:"100%",overflow:"hidden"}}>
-          <img src=${item.thumbData} style=${{width:"100%",height:"100%",objectFit:"cover",display:"block"}}/>
-          <div style=${{position:"absolute",inset:0,background:"rgba(0,0,0,.2)",display:"flex",alignItems:"center",justifyContent:"center"}}>
-            <div style=${{width:44,height:44,borderRadius:"50%",background:"rgba(255,255,255,.92)",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 2px 12px rgba(0,0,0,.3)"}}>
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="#1a1a1a"><path d="M5 3l14 9-14 9V3z"/></svg>
-            </div>
-          </div>
-          ${item.duration&&html`<div style=${{position:"absolute",bottom:6,left:8,background:"rgba(0,0,0,.65)",color:"white",fontSize:".65rem",fontWeight:700,padding:"2px 6px",borderRadius:4,display:"flex",alignItems:"center",gap:4}}>
-            <span style=${{background:"white",color:"#111",fontSize:".55rem",padding:"0 3px",borderRadius:2,fontWeight:700}}>HD</span>${item.duration}
-          </div>`}
-        </div>`;
-      return html`
-        <div style=${{display:"flex",alignItems:"center",justifyContent:"center",height:"100%",background:"#1a1a1a",position:"relative"}}>
-          <div style=${{position:"absolute",top:5,left:6,display:"flex",gap:3}}>
-            ${[0,1,2,3].map(i=>html`<div key=${i} style=${{width:5,height:5,background:"rgba(255,255,255,.2)",borderRadius:1}}/>`)}
-          </div>
-          <div style=${{position:"absolute",bottom:5,left:6,display:"flex",gap:3}}>
-            ${[0,1,2,3].map(i=>html`<div key=${i} style=${{width:5,height:5,background:"rgba(255,255,255,.2)",borderRadius:1}}/>`)}
-          </div>
-          <div style=${{width:38,height:38,borderRadius:"50%",background:"rgba(255,255,255,.25)",border:"2px solid rgba(255,255,255,.5)",display:"flex",alignItems:"center",justifyContent:"center"}}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M5 3l14 9-14 9V3z"/></svg>
-          </div>
-        </div>`;
-    }
-    if(item.type==="audio") {
-      const wave = item.thumbData ? JSON.parse(item.thumbData) : null;
-      const defaultBars = [12,24,32,20,28,16,30,22,14,28,18,26];
-      const barData = wave || defaultBars;
-      return html`
-        <div style=${{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:"100%",gap:8,position:"relative"}}>
-          <div style=${{display:"flex",alignItems:"center",gap:2,height:44,padding:"0 12px"}}>
-            ${barData.map((h,i)=>html`<div key=${i} style=${{width:3,height:wave?Math.round(h*44)+"px":h+"px",background:COLOR.audio,borderRadius:2,opacity:.8}}/>`)}
-          </div>
-          <div style=${{display:"flex",alignItems:"center",gap:8}}>
-            <div style=${{width:30,height:30,borderRadius:"50%",background:COLOR.audio,display:"flex",alignItems:"center",justifyContent:"center"}}>
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="white"><path d="M5 3l14 9-14 9V3z"/></svg>
-            </div>
-            ${item.duration&&html`<span style=${{fontSize:".72rem",fontWeight:700,color:"#2a6644"}}>${item.duration}</span>`}
-          </div>
-        </div>`;
-    }
+  const ThumbSmall = ({item,sec}) => {
+    if((item.type==='video'||item.type==='foto')&&item.thumbData)
+      return html`<img src=${item.thumbData} style=${{width:'100%',height:'100%',objectFit:'cover',display:'block'}}/>`;
     return html`
-      <div style=${{display:"flex",alignItems:"center",justifyContent:"center",height:"100%",position:"relative"}}>
-        <div style=${{position:"relative",width:58,height:74}}>
-          <div style=${{position:"absolute",top:4,left:4,width:58,height:72,background:"#f0efcc",borderRadius:3,border:"1px solid #d4d084"}}/>
-          <div style=${{position:"absolute",top:2,left:2,width:58,height:72,background:"#f5f4d8",borderRadius:3,border:"1px solid #d4d084"}}/>
-          <div style=${{position:"absolute",top:0,left:0,width:58,height:72,background:"white",borderRadius:3,border:"1.5px solid #c8c850",display:"flex",flexDirection:"column",padding:"7px 6px",gap:3}}>
-            ${[90,70,85,55,80,65,75,50,70,60].map((w,i)=>html`<div key=${i} style=${{height:i===3?1:2,background:i===3?"#eee":"#d4d084",borderRadius:2,width:w+"%"}}/>`)}
+      <div style=${{width:'100%',height:'100%',background:sec.bg,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:3}}>
+        ${item.type==='audio'?html`
+          <div style=${{display:'flex',alignItems:'center',gap:1.5,height:20}}>
+            ${(item.thumbData?JSON.parse(item.thumbData):[.3,.6,.9,.5,.8,.4,.7,.5,.6,.4]).slice(0,10).map((h,i)=>html`
+              <div key=${i} style=${{width:2.5,height:Math.round(h*18)+'px',background:sec.color,borderRadius:2,opacity:.8}}/>
+            `)}
+          </div>`:html`<${Ic} name=${sec.icon} size=${20} style=${{color:sec.color}}/>`}
+        ${item.duration&&html`<div style=${{fontSize:'7px',fontWeight:700,color:sec.color}}>${item.duration}</div>`}
+      </div>`;
+  };
+
+  const ExpandedContent = ({item,sec}) => {
+    if(item.type==='video') return html`
+      <div style=${{width:'100%',aspectRatio:'16/9',background:'#111',position:'relative',overflow:'hidden'}}>
+        ${item.thumbData?html`<img src=${item.thumbData} style=${{width:'100%',height:'100%',objectFit:'cover'}}/>`:html`<div style=${{width:'100%',height:'100%',background:'#1a2a1a'}}/>`}
+        <div style=${{position:'absolute',inset:0,background:'rgba(0,0,0,.3)',display:'flex',alignItems:'center',justifyContent:'center'}}>
+          <div style=${{width:52,height:52,borderRadius:'50%',background:'rgba(255,255,255,.92)',display:'flex',alignItems:'center',justifyContent:'center'}}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="#1a1a1a"><path d="M5 3l14 9-14 9V3z"/></svg>
           </div>
         </div>
-        ${item.fileUrl&&html`<div style=${{position:"absolute",bottom:6,right:6,display:"flex",alignItems:"center",gap:3,fontSize:".6rem",fontWeight:700,color:"#a0a060"}}>
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Öffnen
-        </div>`}
+        ${item.fileUrl&&html`<video controls src=${item.fileUrl} style=${{position:'absolute',inset:0,width:'100%',height:'100%',opacity:0,cursor:'pointer'}} onPlay=${e=>{e.target.style.opacity='1';e.target.previousSibling&&(e.target.previousSibling.style.display='none');}}/>`}
+        ${item.duration&&html`<div style=${{position:'absolute',bottom:8,left:10,background:'rgba(0,0,0,.7)',color:'white',fontSize:'.65rem',fontWeight:700,padding:'2px 7px',borderRadius:4}}>HD · ${item.duration}</div>`}
       </div>`;
+    if(item.type==='foto') return html`
+      <div style=${{width:'100%',maxHeight:360,background:'#111',overflow:'hidden',display:'flex',alignItems:'center',justifyContent:'center'}}>
+        ${(item.fileUrl||item.thumbData)?html`<img src=${item.fileUrl||item.thumbData} style=${{maxWidth:'100%',maxHeight:360,objectFit:'contain',display:'block'}}/>`:html`<div style=${{padding:40,color:'rgba(255,255,255,.3)',fontSize:'.85rem'}}>Kein Vorschaubild</div>`}
+      </div>`;
+    if(item.type==='audio') return html`
+      <div style=${{padding:'14px 16px',background:sec.bg,borderTop:'0.5px solid '+sec.border}}>
+        <audio controls src=${item.fileUrl||''} style=${{width:'100%'}}/>
+      </div>`;
+    if(item.type==='dokus') return html`
+      <div style=${{padding:'12px 16px',background:sec.bg,borderTop:'0.5px solid '+sec.border,display:'flex',alignItems:'center',justifyContent:'space-between',gap:12}}>
+        <div style=${{fontSize:'.8rem',color:'var(--muted)',flex:1,minWidth:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>${item.fileName||item.title}</div>
+        ${item.fileUrl&&html`<a href=${item.fileUrl} target="_blank" rel="noopener" style=${{display:'flex',alignItems:'center',gap:6,padding:'7px 14px',background:sec.color,color:'white',borderRadius:8,fontFamily:"'Exo 2',sans-serif",fontWeight:700,fontSize:'.8rem',textDecoration:'none',flexShrink:0}}>Öffnen</a>`}
+      </div>`;
+    return null;
   };
 
   return html`
-    <div class="page" style=${{overflowX:"hidden"}}>
-      <div style=${{marginBottom:20,display:"flex",alignItems:"center",gap:12}}>
-        <${Logo} size=${44}/>
-        <div style=${{flex:1,minWidth:0}}>
-          <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.2rem",fontWeight:700,color:"var(--text)"}}>Mediathek</div>
-          <div style=${{fontSize:".82rem",color:"var(--muted)",marginTop:1}}>Materialien für deine Coachees.</div>
+    <div class="page">
+      <div style=${{marginBottom:20,display:'flex',alignItems:'center',justifyContent:'space-between',gap:12}}>
+        <div>
+          <div style=${{fontFamily:"'Manuale',serif",fontSize:'1.2rem',fontWeight:700,color:'var(--text)'}}>Mediathek</div>
+          <div style=${{fontSize:'.82rem',color:'var(--muted)',marginTop:1}}>Materialien für deine Coachees.</div>
         </div>
         <button class="btn btn-primary btn-sm" style=${{flexShrink:0}} onClick=${()=>setShowUpload(true)}>
-          <${Ic} name="upload" size=${14}/> Hochladen
+          <${Ic} name="upload" size=${15}/> Hochladen
         </button>
       </div>
 
-      <div style=${{marginBottom:10}}>
-        <input class="input" type="text" placeholder="Inhalte suchen…"
-          value=${searchQ} onInput=${e=>setSearchQ(e.target.value)}
-          style=${{width:"100%",padding:"9px 14px"}}/>
-      </div>
-      <div class="lib-filter" style=${{marginBottom:12}}>
-        ${TYPES.map(t=>html`
-          <button key=${t.id} data-type=${t.id}
-            class=${"lib-filter-btn"+(filter===t.id?" sel":"")}
-            onClick=${()=>setFilter(t.id)}>
-            <${Ic} name=${t.icon} size=${13}/>${t.label}
-          </button>`)}
-      </div>
+      <input class="input" type="text" placeholder="Inhalte suchen…"
+        value=${searchQ} onInput=${e=>setSearchQ(e.target.value)}
+        style=${{width:'100%',padding:'9px 14px',marginBottom:16}}/>
 
-      <div class="lib-grid">
-        ${filtered.map(item=>html`
-          <div key=${item.id} class="lib-card" onClick=${()=>openViewer(item)}>
-            <div class="lib-thumb" style=${{background:BG[item.type]||"#f0ede8",borderBottom:"2px solid "+(COLOR[item.type]||"var(--neutral)"),position:"relative",overflow:"hidden"}}>
-              <${ThumbContent} item=${item}/>
-              <span class=${"lib-type-badge "+(BadgeCls[item.type]||"badge-dokus")}>
-                <${Ic} name=${item.type==="audio"?"music":item.type==="video"?"video":item.type==="foto"?"image":"file"} size=${10}/>
-                ${item.type==="audio"?"Audio":item.type==="video"?"Video":item.type==="foto"?"Foto":"Doku"}
-              </span>
-            </div>
-            <div class="lib-card-body" style=${{borderLeft:"3px solid "+(COLOR[item.type]||"var(--neutral)")}}>
-              <div class="lib-card-title">${item.title}</div>
-              ${item.desc&&html`<div class="lib-card-desc">${item.desc}</div>`}
-              ${item.keywords&&html`<div style=${{marginTop:5,display:"flex",flexWrap:"wrap",gap:4}}>
-                ${item.keywords.split(",").map(k=>k.trim()).filter(k=>k).map(k=>html`
-                  <span key=${k} style=${{fontSize:".62rem",background:"var(--sage-pale)",color:"var(--forest)",padding:"2px 7px",borderRadius:99,fontWeight:700}}>#${k}</span>`)}
-              </div>`}
-              <div class="lib-card-meta">
-                <span>${item.duration||""}</span>
-                <div style=${{display:"flex",gap:6,alignItems:"center"}}>
-                  <span>${item.uploadedAt}</span>
-                  <button class="btn btn-danger btn-sm" style=${{padding:"2px 7px"}}
-                    onClick=${e=>{e.stopPropagation();del(item.id)}}>
-                    <${Ic} name="trash" size=${11}/>
-                  </button>
-                </div>
+      ${SECTIONS.map(sec=>{
+        const items=library.filter(i=>i.type===sec.type&&matches(i));
+        if(items.length===0) return null;
+        return html`
+          <div key=${sec.type} style=${{marginBottom:22}}>
+            <div style=${{display:'flex',alignItems:'center',gap:8,marginBottom:8}}>
+              <div style=${{width:28,height:28,borderRadius:7,background:sec.bg,border:'0.5px solid '+sec.border,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                <${Ic} name=${sec.icon} size=${15} style=${{color:sec.color}}/>
               </div>
+              <span style=${{fontFamily:"'Manuale',serif",fontWeight:700,fontSize:'.95rem',color:'var(--text)'}}>${sec.label}</span>
+              <span style=${{fontSize:'.78rem',color:'var(--muted)'}}>${items.length}</span>
             </div>
-          </div>`)}
-      </div>
+            <div style=${{borderRadius:12,overflow:'hidden',border:'0.5px solid var(--border)'}}>
+              ${items.map((item,idx)=>{
+                const isOpen=openId===item.id;
+                return html`
+                  <div key=${item.id} style=${{borderTop:idx>0?'0.5px solid var(--border)':'none'}}>
+                    <div style=${{display:'flex',alignItems:'center',gap:11,padding:'10px 14px',background:'var(--surface)',cursor:'pointer'}}
+                      onClick=${()=>toggle(item.id)}>
+                      <div style=${{width:52,height:52,borderRadius:9,flexShrink:0,overflow:'hidden'}}>
+                        <${ThumbSmall} item=${item} sec=${sec}/>
+                      </div>
+                      <div style=${{flex:1,minWidth:0}}>
+                        <div style=${{fontSize:'.88rem',fontWeight:700,color:'var(--text)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>${item.title}</div>
+                        <div style=${{fontSize:'.75rem',color:'var(--muted)',marginTop:2}}>${[item.desc,item.duration].filter(Boolean).join(' · ')}</div>
+                        <div style=${{fontSize:'.7rem',color:'var(--muted)',marginTop:1,opacity:.7}}>${item.uploadedAt||''}</div>
+                      </div>
+                      <div style=${{display:'flex',alignItems:'center',gap:6,flexShrink:0}}>
+                        <div onClick=${e=>{e.stopPropagation();if(confirm('Material löschen?'))del(item.id);}}
+                          style=${{width:28,height:28,borderRadius:7,background:'var(--danger-pale)',border:'0.5px solid var(--danger-border)',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}}>
+                          <${Ic} name="trash" size=${13} style=${{color:'var(--danger-dark)'}}/>
+                        </div>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2.5" stroke-linecap="round" style=${{transform:isOpen?'rotate(180deg)':'rotate(0deg)',transition:'transform .2s'}}>
+                          <polyline points="6 9 12 15 18 9"/>
+                        </svg>
+                      </div>
+                    </div>
+                    ${isOpen&&html`<div><${ExpandedContent} item=${item} sec=${sec}/></div>`}
+                  </div>`;
+              })}
+            </div>
+          </div>`;
+      })}
 
-      ${filtered.length===0&&html`
-        <div style=${{textAlign:"center",padding:"44px",color:"var(--muted)"}}>
-          <p>${searchQ?"Keine Treffer für '"+searchQ+"'":"Noch keine Inhalte in dieser Kategorie."}</p>
-        </div>`}
-
-      ${viewer&&html`
-        <div style=${{position:"fixed",inset:0,background:"rgba(0,0,0,.9)",zIndex:99999,display:"flex",flexDirection:"column"}} onClick=${closeViewer}>
-          <div style=${{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 14px",background:"var(--overlay-dark)",flexShrink:0,gap:10}} onClick=${e=>e.stopPropagation()}>
-            <div style=${{display:"flex",alignItems:"center",gap:8,minWidth:0,flex:1,overflow:"hidden"}}>
-              <${Ic} name=${viewer.type==="audio"?"music":viewer.type==="video"?"video":viewer.type==="foto"?"image":"file"} size=${16} style=${{color:"rgba(255,255,255,.7)",flexShrink:0}}/>
-              <span style=${{fontSize:".85rem",fontWeight:600,color:"white",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>${viewer.name}</span>
-            </div>
-            <div onClick=${closeViewer} style=${{background:"white",cursor:"pointer",width:36,height:36,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-              <svg width="16" height="16" viewBox="0 0 24 24" stroke="#1e3a2f" stroke-width="2.5" fill="none"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-            </div>
-          </div>
-          ${viewer.type==="foto"&&html`
-            <div style=${{flex:1,display:"flex",alignItems:"center",justifyContent:"center",padding:16}} onClick=${e=>e.stopPropagation()}>
-              <img src=${viewer.url} style=${{maxWidth:"100%",maxHeight:"100%",borderRadius:8,objectFit:"contain"}}/>
-            </div>`}
-          ${viewer.type==="audio"&&html`
-            <div style=${{flex:1,display:"flex",alignItems:"center",justifyContent:"center",padding:24}} onClick=${e=>e.stopPropagation()}>
-              <audio controls autoPlay src=${viewer.url} style=${{width:"100%",maxWidth:400}}/>
-            </div>`}
-          ${viewer.type==="video"&&html`
-            <div style=${{flex:1,display:"flex",alignItems:"center",justifyContent:"center",padding:8}} onClick=${e=>e.stopPropagation()}>
-              <video controls autoPlay src=${viewer.url} style=${{maxWidth:"100%",maxHeight:"100%",borderRadius:8}}/>
-            </div>`}
-          ${viewer.type==="dokus"&&html`
-            <div style=${{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:16,padding:24}} onClick=${e=>e.stopPropagation()}>
-              <embed src=${viewer.url} type="application/pdf" style=${{width:"100%",flex:1,borderRadius:8,minHeight:200}} onError=${()=>{}}/>
-              <a href=${viewer.url} download=${viewer.name} target="_blank" rel="noopener"
-                style=${{display:"flex",alignItems:"center",gap:8,padding:"10px 20px",background:"var(--sidebar-bg)",color:"white",borderRadius:10,fontFamily:"'Exo 2',sans-serif",fontWeight:700,fontSize:".85rem",textDecoration:"none",flexShrink:0}}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                Öffnen / Herunterladen
-              </a>
-            </div>`}
+      ${library.filter(matches).length===0&&html`
+        <div style=${{textAlign:'center',padding:'44px',color:'var(--muted)'}}>
+          <p>${searchQ?"Keine Treffer für '"+searchQ+"'":"Noch keine Materialien hochgeladen."}</p>
         </div>`}
 
       ${showUpload&&html`
         <div class="overlay" onClick=${e=>{if(e.target===e.currentTarget)setShowUpload(false);}}>
-          <div class="modal" onClick=${e=>e.stopPropagation()}>
-            <div style=${{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16}}>
+          <div class="modal" style=${{maxWidth:520}}>
+            <div style=${{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:18}}>
               <h2 class="modal-title" style=${{marginBottom:0}}>Material hochladen</h2>
-              <button style=${{background:"none",border:"none",cursor:"pointer",color:"var(--muted)",padding:4,borderRadius:8,display:"flex"}} onClick=${()=>setShowUpload(false)}><${Ic} name="x" size=${20}/></button>
+              <button style=${{background:'none',border:'none',cursor:'pointer',color:'var(--muted)',padding:4,borderRadius:8,display:'flex'}} onClick=${()=>setShowUpload(false)}><${Ic} name="x" size=${20}/></button>
             </div>
-            <div class="form-row">
-              <div class=${"upload-zone"+(drag?" drag":"")}
-                onDragOver=${e=>{e.preventDefault();setDrag(true);}}
-                onDragLeave=${()=>setDrag(false)}
-                onDrop=${handleDrop}
-                onClick=${()=>fileRef.current?.click()}>
-                <div style=${{display:"flex",justifyContent:"center",opacity:.5}}><${Ic} name="upload" size=${30}/></div>
-                <p>${uploading?"Vorschau wird erstellt…":fileName||"Datei hierher ziehen oder tippen"}</p>
-                <span>Audio · Video · Foto · PDF · DOCX · XLSX</span>
-                <input ref=${fileRef} type="file" style=${{display:"none"}} accept=${ACCEPT} onChange=${handleInputChange}/>
+            <div class=${'drop-zone'+(drag?' drag-over':'')}
+              onDragOver=${e=>{e.preventDefault();setDrag(true);}}
+              onDragLeave=${()=>setDrag(false)}
+              onDrop=${handleDrop}
+              onClick=${()=>fileRef.current?.click()}
+              style=${{cursor:'pointer'}}>
+              <input ref=${fileRef} type="file"
+                accept="audio/*,video/*,image/*,.pdf,.doc,.docx,.txt,.xlsx,.ppt,.pptx"
+                style=${{display:'none'}} onChange=${handleInputChange}/>
+              ${fileData
+                ? html`<div style=${{textAlign:'center'}}>
+                    <${Ic} name="check" size=${24} style=${{color:'var(--forest)',marginBottom:6}}/>
+                    <div style=${{fontWeight:700,color:'var(--text)',fontSize:'.88rem'}}>${fileName}</div>
+                    ${duration&&html`<div style=${{fontSize:'.78rem',color:'var(--muted)',marginTop:3}}>Dauer: ${duration}</div>`}
+                  </div>`
+                : html`<div style=${{textAlign:'center',color:'var(--muted)'}}>
+                    <${Ic} name="upload" size=${28} style=${{marginBottom:8,opacity:.5}}/>
+                    <div style=${{fontSize:'.88rem'}}>Datei hierher ziehen oder antippen</div>
+                    <div style=${{fontSize:'.75rem',marginTop:4,opacity:.6}}>Audio · Video · Bild · PDF · Dokument</div>
+                  </div>`}
+            </div>
+            <div class="form-row"><label class="label">Titel *</label>
+              <input class="input" value=${form.title} onInput=${e=>setForm(f=>({...f,title:e.target.value}))} placeholder="Titel des Materials"/></div>
+            <div class="form-row"><label class="label">Beschreibung</label>
+              <input class="input" value=${form.desc} onInput=${e=>setForm(f=>({...f,desc:e.target.value}))} placeholder="Kurze Beschreibung…"/></div>
+            <div class="form-row"><label class="label">Keywords</label>
+              <input class="input" value=${form.keywords} onInput=${e=>setForm(f=>({...f,keywords:e.target.value}))} placeholder="z.B. atem, körper, entspannung"/></div>
+            <div class="form-row"><label class="label">Typ</label>
+              <div style=${{display:'flex',gap:8,flexWrap:'wrap'}}>
+                ${[['audio','Audio','music'],['video','Video','video'],['foto','Foto','photo'],['dokus','Doku','file-text']].map(([id,label,icon])=>html`
+                  <div key=${id} class=${'sel-btn'+(form.type===id?' active':'')} style=${{flex:1,minWidth:80,flexDirection:'column',gap:4,padding:'8px'}} onClick=${()=>setForm(f=>({...f,type:id}))}>
+                    <${Ic} name=${icon} size=${16}/>${label}
+                  </div>`)}
               </div>
-            </div>
-            <div class="form-row">
-              <label class="label">Typ</label>
-              <div style=${{display:"grid",gridTemplateColumns:"1fr 1fr",gap:7}}>
-                ${["audio","video","dokus","foto"].map(t=>html`
-                  <button key=${t} onClick=${()=>setForm(f=>({...f,type:t}))}
-                    style=${{padding:"7px 10px",borderRadius:10,border:"1.5px solid",fontFamily:"'Exo 2',sans-serif",fontWeight:700,fontSize:".79rem",cursor:"pointer",display:"flex",alignItems:"center",gap:6,
-                    borderColor:form.type===t?(COLOR[t]||"var(--teal)"):"var(--border)",
-                    background:form.type===t?(t==="audio"?"var(--teal-pale)":t==="video"?"var(--sage-pale)":t==="foto"?"var(--sky-pale)":"var(--sage)"):"var(--surface)",
-                    color:"var(--text)"}}>
-                    <${Ic} name=${t==="audio"?"music":t==="video"?"video":t==="foto"?"image":"file"} size=${13}/>
-                    ${t==="audio"?"Audio":t==="video"?"Video":t==="foto"?"Foto":"Doku"}
-                  </button>`)}
-              </div>
-            </div>
-            <div class="form-row">
-              <label class="label">Titel *</label>
-              <input class="input" value=${form.title} onInput=${e=>setForm(f=>({...f,title:e.target.value}))} placeholder="z.B. Atemübung — 5 Minuten"/>
-            </div>
-            <div class="form-row">
-              <label class="label">Beschreibung</label>
-              <textarea class="textarea" rows=${2} value=${form.desc} onInput=${e=>setForm(f=>({...f,desc:e.target.value}))} placeholder="Kurze Beschreibung…"/>
-            </div>
-            <div class="form-row">
-              <label class="label">Stichwörter (kommagetrennt)</label>
-              <input class="input" value=${form.keywords} onInput=${e=>setForm(f=>({...f,keywords:e.target.value}))} placeholder="z.B. Atem, Entspannung, Morgen"/>
             </div>
             <div class="modal-actions">
               <button class="btn btn-ghost" onClick=${()=>setShowUpload(false)}>Abbrechen</button>
-              <button class="btn btn-primary" onClick=${save} disabled=${uploading}>
-                <${Ic} name="upload" size=${13}/> Speichern
+              <button class="btn btn-primary" onClick=${save} disabled=${uploading||!form.title.trim()}>
+                ${uploading?'Wird hochgeladen…':'✓ Speichern'}
               </button>
             </div>
           </div>
@@ -2864,6 +2745,7 @@ function LibraryPage({library,setLibrary}) {
     </div>
   `;
 }
+
 // ── IMPULS ADMIN PAGE ──
 function ImpulsAdminPage() {
   const [activeSubTab, setActiveSubTab] = useState("aktuell");
