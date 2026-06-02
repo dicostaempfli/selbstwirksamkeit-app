@@ -1,5 +1,5 @@
-<!-- Version: 2026-06-02 21:50 coachee -->
-<!-- v202606022150 cache-bust: v1780429820 -->
+<!-- Version: 2026-06-02 21:54 coachee -->
+<!-- v202606022154 cache-bust: v1780430082 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
 <head>
@@ -510,7 +510,7 @@
     }
   }
 
-  .content-main { flex:1; overflow-y:auto; padding:32px 36px; background:var(--bg); }
+  .content-main { flex:1; overflow-y:auto; overflow-x:hidden; padding:32px 36px; background:var(--bg); }
   .page-heading { font-family:'Manuale',serif; font-size:1.7rem; color:var(--text); margin-bottom:4px; }
   .page-sub { font-size:.92rem; color:var(--muted); margin-bottom:24px; }
 
@@ -1000,7 +1000,7 @@
     }
     .bottom-nav-item { height: 72px; min-height: 72px; }
     /* ── Content padding ── */
-    .content-main { padding-left: 12px; padding-right: 12px; padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px) + 16px); }
+    .content-main { padding-left: 12px; padding-right: 12px; padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px) + 16px); overflow-x: hidden; }
     /* ── Chat ── */
     
 
@@ -2514,7 +2514,7 @@ function LibraryPage({library}) {
         ${item.fileUrl&&html`
           <div style=${{width:'100%',overflow:'hidden',position:'relative'}}>
             <iframe src=${item.fileUrl}
-              style=${{width:'100%',height:'70vh',border:'none',display:'block',background:'#f5f5f5',maxWidth:'100%',touchAction:'pan-y'}}
+              style=${{width:'100%',height:'70vh',border:'none',display:'block',background:'#f5f5f5',maxWidth:'100vw',touchAction:'pan-y pinch-zoom'}}
               scrolling="yes"
               title=${item.title}/>
           </div>`}
