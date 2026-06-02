@@ -1,5 +1,5 @@
-<!-- Version: 2026-06-02 17:00 coachee -->
-<!-- v202606021700 cache-bust: v1780412429 -->
+<!-- Version: 2026-06-02 17:14 coachee -->
+<!-- v202606021714 cache-bust: v1780413265 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
 <head>
@@ -659,6 +659,7 @@
   .badge-audio { background:var(--accent); color:white; }
   .badge-video { background:var(--accent); color:#fff; }
   .badge-dokus { background:var(--accent); color:#fff; }
+  .badge-foto  { background:#0e7490; color:#fff; }
   .lib-play-overlay { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(30,60,35,.2); }
   .lib-play-btn { width:40px; height:40px; border-radius:50%; background:#fff; display:flex; align-items:center; justify-content:center; color:var(--text); box-shadow:0 2px 8px rgba(0,0,0,.2); }
   .lib-card-body { padding:12px; border-left-width:3px; border-left-style:solid; }
@@ -2426,10 +2427,10 @@ function LibraryPage({library,setLibrary}) {
   const [filter,setFilter]   = useState("all");
   const [viewer,setViewer]   = useState(null);
 
-  const TYPES = [{id:"all",label:"Alle",icon:"library"},{id:"audio",label:"Audio",icon:"music"},{id:"video",label:"Video",icon:"video"},{id:"dokus",label:"Dokus",icon:"file"}];
-  const COLOR  = {audio:"#156e6e",video:"#1a8888",dokus:"#2a9090"};
-  const BG     = {audio:"#d8f0e0",video:"#eef7e4",dokus:"#fafbe0"};
-  const BadgeCls = {audio:"badge-audio",video:"badge-video",dokus:"badge-dokus"};
+  const TYPES = [{id:"all",label:"Alle",icon:"library"},{id:"audio",label:"Audio",icon:"music"},{id:"video",label:"Video",icon:"video"},{id:"dokus",label:"Dokus",icon:"file"},{id:"foto",label:"Fotos",icon:"image"}];
+  const COLOR  = {audio:"#156e6e",video:"#1a8888",dokus:"#2a9090",foto:"#0e7490"};
+  const BG     = {audio:"#d8f0e0",video:"#eef7e4",dokus:"#fafbe0",foto:"#e0f5fb"};
+  const BadgeCls = {audio:"badge-audio",video:"badge-video",dokus:"badge-dokus",foto:"badge-foto"};
 
   const filtered = (filter==="all"?library:library.filter(i=>i.type===filter))
     .filter(i=>!searchQ||i.title.toLowerCase().includes(searchQ.toLowerCase())||
@@ -2438,14 +2439,39 @@ function LibraryPage({library,setLibrary}) {
 
   const openViewer = item => {
     if(!item.fileUrl) return;
-    setViewer({url: item.fileUrl, name: item.fileName||item.title, type: item.type});
+    try {
+      const arr=item.fileUrl.split(',');
+      const mime=arr[0].match(/:(.*?);/)[1];
+      const bstr=atob(arr[1]); let n=bstr.length;
+      const u8=new Uint8Array(n); while(n--)u8[n]=bstr.charCodeAt(n);
+      const blob=new Blob([u8],{type:mime});
+      const url=URL.createObjectURL(blob);
+      setViewer({url, name:item.fileName||item.title, type:item.type});
+    } catch(e){ window.open(item.fileUrl,'_blank'); }
   };
 
   const closeViewer = () => {
+    if(viewer?.url) URL.revokeObjectURL(viewer.url);
     setViewer(null);
   };
 
   const ThumbContent = ({item}) => {
+    if(item.type==="foto") {
+      const src = item.thumbData || item.fileUrl;
+      if(src) return html`
+        <div style=${{position:"relative",height:"100%",overflow:"hidden"}}>
+          <img src=${src} style=${{width:"100%",height:"100%",objectFit:"cover",display:"block"}}/>
+          <div style=${{position:"absolute",inset:0,background:"rgba(0,0,0,.08)",display:"flex",alignItems:"center",justifyContent:"center"}}>
+            <div style=${{width:36,height:36,borderRadius:"50%",background:"rgba(255,255,255,.85)",display:"flex",alignItems:"center",justifyContent:"center"}}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#156e6e" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            </div>
+          </div>
+        </div>`;
+      return html`
+        <div style=${{display:"flex",alignItems:"center",justifyContent:"center",height:"100%",background:"#e0f5fb"}}>
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#0e7490" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+        </div>`;
+    }
     if(item.type==="video") {
       if(item.thumbData) return html`
         <div style=${{position:"relative",height:"100%",overflow:"hidden"}}>
@@ -2531,8 +2557,8 @@ function LibraryPage({library,setLibrary}) {
             <div class="lib-thumb" style=${{background:BG[item.type]||"#f0ede8",borderBottom:"2px solid "+COLOR[item.type],position:"relative",overflow:"hidden"}}>
               <${ThumbContent} item=${item}/>
               <span class=${"lib-type-badge "+BadgeCls[item.type]}>
-                <${Ic} name=${item.type==="audio"?"music":item.type==="video"?"video":"file"} size=${10}/>
-                ${item.type==="audio"?"Audio":item.type==="video"?"Video":"Doku"}
+                <${Ic} name=${item.type==="audio"?"music":item.type==="video"?"video":item.type==="foto"?"image":"file"} size=${10}/>
+                ${item.type==="audio"?"Audio":item.type==="video"?"Video":item.type==="foto"?"Foto":"Doku"}
               </span>
             </div>
             <div class="lib-card-body" style=${{borderLeft:"3px solid "+COLOR[item.type]}}>
@@ -2559,7 +2585,7 @@ function LibraryPage({library,setLibrary}) {
         <div style=${{position:"fixed",inset:0,background:"rgba(0,0,0,.85)",zIndex:99999,display:"flex",flexDirection:"column"}} onClick=${closeViewer}>
           <div style=${{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 14px",background:"var(--overlay-dark)",flexShrink:0,gap:10}} onClick=${e=>e.stopPropagation()}>
             <div style=${{display:"flex",alignItems:"center",gap:8,minWidth:0,flex:1,overflow:"hidden"}}>
-              <${Ic} name=${viewer.type==="audio"?"music":viewer.type==="video"?"video":"file"} size=${16} style=${{color:"rgba(255,255,255,.7)",flexShrink:0}}/>
+              <${Ic} name=${viewer.type==="audio"?"music":viewer.type==="video"?"video":viewer.type==="foto"?"image":"file"} size=${16} style=${{color:"rgba(255,255,255,.7)",flexShrink:0}}/>
               <span style=${{fontSize:".85rem",fontWeight:600,color:"white",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>${viewer.name}</span>
             </div>
             <div onClick=${closeViewer} style=${{background:"white",cursor:"pointer",width:36,height:36,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
@@ -2573,6 +2599,10 @@ function LibraryPage({library,setLibrary}) {
           ${viewer.type==="video"&&html`
             <div style=${{flex:1,display:"flex",alignItems:"center",justifyContent:"center",padding:8}} onClick=${e=>e.stopPropagation()}>
               <video controls autoPlay src=${viewer.url} style=${{maxWidth:"100%",maxHeight:"100%",borderRadius:8}}/>
+            </div>`}
+          ${viewer.type==="foto"&&html`
+            <div style=${{flex:1,display:"flex",alignItems:"center",justifyContent:"center",padding:16,overflow:"hidden"}} onClick=${e=>e.stopPropagation()}>
+              <img src=${viewer.url} style=${{maxWidth:"100%",maxHeight:"100%",borderRadius:8,objectFit:"contain"}}/>
             </div>`}
           ${viewer.type==="dokus"&&html`
             <div style=${{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:16,padding:24}} onClick=${e=>e.stopPropagation()}>

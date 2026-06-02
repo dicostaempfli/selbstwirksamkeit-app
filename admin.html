@@ -1,4 +1,4 @@
-<!-- Version: 2026-06-02 16:55 admin -->
+<!-- Version: 2026-06-02 17:14 admin -->
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -1527,7 +1527,7 @@ function DashboardPage({coachees,library,doodles,setPage,user}) {
         <div>
           <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.3rem",fontWeight:700,color:"var(--text)"}}>${greeting}</div>
           <div style=${{fontSize:".88rem",color:"var(--muted)",marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"calc(100vw - 120px)"}}>Admin-Portal · Raum für Selbstwirksamkeit</div>
-          <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-06-02 16:55 · Doku v3.16 · 2026-06-02 16:55
+          <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-06-02 17:14 · Doku v3.16 · 2026-06-02 17:14
           </div>
         </div>
       </div>
@@ -2540,11 +2540,22 @@ function LibraryPage({library,setLibrary}) {
     setThumbData(null); setDuration("");
     setUploading(true);
     if(t==="foto") {
-      // Read preview for thumbnail only
-      readFile(f).then(data => {
-        setThumbData(data); // base64 preview for thumbnail in card
+      // Resize to max 400px for Firestore (1MB limit)
+      const objUrl = URL.createObjectURL(f);
+      const img = new Image();
+      img.onload = () => {
+        const maxW = 400;
+        const scale = img.width > maxW ? maxW / img.width : 1;
+        const c = document.createElement("canvas");
+        c.width = Math.round(img.width * scale);
+        c.height = Math.round(img.height * scale);
+        c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+        setThumbData(c.toDataURL("image/jpeg", 0.6));
+        URL.revokeObjectURL(objUrl);
         setUploading(false);
-      }).catch(() => { showToast("Fehler beim Lesen"); setUploading(false); });
+      };
+      img.onerror = () => { URL.revokeObjectURL(objUrl); showToast("Fehler beim Lesen"); setUploading(false); };
+      img.src = objUrl;
     } else if(t==="video") {
       extractVideoThumb(f).then(({thumb,dur}) => {
         if(thumb) setThumbData(thumb);
