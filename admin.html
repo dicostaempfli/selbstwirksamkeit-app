@@ -1,4 +1,4 @@
-<!-- Version: 2026-06-02 17:50 admin -->
+<!-- Version: 2026-06-02 20:42 admin -->
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -1527,7 +1527,7 @@ function DashboardPage({coachees,library,doodles,setPage,user}) {
         <div>
           <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.3rem",fontWeight:700,color:"var(--text)"}}>${greeting}</div>
           <div style=${{fontSize:".88rem",color:"var(--muted)",marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"calc(100vw - 120px)"}}>Admin-Portal · Raum für Selbstwirksamkeit</div>
-          <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-06-02 17:50 · Doku v3.16 · 2026-06-02 17:50
+          <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-06-02 20:42 · Doku v3.16 · 2026-06-02 20:42
           </div>
         </div>
       </div>
@@ -2617,19 +2617,53 @@ function LibraryPage({library,setLibrary}) {
         </div>
         ${item.fileUrl&&html`<video controls src=${item.fileUrl} style=${{position:'absolute',inset:0,width:'100%',height:'100%',opacity:0,cursor:'pointer'}} onPlay=${e=>{e.target.style.opacity='1';e.target.previousSibling&&(e.target.previousSibling.style.display='none');}}/>`}
         ${item.duration&&html`<div style=${{position:'absolute',bottom:8,left:10,background:'rgba(0,0,0,.7)',color:'white',fontSize:'.65rem',fontWeight:700,padding:'2px 7px',borderRadius:4}}>HD · ${item.duration}</div>`}
+      </div>
+      <div style=${{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'8px 14px',background:'var(--surface)',borderTop:'0.5px solid var(--border)'}}>
+        <span style=${{fontSize:'.75rem',color:'var(--muted)',flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',marginRight:10}}>${item.title}</span>
+        <button onClick=${()=>setOpenId(null)} style=${{display:'flex',alignItems:'center',gap:5,padding:'5px 13px',background:'#156e6e',color:'white',border:'none',borderRadius:8,fontFamily:"'Exo 2',sans-serif",fontWeight:700,fontSize:'.78rem',cursor:'pointer',flexShrink:0}}>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Schliessen
+        </button>
+      </div>
+      <div style=${{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'8px 14px',background:'var(--surface)',borderTop:'0.5px solid var(--border)'}}>
+        <span style=${{fontSize:'.75rem',color:'var(--muted)',flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',marginRight:10}}>${item.title}</span>
+        <button onClick=${()=>setOpenId(null)} style=${{display:'flex',alignItems:'center',gap:5,padding:'5px 13px',background:'#156e6e',color:'white',border:'none',borderRadius:8,fontFamily:"'Exo 2',sans-serif",fontWeight:700,fontSize:'.78rem',cursor:'pointer',flexShrink:0}}>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Schliessen
+        </button>
       </div>`;
     if(item.type==='foto') return html`
       <div style=${{width:'100%',maxHeight:360,background:'#111',overflow:'hidden',display:'flex',alignItems:'center',justifyContent:'center'}}>
         ${(item.fileUrl||item.thumbData)?html`<img src=${item.fileUrl||item.thumbData} style=${{maxWidth:'100%',maxHeight:360,objectFit:'contain',display:'block'}}/>`:html`<div style=${{padding:40,color:'rgba(255,255,255,.3)',fontSize:'.85rem'}}>Kein Vorschaubild</div>`}
+      </div>
+      <div style=${{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'8px 14px',background:'var(--surface)',borderTop:'0.5px solid var(--border)'}}>
+        <span style=${{fontSize:'.75rem',color:'var(--muted)',flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',marginRight:10}}>${item.title}</span>
+        <button onClick=${()=>setOpenId(null)} style=${{display:'flex',alignItems:'center',gap:5,padding:'5px 13px',background:'#156e6e',color:'white',border:'none',borderRadius:8,fontFamily:"'Exo 2',sans-serif",fontWeight:700,fontSize:'.78rem',cursor:'pointer',flexShrink:0}}>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Schliessen
+        </button>
       </div>`;
     if(item.type==='audio') return html`
       <div style=${{padding:'14px 16px',background:sec.bg,borderTop:'0.5px solid '+sec.border}}>
         <audio controls src=${item.fileUrl||''} style=${{width:'100%'}}/>
+      </div>
+      <div style=${{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'8px 14px',background:'var(--surface)',borderTop:'0.5px solid var(--border)'}}>
+        <span style=${{fontSize:'.75rem',color:'var(--muted)',flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',marginRight:10}}>${item.title}</span>
+        <button onClick=${()=>setOpenId(null)} style=${{display:'flex',alignItems:'center',gap:5,padding:'5px 13px',background:'#156e6e',color:'white',border:'none',borderRadius:8,fontFamily:"'Exo 2',sans-serif",fontWeight:700,fontSize:'.78rem',cursor:'pointer',flexShrink:0}}>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Schliessen
+        </button>
       </div>`;
     if(item.type==='dokus') return html`
-      <div style=${{padding:'12px 16px',background:sec.bg,borderTop:'0.5px solid '+sec.border,display:'flex',alignItems:'center',justifyContent:'space-between',gap:12}}>
-        <div style=${{fontSize:'.8rem',color:'var(--muted)',flex:1,minWidth:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>${item.fileName||item.title}</div>
-        ${item.fileUrl&&html`<a href=${item.fileUrl} target="_blank" rel="noopener" style=${{display:'flex',alignItems:'center',gap:6,padding:'7px 14px',background:sec.color,color:'white',borderRadius:8,fontFamily:"'Exo 2',sans-serif",fontWeight:700,fontSize:'.8rem',textDecoration:'none',flexShrink:0}}>Öffnen</a>`}
+      <div style=${{padding:'12px 16px',background:sec.bg,borderTop:'0.5px solid '+sec.border}}>
+        <div style=${{fontSize:'.8rem',color:'var(--muted)',marginBottom:10,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>${item.fileName||item.title}</div>
+        <div style=${{display:'flex',gap:8}}>
+          ${item.fileUrl&&html`
+            <a href=${item.fileUrl} target="_blank" rel="noopener"
+              style=${{flex:1,display:'flex',alignItems:'center',justifyContent:'center',gap:6,padding:'8px 14px',background:'#156e6e',color:'white',borderRadius:8,fontFamily:"'Exo 2',sans-serif",fontWeight:700,fontSize:'.8rem',textDecoration:'none'}}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Öffnen
+            </a>`}
+          <button onClick=${()=>setOpenId(null)} style=${{display:'flex',alignItems:'center',gap:5,padding:'8px 14px',background:'none',color:'#156e6e',border:'1.5px solid #156e6e',borderRadius:8,fontFamily:"'Exo 2',sans-serif",fontWeight:700,fontSize:'.8rem',cursor:'pointer',flexShrink:0}}>
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Schliessen
+          </button>
+        </div>
       </div>`;
     return null;
   };
