@@ -1,5 +1,5 @@
-<!-- Version: 2026-06-02 22:08 coachee -->
-<!-- v202606022208 cache-bust: v1780430892 -->
+<!-- Version: 2026-06-02 22:11 coachee -->
+<!-- v202606022211 cache-bust: v1780431103 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
 <head>
@@ -2476,14 +2476,8 @@ function LibraryPage({library}) {
     if(item.type==='video') return html`
       <div>
         <div style=${{width:'100%',maxWidth:560,maxHeight:320,aspectRatio:'16/9',background:'#111',position:'relative',overflow:'hidden',margin:'0 auto'}}>
-          ${item.thumbData&&html`<img src=${item.thumbData} style=${{width:'100%',height:'100%',objectFit:'cover'}}/>`}
-          <div style=${{position:'absolute',inset:0,background:'rgba(0,0,0,.3)',display:'flex',alignItems:'center',justifyContent:'center'}}>
-            <div style=${{width:52,height:52,borderRadius:'50%',background:'rgba(255,255,255,.92)',display:'flex',alignItems:'center',justifyContent:'center'}}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="#1a1a1a"><path d="M5 3l14 9-14 9V3z"/></svg>
-            </div>
-          </div>
-          ${item.fileUrl&&html`<video controls src=${item.fileUrl} style=${{position:'absolute',inset:0,width:'100%',height:'100%',opacity:0,cursor:'pointer'}} onPlay=${e=>{e.target.style.opacity='1';e.target.previousSibling&&(e.target.previousSibling.style.display='none');}}/>`}
-          ${item.duration&&html`<div style=${{position:'absolute',bottom:8,left:10,background:'rgba(0,0,0,.7)',color:'white',fontSize:'.65rem',fontWeight:700,padding:'2px 7px',borderRadius:4}}>HD · ${item.duration}</div>`}
+          ${item.fileUrl&&html`<video controls src=${item.fileUrl} poster=${item.thumbData||''} style=${{width:'100%',height:'100%',display:'block',objectFit:'contain'}}/>`}
+          ${item.duration&&html`<div style=${{position:'absolute',bottom:8,left:10,background:'rgba(0,0,0,.7)',color:'white',fontSize:'.65rem',fontWeight:700,padding:'2px 7px',borderRadius:4,pointerEvents:'none'}}>HD · ${item.duration}</div>`}
         </div>
         ${closeBtn}
       </div>`;
