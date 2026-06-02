@@ -1,5 +1,5 @@
-<!-- Version: 2026-06-02 15:15 coachee -->
-<!-- v202606021515 cache-bust: v1780406100 -->
+<!-- Version: 2026-06-02 17:00 coachee -->
+<!-- v202606021700 cache-bust: v1780412429 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
 <head>
@@ -2438,19 +2438,10 @@ function LibraryPage({library,setLibrary}) {
 
   const openViewer = item => {
     if(!item.fileUrl) return;
-    try {
-      const arr=item.fileUrl.split(',');
-      const mime=arr[0].match(/:(.*?);/)[1];
-      const bstr=atob(arr[1]); let n=bstr.length;
-      const u8=new Uint8Array(n); while(n--)u8[n]=bstr.charCodeAt(n);
-      const blob=new Blob([u8],{type:mime});
-      const url=URL.createObjectURL(blob);
-      setViewer({url, name:item.fileName||item.title, type:item.type});
-    } catch(e){ window.open(item.fileUrl,'_blank'); }
+    setViewer({url: item.fileUrl, name: item.fileName||item.title, type: item.type});
   };
 
   const closeViewer = () => {
-    if(viewer?.url) URL.revokeObjectURL(viewer.url);
     setViewer(null);
   };
 
