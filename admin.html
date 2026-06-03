@@ -1,4 +1,4 @@
-<!-- Version: 2026-06-03 11:05 admin -->
+<!-- Version: 2026-06-03 11:20 admin -->
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -12,7 +12,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-title" content="Admin"/>
-<meta name="theme-color" content="#4a9e62"/>
+<meta name="theme-color" content="#1C2118"/>
 <title>Admin — Raum für Selbstwirksamkeit</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manuale:wght@400;600;700&family=Exo+2:wght@400;600;700&display=swap"/>
@@ -241,7 +241,7 @@ window.addEventListener('orientationchange', ()=>setTimeout(setVH,150));
     font-family:'Exo 2'; font-size:16px;
     background:var(--bg); color:var(--text); transition:border .2s;
   }
-  .search-input:focus { outline:none; border-color:var(--teal); background:#fff; }
+  .search-input:focus { outline:none; border-color:var(--teal); background:var(--surface); }
   .search-icon { position:absolute; left:10px; top:50%; transform:translateY(-50%); color:var(--muted); display:flex; }
 
   .new-chat-btn {
@@ -338,7 +338,7 @@ window.addEventListener('orientationchange', ()=>setTimeout(setVH,150));
     font-size:.87rem; line-height:1.52;
     display:inline-block; max-width:100%; word-break:break-word;
   }
-  .msg-row.in  .msg-bubble { background:#ffffff; color:var(--text); border:1px solid rgba(0,0,0,.08); box-shadow:0 1px 4px rgba(0,0,0,.08); }
+  .msg-row.in  .msg-bubble { background:var(--bubble-in); color:var(--text); border:1px solid var(--border); }
   .msg-row.out .msg-bubble { background:var(--bubble-out); color:#fff; }
   .msg-meta { display:flex; align-items:center; gap:4px; margin-top:3px; justify-content:flex-end; }
   .msg-time-small { font-size:.65rem; color:var(--muted); }
@@ -546,10 +546,7 @@ window.addEventListener('orientationchange', ()=>setTimeout(setVH,150));
 
   /* Dashboard stats */
   .stat-grid { display:flex; flex-direction:column; gap:10px; margin-bottom:18px; }
-  .stat-card { background:var(--surface); border-radius:var(--radius); box-shadow:var(--shadow); padding:16px 18px; border-left:4px solid var(--sage); }
-  .stat-card:nth-child(2) { border-left-color:var(--lime); }
-  .stat-card:nth-child(3) { border-left-color:var(--teal); }
-  .stat-card:nth-child(4) { border-left-color:var(--sage-dark); }
+  .stat-card { background:var(--surface); border-radius:var(--radius); padding:16px 18px; border:0.5px solid var(--border); }
   .stat-label { font-size:.69rem; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; }
   .stat-value { font-family:'Manuale',serif; font-size:1.75rem; color:var(--text); margin-top:2px; }
   .stat-hint { font-size:.74rem; color:var(--teal-dark); margin-top:2px; }
@@ -974,7 +971,7 @@ window.addEventListener('orientationchange', ()=>setTimeout(setVH,150));
 .conv-preview { font-size:.74rem; color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-top:1px; }
 .conv-meta { display:flex; flex-direction:column; align-items:flex-end; gap:4px; flex-shrink:0; }
 .conv-time { font-size:.68rem; color:var(--muted); }
-.conv-unread { background:var(--sage); color:var(--text); border-radius:99px; padding:2px 6px; font-size:.65rem; font-weight:700; min-width:18px; text-align:center; }
+.conv-unread { background:var(--teal); color:#fff; border-radius:99px; padding:2px 6px; font-size:.65rem; font-weight:700; min-width:18px; text-align:center; }
 .chat-input-bar { background:var(--surface); border-top:1px solid var(--border); padding:10px 14px; display:flex; align-items:flex-end; gap:8px; flex-shrink:0; }
 .chat-textarea { flex:1; background:var(--bg); border:1.5px solid var(--border); border-radius:20px; padding:9px 15px; font-family:'Exo 2'; font-size:16px; color:var(--text); resize:none; max-height:100px; overflow-y:auto; line-height:1.45; }
 .chat-textarea:focus { outline:none; border-color:var(--teal); }
@@ -1537,7 +1534,7 @@ function DashboardPage({coachees,library,doodles,setPage,user}) {
         <div>
           <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.3rem",fontWeight:700,color:"var(--text)"}}>${greeting}</div>
           <div style=${{fontSize:".88rem",color:"var(--muted)",marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"calc(100vw - 120px)"}}>Admin-Portal · Raum für Selbstwirksamkeit</div>
-          <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-06-03 11:05 · Doku v3.18 · 2026-06-03 11:05
+          <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-06-03 11:20 · Doku v3.19 · 2026-06-03 11:20
           </div>
         </div>
       </div>
@@ -2115,7 +2112,7 @@ function ChatWindow({coachee,onSend,onSendImg,onSendFile,onBack,mobileOpen}) {
                 style=${{background:"white",border:"none",cursor:"pointer",
                   width:36,height:36,borderRadius:"50%",display:"flex",alignItems:"center",
                   justifyContent:"center",flexShrink:0}}>
-                <svg width="16" height="16" viewBox="0 0 24 24" stroke="#1e3a2f" stroke-width="2.5" fill="none">
+                <svg width="16" height="16" viewBox="0 0 24 24" stroke="#1C2118" stroke-width="2.5" fill="none">
                   <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
                 </svg>
               </div>
@@ -2993,7 +2990,7 @@ function ImpulsBibliothekTab() {
           <div class="card-title" style=${{marginBottom:10,color:"var(--forest)"}}>Vorschau</div>
           <div style=${{display:"flex",flexWrap:"wrap",gap:6,marginBottom:14}}>
             ${preview.counts.map(c => html`
-              <span key=${c.id} style=${{background:"#e6f4ea",borderRadius:6,padding:"4px 12px",fontSize:".82rem",color:"var(--forest)",fontWeight:700}}>Phase ${c.id} — ${c.title}: ${c.count} Impulse</span>
+              <span key=${c.id} style=${{background:"var(--accent-pale)",borderRadius:6,padding:"4px 12px",fontSize:".82rem",color:"var(--teal)",fontWeight:700}}>Phase ${c.id} — ${c.title}: ${c.count} Impulse</span>
             `)}
           </div>
           <button class="btn btn-primary" onClick=${handleImport} disabled=${importing || importOk}>
