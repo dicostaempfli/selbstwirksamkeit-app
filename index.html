@@ -1,5 +1,5 @@
-<!-- Version: 2026-06-03 23:04 coachee -->
-<!-- v20260603 cache-bust: v1780520673 -->
+<!-- Version: 2026-06-03 23:11 coachee -->
+<!-- v20260603 cache-bust: v1780521085 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
 <head>
@@ -1666,7 +1666,7 @@ function App({ user }) {
 
   return html`
     ${showInstallBanner && h("div", {
-      style:{position:"fixed",bottom:0,left:0,right:0,zIndex:500,padding:"16px 16px 20px",background:"#0f2927",borderTop:"2px solid #1D9E75"}
+      style:{position:"fixed",bottom:0,left:0,right:0,zIndex:19999,padding:"16px 16px 20px",background:"#0f2927",borderTop:"2px solid #1D9E75"}
     },
       h("div", {style:{maxWidth:480,margin:"0 auto"}},
         h("div",{style:{display:"flex",alignItems:"center",gap:10,marginBottom:12}},
@@ -3762,6 +3762,8 @@ function AppGate({user}) {
 // ── MOUNT ──
 function BreathPortal() {
   const [show, setShow] = useState(true);
+  // Atemball nicht zeigen wenn Install-Banner aktiv (iOS + nicht als PWA)
+  if(isIOS() && !isPWA()) return null;
   if(!show) return null;
   return html`<${BreathOverlay} onDone=${()=>setShow(false)}/>`;
 }
