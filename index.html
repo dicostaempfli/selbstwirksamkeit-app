@@ -1,5 +1,5 @@
-<!-- Version: 2026-06-03 23:11 coachee -->
-<!-- v20260603 cache-bust: v1780521085 -->
+<!-- Version: 2026-06-03 23:35 coachee -->
+<!-- v20260603 cache-bust: v1780522513 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
 <head>
@@ -1685,25 +1685,40 @@ function App({ user }) {
           "Damit Impulse und Nachrichten auf deinem Sperrbildschirm erscheinen:"
         ),
         h("div",{style:{display:"flex",flexDirection:"column",gap:7}},
-          h("div",{style:{display:"flex",alignItems:"center",gap:10}},
-            h("div",{style:{width:22,height:22,borderRadius:"50%",background:"#1D9E75",color:"#fff",fontWeight:700,fontSize:".75rem",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}},"1"),
-            h("span",{style:{fontSize:".82rem",color:"rgba(255,255,255,0.85)"}},
-              "Tippe unten rechts auf ",h("span",{style:{fontWeight:700,color:"#fff"}},"···")," (drei Punkte)"
+          /Firefox/i.test(navigator.userAgent) ? [
+            h("div",{style:{display:"flex",alignItems:"center",gap:10}},
+              h("div",{style:{width:22,height:22,borderRadius:"50%",background:"#1D9E75",color:"#fff",fontWeight:700,fontSize:".75rem",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}},"1"),
+              h("span",{style:{fontSize:".82rem",color:"rgba(255,255,255,0.85)"}},
+                "Tippe unten rechts auf ",h("span",{style:{fontWeight:700,color:"#fff"}},"≡")," (Menü-Symbol)"
+              )
+            ),
+            h("div",{style:{display:"flex",alignItems:"center",gap:10}},
+              h("div",{style:{width:22,height:22,borderRadius:"50%",background:"#1D9E75",color:"#fff",fontWeight:700,fontSize:".75rem",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}},"2"),
+              h("span",{style:{fontSize:".82rem",color:"rgba(255,255,255,0.85)"}},
+                "Wähle ",h("span",{style:{fontWeight:700,color:"#fff"}},"«Zum Startbildschirm hinzufügen»")
+              )
             )
-          ),
-          h("div",{style:{display:"flex",alignItems:"center",gap:10}},
-            h("div",{style:{width:22,height:22,borderRadius:"50%",background:"#1D9E75",color:"#fff",fontWeight:700,fontSize:".75rem",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}},"2"),
-            h("span",{style:{fontSize:".82rem",color:"rgba(255,255,255,0.85)"}},
-              "Wähle ",h("span",{style:{fontWeight:700,color:"#fff"}},"«Teilen»")," ⎙"
+          ] : [
+            h("div",{style:{display:"flex",alignItems:"center",gap:10}},
+              h("div",{style:{width:22,height:22,borderRadius:"50%",background:"#1D9E75",color:"#fff",fontWeight:700,fontSize:".75rem",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}},"1"),
+              h("span",{style:{fontSize:".82rem",color:"rgba(255,255,255,0.85)"}},
+                "Tippe unten rechts auf ",h("span",{style:{fontWeight:700,color:"#fff"}},"···")," (drei Punkte)"
+              )
+            ),
+            h("div",{style:{display:"flex",alignItems:"center",gap:10}},
+              h("div",{style:{width:22,height:22,borderRadius:"50%",background:"#1D9E75",color:"#fff",fontWeight:700,fontSize:".75rem",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}},"2"),
+              h("span",{style:{fontSize:".82rem",color:"rgba(255,255,255,0.85)"}},
+                "Wähle ",h("span",{style:{fontWeight:700,color:"#fff"}},"«Teilen»")," ⎙"
+              )
+            ),
+            h("div",{style:{display:"flex",alignItems:"center",gap:10}},
+              h("div",{style:{width:22,height:22,borderRadius:"50%",background:"#1D9E75",color:"#fff",fontWeight:700,fontSize:".75rem",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}},"3"),
+              h("span",{style:{fontSize:".82rem",color:"rgba(255,255,255,0.85)"}},
+                "Tippe auf ",h("span",{style:{fontWeight:700,color:"#fff"}},"«Zum Home-Bildschirm»"),
+                h("span",{style:{color:"rgba(255,255,255,0.5)",fontSize:".75rem"}}," (evtl. unter «Mehr anzeigen»)")
+              )
             )
-          ),
-          h("div",{style:{display:"flex",alignItems:"center",gap:10}},
-            h("div",{style:{width:22,height:22,borderRadius:"50%",background:"#1D9E75",color:"#fff",fontWeight:700,fontSize:".75rem",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}},"3"),
-            h("span",{style:{fontSize:".82rem",color:"rgba(255,255,255,0.85)"}},
-              "Tippe auf ",h("span",{style:{fontWeight:700,color:"#fff"}},"«Zum Home-Bildschirm»"),
-              h("span",{style:{color:"rgba(255,255,255,0.5)",fontSize:".75rem"}}," (evtl. unter «Mehr anzeigen»)")
-            )
-          )
+          ]
         )
       )
     )}
