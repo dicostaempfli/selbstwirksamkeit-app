@@ -1,4 +1,4 @@
-<!-- Version: 2026-06-03 11:38 admin -->
+<!-- Version: 2026-06-03 11:41 admin -->
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -521,7 +521,7 @@ window.addEventListener('orientationchange', ()=>setTimeout(setVH,150));
   .icon-picker { display:flex; gap:6px; flex-wrap:wrap; }
   .icon-pick-btn { width:38px; height:38px; border-radius:9px; border:1.5px solid var(--border); background:var(--surface2); cursor:pointer; display:flex; align-items:center; justify-content:center; color:var(--muted); transition:all .15s; }
   .icon-pick-btn:hover { border-color:var(--teal); color:var(--teal-dark); }
-  .icon-pick-btn.selected { border-color:var(--teal); background:var(--sage); color:var(--text); }
+  .icon-pick-btn.selected { border-color:var(--teal); background:var(--teal); color:#fff; }
 
   /* Recurrence */
   .rec-tabs { display:flex; gap:6px; flex-wrap:wrap; }
@@ -993,7 +993,7 @@ window.addEventListener('orientationchange', ()=>setTimeout(setVH,150));
 .badge-ehemalig { background:var(--border); color:var(--muted); border-radius:99px; padding:2px 8px; font-size:.7rem; font-weight:700; }
 .coachee-header { display:flex; align-items:center; gap:14px; }
 .coachee-meta { display:flex; gap:5px; flex-wrap:wrap; margin-top:6px; }
-.coachee-gender { font-size:.68rem; font-weight:700; color:var(--forest); background:var(--sage); border-radius:99px; padding:2px 8px; }
+.coachee-gender { font-size:.68rem; font-weight:700; color:#fff; background:var(--teal); border-radius:99px; padding:2px 8px; }
 .coachee-actions { display:flex; flex-direction:column; gap:7px; flex-shrink:0; }
 .coachee-edit-sheet { position:fixed; inset:0; background:rgba(20,50,30,.35); z-index:9998; display:flex; align-items:flex-end; justify-content:center; }
 .coachee-edit-panel { background:var(--surface); border-radius:20px 20px 0 0; padding:24px; width:100%; max-width:480px; max-height:85dvh; overflow-y:auto; }
@@ -1535,7 +1535,7 @@ function DashboardPage({coachees,library,doodles,setPage,user}) {
         <div>
           <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.3rem",fontWeight:700,color:"var(--text)"}}>${greeting}</div>
           <div style=${{fontSize:".88rem",color:"var(--muted)",marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"calc(100vw - 120px)"}}>Admin-Portal · Raum für Selbstwirksamkeit</div>
-          <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-06-03 11:38 · Doku v3.19 · 2026-06-03 11:38
+          <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-06-03 11:41 · Doku v3.19 · 2026-06-03 11:41
           </div>
         </div>
       </div>
@@ -1782,14 +1782,14 @@ function ChatPage({coachees,setCoachees}) {
                   ...["Paare","Einzel","Eltern","Männer","Frauen"].map(cat=>
                     h("div",{key:cat,
                       onClick:()=>setBroadcastCat(prev=>prev.includes(cat)?prev.filter(x=>x!==cat):[...prev,cat]),
-                      style:{height:40,borderRadius:9,border:"1.5px solid "+(broadcastCat.includes(cat)?"var(--teal)":"var(--border2)"),background:broadcastCat.includes(cat)?"var(--sage)":"var(--surface)",color:broadcastCat.includes(cat)?"var(--forest)":"var(--text)",fontSize:".82rem",fontWeight:700,fontFamily:"'Exo 2',sans-serif",display:"flex",alignItems:"center",justifyContent:"center",gap:6,cursor:"pointer",position:"relative"}},
+                      style:{height:40,borderRadius:9,border:"1.5px solid "+(broadcastCat.includes(cat)?"var(--teal)":"var(--border2)"),background:broadcastCat.includes(cat)?"var(--teal)":"var(--surface)",color:broadcastCat.includes(cat)?"#fff":"var(--text)",fontSize:".82rem",fontWeight:700,fontFamily:"'Exo 2',sans-serif",display:"flex",alignItems:"center",justifyContent:"center",gap:6,cursor:"pointer",position:"relative"}},
                       cat,
                       broadcastCat.includes(cat)&&h("span",{style:{position:"absolute",top:3,right:6,fontSize:10,color:"var(--teal)"}},"✓")
                     )
                   ),
                   h("div",{key:"Alle",
                     onClick:()=>setBroadcastCat([]),
-                    style:{height:40,borderRadius:9,border:"1.5px solid "+(broadcastCat.length===0?"var(--teal)":"var(--border2)"),background:broadcastCat.length===0?"var(--sage)":"var(--surface)",color:broadcastCat.length===0?"var(--forest)":"var(--text)",fontSize:".82rem",fontWeight:700,fontFamily:"'Exo 2',sans-serif",display:"flex",alignItems:"center",justifyContent:"center",gap:6,cursor:"pointer",gridColumn:"1 / -1"}},
+                    style:{height:40,borderRadius:9,border:"1.5px solid "+(broadcastCat.length===0?"var(--teal)":"var(--border2)"),background:broadcastCat.length===0?"var(--teal)":"var(--surface)",color:broadcastCat.length===0?"#fff":"var(--text)",fontSize:".82rem",fontWeight:700,fontFamily:"'Exo 2',sans-serif",display:"flex",alignItems:"center",justifyContent:"center",gap:6,cursor:"pointer",gridColumn:"1 / -1"}},
                     "Alle"
                   )
                 ),
@@ -2314,7 +2314,7 @@ function CoacheesPage({coachees,setCoachees,setPage}) {
                   ${[form.firstname,form.lastname].filter(Boolean).join(" ")||"Name eingeben…"}
                 </div>
                 <div style=${{display:"flex",gap:5,marginTop:5,flexWrap:"wrap"}}>
-                  ${form.modell&&html`<span style=${{fontSize:".65rem",fontWeight:700,background:"var(--sage)",color:"var(--forest)",borderRadius:99,padding:"1px 7px"}}>${form.modell}</span>`}
+                  ${form.modell&&html`<span style=${{fontSize:".65rem",fontWeight:700,background:"var(--teal)",color:"#fff",borderRadius:99,padding:"1px 7px"}}>${form.modell}</span>`}
                   ${form.coaching&&html`<span style=${{fontSize:".65rem",fontWeight:700,background:"var(--teal-pale)",color:"var(--teal-dark)",borderRadius:99,padding:"1px 7px"}}>${form.coaching}${form.kids&&form.coaching!=="Eltern"?" + Kids":""}</span>`}
                   ${form.gender&&html`<span style=${{fontSize:".65rem",fontWeight:700,background:"var(--surface2)",color:"var(--muted)",borderRadius:99,padding:"1px 7px"}}>${form.gender}</span>`}
                 </div>
@@ -3234,7 +3234,7 @@ function DoodlePage({doodles,setDoodles,coachees}) {
               ${coachees.map(c=>html`
                 <div key=${c.id} class=${"coachee-check"+(selRecip.includes(c.id)?" sel":"")} onClick=${()=>setSelRecip(r=>r.includes(c.id)?r.filter(x=>x!==c.id):[...r,c.id])}>
                   <input type="checkbox" checked=${selRecip.includes(c.id)} onClick=${e=>e.stopPropagation()} style=${{width:16,height:16,accentColor:"var(--teal)",cursor:"pointer"}}/>
-                  <div style=${{width:28,height:28,borderRadius:"50%",background:c.color,display:"flex",alignItems:"center",justifyContent:"center",fontSize:".68rem",fontWeight:700,color:"var(--forest)",flexShrink:0}}>${c.initials}</div>
+                  <div style=${{width:28,height:28,borderRadius:"50%",background:c.color,display:"flex",alignItems:"center",justifyContent:"center",fontSize:".68rem",fontWeight:700,color:"#fff",flexShrink:0}}>${c.initials}</div>
                   <span style=${{fontSize:".88rem",fontWeight:600}}>${c.name}</span>
                 </div>`)}
             </div>
