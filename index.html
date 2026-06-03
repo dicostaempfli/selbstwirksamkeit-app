@@ -1,5 +1,5 @@
-<!-- Version: 2026-06-03 17:46 coachee -->
-<!-- v20260603 cache-bust: v1780501593 -->
+<!-- Version: 2026-06-03 17:56 coachee -->
+<!-- v20260603 cache-bust: v1780502209 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
 <head>
@@ -3317,16 +3317,23 @@ function LoginPage({ onLogin }) {
       const fbAuth = window._fb?.auth || window.firebase?.auth();
       const provider = window._fb?.googleProvider || new window.firebase.auth.GoogleAuthProvider();
       if(!fbAuth) throw {code:"no-auth", message:"Firebase nicht bereit"};
-      // Use redirect on mobile, popup on desktop
-      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-      if(isMobile) {
-        await fbAuth.signInWithRedirect(provider);
-      } else {
+      // Popup first (works on iOS PWA 16.4+, Android, Desktop)
+      // Redirect as fallback only if popup explicitly blocked
+      try {
         await fbAuth.signInWithPopup(provider);
+      } catch(popupErr) {
+        if(popupErr.code === "auth/popup-blocked" || popupErr.code === "auth/operation-not-supported-in-this-environment") {
+          // Fallback to redirect
+          await fbAuth.signInWithRedirect(provider);
+        } else {
+          throw popupErr;
+        }
       }
     } catch(e) {
       if(e.code === "auth/cancelled-popup-request" || e.code === "auth/popup-closed-by-user") {
         setError("");
+      } else if(e.code === "auth/unauthorized-domain") {
+        setError("Diese Domain ist nicht autorisiert. Bitte kontaktiere den Support.");
       } else {
         setError("Google fehlgeschlagen: "+e.message);
       }
@@ -3547,6 +3554,10 @@ function Root() {
     const tryAuth = (attempts) => {
       const fbAuth = window._fb?.auth;
       if(fbAuth) {
+        // Handle redirect result first (Google Sign-In on mobile)
+        fbAuth.getRedirectResult().then(result => {
+          // result.user is set if returning from redirect — onAuthStateChanged handles the rest
+        }).catch(() => {});
         unsubscribe = fbAuth.onAuthStateChanged(u => {
           setUser(u);
           setAuthReady(true);
