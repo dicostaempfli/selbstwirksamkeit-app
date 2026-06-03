@@ -1,4 +1,4 @@
-<!-- Version: 2026-06-02 22:11 admin -->
+<!-- Version: 2026-06-03 11:05 admin -->
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -85,63 +85,73 @@ window.addEventListener('orientationchange', ()=>setTimeout(setVH,150));
   *,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
 
   :root {
-    /* ── Brand: use the three brand colors as primary UI ── */
-    --lime:       #efe454;
-    --lime-dark:  #c8c420;
-    --lime-muted: #d8d840;
-    --lime-pale:  #fafbe0;
-    --sage:       #a0cb7b;
-    --sage-dark:  #7ab55e;
-    --sage-pale:  #dff0cc;
-    --teal:       #68b87d;
-    --teal-dark:  #4ea066;
-    --teal-pale:  #c8e8d0;
+    /* ── Akzentfarbe (einziger Akzent — Teal) ── */
+    --accent:      #156e6e;
+    --accent-dark: #0e4e4e;
+    --accent-pale: #e0f0f0;
+    --accent2:     #156e6e;
+    /* Aliases (historisch) */
+    --lime:       #156e6e;
+    --lime-dark:  #0e4e4e;
+    --lime-muted: #1a8080;
+    --lime-pale:  #e0f0f0;
+    --sage:       #156e6e;
+    --sage-dark:  #0e4e4e;
+    --sage-pale:  #e0f0f0;
+    --teal:       #156e6e;
+    --teal-dark:  #0e4e4e;
+    --teal-pale:  #e0f0f0;
+    --forest:        #156e6e;
+    --forest-dark:   #0e4e4e;
 
-    /* ── Sidebar uses sage as background ── */
-    --sidebar-bg:      #4a9e62;
-    --sidebar-active:  #ece455;
-    --sidebar-hover:   rgba(255,255,255,.12);
-    --sidebar-icon:    rgba(255,255,255,.55);
+    /* ── Sidebar / Navigation (Nacht) ── */
+    --sidebar-bg:      #1C2118;
+    --sidebar-active:  #156e6e;
+    --sidebar-hover:   rgba(21,110,110,.10);
+    --sidebar-icon:    rgba(240,234,224,.45);
 
-    /* ── Surfaces ── */
-    --bg:          #f0faf3;      /* very light sage-tinted page */
-    --surface:     #ffffff;
-    --surface2:    #f5fbf7;
-    --border:      #cce8d4;
-    --border2:     #b8ddc4;
+    /* ── Papier-Basis (warme Neutraltöne) ── */
+    --bg:          #F9F7F3;
+    --surface:     #EFECE5;
+    --surface2:    #F4F1EA;
+    --border:      #E3DFDA;
+    --border2:     #D0CBC4;
 
-    /* ── Text ── */
-    --text:        #1a3322;
-    --muted:       #5a7a65;
+    /* ── Tinte (Text) ── */
+    --text:        #1C1914;
+    --muted:       #7C7268;
+    --muted2:      #B8B0A6;
 
-    /* ── Chat bubbles ── */
-    --bubble-out:  #3d7a4a;    /* outgoing: dark teal-green */
-    --bubble-in:   #ffffff;
+    /* ── Chat-Bubbles ── */
+    --bubble-out:  #122828;
+    --bubble-in:   #EFECE5;
 
-    /* ── Accents ── */
-    --accent:      #62ba7a;
-    --accent2:     #eaed53;
-    --danger:      #c0392b;
+    /* ── Danger / Fehlerzustände ── */
+    --danger:        #c0392b;
+    --danger-pale:   #fff0ef;
+    --danger-border: #f5c0bc;
+    --danger-dark:   #a03020;
 
-    /* ── Semantic / extended ── */
-    --forest:        #639922;    /* Impuls-Buttons aktiv */
-    --forest-dark:   #3B6D11;    /* Impuls-Buttons Rand + Hover */
-    --overlay-dark:  #1e3a2f;    /* dunkle Header/Overlays */
-    --neutral:       #c4b8a8;    /* neutraler Beige-Ton */
-    --surface-neutral: #f0f0f0;  /* geschlossene Status-Chips */
-    --text-neutral:  #777777;    /* gedämpfter Text auf neutral */
-    --danger-pale:   #fff0ef;    /* Danger-Hintergrund blass */
-    --danger-border: #f5c0bc;    /* Danger-Rand */
-    --danger-dark:   #a03020;    /* Danger dunkel */
-    --sky:           #7ec8e3;
-    --sky-pale:      #e0f5fb;    /* Foto-Badge */
-    --pkg-einzel:    #4a9e62;    /* Package: Einzelcoaching */
-    --pkg-paar:      #2d7a9a;    /* Package: Paar/Elterncoaching */
-    --pkg-integration: #7a6a2d;  /* Package: Integrationsphase */
+    /* ── Semantische Erweiterungen ── */
+    --overlay-dark:    #1C2118;
+    --neutral:         #C8C4BA;
+    --surface-neutral: #E3DFDA;
+    --text-neutral:    #7C7268;
+    --sky:             #7ec8e3;
+    --sky-pale:        #e0f5fb;
 
+    /* ── Paket-Farben (Admin) ── */
+    --pkg-einzel:      #156e6e;
+    --pkg-paar:        #156e6e;
+    --pkg-integration: #156e6e;
+
+    /* ── Atemball (geschützt) ── */
+    --atemball-bg:   #0c1818;
+
+    /* ── Geometrie & Schatten ── */
     --radius:  16px;
-    --shadow:  0 2px 16px rgba(62,122,74,.10);
-    --shadow2: 0 6px 28px rgba(62,122,74,.14);
+    --shadow:  0 2px 16px rgba(28,25,20,.10);
+    --shadow2: 0 6px 28px rgba(28,25,20,.14);
   }
 
 
@@ -1527,7 +1537,7 @@ function DashboardPage({coachees,library,doodles,setPage,user}) {
         <div>
           <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.3rem",fontWeight:700,color:"var(--text)"}}>${greeting}</div>
           <div style=${{fontSize:".88rem",color:"var(--muted)",marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"calc(100vw - 120px)"}}>Admin-Portal · Raum für Selbstwirksamkeit</div>
-          <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-06-02 22:11 · Doku v3.16 · 2026-06-02 22:11
+          <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-06-03 11:05 · Doku v3.18 · 2026-06-03 11:05
           </div>
         </div>
       </div>
