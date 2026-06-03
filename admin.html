@@ -1,4 +1,4 @@
-<!-- Version: 2026-06-03 17:46 admin -->
+<!-- Version: 2026-06-03 18:04 admin -->
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -1374,14 +1374,24 @@ function LoginPage() {
     });
   };
 
-  const doGoogle = () => {
-    setLoading(true);setError("");
-    const fbAuth=window._fb?.auth||window.firebase?.auth();
-    const prov=window._fb?.googleProvider||new window.firebase.auth.GoogleAuthProvider();
-    if(!fbAuth){setError("App wird geladen...");setLoading(false);return;}
-    const isMobile=/iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-    const p=isMobile?fbAuth.signInWithRedirect(prov):fbAuth.signInWithPopup(prov);
-    if(p&&p.catch) p.catch(e=>{if(e.code!=="auth/popup-closed-by-user")setError("Google fehlgeschlagen: "+e.message);setLoading(false);});
+  const doGoogle = async () => {
+    setLoading(true); setError("");
+    const fbAuth = window._fb?.auth || window.firebase?.auth();
+    const prov = window._fb?.googleProvider || new window.firebase.auth.GoogleAuthProvider();
+    if(!fbAuth){ setError("App wird geladen..."); setLoading(false); return; }
+    try {
+      await fbAuth.signInWithPopup(prov);
+    } catch(e) {
+      if(e.code === "auth/popup-blocked" || e.code === "auth/operation-not-supported-in-this-environment") {
+        fbAuth.signInWithRedirect(prov);
+      } else if(e.code === "auth/popup-closed-by-user" || e.code === "auth/cancelled-popup-request") {
+        setLoading(false);
+      } else if(e.code === "auth/unauthorized-domain") {
+        setError("Diese Domain ist nicht autorisiert."); setLoading(false);
+      } else {
+        setError("Google fehlgeschlagen: " + e.message); setLoading(false);
+      }
+    }
   };
 
   const doReset = () => {
@@ -1546,7 +1556,7 @@ function DashboardPage({coachees,library,doodles,setPage,user}) {
         <div>
           <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.3rem",fontWeight:700,color:"var(--text)"}}>${greeting}</div>
           <div style=${{fontSize:".88rem",color:"var(--muted)",marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"calc(100vw - 120px)"}}>Admin-Portal · Raum für Selbstwirksamkeit</div>
-          <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-06-03 17:46 · Doku v3.22 · 2026-06-03 17:46
+          <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-06-03 18:04 · Doku v3.23 · 2026-06-03 18:04
           </div>
         </div>
       </div>
@@ -3367,6 +3377,8 @@ function Root() {
       await initFB();
       const auth = window._fb?.auth;
       if(!auth){ setReady(true); return; }
+      // Handle redirect result first (Google Sign-In on mobile)
+      auth.getRedirectResult().catch(()=>{});
       unsub = auth.onAuthStateChanged(u=>{ setUser(u); setReady(true); });
     };
     tryAuth();
