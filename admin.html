@@ -1,4 +1,4 @@
-<!-- Version: 2026-06-03 11:20 admin -->
+<!-- Version: 2026-06-03 11:29 admin -->
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -178,7 +178,7 @@ window.addEventListener('orientationchange', ()=>setTimeout(setVH,150));
     position:relative; color:var(--sidebar-icon);
   }
   .sb-item:hover { background:var(--sidebar-hover); color:#fff; }
-  .sb-item.active { background:var(--sidebar-active); color:var(--text); }
+  .sb-item.active { background:rgba(21,110,110,.15); color:#fff; border-left:2.5px solid var(--accent); }
   .sb-item-label { font-family:'Exo 2',sans-serif; font-size:.44rem; font-weight:700; letter-spacing:.3px; line-height:1; text-align:center; }
   .sb-badge {
     position: absolute;
@@ -188,8 +188,8 @@ window.addEventListener('orientationchange', ()=>setTimeout(setVH,150));
     height: 16px;
     border-radius: 99px;
     padding: 0 4px;
-    background: var(--lime);
-    color: var(--text);
+    background: var(--teal);
+    color: #fff;
     font-size: .55rem;
     font-weight: 700;
     display: flex;
@@ -199,14 +199,14 @@ window.addEventListener('orientationchange', ()=>setTimeout(setVH,150));
     box-sizing: border-box;
   }
   .sb-item.active .sb-badge {
-    background: var(--sage);
-    border-color: var(--sidebar-active);
+    background: var(--teal-dark);
+    border-color: var(--teal-dark);
   }
   .sb-item .badge {
     position:absolute; top:7px; right:7px;
     width:14px; height:14px; border-radius:50%;
-    background:var(--lime); font-size:.56rem; font-weight:700;
-    color:var(--text); display:flex; align-items:center; justify-content:center;
+    background:var(--teal); font-size:.56rem; font-weight:700;
+    color:#fff; display:flex; align-items:center; justify-content:center;
   }
   .sb-bottom { padding:0 10px; display:flex; flex-direction:column; align-items:center; gap:8px; }
   .sb-logout-btn {
@@ -219,8 +219,8 @@ window.addEventListener('orientationchange', ()=>setTimeout(setVH,150));
   .sb-logout-btn:hover { background:rgba(255,255,255,.20); color:#fff; }
   .sb-avatar {
     width:40px; height:40px; border-radius:50%;
-    background:var(--lime); display:flex; align-items:center; justify-content:center;
-    font-size:.73rem; color:var(--text); font-weight:700; cursor:pointer;
+    background:var(--teal); display:flex; align-items:center; justify-content:center;
+    font-size:.73rem; color:#fff; font-weight:700; cursor:pointer;
     border:2px solid rgba(255,255,255,.3); letter-spacing:.5px;
   }
 
@@ -527,7 +527,7 @@ window.addEventListener('orientationchange', ()=>setTimeout(setVH,150));
   .rec-tabs { display:flex; gap:6px; flex-wrap:wrap; }
   .rec-tab { padding:7px 13px; border-radius:10px; border:1.5px solid var(--border); background:var(--surface); color:var(--muted); font-family:'Exo 2'; font-weight:700; font-size:.81rem; cursor:pointer; display:flex; align-items:center; gap:6px; transition:all .15s; }
   .rec-tab:hover { border-color:var(--teal); color:var(--text); }
-  .rec-tab.active { border-color:var(--teal); background:var(--sage); color:var(--text); }
+  .rec-tab.active { border-color:var(--teal); background:var(--teal); color:#fff; }
   .rec-preview { background:var(--lime-pale); border-left:3px solid var(--lime-dark); border-radius:0 8px 8px 0; padding:11px 13px; font-size:.88rem; color:var(--muted); margin-top:10px; line-height:1.6; }
   .rec-preview strong { color:var(--text); }
   .day-picker { display:flex; gap:5px; }
@@ -538,8 +538,8 @@ window.addEventListener('orientationchange', ()=>setTimeout(setVH,150));
   .mday-btn.sel { border-color:var(--teal); background:var(--sage); color:var(--text); }
 
   /* Modal */
-  .overlay { position:fixed; inset:0; background:rgba(20,50,30,.3); z-index:9999; display:flex; align-items:center; justify-content:center; }
-  .modal { background:var(--surface); border-radius:var(--radius); padding:20px; padding-bottom:0; box-sizing:border-box; width:calc(100vw - 32px); max-width:460px; min-width:0; max-height:calc(100dvh - 80px); overflow-y:auto; overflow-x:hidden; box-shadow:0 20px 60px rgba(20,60,30,.2); display:flex; flex-direction:column; }
+  .overlay { position:fixed; inset:0; background:rgba(0,0,0,.35); z-index:9999; display:flex; align-items:center; justify-content:center; }
+  .modal { background:var(--surface); border-radius:var(--radius); padding:20px; padding-bottom:0; box-sizing:border-box; width:calc(100vw - 32px); max-width:460px; min-width:0; max-height:calc(100dvh - 80px); overflow-y:auto; overflow-x:hidden; box-shadow:0 20px 60px rgba(0,0,0,.2); display:flex; flex-direction:column; }
   .modal-title { font-family:'Manuale',serif; font-size:1.15rem; color:var(--text); margin-bottom:16px; }
   .modal-actions { display:flex; gap:8px; justify-content:flex-end; flex-shrink:0; background:var(--surface); padding:14px 0 calc(env(safe-area-inset-bottom,0px) + 16px); border-top:2px solid var(--border); margin-top:16px; }
   .modal-actions .btn { width:130px !important; min-width:130px !important; max-width:130px !important; flex:0 0 130px !important; justify-content:center; }
@@ -568,9 +568,9 @@ window.addEventListener('orientationchange', ()=>setTimeout(setVH,150));
   /* Library */
   .lib-filter { display:flex; gap:7px; margin-bottom:18px; flex-wrap:wrap; }
   .lib-filter-btn { padding:6px 14px; border-radius:99px; border:1.5px solid var(--border); background:var(--surface); color:var(--muted); font-family:'Exo 2'; font-weight:700; font-size:.79rem; cursor:pointer; display:flex; align-items:center; gap:6px; transition:all .15s; }
-  .lib-filter-btn.sel               { border-color:var(--neutral); background:var(--neutral); color:#3a3028; }
+  .lib-filter-btn.sel               { border-color:var(--neutral); background:var(--neutral); color:var(--text); }
   .lib-filter-btn[data-type="audio"].sel { border-color:var(--teal); background:var(--teal); color:white; }
-  .lib-filter-btn[data-type="video"].sel { border-color:var(--sage); background:var(--sage); color:var(--overlay-dark); }
+  .lib-filter-btn[data-type="video"].sel { border-color:var(--teal); background:var(--teal); color:#fff; }
   .lib-filter-btn[data-type="dokus"].sel { border-color:var(--lime); background:var(--lime); color:#5a4800; }
   .lib-filter-btn[data-type="foto"].sel  { border-color:var(--sky); background:var(--sky); color:#0a3a4a; }
   /* All filter buttons use same forest color when selected */
@@ -582,10 +582,10 @@ window.addEventListener('orientationchange', ()=>setTimeout(setVH,150));
   .lib-thumb img { width:100%; height:100%; object-fit:cover; }
   .lib-type-badge { position:absolute; top:9px; left:9px; padding:3px 9px; border-radius:99px; font-size:.67rem; font-weight:700; display:flex; align-items:center; gap:4px; }
   .badge-audio { background:var(--teal); color:white; }
-  .badge-video { background:var(--sage); color:var(--overlay-dark); }
-  .badge-dokus { background:var(--lime); color:#3a3000; }
+  .badge-video { background:var(--sage); color:#fff; }
+  .badge-dokus { background:var(--teal); color:#fff; }
   .badge-foto  { background:var(--sky); color:#0a3a4a; }
-  .lib-play-overlay { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(30,60,35,.2); }
+  .lib-play-overlay { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,.2); }
   .lib-play-btn { width:40px; height:40px; border-radius:50%; background:#fff; display:flex; align-items:center; justify-content:center; color:var(--text); box-shadow:0 2px 8px rgba(0,0,0,.2); }
   .lib-card-body { padding:12px; border-left-width:3px; border-left-style:solid; }
   .lib-card-title { font-weight:700; font-size:.88rem; margin-bottom:3px; color:var(--text); }
@@ -620,7 +620,7 @@ window.addEventListener('orientationchange', ()=>setTimeout(setVH,150));
   .vote-count-label.best{color:var(--teal-dark)}
   .best-badge{font-size:.62rem;font-weight:700;background:var(--teal);color:white;padding:1px 7px;border-radius:99px;margin-left:6px}
   .status-pill{display:inline-flex;align-items:center;gap:5px;font-size:.72rem;font-weight:700;padding:3px 10px;border-radius:99px}
-  .status-open{background:var(--lime-pale);color:#6b6200}
+  .status-open{background:var(--accent-pale);color:var(--teal-dark)}
   .status-closed{background:var(--surface-neutral);color:var(--text-neutral)}
   .slot-list-build{display:flex;flex-direction:column;gap:5px;margin-bottom:10px}
   .slot-item-build{display:flex;align-items:center;justify-content:space-between;background:var(--sage-pale);border-radius:8px;padding:7px 12px;font-size:.85rem;font-weight:600;color:var(--text)}
@@ -1064,9 +1064,10 @@ window.addEventListener('orientationchange', ()=>setTimeout(setVH,150));
   max-width: 58px;
 }
 .bn-item.active {
-  background: var(--sidebar-active);
-  color: var(--forest);
+  background: rgba(21,110,110,.15);
+  color: #fff;
   border-radius: 12px;
+  border-left: 2.5px solid var(--accent);
 }
 .bn-item:hover:not(.active) {
   background: rgba(255,255,255,.08);
@@ -1080,8 +1081,8 @@ window.addEventListener('orientationchange', ()=>setTimeout(setVH,150));
   height: 18px;
   border-radius: 99px;
   padding: 0 4px;
-  background: var(--lime);
-  color: var(--text);
+  background: var(--teal);
+  color: #fff;
   font-size: .6rem;
   font-weight: 700;
   display: flex;
@@ -1091,8 +1092,8 @@ window.addEventListener('orientationchange', ()=>setTimeout(setVH,150));
   box-sizing: border-box;
 }
 .bn-item.active .bn-badge {
-  background: var(--sage);
-  border-color: var(--sidebar-active);
+  background: var(--teal-dark);
+  border-color: var(--teal-dark);
 }
 
 /* v1775051783 */
@@ -1534,33 +1535,33 @@ function DashboardPage({coachees,library,doodles,setPage,user}) {
         <div>
           <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.3rem",fontWeight:700,color:"var(--text)"}}>${greeting}</div>
           <div style=${{fontSize:".88rem",color:"var(--muted)",marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"calc(100vw - 120px)"}}>Admin-Portal · Raum für Selbstwirksamkeit</div>
-          <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-06-03 11:20 · Doku v3.19 · 2026-06-03 11:20
+          <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-06-03 11:29 · Doku v3.19 · 2026-06-03 11:29
           </div>
         </div>
       </div>
 
       <div class="stat-grid" style=${{marginBottom:12}}>
-        <div class="stat-card" onClick=${()=>setPage("coachees")} style=${{cursor:"pointer",borderLeft:"4px solid var(--teal)"}}>
+        <div class="stat-card" onClick=${()=>setPage("coachees")} style=${{cursor:"pointer"}}>
           <div class="stat-label">Coachees</div>
           <div class="stat-value">${coachees.length}</div>
           <div class="stat-hint">${coachees.filter(c=>c.online).length} online</div>
         </div>
-        <div class="stat-card" onClick=${()=>setPage("chat")} style=${{cursor:"pointer",borderLeft:"4px solid var(--sage)"}}>
+        <div class="stat-card" onClick=${()=>setPage("chat")} style=${{cursor:"pointer"}}>
           <div class="stat-label">Nachrichten</div>
           <div class="stat-value">${totalUnread}</div>
           <div class="stat-hint">ungelesen</div>
         </div>
-        <div class="stat-card" onClick=${()=>setPage("library")} style=${{cursor:"pointer",borderLeft:"4px solid var(--lime)"}}>
+        <div class="stat-card" onClick=${()=>setPage("library")} style=${{cursor:"pointer"}}>
           <div class="stat-label">Mediathek</div>
           <div class="stat-value">${library.length}</div>
           <div class="stat-hint">Materialien</div>
         </div>
-        <div class="stat-card" onClick=${()=>setPage("doodle")} style=${{cursor:"pointer",borderLeft:"4px solid var(--neutral)"}}>
+        <div class="stat-card" onClick=${()=>setPage("doodle")} style=${{cursor:"pointer"}}>
           <div class="stat-label">Termine</div>
           <div class="stat-value">${openDoodles}</div>
           <div class="stat-hint">offen</div>
         </div>
-        <div class="stat-card" onClick=${()=>setPage("impuls")} style=${{cursor:"pointer",borderLeft:"4px solid var(--teal-dark)"}}>
+        <div class="stat-card" onClick=${()=>setPage("impuls")} style=${{cursor:"pointer"}}>
           <div class="stat-label">Tages-Impuls</div>
           <div class="stat-value"><${Ic} name="impuls" size=${20}/></div>
           <div class="stat-hint">verwalten</div>
