@@ -1,5 +1,5 @@
-<!-- Version: 2026-06-03 18:19 coachee -->
-<!-- v20260603 cache-bust: v1780503540 -->
+<!-- Version: 2026-06-03 22:51 coachee -->
+<!-- v20260603 cache-bust: v1780519870 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
 <head>
@@ -1321,8 +1321,8 @@ const DAYS_SHORT = ["Mo","Di","Mi","Do","Fr","Sa","So"];
 const WEEKDAY_FULL = ["Montag","Dienstag","Mittwoch","Donnerstag","Freitag","Samstag","Sonntag"];
 
 // ── PUSH NOTIFICATIONS ──
-const PUSH_SW_URL = '/selbstwirksamkeit-app/sw.js';
-const PUSH_SCOPE  = '/selbstwirksamkeit-app/';
+const PUSH_SW_URL = './sw.js';
+const PUSH_SCOPE  = './';
 
 // VAPID Public Key (Web Push — kostenlos, kein Server nötig für lokale Notifications)
 // Für echten Server-Push muss hier ein echter VAPID Key eingetragen werden.
@@ -1338,16 +1338,20 @@ async function registerSW() {
 }
 
 async function requestPushPermission() {
-  if(!('Notification' in window)) return false;
-  if(Notification.permission === 'granted') return true;
-  if(Notification.permission === 'denied') return false;
-  const result = await Notification.requestPermission();
-  return result === 'granted';
+  try {
+    if(!('Notification' in window)) return false;
+    if(Notification.permission === 'granted') return true;
+    if(Notification.permission === 'denied') return false;
+    const result = await Notification.requestPermission();
+    return result === 'granted';
+  } catch(e) { return false; }
 }
 
 function isPWA() {
-  return window.matchMedia('(display-mode: standalone)').matches
-    || window.navigator.standalone === true;
+  try {
+    return window.matchMedia('(display-mode: standalone)').matches
+      || window.navigator.standalone === true;
+  } catch(e) { return false; }
 }
 
 function isIOS() {
@@ -1355,26 +1359,27 @@ function isIOS() {
 }
 
 function showLocalNotification(title, body, tag, urlPath) {
-  if(Notification.permission !== 'granted') return;
-  navigator.serviceWorker?.ready.then(reg => {
-    reg.showNotification(title, {
-      body,
-      tag: tag || 'rsw',
-      icon: '/selbstwirksamkeit-app/icon-192.png',
-      data: { url: PUSH_SCOPE + (urlPath || '') },
-      vibrate: [100, 50, 100],
-      requireInteraction: false
+  try {
+    if(!('Notification' in window) || Notification.permission !== 'granted') return;
+    navigator.serviceWorker?.ready.then(reg => {
+      reg.showNotification(title, {
+        body,
+        tag: tag || 'rsw',
+        icon: './icon-192.png',
+        data: { url: urlPath || './' },
+        vibrate: [100, 50, 100],
+        requireInteraction: false
+      });
+    }).catch(() => {
+      try { new Notification(title, { body, tag }); } catch(e) {}
     });
-  }).catch(() => {
-    // Fallback: direktes Notification-Objekt
-    try { new Notification(title, { body, tag }); } catch(e) {}
-  });
+  } catch(e) {}
 }
 
-// Globaler SW Init beim Laden
+// Globaler SW Init beim Laden — in try/catch damit kein App-Crash
 let _swReg = null;
-window.addEventListener('load', async () => {
-  _swReg = await registerSW();
+window.addEventListener('load', () => {
+  registerSW().then(r => { _swReg = r; }).catch(() => {});
 });
 
 const QUOTES = [
