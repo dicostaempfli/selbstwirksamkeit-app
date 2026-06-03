@@ -1,5 +1,5 @@
-<!-- Version: 2026-06-03 10:40 coachee -->
-<!-- v202606031040 cache-bust: v1780476003 -->
+<!-- Version: 2026-06-03 10:49 coachee -->
+<!-- v202606031049 cache-bust: v1780476547 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
 <head>
@@ -514,7 +514,7 @@
   .page-heading { font-family:'Manuale',serif; font-size:1.7rem; color:var(--text); margin-bottom:4px; }
   .page-sub { font-size:.92rem; color:var(--muted); margin-bottom:24px; }
 
-  .card { background:var(--surface); border-radius:var(--radius); box-shadow:var(--shadow); padding:22px; margin-bottom:16px; }
+  .card { background:var(--surface); border-radius:var(--radius); border:0.5px solid var(--border); padding:22px; margin-bottom:16px; }
   .card-title {
     font-family:'Manuale',serif; font-size:1.03rem; color:var(--text);
     margin-bottom:14px; padding-bottom:10px; border-bottom:1px solid var(--border);
@@ -619,7 +619,7 @@
 
   /* Dashboard stats */
   .stat-grid { display:flex; flex-direction:column; gap:10px; margin-bottom:18px; }
-  .stat-card { background:var(--surface); border-radius:var(--radius); box-shadow:var(--shadow); padding:16px 18px; border-left:4px solid var(--sage); }
+  .stat-card { background:var(--surface); border-radius:var(--radius); border:0.5px solid var(--border); padding:16px 18px; border-left:4px solid var(--sage); }
   .stat-card:nth-child(2) { border-left-color:var(--lime); }
   .stat-card:nth-child(3) { border-left-color:var(--teal); }
   .stat-card:nth-child(4) { border-left-color:var(--sage-dark); }
@@ -2006,7 +2006,7 @@ function DashboardPage({coachees,library,reminders,doodles,setPage,user,onLogoTa
         )
       )}
       <div class="stat-grid">
-        <div class="stat-card" onClick=${()=>setPage("impulse")} style=${{cursor:"pointer",padding:"16px 20px",border:"0.5px solid var(--border)",borderLeft:"4px solid var(--teal)"}}>
+        <div class="stat-card" onClick=${()=>setPage("impulse")} style=${{cursor:"pointer",borderLeft:"4px solid var(--teal)",padding:"16px 20px"}}>
           <div style=${{display:"flex",alignItems:"center",gap:14}}>
             <div style=${{width:42,height:42,borderRadius:12,background:"var(--teal-pale)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><${Ic} name="impuls" size=${22} style=${{color:"var(--teal-dark)"}}/></div>
             <div style=${{flex:1}}>
@@ -2016,7 +2016,7 @@ function DashboardPage({coachees,library,reminders,doodles,setPage,user,onLogoTa
             <${Ic} name="chevron" size=${16} style=${{color:"var(--border2)"}}/>
           </div>
         </div>
-        <div class="stat-card" onClick=${()=>setPage("library")} style=${{cursor:"pointer",padding:"16px 20px",border:"0.5px solid var(--border)",borderLeft:"4px solid var(--sage)"}}>
+        <div class="stat-card" onClick=${()=>setPage("library")} style=${{cursor:"pointer",borderLeft:"4px solid var(--sage)",padding:"16px 20px"}}>
           <div style=${{display:"flex",alignItems:"center",gap:14}}>
             <div style=${{width:42,height:42,borderRadius:12,background:"var(--sage-pale)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><${Ic} name="library" size=${20} style=${{color:"var(--sage-dark)"}}/></div>
             <div style=${{flex:1}}>
@@ -2026,7 +2026,7 @@ function DashboardPage({coachees,library,reminders,doodles,setPage,user,onLogoTa
             <${Ic} name="chevron" size=${16} style=${{color:"var(--border2)"}}/>
           </div>
         </div>
-        <div class="stat-card" onClick=${()=>setPage("doodle")} style=${{cursor:"pointer",padding:"16px 20px",border:"0.5px solid var(--border)",borderLeft:"4px solid var(--lime)"}}>
+        <div class="stat-card" onClick=${()=>setPage("doodle")} style=${{cursor:"pointer",borderLeft:"4px solid var(--lime)",padding:"16px 20px"}}>
           <div style=${{display:"flex",alignItems:"center",gap:14}}>
             <div style=${{width:42,height:42,borderRadius:12,background:"var(--lime-pale)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><${Ic} name="calendar" size=${20} style=${{color:"var(--lime-dark)"}}/></div>
             <div style=${{flex:1}}>
