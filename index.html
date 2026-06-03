@@ -1,5 +1,5 @@
-<!-- Version: 2026-06-03 11:09 coachee -->
-<!-- v202606031109 cache-bust: v1780477740 -->
+<!-- Version: 2026-06-03 17:46 coachee -->
+<!-- v20260603 cache-bust: v1780501593 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
 <head>
@@ -3512,6 +3512,31 @@ function BreathOverlay({ onDone }) {
     </div>`;
 }
 
+function PendingScreen({user}) {
+  const doLogout = () => {
+    const fbAuth = window._fb?.auth;
+    if(fbAuth) fbAuth.signOut().catch(()=>{});
+  };
+  return html`
+    <div style=${{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",minHeight:"100vh",background:"var(--bg)",padding:"32px 24px",textAlign:"center"}}>
+      <${Wordmark} dark=${true} height=${48}/>
+      <div style=${{marginTop:32,width:64,height:64,borderRadius:"50%",background:"var(--accent-pale)",display:"flex",alignItems:"center",justifyContent:"center"}}>
+        <${Ic} name="clock" size=${28} color="var(--teal)"/>
+      </div>
+      <div style=${{marginTop:20,fontFamily:"'Manuale',serif",fontSize:"1.35rem",fontWeight:700,color:"var(--text)",lineHeight:1.3}}>
+        Dein Zugang wird<br/>vorbereitet
+      </div>
+      <div style=${{marginTop:12,fontSize:".92rem",color:"var(--muted)",lineHeight:1.6,maxWidth:300}}>
+        Diana oder Rico schalten deinen persönlichen Bereich gleich frei.<br/><br/>
+        Du bekommst eine Nachricht, sobald es so weit ist.
+      </div>
+      <div style=${{marginTop:32,fontSize:".78rem",color:"var(--muted2)"}}>${user?.email||""}</div>
+      <button onClick=${doLogout} style=${{marginTop:16,background:"none",border:"1.5px solid var(--border2)",borderRadius:10,padding:"8px 20px",fontSize:".82rem",color:"var(--muted)",cursor:"pointer",fontFamily:"'Exo 2',sans-serif"}}>
+        Abmelden
+      </button>
+    </div>`;
+}
+
 function Root() {
   const [user,setUser]           = useState(null);
   const [authReady,setAuthReady] = useState(false);
@@ -3544,6 +3569,27 @@ function Root() {
     </div>`;
 
   if(!user) return html`<${LoginPage}/>`;
+
+  return html`<${AppGate} user=${user}/>`;
+}
+
+function AppGate({user}) {
+  const [userDoc, setUserDoc]   = useState(undefined); // undefined=loading, null=missing, obj=exists
+  useEffect(() => {
+    const firestore = window._fb?.db;
+    if(!firestore) { setUserDoc(null); return; }
+    firestore.collection("users").doc(user.uid).get()
+      .then(snap => setUserDoc(snap.exists ? snap.data() : null))
+      .catch(() => setUserDoc(null));
+  }, [user.uid]);
+
+  if(userDoc === undefined) return html`
+    <div style=${{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",flexDirection:"column",gap:16,background:"var(--bg)"}}>
+      <${Wordmark} dark=${true} height=${52}/>
+      <div style=${{width:36,height:36,borderRadius:"50%",border:"3px solid var(--border)",borderTopColor:"var(--teal)",animation:"spin .8s linear infinite"}}/>
+    </div>`;
+
+  if(userDoc === null) return html`<${PendingScreen} user=${user}/>`;
 
   return html`<${App} user=${user}/>`;
 }

@@ -1,4 +1,4 @@
-<!-- Version: 2026-06-03 17:32 admin -->
+<!-- Version: 2026-06-03 17:46 admin -->
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -1439,6 +1439,7 @@ function AdminApp({user}) {
   const [coachees,setCoachees] = useState(INIT_COACHEES);
   const [library,setLibrary] = useState([]);
   const [doodles,setDoodles] = useState(INIT_DOODLES);
+  const [pending,setPending] = useState([]);
   const totalUnread = coachees.reduce((a,c)=>a+(c.unread||0),0);
 
   // ── Library Firebase Sync ──
@@ -1456,10 +1457,20 @@ function AdminApp({user}) {
     return () => { if(unsub) unsub(); };
   }, []);
 
+  // ── Pending Coachees Sync ──
+  useEffect(() => {
+    const firestore = db();
+    if(!firestore) return;
+    const unsub = firestore.collection("users_pending").onSnapshot(snap => {
+      setPending(snap.docs.map(d => ({docId: d.id, ...d.data()})));
+    }, () => {});
+    return () => unsub();
+  }, []);
+
   const NAV = [
     {id:"dashboard",icon:"home",label:"Home"},
     {id:"chat",icon:"chat",label:"Chat",badge:totalUnread},
-    {id:"coachees",icon:"users",label:"Coachees"},
+    {id:"coachees",icon:"users",label:"Coachees",badge:pending.length},
     {id:"library",icon:"library",label:"Mediathek"},
     {id:"impuls",icon:"impuls",label:"Impulse"},
     {id:"doodle",icon:"calendar",label:"Termine"},
@@ -1496,7 +1507,7 @@ function AdminApp({user}) {
       <div class="main-content">
         ${page==="dashboard"&&html`<${DashboardPage} coachees=${coachees} library=${library} doodles=${doodles} setPage=${setPage} user=${user}/>`}
         ${page==="chat"&&html`<${ChatPage} coachees=${coachees} setCoachees=${setCoachees}/>`}
-        ${page==="coachees"&&html`<${CoacheesPage} coachees=${coachees} setCoachees=${setCoachees} setPage=${setPage}/>`}
+        ${page==="coachees"&&html`<${CoacheesPage} coachees=${coachees} setCoachees=${setCoachees} setPage=${setPage} pending=${pending} setPending=${setPending}/>`}
         ${page==="library"&&html`<${LibraryPage} library=${library} setLibrary=${setLibrary}/>`}
         ${page==="impuls"&&html`<${ImpulsAdminPage}/>`}
         ${page==="doodle"&&html`<${DoodlePage} doodles=${doodles} setDoodles=${setDoodles} coachees=${coachees}/>`}
@@ -1535,7 +1546,7 @@ function DashboardPage({coachees,library,doodles,setPage,user}) {
         <div>
           <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.3rem",fontWeight:700,color:"var(--text)"}}>${greeting}</div>
           <div style=${{fontSize:".88rem",color:"var(--muted)",marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"calc(100vw - 120px)"}}>Admin-Portal · Raum für Selbstwirksamkeit</div>
-          <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-06-03 17:32 · Doku v3.21 · 2026-06-03 17:32
+          <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-06-03 17:46 · Doku v3.22 · 2026-06-03 17:46
           </div>
         </div>
       </div>
@@ -2125,13 +2136,65 @@ function ChatWindow({coachee,onSend,onSendImg,onSendFile,onBack,mobileOpen}) {
 }
 
 
-function CoacheesPage({coachees,setCoachees,setPage}) {
+function CoacheesPage({coachees,setCoachees,setPage,pending,setPending}) {
   const [showAdd,setShowAdd]         = useState(false);
   const [form,setForm]               = useState({firstname:"",lastname:"",email:"",password:"",notes:"",modell:"",coaching:[],kids:false,gender:[]});
   const [editId,setEditId]           = useState(null);
   const [showEmail,setShowEmail]     = useState(null);
   const [activateUid,setActivateUid] = useState("");
   const [editForm,setEditForm]       = useState({});
+  const [activatingId,setActivatingId] = useState(null); // docId of pending being activated
+  const [pendingUids,setPendingUids]   = useState({});   // {docId: uid}
+
+  const activatePending = (p) => {
+    const uid = (pendingUids[p.docId]||"").trim();
+    if(uid.length < 10) return;
+    const firestore = db();
+    if(!firestore) return;
+    firestore.collection("users").doc(uid).set({
+      ...p, uid, status:"active"
+    }).then(() => {
+      firestore.collection("users_pending").doc(p.docId).delete().catch(()=>{});
+      showToast("✓ " + p.name + " aktiviert!");
+      setActivatingId(null);
+      setPendingUids(m => { const n={...m}; delete n[p.docId]; return n; });
+    }).catch(err => showToast("Fehler: " + err.message));
+  };
+
+  const pendingSection = pending && pending.length > 0 ? h("div", {style:{marginBottom:24}},
+    h("div", {style:{fontFamily:"'Manuale',serif",fontSize:"1rem",fontWeight:700,color:"var(--teal)",marginBottom:10,display:"flex",alignItems:"center",gap:8}},
+      h("span", {style:{background:"var(--teal)",color:"#fff",borderRadius:"99px",padding:"1px 9px",fontSize:".78rem",fontWeight:700}}, pending.length),
+      "Neue Anfragen"
+    ),
+    pending.map(p => h("div", {key:p.docId, style:{background:"var(--surface)",border:"0.5px solid var(--border)",borderRadius:14,padding:"14px 16px",marginBottom:10}},
+      h("div", {style:{display:"flex",alignItems:"center",gap:10,marginBottom:8}},
+        h("div", {style:{width:36,height:36,borderRadius:"50%",background:"var(--accent-pale)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}},
+          h("span", {style:{fontWeight:700,color:"var(--teal)",fontSize:".85rem"}}, (p.name||"?").split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase())
+        ),
+        h("div", {style:{flex:1,minWidth:0}},
+          h("div", {style:{fontWeight:700,color:"var(--text)",fontSize:".92rem"}}, p.name||"–"),
+          h("div", {style:{color:"var(--muted)",fontSize:".78rem",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}, p.email||"")
+        ),
+        h("button", {
+          onClick: () => setActivatingId(activatingId===p.docId ? null : p.docId),
+          style:{height:32,padding:"0 14px",background:"var(--teal)",color:"#fff",border:"none",borderRadius:8,fontWeight:700,fontFamily:"'Exo 2',sans-serif",fontSize:".78rem",cursor:"pointer",whiteSpace:"nowrap"}
+        }, activatingId===p.docId ? "Abbrechen" : "⚡ Freischalten")
+      ),
+      activatingId===p.docId && h("div", {style:{marginTop:4,display:"flex",gap:8,alignItems:"center"}},
+        h("input", {
+          value: pendingUids[p.docId]||"",
+          onInput: e => setPendingUids(m=>({...m,[p.docId]:e.target.value.trim()})),
+          placeholder: "Firebase UID (z.B. GnoCR1t4ls...)",
+          style:{flex:1,height:36,border:"1.5px solid var(--border2)",borderRadius:8,padding:"0 10px",fontFamily:"monospace",fontSize:".75rem",background:"var(--bg)",color:"var(--text)",outline:"none"}
+        }),
+        h("button", {
+          disabled: (pendingUids[p.docId]||"").length < 10,
+          onClick: () => activatePending(p),
+          style:{height:36,padding:"0 14px",background:(pendingUids[p.docId]||"").length>=10?"var(--teal)":"var(--border)",color:(pendingUids[p.docId]||"").length>=10?"#fff":"var(--muted)",border:"none",borderRadius:8,fontWeight:700,fontFamily:"'Exo 2',sans-serif",fontSize:".78rem",cursor:(pendingUids[p.docId]||"").length>=10?"pointer":"default",transition:"background .2s",whiteSpace:"nowrap"}
+        }, "Aktivieren")
+      )
+    ))
+  ) : null;
 
   const addCoachee = () => {
     const fname = form.firstname.trim();
@@ -2270,6 +2333,8 @@ function CoacheesPage({coachees,setCoachees,setPage}) {
           <${Ic} name="plus" size=${15}/> Hinzufügen
         </button>
       </div>
+
+      ${pendingSection}
 
       <div class="coachee-grid">
         ${[...coachees].sort((a,b)=>a.name.localeCompare(b.name,"de")).map(c=>html`
