@@ -1,5 +1,5 @@
-<!-- Version: 2026-06-03 22:51 coachee -->
-<!-- v20260603 cache-bust: v1780519870 -->
+<!-- Version: 2026-06-03 22:54 coachee -->
+<!-- v20260603 cache-bust: v1780520045 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
 <head>
@@ -1179,6 +1179,7 @@
 <script type="module">
 // Global error handler to catch and display runtime errors
 window.onerror = (msg, src, line, col, err) => {
+  if(line === 0 && !src) return true; // Cross-Origin-Fehler ignorieren
   const div = document.createElement('div');
   div.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#c0392b;color:white;padding:12px;font-size:11px;z-index:9999;font-family:monospace;white-space:pre-wrap';
   div.textContent = 'JS Error: ' + msg + '\nFile: ' + src + '\nLine: ' + line + '\nStack: ' + (err?.stack||'none');
