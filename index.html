@@ -1,5 +1,5 @@
-<!-- Version: 2026-06-03 17:56 coachee -->
-<!-- v20260603 cache-bust: v1780502209 -->
+<!-- Version: 2026-06-03 18:19 coachee -->
+<!-- v20260603 cache-bust: v1780503540 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
 <head>
@@ -1319,6 +1319,64 @@ const AREA_COLOR = {
 const MOODS = [{key:"1",label:"Schwer"},{key:"2",label:"Ruhig"},{key:"3",label:"Offen"},{key:"4",label:"Leicht"},{key:"5",label:"Dankbar"}];
 const DAYS_SHORT = ["Mo","Di","Mi","Do","Fr","Sa","So"];
 const WEEKDAY_FULL = ["Montag","Dienstag","Mittwoch","Donnerstag","Freitag","Samstag","Sonntag"];
+
+// ── PUSH NOTIFICATIONS ──
+const PUSH_SW_URL = '/selbstwirksamkeit-app/sw.js';
+const PUSH_SCOPE  = '/selbstwirksamkeit-app/';
+
+// VAPID Public Key (Web Push — kostenlos, kein Server nötig für lokale Notifications)
+// Für echten Server-Push muss hier ein echter VAPID Key eingetragen werden.
+// Für lokale Browser-Notifications (kein Server) wird kein Key benötigt.
+const PUSH_VAPID_KEY = null; // wird gesetzt wenn Server-Push aktiviert wird
+
+async function registerSW() {
+  if(!('serviceWorker' in navigator)) return null;
+  try {
+    const reg = await navigator.serviceWorker.register(PUSH_SW_URL, { scope: PUSH_SCOPE });
+    return reg;
+  } catch(e) { return null; }
+}
+
+async function requestPushPermission() {
+  if(!('Notification' in window)) return false;
+  if(Notification.permission === 'granted') return true;
+  if(Notification.permission === 'denied') return false;
+  const result = await Notification.requestPermission();
+  return result === 'granted';
+}
+
+function isPWA() {
+  return window.matchMedia('(display-mode: standalone)').matches
+    || window.navigator.standalone === true;
+}
+
+function isIOS() {
+  return /iPhone|iPad|iPod/i.test(navigator.userAgent);
+}
+
+function showLocalNotification(title, body, tag, urlPath) {
+  if(Notification.permission !== 'granted') return;
+  navigator.serviceWorker?.ready.then(reg => {
+    reg.showNotification(title, {
+      body,
+      tag: tag || 'rsw',
+      icon: '/selbstwirksamkeit-app/icon-192.png',
+      data: { url: PUSH_SCOPE + (urlPath || '') },
+      vibrate: [100, 50, 100],
+      requireInteraction: false
+    });
+  }).catch(() => {
+    // Fallback: direktes Notification-Objekt
+    try { new Notification(title, { body, tag }); } catch(e) {}
+  });
+}
+
+// Globaler SW Init beim Laden
+let _swReg = null;
+window.addEventListener('load', async () => {
+  _swReg = await registerSW();
+});
+
 const QUOTES = [
   {text:"Selbstwirksamkeit ist der Glaube an deine Fähigkeit, Einfluss auf dein Leben zu nehmen.",author:"Diana & Rico Stämpfli"},
   {text:"Wer sich selbst kennt, kann anderen besser begegnen.",author:"Raum für Selbstwirksamkeit"},
@@ -1411,7 +1469,56 @@ function App({ user }) {
   const [impulseDefaultTab,setImpulseDefaultTab] = useState('meine');
   const [activeImpuls,setActiveImpuls]           = useState(null);
   const [tapCount,setTapCount]             = useState(0);
+  const [showInstallBanner,setShowInstallBanner] = useState(false);
+  const [pushGranted,setPushGranted]             = useState(false);
   const tapTimer                           = useRef(null);
+
+  // ── Push + Install Setup ──
+  useEffect(() => {
+    // Zeige Install-Banner wenn: iOS + nicht als PWA installiert + noch nicht dismissed
+    const dismissed = localStorage.getItem('install_banner_dismissed');
+    if(isIOS() && !isPWA() && !dismissed) {
+      setTimeout(() => setShowInstallBanner(true), 2000);
+    }
+    // Push Permission anfragen wenn: PWA installiert + noch nicht granted
+    if(isPWA() && Notification.permission === 'default') {
+      setTimeout(async () => {
+        const granted = await requestPushPermission();
+        setPushGranted(granted);
+      }, 3000);
+    }
+    if(Notification.permission === 'granted') setPushGranted(true);
+  }, []);
+
+  // ── Chat Push Listener ──
+  useEffect(() => {
+    if(!user?.uid || !pushGranted) return;
+    const fbDb = window._fb?.db;
+    if(!fbDb) return;
+    // Letzte bekannte Nachricht
+    let lastTs = Date.now();
+    const unsub = fbDb.collection("chats").doc(user.uid).collection("messages")
+      .orderBy("ts","desc").limit(1)
+      .onSnapshot(snap => {
+        if(snap.empty) return;
+        const msg = snap.docs[0].data();
+        // Nur neue Nachrichten vom Coach (nicht eigene)
+        const isNew = msg.ts > lastTs;
+        const isFromCoach = msg.from === "admin";
+        if(isNew && isFromCoach && document.hidden) {
+          lastTs = msg.ts;
+          showLocalNotification(
+            "Neue Nachricht",
+            msg.text ? msg.text.slice(0, 80) : "Diana oder Rico haben dir geschrieben.",
+            "chat-" + user.uid,
+            "#chat"
+          );
+        }
+        if(isNew) lastTs = msg.ts;
+      }, () => {});
+    return () => unsub();
+  }, [user?.uid, pushGranted]);
+
   const handleLogoTap = () => {
     const next = tapCount + 1;
     setTapCount(next);
@@ -1553,6 +1660,33 @@ function App({ user }) {
   ];
 
   return html`
+    ${showInstallBanner && h("div", {
+      style:{position:"fixed",bottom:0,left:0,right:0,zIndex:500,padding:"12px 16px",background:"var(--sidebar-bg)",borderTop:"1px solid rgba(255,255,255,0.08)"}
+    },
+      h("div", {style:{display:"flex",alignItems:"flex-start",gap:12,maxWidth:520,margin:"0 auto"}},
+        h("div", {style:{width:36,height:36,borderRadius:9,background:"#156e6e",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center"}},
+          h("svg",{width:18,height:18,viewBox:"0 0 100 100",fill:"none"},
+            h("circle",{cx:50,cy:50,r:46,fill:"#eaed53"}),
+            h("circle",{cx:57,cy:51,r:34,fill:"#9dd979"}),
+            h("circle",{cx:66,cy:51,r:20,fill:"#62ba7a"})
+          )
+        ),
+        h("div", {style:{flex:1}},
+          h("div",{style:{fontWeight:700,fontSize:".88rem",color:"#fff",marginBottom:3}},"App installieren für Benachrichtigungen"),
+          h("div",{style:{fontSize:".78rem",color:"rgba(255,255,255,0.6)",lineHeight:1.5,marginBottom:8}},
+            "Tippe auf ",
+            h("span",{style:{fontWeight:700,color:"rgba(255,255,255,0.85)"}},"Teilen ⎙"),
+            " → ",
+            h("span",{style:{fontWeight:700,color:"rgba(255,255,255,0.85)"}},"Zum Home-Bildschirm"),
+            " — dann erhältst du Impulse und Nachrichten direkt auf dem Sperrbildschirm."
+          ),
+          h("button",{
+            onClick:()=>{ localStorage.setItem("install_banner_dismissed","1"); setShowInstallBanner(false); },
+            style:{background:"none",border:"1px solid rgba(255,255,255,0.25)",borderRadius:8,padding:"5px 14px",color:"rgba(255,255,255,0.6)",fontSize:".75rem",cursor:"pointer"}
+          },"Später")
+        )
+      )
+    )}
     <${Sidebar} page=${page} setPage=${navTo} totalUnread=${totalUnreadVal} user=${user} onLogoTap=${handleLogoTap}/>
     <div style=${{flex:1,display:'flex',overflow:'hidden',minWidth:0}}>
       ${page==="dashboard" && html`<${DashboardPage} coachees=${coachees} library=${library} reminders=${reminders} doodles=${doodles} setPage=${navTo} user=${user} onLogoTap=${handleLogoTap} setImpulseDefaultTab=${setImpulseDefaultTab} activeImpuls=${activeImpuls} setActiveImpuls=${setActiveImpuls}/>`}
