@@ -1,4 +1,4 @@
-<!-- Version: 2026-06-11 21:36 coachee -->
+<!-- Version: 2026-06-11 21:56 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -67,11 +67,18 @@
     // Auto-reload when app comes back to foreground (gets latest version)
     document.addEventListener('visibilitychange', function() {
       if(document.visibilityState === 'visible') {
-        // Check if page was hidden for more than 5 minutes
         const now = Date.now();
         const lastVisible = parseInt(sessionStorage.getItem('lastVisible') || now);
-        if(now - lastVisible > 1 * 60 * 1000) {
-          window.location.reload(true);
+        // Nach 30 Minuten: sanfter Hinweis-Banner statt hartem Reload
+        if(now - lastVisible > 30 * 60 * 1000) {
+          var existing = document.getElementById('_reload_banner');
+          if(!existing) {
+            var banner = document.createElement('div');
+            banner.id = '_reload_banner';
+            banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999;background:#156e6e;color:#fff;text-align:center;padding:12px 16px;font-family:\'Exo 2\',sans-serif;font-size:.88rem;display:flex;align-items:center;justify-content:center;gap:12px;';
+            banner.innerHTML = '<span>Neue Version verfügbar</span><button onclick="window.location.reload(true)" style="background:rgba(255,255,255,.2);color:#fff;border:1px solid rgba(255,255,255,.4);border-radius:8px;padding:5px 14px;font-size:.85rem;font-weight:600;cursor:pointer;font-family:\'Exo 2\',sans-serif;">Neu laden</button>';
+            document.body.appendChild(banner);
+          }
         }
         sessionStorage.setItem('lastVisible', now);
       } else {
