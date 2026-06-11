@@ -3,3 +3,9 @@
 
 /admin.html
   Cache-Control: no-store, no-cache, must-revalidate
+
+/sw.js
+  Cache-Control: no-store, no-cache, must-revalidate
+
+/staging/index.html
+  Cache-Control: no-store, no-cache, must-revalidate
