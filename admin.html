@@ -1,4 +1,4 @@
-<!-- Version: 2026-06-11 21:32 admin -->
+<!-- Version: 2026-06-11 21:36 admin -->
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -1488,19 +1488,6 @@ function AdminApp({user}) {
     return () => unsub();
   }, []);
 
-  // ── Doodles Firebase Sync ──
-  useEffect(() => {
-    const firestore = db();
-    if(!firestore) { setDoodles([]); return; }
-    let unsub;
-    try {
-      unsub = firestore.collection("doodles").orderBy("createdAt","desc").onSnapshot(snap => {
-        setDoodles(snap.docs.map(d => ({...d.data(), id: d.id})));
-      }, () => { setDoodles([]); });
-    } catch(e) { setDoodles([]); }
-    return () => { if(unsub) unsub(); };
-  }, []);
-
   const NAV = [
     {id:"dashboard",icon:"home",label:"Home"},
     {id:"chat",icon:"chat",label:"Chat",badge:totalUnread},
@@ -1580,7 +1567,7 @@ function DashboardPage({coachees,library,doodles,setPage,user}) {
         <div>
           <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.3rem",fontWeight:700,color:"var(--text)"}}>${greeting}</div>
           <div style=${{fontSize:".88rem",color:"var(--muted)",marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"calc(100vw - 120px)"}}>Admin-Portal · Raum für Selbstwirksamkeit</div>
-          <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-06-11 21:32 · Doku v3.27 · 2026-06-11 21:32
+          <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-06-11 09:49 · Doku v3.27 · 2026-06-11 09:49
           </div>
         </div>
       </div>
@@ -3292,12 +3279,9 @@ function DoodlePage({doodles,setDoodles,coachees}) {
 
   const createDoodle = () => {
     if(!newTitle.trim()||newSlots.length<1) return;
-    const firestore = window._fb?.db || (typeof db === 'function' ? db() : null);
-    const nd={id:"d"+Date.now(),title:newTitle.trim(),desc:newDesc.trim()||"Bitte wähle die Zeiten die dir passen.",status:"open",recipients:[...selRecip],slots:newSlots.map(dt=>({dt,votes:{}})),createdAt:Date.now()};
+    const nd={id:"d"+Date.now(),title:newTitle.trim(),desc:newDesc.trim()||"Wähle alle möglichen Termine aus.",status:"open",recipients:[...selRecip],slots:newSlots.map(dt=>({dt,votes:{}}))};
     setShowCreate(false);setNewTitle("");setNewDesc("");setNewSlots([]);setSelRecip([]);
-    if(firestore) {
-      firestore.collection("doodles").doc(String(nd.id)).set(nd).catch(()=>{});
-    }
+    setDoodles(ds=>[nd,...ds]);
     showToast("✓ Terminvorschlag erstellt");
   };
 
@@ -3311,8 +3295,7 @@ function DoodlePage({doodles,setDoodles,coachees}) {
   };
 
   const confirmSlot = did => {
-    const firestore = window._fb?.db || (typeof db === 'function' ? db() : null);
-    if(firestore) firestore.collection("doodles").doc(String(did)).update({status:"closed"}).catch(()=>{});
+    setDoodles(ds=>ds.map(x=>x.id===did?{...x,status:"closed"}:x));
     setShowResults(null);setShowConfirmed(true);
   };
 
@@ -3353,14 +3336,8 @@ function DoodlePage({doodles,setDoodles,coachees}) {
             </div>
             <div style=${{display:"flex",gap:7,flexWrap:"wrap"}}>
               <button class="btn btn-sage btn-sm" onClick=${()=>setShowResults(d.id)}>Ergebnisse</button>
-              ${d.status==="open"&&html`<button class="btn btn-ghost btn-sm" onClick=${()=>{
-                const fs=window._fb?.db||(typeof db==='function'?db():null);
-                if(fs)fs.collection("doodles").doc(String(d.id)).update({status:"closed"}).catch(()=>{});
-              }}>Schliessen</button>`}
-              <button class="btn btn-danger btn-sm" onClick=${()=>{
-                const fs=window._fb?.db||(typeof db==='function'?db():null);
-                if(fs)fs.collection("doodles").doc(String(d.id)).delete().catch(()=>{});
-              }}><${Ic} name="trash" size=${12}/></button>
+              ${d.status==="open"&&html`<button class="btn btn-ghost btn-sm" onClick=${()=>setDoodles(ds=>ds.map(x=>x.id===d.id?{...x,status:"closed"}:x))}>Schliessen</button>`}
+              <button class="btn btn-danger btn-sm" onClick=${()=>setDoodles(ds=>ds.filter(x=>x.id!==d.id))}><${Ic} name="trash" size=${12}/></button>
             </div>
           </div>`;
       })}
@@ -3370,7 +3347,7 @@ function DoodlePage({doodles,setDoodles,coachees}) {
           <div class="modal">
             <div style=${{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4}}><h2 class="modal-title" style=${{marginBottom:0}}>Neuer Terminvorschlag</h2><button style=${{background:"none",border:"none",cursor:"pointer",color:"var(--muted)",padding:4,borderRadius:8,display:"flex"}} onClick=${()=>{const o=document.querySelector(".overlay");if(o)o.click();}}><${Ic} name="x" size=${20}/></button></div>
             <div class="form-row"><label class="label">Titel</label><input class="input" value=${newTitle} onInput=${e=>setNewTitle(e.target.value)} placeholder="z.B. Coaching-Session April"/></div>
-            <div class="form-row"><label class="label">Beschreibung (optional)</label><textarea class="textarea" rows=${2} value=${newDesc} onInput=${e=>setNewDesc(e.target.value)} placeholder="z.B. Wähle bitte 2–3 Zeiten die dir passen."/></div>
+            <div class="form-row"><label class="label">Beschreibung (optional)</label><textarea class="textarea" rows=${2} value=${newDesc} onInput=${e=>setNewDesc(e.target.value)} placeholder="z.B. Wähle alle möglichen Termine aus."/></div>
             <div class="form-row">
               <label class="label">Zeitvorschläge</label>
               ${newSlots.map(dt=>html`
