@@ -1,5 +1,5 @@
-<!-- Version: 2026-06-03 23:35 coachee -->
-<!-- v20260603 cache-bust: v1780522513 -->
+<!-- Version: 2026-06-11 09:18 coachee -->
+<!-- v20260611 cache-bust: v1781162286 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
 <head>
@@ -3753,8 +3753,69 @@ function Root() {
   return html`<${AppGate} user=${user}/>`;
 }
 
+function PrivacyScreen({user, onAccept}) {
+  const [checked, setChecked] = useState(false);
+  const [saving,  setSaving]  = useState(false);
+
+  const doAccept = async () => {
+    if(!checked || saving) return;
+    setSaving(true);
+    const firestore = window._fb?.db;
+    if(firestore) {
+      try {
+        await firestore.collection("users").doc(user.uid).update({ agbAccepted: true, agbAcceptedAt: new Date().toISOString() });
+      } catch(e) {}
+    }
+    onAccept();
+  };
+
+  const btnBg = checked ? "var(--teal)" : "var(--neutral)";
+
+  return html`
+    <div style=${{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",minHeight:"100vh",background:"var(--bg)",padding:"32px 20px"}}>
+      <div style=${{width:"100%",maxWidth:420,display:"flex",flexDirection:"column",alignItems:"center"}}>
+        <${Wordmark} dark=${true} height=${44}/>
+        <div style=${{marginTop:24,width:52,height:52,borderRadius:"50%",background:"var(--accent-pale)",display:"flex",alignItems:"center",justifyContent:"center"}}>
+          <${Ic} name="lock" size=${24} color="var(--teal)"/>
+        </div>
+        <div style=${{marginTop:16,fontFamily:"'Manuale',serif",fontSize:"1.25rem",fontWeight:700,color:"var(--text)",textAlign:"center"}}>Datenschutz & Nutzung</div>
+        <div style=${{marginTop:6,fontSize:".85rem",color:"var(--muted)",textAlign:"center",lineHeight:1.5}}>
+          Bitte lies kurz, bevor du startest.
+        </div>
+        <div style=${{marginTop:20,width:"100%",background:"var(--surface)",borderRadius:14,border:"0.5px solid var(--border)",padding:"16px 18px",maxHeight:280,overflowY:"auto",fontSize:".82rem",color:"var(--muted)",lineHeight:1.7,boxSizing:"border-box"}}>
+          <div style=${{fontWeight:700,color:"var(--text)",marginBottom:6}}>Wer ist verantwortlich?</div>
+          <div style=${{marginBottom:14}}>Rico Stämpfli & Diana Stämpfli, selbstwirksamkeit.ch, Schweiz.</div>
+          <div style=${{fontWeight:700,color:"var(--text)",marginBottom:6}}>Was wird gespeichert?</div>
+          <div style=${{marginBottom:14}}>Deine E-Mail-Adresse, Chatnachrichten mit deinen Coaches sowie Antworten auf Tages-Impulse. Alle Daten liegen auf Servern von Google Firebase in der Schweiz (Region Zürich).</div>
+          <div style=${{fontWeight:700,color:"var(--text)",marginBottom:6}}>Wofür werden die Daten genutzt?</div>
+          <div style=${{marginBottom:14}}>Ausschliesslich für die Coaching-Begleitung durch Rico & Diana. Keine Weitergabe an Dritte, keine Werbung.</div>
+          <div style=${{fontWeight:700,color:"var(--text)",marginBottom:6}}>Wie lange werden Daten aufbewahrt?</div>
+          <div style=${{marginBottom:14}}>Chat- und Impuls-Daten werden 12 Monate nach dem letzten Coaching-Kontakt gelöscht. Auf Wunsch früher: info@selbstwirksamkeit.ch</div>
+          <div style=${{fontWeight:700,color:"var(--text)",marginBottom:6}}>Deine Rechte</div>
+          <div>Du hast jederzeit das Recht auf Auskunft, Berichtigung und Löschung deiner Daten (revDSG / DSGVO). Anfragen an info@selbstwirksamkeit.ch.</div>
+        </div>
+        <label style=${{display:"flex",alignItems:"flex-start",gap:10,marginTop:18,cursor:"pointer",width:"100%"}}>
+          <input type="checkbox" checked=${checked} onChange=${e=>setChecked(e.target.checked)}
+            style=${{marginTop:2,accentColor:"var(--teal)",width:17,height:17,flexShrink:0,cursor:"pointer"}}/>
+          <span style=${{fontSize:".82rem",color:"var(--muted)",lineHeight:1.55}}>
+            Ich habe die Datenschutzbestimmungen gelesen und akzeptiere sie.
+          </span>
+        </label>
+        <button onClick=${doAccept} disabled=${!checked||saving}
+          style=${{marginTop:16,width:"100%",padding:"13px 0",borderRadius:10,background:btnBg,border:"none",color:"#fff",fontSize:".95rem",fontWeight:600,cursor:checked?"pointer":"not-allowed",fontFamily:"'Exo 2',sans-serif",transition:"background .2s"}}>
+          ${saving ? "Wird gespeichert…" : "Weiter zur App →"}
+        </button>
+        <div style=${{marginTop:14,fontSize:".72rem",color:"var(--muted2)",textAlign:"center"}}>
+          Bei Fragen: info@selbstwirksamkeit.ch
+        </div>
+      </div>
+    </div>`;
+}
+
 function AppGate({user}) {
   const [userDoc, setUserDoc]   = useState(undefined); // undefined=loading, null=missing, obj=exists
+  const [agbDone, setAgbDone]   = useState(false);
+
   useEffect(() => {
     const firestore = window._fb?.db;
     if(!firestore) { setUserDoc(null); return; }
@@ -3770,6 +3831,8 @@ function AppGate({user}) {
     </div>`;
 
   if(userDoc === null) return html`<${PendingScreen} user=${user}/>`;
+
+  if(!agbDone && !userDoc.agbAccepted) return html`<${PrivacyScreen} user=${user} onAccept=${()=>setAgbDone(true)}/>`;
 
   return html`<${App} user=${user}/>`;
 }
