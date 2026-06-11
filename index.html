@@ -1,5 +1,5 @@
-<!-- Version: 2026-06-11 15:50 coachee -->
-<!-- v20260611 cache-bust: v1781185816 -->
+<!-- Version: 2026-06-11 16:01 coachee -->
+<!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
 <head>
@@ -1180,18 +1180,13 @@
 // Global error handler to catch and display runtime errors
 window.onerror = (msg, src, line, col, err) => {
   if(line === 0 && !src) return true; // Cross-Origin-Fehler ignorieren
-  const div = document.createElement('div');
-  div.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#c0392b;color:white;padding:12px;font-size:11px;z-index:9999;font-family:monospace;white-space:pre-wrap';
-  div.textContent = 'JS Error: ' + msg + '\nFile: ' + src + '\nLine: ' + line + '\nStack: ' + (err?.stack||'none');
-  document.body.appendChild(div);
+  if(window._showCrashScreen) window._showCrashScreen();
+  return true;
 };
 window.addEventListener('unhandledrejection', e => {
-  const div = document.createElement('div');
-  div.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#c0392b;color:white;padding:12px;font-size:11px;z-index:9999;font-family:monospace;white-space:pre-wrap';
-  div.textContent = 'Promise Error: ' + (e.reason?.message||e.reason) + '\n' + (e.reason?.stack||'');
-  document.body.appendChild(div);
+  if(window._showCrashScreen) window._showCrashScreen();
 });
-import { h, render, Fragment, Component } from 'https://esm.sh/preact@10';
+import { h, render, Fragment } from 'https://esm.sh/preact@10';
 import { useState, useRef, useEffect } from 'https://esm.sh/preact@10/hooks';
 import { html } from 'https://esm.sh/htm@3/preact';
 
@@ -2138,7 +2133,7 @@ function ChatWindow({coachee,recipient,setRecipient,onSend,onSendImg,onSendFile,
 
 
 function SettingsPage({user, onDeleted}) {
-  const [deleteWord, setConfirm] = useState("");
+  const [deleteWord, setDeleteWord] = useState("");
   const [deleting, setDeleting] = useState(false);
   const [step, setStep] = useState(0); // 0=info, 1=bestaetigen
 
@@ -3945,33 +3940,22 @@ function BreathPortal() {
   return html`<${BreathOverlay} onDone=${()=>setShow(false)}/>`;
 }
 
-class ErrorBoundary extends Component {
-  constructor(props) { super(props); this.state = { crashed: false, msg: "" }; }
-  componentDidCatch(err) { this.setState({ crashed: true, msg: err?.message || String(err) }); }
-  render() {
-    if(!this.state.crashed) return this.props.children;
-    const doReload = () => { this.setState({ crashed: false, msg: "" }); };
-    return h("div", { style: { display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", minHeight:"100vh", background:"var(--bg)", padding:"32px 24px", textAlign:"center" } },
-      h("div", { style: { width:56, height:56, borderRadius:"50%", background:"var(--danger-pale)", display:"flex", alignItems:"center", justifyContent:"center", marginBottom:20 } },
-        h("svg", { width:26, height:26, viewBox:"0 0 24 24", fill:"none", stroke:"var(--danger)", strokeWidth:2, strokeLinecap:"round", strokeLinejoin:"round" },
-          h("path", { d:"M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" }),
-          h("line", { x1:12, y1:9, x2:12, y2:13 }),
-          h("line", { x1:12, y1:17, x2:"12.01", y2:17 })
-        )
-      ),
-      h("div", { style: { fontFamily:"'Manuale',serif", fontSize:"1.2rem", fontWeight:700, color:"var(--text)", marginBottom:10 } }, "Etwas ist schiefgelaufen"),
-      h("div", { style: { fontSize:".85rem", color:"var(--muted)", lineHeight:1.6, maxWidth:300, marginBottom:24 } },
-        "Die App hat einen unerwarteten Fehler. Bitte lade sie neu — das löst meistens das Problem."
-      ),
-      h("button", { onClick: doReload, style: { background:"var(--teal)", color:"#fff", border:"none", borderRadius:10, padding:"11px 28px", fontSize:".9rem", fontWeight:600, cursor:"pointer", fontFamily:"'Exo 2',sans-serif" } },
-        "App neu laden"
-      ),
-      h("div", { style: { marginTop:20, fontSize:".72rem", color:"var(--muted2)" } }, "Bleibt das Problem? Schreib uns: info@selbstwirksamkeit.ch")
-    );
-  }
-}
+// ── Fehler-Overlay (ohne Class-Component) ──
+window._showCrashScreen = function() {
+  var app = document.getElementById('app');
+  if(!app) return;
+  app.innerHTML = '';
+  var div = document.createElement('div');
+  div.style.cssText = 'display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;background:#f8f6f0;padding:32px 24px;text-align:center;font-family:Arial,sans-serif';
+  div.innerHTML = '<div style="font-size:52px;margin-bottom:16px">⚠️</div>'
+    + '<div style="font-size:1.2rem;font-weight:700;color:#1C1914;margin-bottom:10px">Etwas ist schiefgelaufen</div>'
+    + '<div style="font-size:.85rem;color:#6B7280;line-height:1.6;max-width:300px;margin-bottom:24px">Die App hat einen unerwarteten Fehler. Bitte lade sie neu — das löst meistens das Problem.</div>'
+    + '<button onclick="window.location.reload(true)" style="background:#156e6e;color:#fff;border:none;border-radius:10px;padding:11px 28px;font-size:.9rem;font-weight:600;cursor:pointer">App neu laden</button>'
+    + '<div style="margin-top:20px;font-size:.72rem;color:#9CA3AF">Bleibt das Problem? info@selbstwirksamkeit.ch</div>';
+  app.appendChild(div);
+};
 
-render(h(ErrorBoundary, null, h(Root, null)), document.getElementById('app'));
+render(h(Root, null), document.getElementById('app'));
 render(h(BreathPortal, null), document.getElementById('breath-portal'));
 </script>
 
