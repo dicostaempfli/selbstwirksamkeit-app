@@ -1,4 +1,4 @@
-<!-- Version: 2026-06-11 09:18 admin -->
+<!-- Version: 2026-06-11 09:49 admin -->
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -1449,7 +1449,8 @@ function AdminApp({user}) {
   const [coachees,setCoachees] = useState(INIT_COACHEES);
   const [library,setLibrary] = useState([]);
   const [doodles,setDoodles] = useState(INIT_DOODLES);
-  const [pending,setPending] = useState([]);
+  const [pending,setPending]   = useState([]);
+  const [deleted,setDeleted]   = useState([]);
   const totalUnread = coachees.reduce((a,c)=>a+(c.unread||0),0);
 
   // ── Library Firebase Sync ──
@@ -1477,10 +1478,20 @@ function AdminApp({user}) {
     return () => unsub();
   }, []);
 
+  // ── Deleted Coachees Sync ──
+  useEffect(() => {
+    const firestore = db();
+    if(!firestore) return;
+    const unsub = firestore.collection("users_deleted").orderBy("deletedAt","desc").onSnapshot(snap => {
+      setDeleted(snap.docs.map(d => ({docId: d.id, ...d.data()})));
+    }, () => {});
+    return () => unsub();
+  }, []);
+
   const NAV = [
     {id:"dashboard",icon:"home",label:"Home"},
     {id:"chat",icon:"chat",label:"Chat",badge:totalUnread},
-    {id:"coachees",icon:"users",label:"Coachees",badge:pending.length},
+    {id:"coachees",icon:"users",label:"Coachees",badge:pending.length+deleted.length},
     {id:"library",icon:"library",label:"Mediathek"},
     {id:"impuls",icon:"impuls",label:"Impulse"},
     {id:"doodle",icon:"calendar",label:"Termine"},
@@ -1517,7 +1528,7 @@ function AdminApp({user}) {
       <div class="main-content">
         ${page==="dashboard"&&html`<${DashboardPage} coachees=${coachees} library=${library} doodles=${doodles} setPage=${setPage} user=${user}/>`}
         ${page==="chat"&&html`<${ChatPage} coachees=${coachees} setCoachees=${setCoachees}/>`}
-        ${page==="coachees"&&html`<${CoacheesPage} coachees=${coachees} setCoachees=${setCoachees} setPage=${setPage} pending=${pending} setPending=${setPending}/>`}
+        ${page==="coachees"&&html`<${CoacheesPage} coachees=${coachees} setCoachees=${setCoachees} setPage=${setPage} pending=${pending} setPending=${setPending} deleted=${deleted} setDeleted=${setDeleted}/>`}
         ${page==="library"&&html`<${LibraryPage} library=${library} setLibrary=${setLibrary}/>`}
         ${page==="impuls"&&html`<${ImpulsAdminPage}/>`}
         ${page==="doodle"&&html`<${DoodlePage} doodles=${doodles} setDoodles=${setDoodles} coachees=${coachees}/>`}
@@ -1556,7 +1567,7 @@ function DashboardPage({coachees,library,doodles,setPage,user}) {
         <div>
           <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.3rem",fontWeight:700,color:"var(--text)"}}>${greeting}</div>
           <div style=${{fontSize:".88rem",color:"var(--muted)",marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"calc(100vw - 120px)"}}>Admin-Portal · Raum für Selbstwirksamkeit</div>
-          <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-06-11 09:18 · Doku v3.27 · 2026-06-11 09:18
+          <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-06-11 09:49 · Doku v3.27 · 2026-06-11 09:49
           </div>
         </div>
       </div>
@@ -2150,7 +2161,7 @@ function ChatWindow({coachee,onSend,onSendImg,onSendFile,onBack,mobileOpen}) {
 }
 
 
-function CoacheesPage({coachees,setCoachees,setPage,pending,setPending}) {
+function CoacheesPage({coachees,setCoachees,setPage,pending,setPending,deleted,setDeleted}) {
   const [showAdd,setShowAdd]         = useState(false);
   const [form,setForm]               = useState({firstname:"",lastname:"",email:"",password:"",notes:"",modell:"",coaching:[],kids:false,gender:[]});
   const [editId,setEditId]           = useState(null);
@@ -2174,6 +2185,43 @@ function CoacheesPage({coachees,setCoachees,setPage,pending,setPending}) {
       setPendingUids(m => { const n={...m}; delete n[p.docId]; return n; });
     }).catch(err => showToast("Fehler: " + err.message));
   };
+
+  const fmtDate = (iso) => {
+    if(!iso) return "–";
+    const d = new Date(iso);
+    const diff = Math.floor((Date.now() - d.getTime()) / 86400000);
+    if(diff === 0) return "heute";
+    if(diff === 1) return "gestern";
+    if(diff < 30) return "vor " + diff + " Tagen";
+    if(diff < 365) return "vor " + Math.floor(diff/30) + " Monat(en)";
+    return "vor " + Math.floor(diff/365) + " Jahr(en)";
+  };
+
+  const clearDeleted = (docId) => {
+    const firestore = db();
+    if(firestore) firestore.collection("users_deleted").doc(docId).delete().catch(()=>{});
+  };
+
+  const deletedSection = deleted && deleted.length > 0 ? h("div", {style:{marginBottom:24}},
+    h("div", {style:{fontFamily:"'Manuale',serif",fontSize:"1rem",fontWeight:700,color:"var(--danger)",marginBottom:10,display:"flex",alignItems:"center",gap:8}},
+      h("span", {style:{background:"var(--danger)",color:"#fff",borderRadius:"99px",padding:"1px 9px",fontSize:".78rem",fontWeight:700}}, deleted.length),
+      "Gelöschte Konten"
+    ),
+    deleted.map(d => h("div", {key:d.docId, style:{background:"var(--danger-pale)",border:"0.5px solid var(--danger-border)",borderRadius:14,padding:"14px 16px",marginBottom:10,display:"flex",alignItems:"center",gap:12}},
+      h("div", {style:{width:36,height:36,borderRadius:"50%",background:"var(--danger-border)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}},
+        h("span", {style:{fontWeight:700,color:"var(--danger)",fontSize:".85rem"}}, (d.name||"?").split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase())
+      ),
+      h("div", {style:{flex:1,minWidth:0}},
+        h("div", {style:{fontWeight:700,color:"var(--text)",fontSize:".9rem"}}, d.name||"–"),
+        h("div", {style:{color:"var(--muted)",fontSize:".78rem",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}, d.email||""),
+        h("div", {style:{color:"var(--danger)",fontSize:".75rem",marginTop:2}}, "Gelöscht: " + fmtDate(d.deletedAt))
+      ),
+      h("button", {
+        onClick: () => clearDeleted(d.docId),
+        style:{height:30,padding:"0 12px",background:"none",border:"1px solid var(--danger-border)",borderRadius:8,color:"var(--muted)",fontSize:".75rem",cursor:"pointer",whiteSpace:"nowrap",fontFamily:"'Exo 2',sans-serif"}
+      }, "✓ Erledigt")
+    ))
+  ) : null;
 
   const pendingSection = pending && pending.length > 0 ? h("div", {style:{marginBottom:24}},
     h("div", {style:{fontFamily:"'Manuale',serif",fontSize:"1rem",fontWeight:700,color:"var(--teal)",marginBottom:10,display:"flex",alignItems:"center",gap:8}},
@@ -2348,6 +2396,8 @@ function CoacheesPage({coachees,setCoachees,setPage,pending,setPending}) {
         </button>
       </div>
 
+      ${deletedSection}
+
       ${pendingSection}
 
       <div class="coachee-grid">
@@ -2363,6 +2413,7 @@ function CoacheesPage({coachees,setCoachees,setPage,pending,setPending}) {
               <div style=${{flex:1,minWidth:0}}>
                 <div class="coachee-name">${c.name}</div>
                 <div class="coachee-topic">${c.topic}</div>
+                ${c.lastSeen&&h("div",{style:{fontSize:".72rem",color:"var(--muted2)",marginTop:1}}, "Aktiv: "+fmtDate(c.lastSeen))}
                 <div class="coachee-meta">
                   ${c.modell&&html`<span class="coachee-gender">${c.modell}</span>`}
                   ${c.coaching&&html`<span class="coachee-gender">${c.coaching}${c.kids?" + Kids":""}</span>`}

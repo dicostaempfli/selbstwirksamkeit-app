@@ -1,5 +1,5 @@
-<!-- Version: 2026-06-11 09:39 coachee -->
-<!-- v20260611 cache-bust: v1781163572 -->
+<!-- Version: 2026-06-11 09:49 coachee -->
+<!-- v20260611 cache-bust: v1781164176 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
 <head>
@@ -1479,6 +1479,14 @@ function App({ user }) {
   const [pushGranted,setPushGranted]             = useState(false);
   const tapTimer                           = useRef(null);
 
+  // ── lastSeen beim App-Start schreiben ──
+  useEffect(() => {
+    const fbDb = window._fb?.db;
+    if(fbDb && user?.uid) {
+      fbDb.collection("users").doc(user.uid).update({ lastSeen: new Date().toISOString() }).catch(()=>{});
+    }
+  }, [user?.uid]);
+
   // ── Push + Install Setup ──
   useEffect(() => {
     // Zeige Install-Banner wenn: iOS + nicht als PWA installiert
@@ -1662,6 +1670,7 @@ function App({ user }) {
     {id:"impulse",   icon:"impuls",   label:"Impulse"},
     {id:"library",   icon:"library",  label:"Mediathek"},
     {id:"doodle",    icon:"calendar", label:"Termine"},
+    {id:"settings",  icon:"sliders",  label:"Konto"},
   ];
 
   return html`
@@ -1729,6 +1738,7 @@ function App({ user }) {
       ${page==="impulse"   && html`<${ImpulseTab} user=${user} reminders=${reminders} setReminders=${saveReminders} setPage=${navTo} defaultSubTab=${impulseDefaultTab} setDefaultSubTab=${setImpulseDefaultTab} setActiveImpuls=${setActiveImpuls} activeImpuls=${activeImpuls}/>`}
       ${page==="library"   && html`<${LibraryPage} library=${library} setLibrary=${saveLibrary}/>`}
       ${page==="doodle"    && html`<${DoodlePage} user=${user} doodles=${doodles} setDoodles=${saveDoodles} coachees=${coachees} events=${events}/>`}
+      ${page==="settings"  && html`<${SettingsPage} user=${user} onDeleted=${()=>{ const a=window._fb?.auth; if(a) a.signOut().catch(()=>{}); }}/>`}
     </div>
     <nav class="bottom-nav">
       ${NAV_ITEMS.map(i=>html`
@@ -1802,6 +1812,7 @@ function Sidebar({page,setPage,totalUnread,user,onLogoTap}) {
     {id:"impulse",icon:"impuls",tip:"Meine Impulse",label:"Impulse"},
     {id:"library",icon:"library",tip:"Mediathek",label:"Mediathek"},
     {id:"doodle",   icon:"calendar",tip:"Termine & Events",label:"Termine"},
+    {id:"settings", icon:"sliders", tip:"Einstellungen",    label:"Einstellungen"},
   ];
   return html`
     <div class="sidebar">
@@ -2125,6 +2136,94 @@ function ChatWindow({coachee,recipient,setRecipient,onSend,onSendImg,onSendFile,
     </div>`;
 }
 
+
+function SettingsPage({user, onDeleted}) {
+  const [confirm, setConfirm] = useState("");
+  const [deleting, setDeleting] = useState(false);
+  const [step, setStep] = useState(0); // 0=info, 1=confirm
+
+  const doDelete = async () => {
+    if(confirm.trim().toLowerCase() !== "löschen") return;
+    setDeleting(true);
+    const fbDb = window._fb?.db;
+    const fbAuth = window._fb?.auth;
+    try {
+      if(fbDb && user?.uid) {
+        const uid = user.uid;
+        const name = user.displayName || user.email || uid;
+        const email = user.email || "";
+        // Vor Löschung: users_deleted Dokument anlegen (für Admin sichtbar)
+        await fbDb.collection("users_deleted").doc(uid).set({
+          uid, name, email,
+          deletedAt: new Date().toISOString(),
+          deletedBy: "coachee"
+        });
+        // Daten löschen
+        await fbDb.collection("users").doc(uid).delete().catch(()=>{});
+      }
+      // Firebase Auth User löschen
+      if(fbAuth?.currentUser) {
+        await fbAuth.currentUser.delete().catch(()=>{});
+      }
+      if(onDeleted) onDeleted();
+    } catch(e) {
+      setDeleting(false);
+      setConfirm("");
+      alert("Fehler beim Löschen. Bitte kontaktiere info@selbstwirksamkeit.ch");
+    }
+  };
+
+  if(step === 0) return html`
+    <div class="content-main" style=${{maxWidth:480,margin:"0 auto",padding:"32px 20px"}}>
+      <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.2rem",fontWeight:700,color:"var(--text)",marginBottom:20}}>Einstellungen</div>
+
+      <div style=${{background:"var(--surface)",borderRadius:14,border:"0.5px solid var(--border)",padding:"16px 18px",marginBottom:16}}>
+        <div style=${{fontWeight:600,color:"var(--text)",fontSize:".9rem",marginBottom:4}}>Dein Konto</div>
+        <div style=${{color:"var(--muted)",fontSize:".82rem"}}>${user?.email||""}</div>
+      </div>
+
+      <div style=${{background:"var(--surface)",borderRadius:14,border:"0.5px solid var(--border)",padding:"16px 18px",marginBottom:16}}>
+        <div style=${{fontWeight:600,color:"var(--text)",fontSize:".9rem",marginBottom:6}}>Datenschutz & Aufbewahrung</div>
+        <div style=${{color:"var(--muted)",fontSize:".82rem",lineHeight:1.65}}>
+          Solange du die App nutzt, bleiben deine Daten erhalten. Nach 24 Monaten ohne Anmeldung erhältst du eine E-Mail-Ankündigung und deine Daten werden nach weiteren 30 Tagen gelöscht — ausser du meldest dich zurück.<br/><br/>
+          Für Fragen zum Datenschutz: info@selbstwirksamkeit.ch
+        </div>
+      </div>
+
+      <div style=${{background:"var(--danger-pale)",borderRadius:14,border:"0.5px solid var(--danger-border)",padding:"16px 18px"}}>
+        <div style=${{fontWeight:600,color:"var(--danger)",fontSize:".9rem",marginBottom:6}}>Konto löschen</div>
+        <div style=${{color:"var(--muted)",fontSize:".82rem",lineHeight:1.65,marginBottom:14}}>
+          Alle deine Daten (Chat, Impulse, Profil) werden unwiderruflich gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.
+        </div>
+        <button onClick=${()=>setStep(1)} style=${{background:"var(--danger)",color:"#fff",border:"none",borderRadius:9,padding:"9px 20px",fontSize:".82rem",fontWeight:600,cursor:"pointer",fontFamily:"'Exo 2',sans-serif"}}>
+          Konto löschen
+        </button>
+      </div>
+    </div>`;
+
+  return html`
+    <div class="content-main" style=${{maxWidth:480,margin:"0 auto",padding:"32px 20px"}}>
+      <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.2rem",fontWeight:700,color:"var(--text)",marginBottom:8}}>Konto wirklich löschen?</div>
+      <div style=${{color:"var(--muted)",fontSize:".85rem",lineHeight:1.6,marginBottom:24}}>
+        Alle Daten werden unwiderruflich entfernt. Tippe <strong>löschen</strong> zur Bestätigung.
+      </div>
+      <input
+        value=${confirm}
+        onInput=${e=>setConfirm(e.target.value)}
+        placeholder="löschen"
+        style=${{width:"100%",boxSizing:"border-box",padding:"11px 14px",borderRadius:9,border:"1.5px solid var(--danger-border)",background:"var(--bg)",color:"var(--text)",fontSize:".9rem",fontFamily:"'Exo 2',sans-serif",outline:"none",marginBottom:14}}
+      />
+      <div style=${{display:"flex",gap:10}}>
+        <button onClick=${()=>{setStep(0);setConfirm("");}} style=${{flex:1,padding:"11px 0",borderRadius:9,border:"1.5px solid var(--border2)",background:"none",color:"var(--muted)",fontSize:".85rem",cursor:"pointer",fontFamily:"'Exo 2',sans-serif"}}>
+          Abbrechen
+        </button>
+        <button onClick=${doDelete} disabled=${confirm.trim().toLowerCase()!=="löschen"||deleting}
+          style=${{flex:1,padding:"11px 0",borderRadius:9,border:"none",background:confirm.trim().toLowerCase()==="löschen"?"var(--danger)":"var(--border)",color:"#fff",fontSize:".85rem",fontWeight:700,cursor:confirm.trim().toLowerCase()==="löschen"?"pointer":"not-allowed",fontFamily:"'Exo 2',sans-serif",transition:"background .2s"}}>
+          ${deleting?"Wird gelöscht…":"Endgültig löschen"}
+        </button>
+      </div>
+    </div>`;
+}
 
 function DashboardPage({coachees,library,reminders,doodles,setPage,user,onLogoTap,setImpulseDefaultTab,activeImpuls,setActiveImpuls}) {
   const uid = user?.uid || null;
