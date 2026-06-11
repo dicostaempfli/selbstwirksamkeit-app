@@ -1,5 +1,5 @@
-<!-- Version: 2026-06-11 09:49 coachee -->
-<!-- v20260611 cache-bust: v1781164176 -->
+<!-- Version: 2026-06-11 10:46 coachee -->
+<!-- v20260611 cache-bust: v1781167581 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
 <head>
@@ -1191,7 +1191,7 @@ window.addEventListener('unhandledrejection', e => {
   div.textContent = 'Promise Error: ' + (e.reason?.message||e.reason) + '\n' + (e.reason?.stack||'');
   document.body.appendChild(div);
 });
-import { h, render, Fragment } from 'https://esm.sh/preact@10';
+import { h, render, Fragment, Component } from 'https://esm.sh/preact@10';
 import { useState, useRef, useEffect } from 'https://esm.sh/preact@10/hooks';
 import { html } from 'https://esm.sh/htm@3/preact';
 
@@ -3945,7 +3945,7 @@ function BreathPortal() {
   return html`<${BreathOverlay} onDone=${()=>setShow(false)}/>`;
 }
 
-class ErrorBoundary extends h.Component {
+class ErrorBoundary extends Component {
   constructor(props) { super(props); this.state = { crashed: false, msg: "" }; }
   componentDidCatch(err) { this.setState({ crashed: true, msg: err?.message || String(err) }); }
   render() {
