@@ -1,4 +1,4 @@
-<!-- Version: 2026-06-12 17:47 coachee -->
+<!-- Version: 2026-06-12 18:31 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -852,8 +852,7 @@
     .msg-bubble { font-size: .85rem; }
     .chat-input-area {
       flex-shrink: 0;
-      padding: 8px 10px;
-      padding-bottom: max(8px, env(safe-area-inset-bottom, 8px));
+      padding: 8px 10px 10px;
     }
     .input-box { font-size: .88rem; padding: 8px 12px; }
 
@@ -1015,7 +1014,7 @@
     @media all and (display-mode: standalone) {
       /* In PWA mode, bottom nav height may differ */
       .chat-input-area {
-        padding-bottom: max(20px, env(safe-area-inset-bottom, 20px)) !important;
+        padding-bottom: 10px !important;
       }
     }
     /* ── Small phone (< 375px) ── */
