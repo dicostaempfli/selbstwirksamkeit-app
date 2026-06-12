@@ -1,4 +1,4 @@
-<!-- Version: 2026-06-12 18:50 coachee -->
+<!-- Version: 2026-06-12 19:02 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -24,6 +24,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
   <script>
     // Initialize Firebase after DOM is ready
     window._fbReady = false;
@@ -46,6 +47,7 @@
         window._fb = {
           auth: firebase.auth(),
           db:   firebase.firestore(),
+          storage: firebase.storage(),
           googleProvider: new firebase.auth.GoogleAuthProvider()
         };
         firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL);
@@ -1811,11 +1813,26 @@ function ChatPage({user,coachees,setCoachees,mobileChatOpen,setMobileChatOpen}) 
     fbDb.collection("chats").doc(uid).collection("messages").add({from:"coachee",sender:uid,recipient,imgSrc:dataUrl,isVideo,text:"",time:t,date:d,ts:Date.now()}).catch(()=>{});
   };
 
-  const sendFile = file => {
+  const sendFile = async file => {
     if(!uid||!fbDb) return;
+    const fbStorage = window._fb?.storage;
     const t = new Date().toLocaleTimeString('de-CH',{hour:'2-digit',minute:'2-digit'});
     const d = new Date().toLocaleDateString('de-CH',{day:'2-digit',month:'2-digit',year:'numeric'});
-    fbDb.collection("chats").doc(uid).collection("messages").add({from:"coachee",sender:uid,recipient,file,text:"",time:t,date:d,ts:Date.now()}).catch(()=>{});
+    try {
+      let fileData = file;
+      if(fbStorage && file.url && file.url.startsWith('data:')) {
+        // Base64 → Blob → Storage hochladen
+        const resp = await fetch(file.url);
+        const blob = await resp.blob();
+        const ext  = file.name.split('.').pop() || 'bin';
+        const path = 'chats/'+uid+'/'+Date.now()+'_'+file.name;
+        const ref  = fbStorage.ref(path);
+        await ref.put(blob, {contentType: file.type || blob.type});
+        const downloadUrl = await ref.getDownloadURL();
+        fileData = {name: file.name, type: file.type, size: file.size||blob.size, isAudio: file.isAudio||false, url: downloadUrl, storagePath: path};
+      }
+      await fbDb.collection("chats").doc(uid).collection("messages").add({from:"coachee",sender:uid,recipient,file:fileData,text:"",time:t,date:d,ts:Date.now()});
+    } catch(e) { console.error("sendFile error:", e); }
   };
 
   return html`
@@ -1917,14 +1934,21 @@ function ChatWindow({coachee,recipient,setRecipient,onSend,onSendImg,onSendFile,
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({audio:true});
-      const mr = new MediaRecorder(stream);
+      // MIME-Type vom Browser bestimmen lassen (iOS: audio/mp4, Android: audio/webm)
+      const mimeType = MediaRecorder.isTypeSupported('audio/mp4') ? 'audio/mp4'
+                     : MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm'
+                     : '';
+      const mrOpts = mimeType ? {mimeType} : {};
+      const mr = new MediaRecorder(stream, mrOpts);
       mediaRecRef.current = mr; chunksRef.current = [];
       mr.ondataavailable = ev => chunksRef.current.push(ev.data);
       mr.onstop = () => {
-        const blob = new Blob(chunksRef.current,{type:"audio/webm"});
+        const mime = mr.mimeType || mimeType || 'audio/mp4';
+        const ext  = mime.includes('webm') ? 'webm' : 'm4a';
+        const blob = new Blob(chunksRef.current, {type: mime});
         const rdr = new FileReader();
         rdr.onload = ev2 => {
-          onSendFile({url:ev2.target.result,name:"Sprachmemo.webm",type:"audio/webm",isAudio:true});
+          onSendFile({url:ev2.target.result, name:'Sprachmemo.'+ext, type:mime, isAudio:true});
         };
         rdr.readAsDataURL(blob);
         stream.getTracks().forEach(t=>t.stop());
