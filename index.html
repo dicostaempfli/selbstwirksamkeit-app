@@ -1,4 +1,4 @@
-<!-- Version: 2026-06-11 22:10 coachee -->
+<!-- Version: 2026-06-12 11:26 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -3333,7 +3333,6 @@ function DoodlePage({user,doodles,setDoodles,coachees,events}) {
   const [newSlotDt,setNewSlotDt] = useState("");
   const [selRecip,setSelRecip]   = useState([]);
   const [coacheeVotes,setCoacheeVotes] = useState({});
-  const [submitted,setSubmitted] = useState({});
   const [showConfirmed,setShowConfirmed] = useState(false);
 
   // ── helpers ──
@@ -3371,7 +3370,6 @@ function DoodlePage({user,doodles,setDoodles,coachees,events}) {
     setDoodles(ds=>ds.map(x=>x.id!==did?x:{...x,
       slots:x.slots.map((s,i)=>votes[i]&&uid?{...s,votes:{...s.votes,[uid]:votes[i]}}:s)
     }));
-    setSubmitted(s=>({...s,[did]:true}));
     showToastMsg("✓ Deine Antwort wurde gesendet!");
   };
 
@@ -3390,7 +3388,7 @@ function DoodlePage({user,doodles,setDoodles,coachees,events}) {
 
       <div style=${{display:"flex",gap:8,marginBottom:16}}>
         ${(()=>{
-          const openCount = doodles.filter(d=>(d.recipients||[]).includes(uid)&&!submitted[d.id]).length;
+          const openCount = doodles.filter(d=>(d.recipients||[]).includes(uid)&&!d.slots.some(s=>s.votes?.[uid])).length;
           const btnStyle = (active) => ({
             flex:"1 1 0",height:"40px",maxHeight:"40px",display:"flex",alignItems:"center",
             justifyContent:"center",gap:"7px",padding:"8px 18px",position:"relative",
@@ -3419,7 +3417,7 @@ function DoodlePage({user,doodles,setDoodles,coachees,events}) {
       ${subTab==="coachee" && html`
         ${doodles.filter(d=>(d.recipients||[]).includes(uid)).map(d=>html`
           <div key=${d.id} style=${{background:"var(--surface)",borderRadius:"var(--radius)",boxShadow:"var(--shadow)",padding:24,marginBottom:14}}>
-            ${submitted[d.id]
+            ${d.slots.some(s=>s.votes?.[uid])
               ? html`<div style=${{textAlign:"center",padding:"24px 0"}}>
                   <div style=${{fontSize:"2rem",marginBottom:8}}>✓</div>
                   <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.1rem",fontWeight:700,color:"var(--forest)",marginBottom:6}}>Danke!</div>
