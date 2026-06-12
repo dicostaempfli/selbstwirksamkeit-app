@@ -3368,7 +3368,7 @@ function DoodlePage({doodles,setDoodles,coachees}) {
           <div class="modal" style=${{padding:0,display:"flex",flexDirection:"column"}}>
             <div style=${{padding:"16px 18px 14px",borderBottom:"1px solid var(--border)",display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0}}>
               <h2 class="modal-title" style=${{marginBottom:0}}>Neuer Terminvorschlag</h2>
-              <button style=${{background:"none",border:"none",cursor:"pointer",color:"var(--muted)",padding:4,borderRadius:8,display:"flex"}} onClick=${()=>{const o=document.querySelector(".overlay");if(o)o.click();}}><${Ic} name="x" size=${20}/></button>
+              <button style=${{background:"none",border:"none",cursor:"pointer",color:"var(--muted)",padding:4,borderRadius:8,display:"flex"}} onClick=${()=>setShowCreate(false)}><${Ic} name="x" size=${20}/></button>
             </div>
             <div style=${{padding:"16px 18px",overflowY:"auto",flex:1}}>
               <div class="form-row">
@@ -3420,7 +3420,7 @@ function DoodlePage({doodles,setDoodles,coachees}) {
           <div class="modal" style=${{padding:0,display:"flex",flexDirection:"column"}}>
             <div style=${{padding:"16px 18px 12px",borderBottom:"1px solid var(--border)",display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0}}>
               <h2 class="modal-title" style=${{marginBottom:0}}>${resultDoodle.title}</h2>
-              <button style=${{background:"none",border:"none",cursor:"pointer",color:"var(--muted)",padding:4,borderRadius:8,display:"flex"}} onClick=${()=>{const o=document.querySelector(".overlay");if(o)o.click();}}>${h(Ic,{name:"x",size:20})}</button>
+              <button style=${{background:"none",border:"none",cursor:"pointer",color:"var(--muted)",padding:4,borderRadius:8,display:"flex"}} onClick=${()=>setShowResults(null)}>${h(Ic,{name:"x",size:20})}</button>
             </div>
             <div style=${{padding:"14px 18px",overflowY:"auto",flex:1,display:"flex",flexDirection:"column",gap:8}}>
               ${(resultDoodle.slots||[]).map((s,i)=>{
