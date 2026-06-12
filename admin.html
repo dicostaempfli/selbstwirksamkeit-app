@@ -3286,8 +3286,9 @@ function DoodlePage({doodles,setDoodles,coachees}) {
   };
 
   const createDoodle = () => {
-    if(!newTitle.trim()||newSlots.length<1) return;
-    const nd={id:"d"+Date.now(),title:newTitle.trim(),desc:newDesc.trim()||"Wähle alle möglichen Termine aus.",status:"open",recipients:[...selRecip],slots:newSlots.map(dt=>({dt,votes:{}}))};
+    const allSlots = newSlotDt && !newSlots.includes(newSlotDt) ? [...newSlots, newSlotDt].sort() : newSlots;
+    if(!newTitle.trim()||allSlots.length<1) return;
+    const nd={id:"d"+Date.now(),title:newTitle.trim(),desc:newDesc.trim()||"Wähle alle möglichen Termine aus.",status:"open",recipients:[...selRecip],slots:allSlots.map(dt=>({dt,votes:{}}))};
     setShowCreate(false);setNewTitle("");setNewDesc("");setNewSlots([]);setSelRecip([]);
     setDoodles(ds=>[nd,...ds]);
     const firestore = db();
