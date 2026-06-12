@@ -1,4 +1,4 @@
-<!-- Version: 2026-06-12 20:19 admin -->
+<!-- Version: 2026-06-12 20:30 admin -->
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -1729,7 +1729,7 @@ function ChatPage({coachees,setCoachees}) {
     const firestore = db();
     const now = new Date();
     const t = now.toLocaleTimeString("de-CH",{hour:"2-digit",minute:"2-digit"});
-    const d = "Heute";
+    const d = now.toLocaleDateString("de-CH",{day:"2-digit",month:"2-digit",year:"numeric"});
     broadcastRecipients.forEach(c=>{
       const msg={from:"admin",sender:"Diana",recipient:c.id,text:broadcastMsg.trim(),time:t,date:d,ts:Date.now(),seen:false};
       if(firestore) firestore.collection("chats").doc(c.id).collection("messages").add(msg).catch(()=>{});
@@ -1760,6 +1760,7 @@ function ChatPage({coachees,setCoachees}) {
     const firestore = db();
     const now = new Date();
     const t = now.toLocaleTimeString("de-CH",{hour:"2-digit",minute:"2-digit"});
+    const d = now.toLocaleDateString("de-CH",{day:"2-digit",month:"2-digit",year:"numeric"});
     const msg={from:"admin",sender,recipient:activeId,text:text.trim(),time:t,date:d,ts:Date.now(),seen:false};
     if(firestore) {
       firestore.collection("chats").doc(activeId).collection("messages").add(msg).catch(()=>{});
@@ -1773,6 +1774,7 @@ function ChatPage({coachees,setCoachees}) {
     const firestore = db();
     const now = new Date();
     const t = now.toLocaleTimeString("de-CH",{hour:"2-digit",minute:"2-digit"});
+    const d = now.toLocaleDateString("de-CH",{day:"2-digit",month:"2-digit",year:"numeric"});
     const msg={from:"admin",sender,recipient:activeId,imgSrc:dataUrl,isVideo,text:"",time:t,date:d,ts:Date.now()};
     if(firestore) firestore.collection("chats").doc(activeId).collection("messages").add(msg).catch(()=>{});
   };
@@ -1781,6 +1783,7 @@ function ChatPage({coachees,setCoachees}) {
     const firestore = db();
     const now = new Date();
     const t = now.toLocaleTimeString("de-CH",{hour:"2-digit",minute:"2-digit"});
+    const d = now.toLocaleDateString("de-CH",{day:"2-digit",month:"2-digit",year:"numeric"});
     const msg={from:"admin",sender,recipient:activeId,file,text:"",time:t,date:d,ts:Date.now()};
     if(firestore) firestore.collection("chats").doc(activeId).collection("messages").add(msg).catch(()=>{});
   };
