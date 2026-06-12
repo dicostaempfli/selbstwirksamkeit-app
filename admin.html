@@ -1,4 +1,4 @@
-<!-- Version: 2026-06-12 14:37 admin -->
+<!-- Version: 2026-06-12 14:45 admin -->
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -3432,15 +3432,14 @@ function DoodlePage({doodles,setDoodles,coachees}) {
                 const yesCount=Object.values(s.votes||{}).filter(v=>v==="yes").length;
                 const total=(resultDoodle.recipients||[]).length;
                 const parts=fmtDt(s.dt).split("·");
-                const rowBg = isBest ? "var(--teal-pale)" : "var(--surface2)";
-                const rowBorder = isBest ? "1.5px solid var(--teal)" : "0.5px solid var(--border)";
-                const isSel=i===selectedSlot;
-                const selBg=isSel?"var(--teal-pale)":rowBg;
-                const selBorder=isSel?"2px solid var(--teal)":rowBorder;
+                const isSel = i===selectedSlot;
+                const rowBg = isSel ? "var(--teal-pale)" : "var(--surface2)";
+                const rowBorder = isSel ? "2.5px solid var(--teal)" : "0.5px solid var(--border)";
+                const rowOpacity = selectedSlot!=null && !isSel ? 0.45 : 1;
                 return html`
-                  <div key=${i} style=${{padding:"12px 14px",borderRadius:10,background:selBg,border:selBorder,display:"flex",alignItems:"center",gap:12,cursor:"pointer"}} onClick=${()=>setSelectedSlot(i)}>
+                  <div key=${i} style=${{padding:"12px 14px",borderRadius:10,background:rowBg,border:rowBorder,opacity:rowOpacity,display:"flex",alignItems:"center",gap:12,cursor:"pointer",transition:"opacity .15s"}} onClick=${()=>setSelectedSlot(i)}>
                     <div style=${{flex:1}}>
-                      ${isBest&&html`<span style=${{fontSize:".68rem",fontWeight:700,background:"var(--teal)",color:"#fff",padding:"1px 7px",borderRadius:99,display:"inline-block",marginBottom:3}}>Bester Termin</span>`}
+                      ${isBest&&selectedSlot==null&&html`<span style=${{fontSize:".68rem",fontWeight:700,background:"var(--teal)",color:"#fff",padding:"1px 7px",borderRadius:99,display:"inline-block",marginBottom:3}}>Bester Termin</span>`}
                       <div style=${{fontSize:".88rem",fontWeight:600,color:"var(--text)"}}>${parts[0]?.trim()}</div>
                       <div style=${{fontSize:".75rem",color:"var(--muted)"}}>${parts[1]?.trim()}</div>
                     </div>
