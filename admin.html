@@ -1440,6 +1440,31 @@ function AdminApp({user}) {
     return () => { if(unsub) unsub(); };
   }, []);
 
+  // ── Coachees aus Firestore laden ──
+  useEffect(() => {
+    const firestore = db();
+    if(!firestore) return;
+    const unsub = firestore.collection("users").onSnapshot(snap => {
+      const list = snap.docs.map(d => {
+        const data = d.data();
+        const raw = data.activePhase;
+        let phase = null;
+        if(raw != null) {
+          if(typeof raw === 'number') phase = raw;
+          else if(typeof raw === 'string') phase = parseInt(raw,10)||null;
+          else if(typeof raw.toNumber === 'function') phase = raw.toNumber();
+          else if(typeof raw.valueOf === 'function') phase = parseInt(raw.valueOf(),10)||null;
+        }
+        const n = data.name||"";
+        const parts = n.trim().split(/\s+/);
+        const initials = parts.length>=2 ? (parts[0][0]+(parts[parts.length-1][0])).toUpperCase() : n.slice(0,2).toUpperCase();
+        return { id: d.id, uid: d.id, ...data, activePhase: phase, initials, color: AVATAR_BG[0], unread: 0, messages: [] };
+      });
+      setCoachees(list);
+    }, () => {});
+    return () => unsub();
+  }, []);
+
   // ── Pending Coachees Sync ──
   useEffect(() => {
     const firestore = db();
