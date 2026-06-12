@@ -1,4 +1,4 @@
-<!-- Version: 2026-06-12 20:41 admin -->
+<!-- Version: 2026-06-12 20:49 admin -->
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -1731,7 +1731,7 @@ function ChatPage({coachees,setCoachees}) {
     const firestore = db();
     const now = new Date();
     const t = now.toLocaleTimeString("de-CH",{hour:"2-digit",minute:"2-digit"});
-    const d = now.toLocaleDateString("de-CH",{day:"2-digit",month:"2-digit",year:"numeric"});
+    const d = dateKeyFromTs(now.getTime());
     broadcastRecipients.forEach(c=>{
       const msg={from:"admin",sender:"Diana",recipient:c.id,text:broadcastMsg.trim(),time:t,date:d,ts:Date.now(),seen:false};
       if(firestore) firestore.collection("chats").doc(c.id).collection("messages").add(msg).catch(()=>{});
@@ -1762,7 +1762,7 @@ function ChatPage({coachees,setCoachees}) {
     const firestore = db();
     const now = new Date();
     const t = now.toLocaleTimeString("de-CH",{hour:"2-digit",minute:"2-digit"});
-    const d = now.toLocaleDateString("de-CH",{day:"2-digit",month:"2-digit",year:"numeric"});
+    const d = dateKeyFromTs(now.getTime());
     const msg={from:"admin",sender,recipient:activeId,text:text.trim(),time:t,date:d,ts:Date.now(),seen:false};
     if(firestore) {
       firestore.collection("chats").doc(activeId).collection("messages").add(msg).catch(()=>{});
@@ -1776,7 +1776,7 @@ function ChatPage({coachees,setCoachees}) {
     const firestore = db();
     const now = new Date();
     const t = now.toLocaleTimeString("de-CH",{hour:"2-digit",minute:"2-digit"});
-    const d = now.toLocaleDateString("de-CH",{day:"2-digit",month:"2-digit",year:"numeric"});
+    const d = dateKeyFromTs(now.getTime());
     const msg={from:"admin",sender,recipient:activeId,imgSrc:dataUrl,isVideo,text:"",time:t,date:d,ts:Date.now()};
     if(firestore) firestore.collection("chats").doc(activeId).collection("messages").add(msg).catch(()=>{});
   };
@@ -1785,7 +1785,7 @@ function ChatPage({coachees,setCoachees}) {
     const firestore = db();
     const now = new Date();
     const t = now.toLocaleTimeString("de-CH",{hour:"2-digit",minute:"2-digit"});
-    const d = now.toLocaleDateString("de-CH",{day:"2-digit",month:"2-digit",year:"numeric"});
+    const d = dateKeyFromTs(now.getTime());
     const msg={from:"admin",sender,recipient:activeId,file,text:"",time:t,date:d,ts:Date.now()};
     if(firestore) firestore.collection("chats").doc(activeId).collection("messages").add(msg).catch(()=>{});
   };
@@ -1924,15 +1924,12 @@ function ChatWindow({coachee,onSend,onSendImg,onSendFile,onDeleteMsg,onBack,mobi
   useEffect(()=>{ bottomRef.current?.scrollIntoView({behavior:"smooth"}); },[coachee.messages.length]);
 
   const groups = coachee.messages.reduce((acc,msg)=>{
-    let d = msg.date;
-    if(!d||d==="Heute") d = msg.ts ? new Date(msg.ts).toLocaleDateString("de-CH",{day:"2-digit",month:"2-digit",year:"numeric"}) : new Date().toLocaleDateString("de-CH",{day:"2-digit",month:"2-digit",year:"numeric"});
-    if(!acc[d])acc[d]=[];
-    acc[d].push(msg);
+    const key = msg.ts ? dateKeyFromTs(msg.ts) : dateKeyFromTs(Date.now());
+    if(!acc[key])acc[key]=[];
+    acc[key].push(msg);
     return acc;
   },{});
-  const groupsSorted = Object.entries(groups).sort((a,b)=>{
-    const tsA = a[1][0]?.ts||0; const tsB = b[1][0]?.ts||0; return tsA-tsB;
-  });
+  const groupsSorted = Object.entries(groups).sort((a,b)=>a[0].localeCompare(b[0]));
 
   const handleSend = () => { if(!input.trim())return; onSend(input,sender); setInput(""); if(textRef.current){textRef.current.style.height='auto';} };
   const handleKey  = e => { if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();handleSend();} };
@@ -2018,12 +2015,14 @@ function ChatWindow({coachee,onSend,onSendImg,onSendFile,onDeleteMsg,onBack,mobi
       <div class="messages" ref=${bottomRef}>
         ${groupsSorted.map(([date,msgs])=>html`
           <div key=${date}>
-            <div class="date-divider">${date}</div>
+            <div class="date-divider">${formatDateKey(date)}</div>
             ${msgs.map((msg,i)=>{
               const isOut = msg.from==="admin";
-              const sender = msg.sender||"Diana";
-              const prevSame = i>0&&msgs[i-1].from===msg.from&&(msgs[i-1].sender||"Diana")===sender;
-              const avatarColor = sender==="Rico" ? "#a0cb7b" : "#68b87d";
+              // Coachee-Nachrichten: sender=uid → coachee.name verwenden
+              const rawSender = msg.sender||(isOut?"Diana":"");
+              const sender = isOut ? (rawSender||"Diana") : (coachee.name?.split(" ")[0]||"Coachee");
+              const prevSame = i>0&&msgs[i-1].from===msg.from&&((msgs[i-1].sender||(msgs[i-1].from==="admin"?"Diana":"")))===(msg.sender||(isOut?"Diana":""));
+              const avatarColor = isOut ? (rawSender==="Rico" ? "#a0cb7b" : "#68b87d") : "var(--teal)";
               const initial = sender[0];
               return html`
                 <div key=${msg.id} class=${"msg-row "+(isOut?"out":"in")}
@@ -3553,6 +3552,10 @@ function DoodlePage({doodles,setDoodles,coachees,adminUid}) {
 
 
 // ── ROOT ──
+
+// Datum-Hilfsfunktionen — cross-browser sicher
+const dateKeyFromTs = ts => { const d=new Date(ts); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); };
+const formatDateKey = key => { try { const p=key.split('-'); const d=new Date(parseInt(p[0]),parseInt(p[1])-1,parseInt(p[2])); const months=['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember']; return d.getDate()+'. '+months[d.getMonth()]+' '+d.getFullYear(); } catch(e){return key;} };
 function Root() {
   const [user,setUser]     = useState(null);
   const [ready,setReady]   = useState(false);

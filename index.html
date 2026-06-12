@@ -1,4 +1,4 @@
-<!-- Version: 2026-06-12 20:36 coachee -->
+<!-- Version: 2026-06-12 20:49 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -1522,32 +1522,33 @@ function App({ user }) {
 
   // ── Chat Push Listener ──
   useEffect(() => {
-    if(!user?.uid || !pushGranted) return;
+    if(!user?.uid) return;
     const fbDb = window._fb?.db;
     if(!fbDb) return;
-    // Letzte bekannte Nachricht
     let lastTs = Date.now();
     const unsub = fbDb.collection("chats").doc(user.uid).collection("messages")
       .orderBy("ts","desc").limit(1)
       .onSnapshot(snap => {
         if(snap.empty) return;
         const msg = snap.docs[0].data();
-        // Nur neue Nachrichten vom Coach (nicht eigene)
         const isNew = msg.ts > lastTs;
         const isFromCoach = msg.from === "admin";
         if(isNew && isFromCoach && document.hidden) {
           lastTs = msg.ts;
-          showLocalNotification(
-            "Neue Nachricht",
-            msg.text ? msg.text.slice(0, 80) : "Diana oder Rico haben dir geschrieben.",
-            "chat-" + user.uid,
-            "#chat"
-          );
+          // Notification nur wenn Erlaubnis vorhanden
+          if(Notification.permission === 'granted') {
+            showLocalNotification(
+              "Neue Nachricht",
+              msg.text ? msg.text.slice(0, 80) : "Diana oder Rico haben dir geschrieben.",
+              "chat-" + user.uid,
+              "#chat"
+            );
+          }
         }
         if(isNew) lastTs = msg.ts;
       }, () => {});
     return () => unsub();
-  }, [user?.uid, pushGranted]);
+  }, [user?.uid]);
 
   const handleLogoTap = () => {
     const next = tapCount + 1;
@@ -1797,14 +1798,14 @@ function ChatPage({user,coachees,setCoachees,mobileChatOpen,setMobileChatOpen}) 
   const sendMsg = text => {
     if(!text.trim()||!uid||!fbDb) return;
     const t = new Date().toLocaleTimeString('de-CH',{hour:'2-digit',minute:'2-digit'});
-    const d = new Date().toLocaleDateString('de-CH',{day:'2-digit',month:'2-digit',year:'numeric'});
+    const d = dateKeyFromTs(Date.now());
     fbDb.collection("chats").doc(uid).collection("messages").add({from:"coachee",sender:uid,recipient,text:text.trim(),time:t,date:d,ts:Date.now(),seen:false}).catch(()=>{});
   };
 
   const sendImg = (dataUrl, isVideo=false) => {
     if(!uid||!fbDb) return;
     const t = new Date().toLocaleTimeString('de-CH',{hour:'2-digit',minute:'2-digit'});
-    const d = new Date().toLocaleDateString('de-CH',{day:'2-digit',month:'2-digit',year:'numeric'});
+    const d = dateKeyFromTs(Date.now());
     fbDb.collection("chats").doc(uid).collection("messages").add({from:"coachee",sender:uid,recipient,imgSrc:dataUrl,isVideo,text:"",time:t,date:d,ts:Date.now()}).catch(()=>{});
   };
 
@@ -1812,7 +1813,7 @@ function ChatPage({user,coachees,setCoachees,mobileChatOpen,setMobileChatOpen}) 
     if(!uid||!fbDb) return;
     const fbStorage = window._fb?.storage;
     const t = new Date().toLocaleTimeString('de-CH',{hour:'2-digit',minute:'2-digit'});
-    const d = new Date().toLocaleDateString('de-CH',{day:'2-digit',month:'2-digit',year:'numeric'});
+    const d = dateKeyFromTs(Date.now());
     try {
       let fileData = file;
       if(fbStorage && file.url && file.url.startsWith('data:')) {
@@ -1918,15 +1919,12 @@ function ChatWindow({coachee,recipient,setRecipient,onSend,onSendImg,onSendFile,
   useEffect(()=>{ bottomRef.current?.scrollIntoView({behavior:"smooth"}); },[coachee.messages.length]);
 
   const groups = coachee.messages.reduce((acc,msg)=>{
-    let d = msg.date;
-    if(!d||d==="Heute") d = msg.ts ? new Date(msg.ts).toLocaleDateString("de-CH",{day:"2-digit",month:"2-digit",year:"numeric"}) : new Date().toLocaleDateString("de-CH",{day:"2-digit",month:"2-digit",year:"numeric"});
-    if(!acc[d])acc[d]=[];
-    acc[d].push(msg);
+    const key = msg.ts ? dateKeyFromTs(msg.ts) : dateKeyFromTs(Date.now());
+    if(!acc[key])acc[key]=[];
+    acc[key].push(msg);
     return acc;
   },{});
-  const groupsSorted = Object.entries(groups).sort((a,b)=>{
-    const tsA = a[1][0]?.ts||0; const tsB = b[1][0]?.ts||0; return tsA-tsB;
-  });
+  const groupsSorted = Object.entries(groups).sort((a,b)=>a[0].localeCompare(b[0]));
 
   const handleSend = () => {
     if(!input.trim())return;
@@ -2032,7 +2030,7 @@ function ChatWindow({coachee,recipient,setRecipient,onSend,onSendImg,onSendFile,
       <div class="messages" ref=${bottomRef}>
         ${groupsSorted.map(([date,msgs])=>html`
           <div key=${date}>
-            <div class="date-divider">${date}</div>
+            <div class="date-divider">${formatDateKey(date)}</div>
             ${msgs.map((msg,i)=>{
               const isOut = msg.from==="coachee";
               const sender = msg.sender||"Diana";
@@ -3948,6 +3946,10 @@ function PendingScreen({user}) {
     </div>`;
 }
 
+
+// Datum-Hilfsfunktionen — cross-browser sicher
+const dateKeyFromTs = ts => { const d=new Date(ts); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); };
+const formatDateKey = key => { try { const p=key.split('-'); const d=new Date(parseInt(p[0]),parseInt(p[1])-1,parseInt(p[2])); const months=['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember']; return d.getDate()+'. '+months[d.getMonth()]+' '+d.getFullYear(); } catch(e){return key;} };
 function Root() {
   const [user,setUser]           = useState(null);
   const [authReady,setAuthReady] = useState(false);
