@@ -1,4 +1,4 @@
-<!-- Version: 2026-06-12 19:04 coachee -->
+<!-- Version: 2026-06-12 19:09 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -1825,9 +1825,14 @@ function ChatPage({user,coachees,setCoachees,mobileChatOpen,setMobileChatOpen}) 
     } catch(e) { console.error("sendFile error:", e); }
   };
 
+  const deleteMsg = async msgId => {
+    if(!uid||!fbDb) return;
+    try { await fbDb.collection("chats").doc(uid).collection("messages").doc(msgId).delete(); } catch(e){}
+  };
+
   return html`
     <div style=${{flex:1,display:"flex",flexDirection:"column",overflow:"hidden",minWidth:0,background:"var(--bg)"}}>
-      <${ChatWindow} coachee=${coacheeWithMsgs} recipient=${recipient} setRecipient=${setRecipient} onSend=${sendMsg} onSendImg=${sendImg} onSendFile=${sendFile} onBack=${()=>setMobileChatOpen&&setMobileChatOpen(false)}/>
+      <${ChatWindow} coachee=${coacheeWithMsgs} recipient=${recipient} setRecipient=${setRecipient} onSend=${sendMsg} onSendImg=${sendImg} onSendFile=${sendFile} onDeleteMsg=${deleteMsg} onBack=${()=>setMobileChatOpen&&setMobileChatOpen(false)}/>
     </div>`;
 }
 
@@ -1871,19 +1876,39 @@ function Sidebar({page,setPage,totalUnread,user,onLogoTap}) {
     </div>`;
 }
 
-function ChatWindow({coachee,recipient,setRecipient,onSend,onSendImg,onSendFile,onUpdate,onBack}) {
+function ChatWindow({coachee,recipient,setRecipient,onSend,onSendImg,onSendFile,onDeleteMsg,onUpdate,onBack}) {
   const [input,setInput]         = useState("");
   const [lightbox,setLightbox]   = useState(null);
   const [videoLightbox,setVideoLightbox] = useState(null);
   const [recording,setRecording]   = useState(false);
   const [fileViewer,setFileViewer]   = useState(null);
   const [showCamMenu,setShowCamMenu] = useState(false);
+  const [msgMenu,setMsgMenu]       = useState(null); // {id, x, y}
   const bottomRef  = useRef(null);
   const textRef    = useRef(null);
   const chatImgRef = useRef(null);
   const attachRef  = useRef(null);
   const mediaRecRef = useRef(null);
   const chunksRef  = useRef([]);
+  const longPressRef = useRef(null);
+
+  const startLongPress = (msg, e) => {
+    if(msg.from !== "coachee") return;
+    const touch = e.touches?.[0] || e;
+    const x = touch.clientX; const y = touch.clientY;
+    longPressRef.current = setTimeout(() => {
+      setMsgMenu({id: msg.id, x, y});
+      if(navigator.vibrate) navigator.vibrate(30);
+    }, 500);
+  };
+  const cancelLongPress = () => { if(longPressRef.current) clearTimeout(longPressRef.current); };
+
+  const handleDeleteMsg = async () => {
+    if(!msgMenu) return;
+    const id = msgMenu.id;
+    setMsgMenu(null);
+    if(onDeleteMsg) await onDeleteMsg(id);
+  };
 
   useEffect(()=>{ bottomRef.current?.scrollIntoView({behavior:"smooth"}); },[coachee.messages.length]);
 
@@ -2003,7 +2028,14 @@ function ChatWindow({coachee,recipient,setRecipient,onSend,onSendImg,onSendFile,
               const avatarColor = sender==="Rico" ? "var(--accent)" : "var(--accent)";
               const initial = sender[0];
               return html`
-                <div key=${msg.id} class=${"msg-row "+(isOut?"out":"in")} style=${{marginBottom:prevSame?1:8,alignItems:"flex-end"}}>
+                <div key=${msg.id} class=${"msg-row "+(isOut?"out":"in")}
+                  style=${{marginBottom:prevSame?1:8,alignItems:"flex-end",userSelect:"none"}}
+                  onTouchStart=${e=>startLongPress(msg,e)}
+                  onTouchEnd=${cancelLongPress}
+                  onTouchMove=${cancelLongPress}
+                  onMouseDown=${e=>startLongPress(msg,e)}
+                  onMouseUp=${cancelLongPress}
+                  onMouseLeave=${cancelLongPress}>
                   ${!isOut&&html`<div style=${{width:28,height:28,borderRadius:"50%",flexShrink:0,
                     background:prevSame?"transparent":avatarColor,
                     display:"flex",alignItems:"center",justifyContent:"center",
@@ -2103,6 +2135,33 @@ function ChatWindow({coachee,recipient,setRecipient,onSend,onSendImg,onSendFile,
           placeholder=${"Nachricht an "+recipient+"…"}/>
         <button class="send-btn" onClick=${handleSend} disabled=${!input.trim()}><${Ic} name="send" size=${17}/></button>
       </div>
+
+      ${msgMenu&&html`
+        <div style=${{position:"fixed",inset:0,zIndex:99996,background:"rgba(0,0,0,.25)"}}
+          onClick=${()=>setMsgMenu(null)}>
+          <div style=${{
+            position:"fixed",
+            left:Math.min(msgMenu.x, typeof window!=='undefined'?window.innerWidth-160:200)+'px',
+            top:Math.max(msgMenu.y-90,60)+'px',
+            background:"var(--surface)",
+            borderRadius:12,
+            boxShadow:"0 4px 24px rgba(0,0,0,.18)",
+            overflow:"hidden",
+            minWidth:140,
+            zIndex:99997
+          }} onClick=${e=>e.stopPropagation()}>
+            <button onClick=${handleDeleteMsg}
+              style=${{display:"flex",alignItems:"center",gap:10,width:"100%",padding:"13px 16px",
+                border:"none",background:"none",cursor:"pointer",color:"var(--danger)",
+                fontSize:".88rem",fontWeight:600,fontFamily:"'Exo 2',sans-serif"}}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
+                <path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
+              </svg>
+              Nachricht löschen
+            </button>
+          </div>
+        </div>`}
 
       ${showCamMenu&&html`
         <div style=${{position:"fixed",inset:0,zIndex:99998,background:"rgba(0,0,0,.4)"}}
