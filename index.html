@@ -1,4 +1,4 @@
-<!-- Version: 2026-06-12 17:43 coachee -->
+<!-- Version: 2026-06-12 17:47 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -3432,7 +3432,10 @@ function DoodlePage({user,doodles,setDoodles,coachees,events}) {
                       <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.1rem",fontWeight:700,color:"var(--forest)",marginBottom:6}}>Termin bestätigt!</div>
                       <p style=${{color:"var(--muted)",fontSize:".85rem",marginBottom:8}}>${d.title}</p>
                       <div style=${{background:"var(--teal)",color:"#fff",borderRadius:10,padding:"10px 18px",display:"inline-block",fontWeight:700,fontSize:".95rem",marginBottom:16}}>${fmtDt(best.dt)}</div>
-                      <div><button style=${{marginTop:4,padding:"9px 20px",borderRadius:8,background:"none",border:"1px solid var(--border2)",color:"var(--muted)",fontSize:".83rem",cursor:"pointer"}} onClick=${()=>dismissDoodle(d.id)}>✓ Erledigt</button></div>
+                      <div style=${{marginTop:14,textAlign:"center"}}>
+                      <p style=${{fontSize:".78rem",color:"var(--muted)",marginBottom:8}}>Tippe «Erledigt» an, sobald du den Termin in deinen Kalender eingetragen hast.</p>
+                      <button style=${{padding:"9px 20px",borderRadius:8,background:"none",border:"1px solid var(--border2)",color:"var(--muted)",fontSize:".83rem",cursor:"pointer"}} onClick=${()=>dismissDoodle(d.id)}>✓ Erledigt</button>
+                    </div>
                     </div>`;
                   }
                   return html`<div style=${{textAlign:"center",padding:"24px 0"}}>
@@ -3457,7 +3460,7 @@ function DoodlePage({user,doodles,setDoodles,coachees,events}) {
                       </div>
                     </div>`;
                 })}
-                <button class="btn btn-primary" style=${{marginTop:12}} onClick=${()=>submitVotes(d.id)}>Abstimmung senden</button>
+                <button class="btn btn-primary" style=${{marginTop:12,opacity:Object.values(coacheeVotes[d.id]||{}).some(v=>v==="yes")?1:0.4,cursor:Object.values(coacheeVotes[d.id]||{}).some(v=>v==="yes")?"pointer":"not-allowed"}} onClick=${()=>{if(Object.values(coacheeVotes[d.id]||{}).some(v=>v==="yes"))submitVotes(d.id);}}>Abstimmung senden</button>
               `}
           </div>`)}
         ${doodles.filter(d=>(d.recipients||[]).includes(uid)&&!(d.dismissed||[]).includes(uid)).length===0&&html`<div style=${{textAlign:"center",padding:"32px",color:"var(--muted)"}}><p>Keine offenen Terminvorschläge.</p></div>`}
