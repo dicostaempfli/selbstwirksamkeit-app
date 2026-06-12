@@ -1,4 +1,4 @@
-<!-- Version: 2026-06-12 20:30 admin -->
+<!-- Version: 2026-06-12 20:36 admin -->
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -734,7 +734,6 @@ window.addEventListener('orientationchange', ()=>setTimeout(setVH,150));
     .chat-input-area {
       flex-shrink: 0;
       padding: 8px 10px;
-      padding-bottom: max(8px, env(safe-area-inset-bottom, 8px));
     }
     .input-box { font-size: 16px; padding: 8px 12px; }
 
@@ -889,7 +888,7 @@ window.addEventListener('orientationchange', ()=>setTimeout(setVH,150));
     @media all and (display-mode: standalone) {
       /* In PWA mode, bottom nav height may differ */
       .chat-input-area {
-        padding-bottom: max(20px, env(safe-area-inset-bottom, 20px)) !important;
+        padding-bottom: 8px !important;
       }
     }
     /* ── Small phone (< 375px) ── */
@@ -1903,13 +1902,17 @@ function ChatWindow({coachee,onSend,onSendImg,onSendFile,onBack,mobileOpen}) {
   useEffect(()=>{ bottomRef.current?.scrollIntoView({behavior:"smooth"}); },[coachee.messages.length]);
 
   const groups = coachee.messages.reduce((acc,msg)=>{
-    const d=msg.date||"Heute"; if(!acc[d])acc[d]=[]; acc[d].push(msg); return acc;
+    let d = msg.date;
+    if(!d||d==="Heute") d = msg.ts ? new Date(msg.ts).toLocaleDateString("de-CH",{day:"2-digit",month:"2-digit",year:"numeric"}) : new Date().toLocaleDateString("de-CH",{day:"2-digit",month:"2-digit",year:"numeric"});
+    if(!acc[d])acc[d]=[];
+    acc[d].push(msg);
+    return acc;
   },{});
   const groupsSorted = Object.entries(groups).sort((a,b)=>{
     const tsA = a[1][0]?.ts||0; const tsB = b[1][0]?.ts||0; return tsA-tsB;
   });
 
-  const handleSend = () => { if(!input.trim())return; onSend(input); setInput(""); };
+  const handleSend = () => { if(!input.trim())return; onSend(input,sender); setInput(""); if(textRef.current){textRef.current.style.height='auto';} };
   const handleKey  = e => { if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();handleSend();} };
 
   const handleChatImg = async e => {

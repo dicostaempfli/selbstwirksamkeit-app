@@ -1,4 +1,4 @@
-<!-- Version: 2026-06-12 20:30 coachee -->
+<!-- Version: 2026-06-12 20:36 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -1918,7 +1918,11 @@ function ChatWindow({coachee,recipient,setRecipient,onSend,onSendImg,onSendFile,
   useEffect(()=>{ bottomRef.current?.scrollIntoView({behavior:"smooth"}); },[coachee.messages.length]);
 
   const groups = coachee.messages.reduce((acc,msg)=>{
-    const d=msg.date||"Heute"; if(!acc[d])acc[d]=[]; acc[d].push(msg); return acc;
+    let d = msg.date;
+    if(!d||d==="Heute") d = msg.ts ? new Date(msg.ts).toLocaleDateString("de-CH",{day:"2-digit",month:"2-digit",year:"numeric"}) : new Date().toLocaleDateString("de-CH",{day:"2-digit",month:"2-digit",year:"numeric"});
+    if(!acc[d])acc[d]=[];
+    acc[d].push(msg);
+    return acc;
   },{});
   const groupsSorted = Object.entries(groups).sort((a,b)=>{
     const tsA = a[1][0]?.ts||0; const tsB = b[1][0]?.ts||0; return tsA-tsB;
