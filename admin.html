@@ -1,4 +1,4 @@
-<!-- Version: 2026-06-12 20:36 admin -->
+<!-- Version: 2026-06-12 20:41 admin -->
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -337,6 +337,9 @@ window.addEventListener('orientationchange', ()=>setTimeout(setVH,150));
     padding:9px 13px; border-radius:16px;
     font-size:.93rem; line-height:1.52;
     display:inline-block; max-width:100%; word-break:break-word;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
   }
   .msg-row.in  .msg-bubble { background:var(--bubble-in); color:var(--text); border:1px solid var(--border); }
   .msg-row.out .msg-bubble { background:var(--bubble-out); color:#fff; }
@@ -1874,7 +1877,7 @@ function ChatPage({coachees,setCoachees}) {
         : html`
           <div style=${{display:"flex",flexDirection:"column",width:"100%",flex:1,minHeight:0,overflow:"hidden"}}>
             ${active
-              ? html`<${ChatWindow} coachee=${{...active,messages:chatMessages}} onSend=${sendMsg} onSendImg=${sendImg} onSendFile=${sendFile} setLightbox=${()=>{}} onBack=${()=>setMobileOpen(false)} mobileOpen=${true}/>`
+              ? html`<${ChatWindow} coachee=${{...active,messages:chatMessages}} onSend=${sendMsg} onSendImg=${sendImg} onSendFile=${sendFile} onDeleteMsg=${async id=>{ const fs=db(); if(fs&&activeId) await fs.collection("chats").doc(activeId).collection("messages").doc(id).delete().catch(()=>{}); }} setLightbox=${()=>{}} onBack=${()=>setMobileOpen(false)} mobileOpen=${true}/>`
               : html`<div style=${{display:"flex",alignItems:"center",justifyContent:"center",flex:1,flexDirection:"column",gap:12,color:"var(--muted)"}}>
                   <${Logo} size=${60}/>
                   <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.1rem"}}>Wähle ein Gespräch</div>
@@ -1884,7 +1887,7 @@ function ChatPage({coachees,setCoachees}) {
   `
 }
 
-function ChatWindow({coachee,onSend,onSendImg,onSendFile,onBack,mobileOpen}) {
+function ChatWindow({coachee,onSend,onSendImg,onSendFile,onDeleteMsg,onBack,mobileOpen}) {
   const [input,setInput]         = useState("");
   const [sender,setSender]         = useState("Diana");
   const [lightbox,setLightbox]   = useState(null);
@@ -1892,12 +1895,31 @@ function ChatWindow({coachee,onSend,onSendImg,onSendFile,onBack,mobileOpen}) {
   const [recording,setRecording]   = useState(false);
   const [fileViewer,setFileViewer]   = useState(null);
   const [showCamMenu,setShowCamMenu] = useState(false);
+  const [msgMenu,setMsgMenu]       = useState(null);
   const bottomRef  = useRef(null);
   const textRef    = useRef(null);
   const chatImgRef = useRef(null);
   const attachRef  = useRef(null);
   const mediaRecRef = useRef(null);
   const chunksRef  = useRef([]);
+  const longPressRef = useRef(null);
+
+  const startLongPress = (msg, e) => {
+    if(msg.from !== "admin") return;
+    const touch = e.touches?.[0] || e;
+    const x = touch.clientX; const y = touch.clientY;
+    longPressRef.current = setTimeout(() => {
+      setMsgMenu({id: msg.id, x, y});
+      if(navigator.vibrate) navigator.vibrate(30);
+    }, 500);
+  };
+  const cancelLongPress = () => { if(longPressRef.current) clearTimeout(longPressRef.current); };
+  const handleDeleteMsg = async () => {
+    if(!msgMenu) return;
+    const id = msgMenu.id;
+    setMsgMenu(null);
+    if(onDeleteMsg) await onDeleteMsg(id);
+  };
 
   useEffect(()=>{ bottomRef.current?.scrollIntoView({behavior:"smooth"}); },[coachee.messages.length]);
 
@@ -2004,7 +2026,14 @@ function ChatWindow({coachee,onSend,onSendImg,onSendFile,onBack,mobileOpen}) {
               const avatarColor = sender==="Rico" ? "#a0cb7b" : "#68b87d";
               const initial = sender[0];
               return html`
-                <div key=${msg.id} class=${"msg-row "+(isOut?"out":"in")} style=${{marginBottom:prevSame?1:8,alignItems:"flex-end"}}>
+                <div key=${msg.id} class=${"msg-row "+(isOut?"out":"in")}
+                  style=${{marginBottom:prevSame?1:8,alignItems:"flex-end",userSelect:"none"}}
+                  onTouchStart=${e=>startLongPress(msg,e)}
+                  onTouchEnd=${cancelLongPress}
+                  onTouchMove=${cancelLongPress}
+                  onMouseDown=${e=>startLongPress(msg,e)}
+                  onMouseUp=${cancelLongPress}
+                  onMouseLeave=${cancelLongPress}>
                   ${!isOut&&html`<div style=${{width:28,height:28,borderRadius:"50%",flexShrink:0,
                     background:prevSame?"transparent":avatarColor,
                     display:"flex",alignItems:"center",justifyContent:"center",
@@ -2098,6 +2127,33 @@ function ChatWindow({coachee,onSend,onSendImg,onSendFile,onBack,mobileOpen}) {
           placeholder=${"Nachricht an "+coachee.name.split(" ")[0]+"…"}/>
         <button class="send-btn" onClick=${handleSend} disabled=${!input.trim()}><${Ic} name="send" size=${17}/></button>
       </div>
+
+      ${msgMenu&&html`
+        <div style=${{position:"fixed",inset:0,zIndex:99996,background:"rgba(0,0,0,.25)"}}
+          onClick=${()=>setMsgMenu(null)}>
+          <div style=${{
+            position:"fixed",
+            left:Math.min(msgMenu?.x||0, window.innerWidth-160)+'px',
+            top:Math.max((msgMenu?.y||0)-90,60)+'px',
+            background:"var(--surface)",
+            borderRadius:12,
+            boxShadow:"0 4px 24px rgba(0,0,0,.18)",
+            overflow:"hidden",
+            minWidth:140,
+            zIndex:99997
+          }} onClick=${e=>e.stopPropagation()}>
+            <button onClick=${handleDeleteMsg}
+              style=${{display:"flex",alignItems:"center",gap:10,width:"100%",padding:"13px 16px",
+                border:"none",background:"none",cursor:"pointer",color:"var(--danger)",
+                fontSize:".88rem",fontWeight:600,fontFamily:"'Exo 2',sans-serif"}}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
+                <path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
+              </svg>
+              Nachricht löschen
+            </button>
+          </div>
+        </div>`}
 
       ${showCamMenu&&html`
         <div style=${{position:"fixed",inset:0,zIndex:99998,background:"rgba(0,0,0,.4)"}}
