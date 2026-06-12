@@ -1,4 +1,4 @@
-<!-- Version: 2026-06-12 14:45 admin -->
+<!-- Version: 2026-06-12 15:06 admin -->
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -3334,7 +3334,7 @@ function DoodlePage({doodles,setDoodles,coachees}) {
         const votedCount=(d.recipients||[]).filter(rid=>(d.slots||[]).some(s=>s.votes?.[rid])).length;
         const borderCol = d.status==="open" ? "var(--teal)" : "var(--border2)";
         return html`
-          <div key=${d.id} style=${{background:"var(--surface)",borderRadius:"0 var(--radius) var(--radius) 0",boxShadow:"var(--shadow)",padding:"16px 18px",marginBottom:12,borderLeft:"3px solid "+borderCol,opacity:d.status==="closed"?.7:1,transition:"transform .15s"}} onMouseEnter=${e=>e.currentTarget.style.transform="translateY(-1px)"} onMouseLeave=${e=>e.currentTarget.style.transform=""}>
+          <div key=${d.id} style=${{background:"var(--surface)",borderRadius:"0 var(--radius) var(--radius) 0",boxShadow:"var(--shadow)",padding:"16px 18px",marginBottom:12,borderLeft:"3px solid "+borderCol,border:"1px solid var(--border2)",borderLeftWidth:"3px",borderLeftColor:borderCol,opacity:d.status==="closed"?.7:1,transition:"transform .15s"}} onMouseEnter=${e=>e.currentTarget.style.transform="translateY(-1px)"} onMouseLeave=${e=>e.currentTarget.style.transform=""}>
             <div style=${{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
               <div style=${{fontFamily:"'Manuale',serif",fontWeight:700,fontSize:"1rem",color:"var(--text)"}}>${d.title}</div>
               <span class=${"status-pill "+(d.status==="open"?"status-open":"status-closed")}>${d.status==="open"?"Offen":"Abgeschlossen"}</span>
