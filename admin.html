@@ -1,4 +1,4 @@
-<!-- Version: 2026-06-12 11:26 admin -->
+<!-- Version: 2026-06-12 14:24 admin -->
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -3307,6 +3307,8 @@ function DoodlePage({doodles,setDoodles,coachees}) {
 
   const confirmSlot = did => {
     setDoodles(ds=>ds.map(x=>x.id===did?{...x,status:"closed"}:x));
+    const firestore = db();
+    if(firestore) firestore.collection("doodles").doc(String(did)).update({status:"closed"}).catch(()=>{});
     setShowResults(null);setShowConfirmed(true);
   };
 

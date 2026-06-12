@@ -1,4 +1,4 @@
-<!-- Version: 2026-06-12 11:26 coachee -->
+<!-- Version: 2026-06-12 14:24 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -3418,11 +3418,23 @@ function DoodlePage({user,doodles,setDoodles,coachees,events}) {
         ${doodles.filter(d=>(d.recipients||[]).includes(uid)).map(d=>html`
           <div key=${d.id} style=${{background:"var(--surface)",borderRadius:"var(--radius)",boxShadow:"var(--shadow)",padding:24,marginBottom:14}}>
             ${d.slots.some(s=>s.votes?.[uid])
-              ? html`<div style=${{textAlign:"center",padding:"24px 0"}}>
-                  <div style=${{fontSize:"2rem",marginBottom:8}}>✓</div>
-                  <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.1rem",fontWeight:700,color:"var(--forest)",marginBottom:6}}>Danke!</div>
-                  <p style=${{color:"var(--muted)",fontSize:".85rem"}}>Deine Antwort für <strong>${d.title}</strong> wurde übermittelt.</p>
-                </div>`
+              ? (() => {
+                  if(d.status==="closed") {
+                    const bestIdx = d.slots.reduce((bi,s,i)=>Object.keys(s.votes||{}).length>Object.keys(d.slots[bi].votes||{}).length?i:bi, 0);
+                    const best = d.slots[bestIdx];
+                    return html`<div style=${{textAlign:"center",padding:"24px 0"}}>
+                      <div style=${{fontSize:"2rem",marginBottom:8}}>🎉</div>
+                      <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.1rem",fontWeight:700,color:"var(--forest)",marginBottom:6}}>Termin bestätigt!</div>
+                      <p style=${{color:"var(--muted)",fontSize:".85rem",marginBottom:8}}>${d.title}</p>
+                      <div style=${{background:"var(--teal)",color:"#fff",borderRadius:10,padding:"10px 18px",display:"inline-block",fontWeight:700,fontSize:".95rem"}}>${fmtDt(best.dt)}</div>
+                    </div>`;
+                  }
+                  return html`<div style=${{textAlign:"center",padding:"24px 0"}}>
+                    <div style=${{fontSize:"2rem",marginBottom:8}}>✓</div>
+                    <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.1rem",fontWeight:700,color:"var(--forest)",marginBottom:6}}>Danke!</div>
+                    <p style=${{color:"var(--muted)",fontSize:".85rem"}}>Deine Antwort für <strong>${d.title}</strong> wurde übermittelt.</p>
+                  </div>`;
+                })()
               : html`
                 <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.05rem",fontWeight:700,color:"var(--text)",marginBottom:4}}>${d.title}</div>
                 <div style=${{fontSize:".83rem",color:"var(--muted)",marginBottom:14}}>${d.desc}</div>
