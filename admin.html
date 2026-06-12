@@ -1,4 +1,4 @@
-<!-- Version: 2026-06-12 20:13 admin -->
+<!-- Version: 2026-06-12 20:15 admin -->
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -124,7 +124,7 @@ window.addEventListener('orientationchange', ()=>setTimeout(setVH,150));
 
     /* ── Chat-Bubbles ── */
     --bubble-out:  #122828;
-    --bubble-in:   #EFECE5;
+    --bubble-in:   #ffffff;
 
     /* ── Danger / Fehlerzustände ── */
     --danger:        #c0392b;
@@ -1979,7 +1979,7 @@ function ChatWindow({coachee,onSend,onSendImg,onSendFile,onBack,mobileOpen}) {
           <div class="ct-name">${coachee.name}</div>
           <div class="ct-status">
             <span class=${"status-dot"+(coachee.online?"":" off")}/>
-            ${coachee.online?"Online":"Zuletzt: "+coachee.lastTime} · ${coachee.topic}
+            ${coachee.online?"Online":(coachee.lastSeen?("Zuletzt: "+fmtDate(coachee.lastSeen)):"Aktiv")} · ${coachee.topic}
           </div>
         </div>
       </div>
