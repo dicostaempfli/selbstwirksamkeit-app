@@ -1440,6 +1440,16 @@ function AdminApp({user}) {
     return () => { if(unsub) unsub(); };
   }, []);
 
+  // ── Doodles aus Firestore laden ──
+  useEffect(() => {
+    const firestore = db();
+    if(!firestore) return;
+    const unsub = firestore.collection("doodles").onSnapshot(snap => {
+      setDoodles(snap.docs.map(d => ({...d.data(), id: d.id})));
+    }, () => {});
+    return () => unsub();
+  }, []);
+
   // ── Coachees aus Firestore laden ──
   useEffect(() => {
     const firestore = db();
@@ -3280,6 +3290,8 @@ function DoodlePage({doodles,setDoodles,coachees}) {
     const nd={id:"d"+Date.now(),title:newTitle.trim(),desc:newDesc.trim()||"Wähle alle möglichen Termine aus.",status:"open",recipients:[...selRecip],slots:newSlots.map(dt=>({dt,votes:{}}))};
     setShowCreate(false);setNewTitle("");setNewDesc("");setNewSlots([]);setSelRecip([]);
     setDoodles(ds=>[nd,...ds]);
+    const firestore = db();
+    if(firestore) firestore.collection("doodles").doc(String(nd.id)).set(nd).catch(()=>{});
     showToast("✓ Terminvorschlag erstellt");
   };
 
