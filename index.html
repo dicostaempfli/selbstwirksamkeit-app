@@ -1,4 +1,4 @@
-<!-- Version: 2026-06-12 19:13 coachee -->
+<!-- Version: 2026-06-12 19:25 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -1897,7 +1897,6 @@ function ChatWindow({coachee,recipient,setRecipient,onSend,onSendImg,onSendFile,
 
   const startLongPress = (msg, e) => {
     if(msg.from !== "coachee") return;
-    e.preventDefault();
     const touch = e.touches?.[0] || e;
     const x = touch.clientX; const y = touch.clientY;
     longPressRef.current = setTimeout(() => {
