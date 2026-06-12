@@ -1,4 +1,4 @@
-<!-- Version: 2026-06-12 18:44 coachee -->
+<!-- Version: 2026-06-12 18:50 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -390,10 +390,10 @@
     font-size: .89rem;
     color: var(--text);
     resize: none;
-    max-height: 100px;
-    overflow-y: auto;
+    max-height: 130px;
+    overflow-y: hidden;
     line-height: 1.45;
-    transition: border .2s;
+    transition: border .2s, height .1s ease;
   }
   .input-box:focus { outline: none; border-color: var(--teal); background: #fff; }
   .send-btn {
@@ -1884,7 +1884,12 @@ function ChatWindow({coachee,recipient,setRecipient,onSend,onSendImg,onSendFile,
     const d=msg.date||"Heute"; if(!acc[d])acc[d]=[]; acc[d].push(msg); return acc;
   },{});
 
-  const handleSend = () => { if(!input.trim())return; onSend(input); setInput(""); };
+  const handleSend = () => {
+    if(!input.trim())return;
+    onSend(input);
+    setInput("");
+    if(textRef.current){ textRef.current.style.height='auto'; textRef.current.style.overflowY='hidden'; }
+  };
   const handleKey  = e => { if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();handleSend();} };
 
   const handleChatImg = async e => {
@@ -2067,7 +2072,13 @@ function ChatWindow({coachee,recipient,setRecipient,onSend,onSendImg,onSendFile,
             borderRadius:"50%",background:"#e53e3e",border:"2px solid var(--surface)"}}/>`}
         </button>
         <textarea ref=${textRef} class="input-box" rows=${1} value=${input}
-          onInput=${e=>setInput(e.target.value)} onKeyDown=${handleKey}
+          onInput=${e=>{
+            setInput(e.target.value);
+            const el=e.target;
+            el.style.height='auto';
+            el.style.height=Math.min(el.scrollHeight,130)+'px';
+            el.style.overflowY=el.scrollHeight>130?'auto':'hidden';
+          }} onKeyDown=${handleKey}
           onFocus=${()=>{
             setTimeout(()=>{
               if(textRef.current) textRef.current.scrollIntoView({block:"nearest",behavior:"smooth"});
