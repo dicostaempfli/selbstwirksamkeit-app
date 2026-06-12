@@ -1,4 +1,4 @@
-<!-- Version: 2026-06-12 14:24 admin -->
+<!-- Version: 2026-06-12 14:37 admin -->
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -3268,6 +3268,7 @@ function DoodlePage({doodles,setDoodles,coachees}) {
   const [showCreate,setShowCreate] = useState(false);
   const [showResults,setShowResults] = useState(null);
   const [showConfirmed,setShowConfirmed] = useState(false);
+  const [selectedSlot,setSelectedSlot] = useState(null);
   const [newTitle,setNewTitle] = useState("");
   const [newDesc,setNewDesc] = useState("");
   const [newSlots,setNewSlots] = useState([]);
@@ -3305,11 +3306,11 @@ function DoodlePage({doodles,setDoodles,coachees}) {
     return best;
   };
 
-  const confirmSlot = did => {
-    setDoodles(ds=>ds.map(x=>x.id===did?{...x,status:"closed"}:x));
+  const confirmSlot = (did, slotIdx) => {
+    setDoodles(ds=>ds.map(x=>x.id===did?{...x,status:"closed",confirmedSlot:slotIdx??0}:x));
     const firestore = db();
-    if(firestore) firestore.collection("doodles").doc(String(did)).update({status:"closed"}).catch(()=>{});
-    setShowResults(null);setShowConfirmed(true);
+    if(firestore) firestore.collection("doodles").doc(String(did)).update({status:"closed",confirmedSlot:slotIdx??0}).catch(()=>{});
+    setShowResults(null);setSelectedSlot(null);setShowConfirmed(true);
   };
 
   const resultDoodle = doodles.find(d=>d.id===showResults);
@@ -3352,7 +3353,7 @@ function DoodlePage({doodles,setDoodles,coachees}) {
                 return html`<div key=${rid} style=${{width:28,height:28,borderRadius:"50%",background:c.color,display:"flex",alignItems:"center",justifyContent:"center",fontSize:".68rem",fontWeight:700,color:"#fff"}} title=${c.name}>${c.initials}</div>`;
               })}</div>
             </div>
-            <div style=${{display:"flex",gap:8}}>              <button class="btn btn-sage btn-sm" style=${{flex:1}} onClick=${()=>setShowResults(d.id)}>Ergebnisse</button>
+            <div style=${{display:"flex",gap:8}}>              <button class="btn btn-sage btn-sm" style=${{flex:1}} onClick=${()=>{setShowResults(d.id);setSelectedSlot(bestSlotIdx(d));}}>Ergebnisse</button>
               ${d.status==="open"&&html`<button class="btn btn-ghost btn-sm" onClick=${()=>{
                 const firestore=window._fb?.db||(typeof db==="function"?db():null);
                 if(firestore)firestore.collection("doodles").doc(String(d.id)).update({status:"closed"}).catch(()=>{});
@@ -3433,8 +3434,11 @@ function DoodlePage({doodles,setDoodles,coachees}) {
                 const parts=fmtDt(s.dt).split("·");
                 const rowBg = isBest ? "var(--teal-pale)" : "var(--surface2)";
                 const rowBorder = isBest ? "1.5px solid var(--teal)" : "0.5px solid var(--border)";
+                const isSel=i===selectedSlot;
+                const selBg=isSel?"var(--teal-pale)":rowBg;
+                const selBorder=isSel?"2px solid var(--teal)":rowBorder;
                 return html`
-                  <div key=${i} style=${{padding:"12px 14px",borderRadius:10,background:rowBg,border:rowBorder,display:"flex",alignItems:"center",gap:12}}>
+                  <div key=${i} style=${{padding:"12px 14px",borderRadius:10,background:selBg,border:selBorder,display:"flex",alignItems:"center",gap:12,cursor:"pointer"}} onClick=${()=>setSelectedSlot(i)}>
                     <div style=${{flex:1}}>
                       ${isBest&&html`<span style=${{fontSize:".68rem",fontWeight:700,background:"var(--teal)",color:"#fff",padding:"1px 7px",borderRadius:99,display:"inline-block",marginBottom:3}}>Bester Termin</span>`}
                       <div style=${{fontSize:".88rem",fontWeight:600,color:"var(--text)"}}>${parts[0]?.trim()}</div>
@@ -3456,8 +3460,8 @@ function DoodlePage({doodles,setDoodles,coachees}) {
               })}
             </div>
             <div style=${{padding:"12px 18px 16px",borderTop:"1px solid var(--border)",display:"flex",gap:10,flexShrink:0}}>
-              <button class="btn btn-ghost" style=${{flex:1}} onClick=${()=>setShowResults(null)}>Schliessen</button>
-              <button class="btn btn-primary" style=${{flex:2}} onClick=${()=>confirmSlot(resultDoodle.id)}>✓ Termin bestätigen</button>
+              <button class="btn btn-ghost" style=${{flex:1}} onClick=${()=>{setShowResults(null);setSelectedSlot(null);}}>Schliessen</button>
+              <button class="btn btn-primary" style=${{flex:2}} onClick=${()=>confirmSlot(resultDoodle.id, selectedSlot??bestSlotIdx(resultDoodle))}>✓ Termin bestätigen</button>
             </div>
           </div>
         </div>`}
