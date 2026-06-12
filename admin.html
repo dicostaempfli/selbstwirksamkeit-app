@@ -1,4 +1,4 @@
-<!-- Version: 2026-06-12 20:56 admin -->
+<!-- Version: 2026-06-12 21:03 admin -->
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -1486,10 +1486,21 @@ function AdminApp({user}) {
     Object.values(unreadUnsubsRef.current).forEach(u=>u&&u());
     unreadUnsubsRef.current = {};
     coachees.forEach(c => {
-      const lastRead = parseInt(sessionStorage.getItem('lastRead_'+c.id)||'0');
+      const storedRead = parseInt(sessionStorage.getItem('lastRead_'+c.id)||'0');
+      let initialized = false;
       const unsub = firestore.collection('chats').doc(c.id).collection('messages')
-        .orderBy('ts','desc').limit(3)
+        .orderBy('ts','desc').limit(5)
         .onSnapshot(snap => {
+          if(!initialized) {
+            // Ersten Snapshot: wenn kein lastRead gespeichert → neueste Nachricht als Baseline
+            if(!storedRead && snap.docs.length) {
+              const maxTs = Math.max(...snap.docs.map(d=>d.data().ts||0));
+              sessionStorage.setItem('lastRead_'+c.id, maxTs);
+            }
+            initialized = true;
+            return;
+          }
+          const lastRead = parseInt(sessionStorage.getItem('lastRead_'+c.id)||'0');
           const unread = snap.docs.filter(d=>{
             const m=d.data();
             return m.from==='coachee' && (m.ts||0) > lastRead;
@@ -1777,7 +1788,11 @@ function ChatPage({coachees,setCoachees}) {
       chatUnsubRef.current = ref.onSnapshot(snap=>{
         const msgs = snap.docs.map(d=>({id:d.id,...d.data()}));
         setChatMessages(msgs);
-        // unread zurücksetzen
+        // lastRead auf jüngste Nachricht setzen → unread = 0
+        if(msgs.length) {
+          const maxTs = Math.max(...msgs.map(m=>m.ts||0));
+          sessionStorage.setItem('lastRead_'+id, maxTs);
+        }
         setCoachees(cs=>cs.map(c=>c.id===id?{...c,unread:0}:c));
       }, ()=>{});
     }

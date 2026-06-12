@@ -1,7 +1,7 @@
 // Service Worker — Raum für Selbstwirksamkeit
-// Version: 2026-06-12 20:56
+// Version: 2026-06-12 21:03
 
-const VERSION = '2026-06-12-2056';
+const VERSION = '2026-06-12-2103';
 
 // Bei Install: sofort aktivieren ohne auf alten SW zu warten
 self.addEventListener('install', e => {
