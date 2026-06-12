@@ -1,4 +1,4 @@
-<!-- Version: 2026-06-12 18:39 coachee -->
+<!-- Version: 2026-06-12 18:44 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -1378,10 +1378,29 @@ function showLocalNotification(title, body, tag, urlPath) {
   } catch(e) {}
 }
 
-// Globaler SW Init beim Laden — in try/catch damit kein App-Crash
+// Globaler SW Init beim Laden — mit Auto-Update-Mechanismus
 let _swReg = null;
 window.addEventListener('load', () => {
-  registerSW().then(r => { _swReg = r; }).catch(() => {});
+  registerSW().then(r => {
+    _swReg = r;
+    if(!r) return;
+    // Neuer SW aktiviert → Seite neu laden (holt neue index.html)
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      window.location.reload();
+    });
+    // SW wartet auf Aktivierung → skipWaiting anstoßen
+    r.addEventListener('updatefound', () => {
+      const newWorker = r.installing;
+      if(!newWorker) return;
+      newWorker.addEventListener('statechange', () => {
+        if(newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+          newWorker.postMessage({ type: 'SKIP_WAITING' });
+        }
+      });
+    });
+    // Sofort prüfen ob Update verfügbar
+    r.update().catch(() => {});
+  }).catch(() => {});
 });
 
 const QUOTES = [
