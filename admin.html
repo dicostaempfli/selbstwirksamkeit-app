@@ -1,4 +1,4 @@
-<!-- Version: 2026-06-12 20:49 admin -->
+<!-- Version: 2026-06-12 20:56 admin -->
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -1477,6 +1477,30 @@ function AdminApp({user}) {
     return () => unsub();
   }, []);
 
+  // ── Unread-Listener: pro Coachee letzte Nachricht beobachten ──
+  const unreadUnsubsRef = useRef({});
+  useEffect(() => {
+    const firestore = db();
+    if(!firestore) return;
+    // Alte Listener aufräumen
+    Object.values(unreadUnsubsRef.current).forEach(u=>u&&u());
+    unreadUnsubsRef.current = {};
+    coachees.forEach(c => {
+      const lastRead = parseInt(sessionStorage.getItem('lastRead_'+c.id)||'0');
+      const unsub = firestore.collection('chats').doc(c.id).collection('messages')
+        .orderBy('ts','desc').limit(3)
+        .onSnapshot(snap => {
+          const unread = snap.docs.filter(d=>{
+            const m=d.data();
+            return m.from==='coachee' && (m.ts||0) > lastRead;
+          }).length;
+          setCoachees(cs=>cs.map(x=>x.id===c.id?{...x,unread}:x));
+        }, ()=>{});
+      unreadUnsubsRef.current[c.id] = unsub;
+    });
+    return () => Object.values(unreadUnsubsRef.current).forEach(u=>u&&u());
+  }, [coachees.length]);
+
   // ── Pending Coachees Sync ──
   useEffect(() => {
     const firestore = db();
@@ -1744,6 +1768,8 @@ function ChatPage({coachees,setCoachees}) {
     setActiveId(id);
     setChatMessages([]);
     setMobileOpen(true);
+    // lastRead für diesen Coachee setzen → unread zurückzählen
+    sessionStorage.setItem('lastRead_'+id, Date.now());
     if(chatUnsubRef.current) { chatUnsubRef.current(); chatUnsubRef.current=null; }
     const firestore = db();
     if(firestore && id) {
