@@ -1,4 +1,4 @@
-<!-- Version: 2026-06-12 15:06 admin -->
+<!-- Version: 2026-06-12 15:24 admin -->
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -1538,7 +1538,7 @@ function AdminApp({user}) {
         ${page==="coachees"&&html`<${CoacheesPage} coachees=${coachees} setCoachees=${setCoachees} setPage=${setPage} pending=${pending} setPending=${setPending} deleted=${deleted} setDeleted=${setDeleted}/>`}
         ${page==="library"&&html`<${LibraryPage} library=${library} setLibrary=${setLibrary}/>`}
         ${page==="impuls"&&html`<${ImpulsAdminPage}/>`}
-        ${page==="doodle"&&html`<${DoodlePage} doodles=${doodles} setDoodles=${setDoodles} coachees=${coachees}/>`}
+        ${page==="doodle"&&html`<${DoodlePage} doodles=${doodles} setDoodles=${setDoodles} coachees=${coachees} adminUid=${user?.uid}/>`}
       </div>
 
       <!-- Bottom nav (mobile) -->
@@ -3264,7 +3264,7 @@ function ImpulsPhasenTab() {
     </div>`;
 }
 
-function DoodlePage({doodles,setDoodles,coachees}) {
+function DoodlePage({doodles,setDoodles,coachees,adminUid}) {
   const [showCreate,setShowCreate] = useState(false);
   const [showResults,setShowResults] = useState(null);
   const [showConfirmed,setShowConfirmed] = useState(false);
@@ -3330,7 +3330,7 @@ function DoodlePage({doodles,setDoodles,coachees}) {
 
       ${doodles.length===0&&html`<div style=${{textAlign:"center",padding:"48px",color:"var(--muted)"}}><p>Noch kein Terminvorschlag erstellt.</p></div>`}
 
-      ${doodles.map(d=>{
+      ${doodles.filter(d=>!(d.dismissed||[]).includes(adminUid)).map(d=>{
         const votedCount=(d.recipients||[]).filter(rid=>(d.slots||[]).some(s=>s.votes?.[rid])).length;
         const borderCol = d.status==="open" ? "var(--teal)" : "var(--border2)";
         return html`
@@ -3358,10 +3358,19 @@ function DoodlePage({doodles,setDoodles,coachees}) {
                 const firestore=window._fb?.db||(typeof db==="function"?db():null);
                 if(firestore)firestore.collection("doodles").doc(String(d.id)).update({status:"closed"}).catch(()=>{});
               }}>Schliessen</button>`}
-              <button style=${{width:34,height:34,background:"#fef2f2",border:"0.5px solid #fca5a5",borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",flexShrink:0}} onClick=${()=>{
+              <button style=${{width:34,height:34,background:"#fef2f2",border:"0.5px solid #fca5a5",borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",flexShrink:0}} title=${d.status==="closed"?"Erledigt":"Löschen"} onClick=${()=>{
                 const firestore=window._fb?.db||(typeof db==="function"?db():null);
-                if(firestore)firestore.collection("doodles").doc(String(d.id)).delete().catch(()=>{});
-              }}>${h(Ic,{name:"trash",size:14,style:{color:"#dc2626"}})}</button>
+                if(!firestore) return;
+                if(d.status==="closed") {
+                  const allDismissed=[...(d.dismissed||[]),adminUid];
+                  const allRecip=(d.recipients||[]);
+                  const everyoneDone=allRecip.every(r=>allDismissed.includes(r))&&allDismissed.includes(adminUid);
+                  if(everyoneDone) { firestore.collection("doodles").doc(String(d.id)).delete().catch(()=>{}); }
+                  else { firestore.collection("doodles").doc(String(d.id)).update({dismissed:allDismissed}).catch(()=>{}); }
+                } else {
+                  firestore.collection("doodles").doc(String(d.id)).delete().catch(()=>{});
+                }
+              }}>${h(Ic,{name:d.status==="closed"?"check":"trash",size:14,style:{color:d.status==="closed"?"#156e6e":"#dc2626"}})}</button>
             </div>
           </div>`;
       })}
