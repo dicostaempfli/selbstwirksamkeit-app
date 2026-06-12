@@ -1,4 +1,4 @@
-<!-- Version: 2026-06-11 22:28 admin -->
+<!-- Version: 2026-06-12 11:26 admin -->
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -1317,37 +1317,9 @@ const Ic = ({name,size=16,style={}}) => {
 
 // ── SEED DATA ──
 const AVATAR_BG = ["#9dd979","#eaed53","#62ba7a","#bfe9cb","#a0cb7b","#c4e8d0"];
-const INIT_COACHEES = [
-  {id:"c1",name:"Lena Müller",initials:"LM",color:AVATAR_BG[0],photo:null,online:true,topic:"Paarbeziehung & Kommunikation",unread:2,lastTime:"09:14",messages:[
-    {id:"m1",from:"coachee",text:"Guten Morgen! Das Gespräch gestern war viel ruhiger als erwartet.",time:"09:10",date:"Heute"},
-    {id:"m2",from:"coachee",text:"Ich habe die Atemtechnik ausprobiert — es hat geholfen!",time:"09:11",date:"Heute"},
-    {id:"m3",from:"admin",text:"Das klingt wunderbar! Wie hast du dich dabei gefühlt?",time:"09:12",date:"Heute",seen:true},
-    {id:"m4",from:"coachee",text:"Leichter. Ich habe erst geatmet, bevor ich reagiert habe.",time:"09:14",date:"Heute"},
-  ]},
-  {id:"c2",name:"Thomas Brändle",initials:"TB",color:AVATAR_BG[1],photo:null,online:false,topic:"Mann zu Mann / Sinn & Potenzial",unread:0,lastTime:"Gestern",messages:[
-    {id:"m1",from:"admin",text:"Hallo Thomas, wie war deine Woche?",time:"18:30",date:"Gestern",seen:true},
-    {id:"m2",from:"coachee",text:"Ehrlich gesagt anstrengend. Die Arbeit frisst mich gerade auf.",time:"18:45",date:"Gestern"},
-  ]},
-  {id:"c3",name:"Sandra & Markus Frei",initials:"SF",color:AVATAR_BG[2],photo:null,online:true,topic:"Coaching-Package für Paare",unread:1,lastTime:"10:02",messages:[
-    {id:"m1",from:"coachee",text:"Wir haben die Hausaufgabe gemacht! Die Check-ins jeden Abend.",time:"10:00",date:"Heute"},
-    {id:"m2",from:"coachee",text:"Tag 5 — es fühlt sich schon natürlicher an.",time:"10:02",date:"Heute"},
-  ]},
-  {id:"c4",name:"Vera Hofer",initials:"VH",color:AVATAR_BG[4],photo:null,online:false,topic:"Elternschaft & Selbstfürsorge",unread:0,lastTime:"Mo",messages:[
-    {id:"m1",from:"coachee",text:"Die Situation mit meiner Tochter hat sich entspannt.",time:"14:20",date:"Montag"},
-    {id:"m2",from:"admin",text:"Das freut mich sehr. Was hat sich verändert?",time:"14:35",date:"Montag",seen:true},
-  ]},
-];
-const INIT_LIBRARY = [
-  {id:"l1",type:"audio",title:"Atemübung — 5 Minuten",desc:"Geführte Atemübung zur täglichen Zentrierung.",uploadedAt:"20.03.2026"},
-  {id:"l2",type:"video",title:"Einführung: Selbstwirksamkeit",desc:"Was bedeutet Selbstwirksamkeit im Alltag?",uploadedAt:"18.03.2026"},
-  {id:"l3",type:"dokus",title:"Reflexionsbogen — Woche 1",desc:"Leitfragen für deine erste Coaching-Woche.",uploadedAt:"15.03.2026"},
-  {id:"l4",type:"audio",title:"Körper-Scan Entspannung",desc:"Geführte Körperwahrnehmung für abends.",uploadedAt:"10.03.2026"},
-  {id:"l5",type:"dokus",title:"Werte-Kompass Übung",desc:"Finde und verankere deine persönlichen Werte.",uploadedAt:"05.03.2026"},
-];
-const INIT_DOODLES = [
-  {id:"d1",title:"Coaching-Session April",desc:"Nächstes Gespräch — wähle bitte 2–3 Zeiten.",status:"open",recipients:["c1","c3"],
-   slots:[{dt:"2026-04-07T10:00",votes:{c1:"yes",c3:"yes"}},{dt:"2026-04-07T14:00",votes:{c1:"no",c3:"yes"}},{dt:"2026-04-08T09:00",votes:{c1:"yes",c3:"no"}}]},
-];
+const INIT_COACHEES = [];
+const INIT_LIBRARY = [];
+const INIT_DOODLES = [];
 const QUICK_REPLIES = ["Wie geht es dir heute?","Danke für dein Update.","Sehr gut — das ist ein wichtiger Schritt.","Ich freue mich auf unsere nächste Session.","Was hat sich diese Woche verändert?"];
 const REC_TYPES = [{id:"daily",label:"Täglich"},{id:"weekly",label:"Wöchentlich"},{id:"monthly",label:"Monatlich"}];
 
