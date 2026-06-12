@@ -1,4 +1,4 @@
-<!-- Version: 2026-06-12 20:15 admin -->
+<!-- Version: 2026-06-12 20:19 admin -->
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -1760,7 +1760,7 @@ function ChatPage({coachees,setCoachees}) {
     const firestore = db();
     const now = new Date();
     const t = now.toLocaleTimeString("de-CH",{hour:"2-digit",minute:"2-digit"});
-    const msg={from:"admin",sender,recipient:activeId,text:text.trim(),time:t,date:"Heute",ts:Date.now(),seen:false};
+    const msg={from:"admin",sender,recipient:activeId,text:text.trim(),time:t,date:d,ts:Date.now(),seen:false};
     if(firestore) {
       firestore.collection("chats").doc(activeId).collection("messages").add(msg).catch(()=>{});
       // Signal für Coachee-Push (wird von SW abgeholt wenn App im Hintergrund)
@@ -1773,7 +1773,7 @@ function ChatPage({coachees,setCoachees}) {
     const firestore = db();
     const now = new Date();
     const t = now.toLocaleTimeString("de-CH",{hour:"2-digit",minute:"2-digit"});
-    const msg={from:"admin",sender,recipient:activeId,imgSrc:dataUrl,isVideo,text:"",time:t,date:"Heute",ts:Date.now()};
+    const msg={from:"admin",sender,recipient:activeId,imgSrc:dataUrl,isVideo,text:"",time:t,date:d,ts:Date.now()};
     if(firestore) firestore.collection("chats").doc(activeId).collection("messages").add(msg).catch(()=>{});
   };
   const sendFile = (file, sender="Diana") => {
@@ -1781,7 +1781,7 @@ function ChatPage({coachees,setCoachees}) {
     const firestore = db();
     const now = new Date();
     const t = now.toLocaleTimeString("de-CH",{hour:"2-digit",minute:"2-digit"});
-    const msg={from:"admin",sender,recipient:activeId,file,text:"",time:t,date:"Heute",ts:Date.now()};
+    const msg={from:"admin",sender,recipient:activeId,file,text:"",time:t,date:d,ts:Date.now()};
     if(firestore) firestore.collection("chats").doc(activeId).collection("messages").add(msg).catch(()=>{});
   };
 
@@ -1902,6 +1902,9 @@ function ChatWindow({coachee,onSend,onSendImg,onSendFile,onBack,mobileOpen}) {
   const groups = coachee.messages.reduce((acc,msg)=>{
     const d=msg.date||"Heute"; if(!acc[d])acc[d]=[]; acc[d].push(msg); return acc;
   },{});
+  const groupsSorted = Object.entries(groups).sort((a,b)=>{
+    const tsA = a[1][0]?.ts||0; const tsB = b[1][0]?.ts||0; return tsA-tsB;
+  });
 
   const handleSend = () => { if(!input.trim())return; onSend(input); setInput(""); };
   const handleKey  = e => { if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();handleSend();} };
@@ -1985,7 +1988,7 @@ function ChatWindow({coachee,onSend,onSendImg,onSendFile,onBack,mobileOpen}) {
       </div>
 
       <div class="messages" ref=${bottomRef}>
-        ${Object.entries(groups).map(([date,msgs])=>html`
+        ${groupsSorted.map(([date,msgs])=>html`
           <div key=${date}>
             <div class="date-divider">${date}</div>
             ${msgs.map((msg,i)=>{
