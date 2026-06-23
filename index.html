@@ -1,4 +1,4 @@
-<!-- Version: 2026-06-12 21:03 coachee -->
+<!-- Version: 2026-06-23 18:32 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -3372,25 +3372,7 @@ function RemindersPage({reminders,setReminders}) {
 
 
 // ── DOODLE / EVENTS DATA ──
-const INIT_DOODLES = [
-  {id:1, title:"Coaching-Session April",
-   desc:"Wähle alle möglichen Termine aus.",
-   status:"open", recipients:[1,3],
-   slots:[
-     {dt:"2026-04-07T10:00", votes:{1:"yes",3:"yes"}},
-     {dt:"2026-04-07T14:00", votes:{1:"no", 3:"yes"}},
-     {dt:"2026-04-08T09:00", votes:{1:"yes",3:"no"}},
-     {dt:"2026-04-09T15:00", votes:{1:"no", 3:"no"}},
-   ]},
-  {id:2, title:"Paar-Coaching Mai",
-   desc:"Wähle alle möglichen Termine aus.",
-   status:"open", recipients:[3],
-   slots:[
-     {dt:"2026-05-05T18:00", votes:{}},
-     {dt:"2026-05-06T18:00", votes:{}},
-     {dt:"2026-05-07T10:00", votes:{}},
-   ]}
-];
+const INIT_DOODLES = [];
 
 const INIT_EVENTS = [
   {id:1,day:"12",month:"Apr",color:"#156e6e",
