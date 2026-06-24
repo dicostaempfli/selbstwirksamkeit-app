@@ -1,4 +1,4 @@
-<!-- Version: 2026-06-23 18:32 coachee -->
+<!-- Version: 2026-06-24 17:21 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -3463,11 +3463,24 @@ function DoodlePage({user,doodles,setDoodles,coachees,events}) {
   };
 
   const submitVotes = (did) => {
-    const d=doodles.find(x=>x.id===did);
     const votes=coacheeVotes[did]||{};
+    // Lokalen State aktualisieren (sofortiges UI-Feedback) — unverändert wie zuvor
     setDoodles(ds=>ds.map(x=>x.id!==did?x:{...x,
       slots:x.slots.map((s,i)=>votes[i]&&uid?{...s,votes:{...s.votes,[uid]:votes[i]}}:s)
     }));
+    // Firestore: NUR den eigenen Vote-Pfad je Slot schreiben (kein .set() des ganzen Dokuments).
+    // Schreibt gezielt slots.<index>.votes.<uid> statt das komplette Doodle zu überschreiben —
+    // damit Security Rules den Schreibzugriff von Coachees auf genau dieses Feld einschränken können.
+    const fbDb = window._fb?.db;
+    if(fbDb && uid) {
+      const updates = {};
+      Object.entries(votes).forEach(([sidx,vote])=>{
+        updates[`slots.${sidx}.votes.${uid}`] = vote;
+      });
+      if(Object.keys(updates).length) {
+        fbDb.collection("doodles").doc(String(did)).update(updates).catch(()=>{});
+      }
+    }
     showToastMsg("✓ Deine Antwort wurde gesendet!");
   };
 
