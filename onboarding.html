@@ -1,4 +1,4 @@
-<!-- Version: 2026-06-24 11:06 onboarding -->
+<!-- Version: 2026-06-24 11:16 onboarding -->
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -155,15 +155,15 @@
   @media (max-width:900px){ .areas{grid-template-columns:repeat(2,1fr);} }
   @media (max-width:480px){ .areas{grid-template-columns:1fr;} }
   .area-card{
-    background:var(--ivory);
+    background:var(--surface);
     border:0.5px solid var(--border);
     border-radius:18px;
     padding:22px 16px;
     text-align:center;
     cursor:pointer;
-    transition:background .25s ease, transform .25s ease;
+    transition:transform .25s ease, box-shadow .25s ease;
   }
-  .area-card:hover{ background:var(--surface); transform:translateY(-3px); }
+  .area-card:hover{ transform:translateY(-3px); }
   .area-card .icon-tile{
     width:52px; height:52px; margin:0 auto 14px;
     background:#DCEEEE; border-radius:16px;
@@ -173,7 +173,7 @@
   .area-card h3{ font-family:'Karla',sans-serif; font-weight:600; font-size:.92rem; color:var(--ink); margin-bottom:4px; }
   .area-card p{ font-size:.78rem; color:var(--muted); display:none; }
   .area-card.open p{ display:block; margin-top:8px; }
-  .area-card.open{ background:var(--surface); }
+  .area-card.open{ border-color:var(--teal); }
   .area-detail{ display:none; text-align:left; margin-top:14px; }
   .area-card.open .area-detail{ display:block; }
   .area-detail ul{ list-style:none; display:flex; flex-direction:column; gap:7px; margin-bottom:14px; }
