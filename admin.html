@@ -1,4 +1,4 @@
-<!-- Version: 2026-06-24 17:35 admin -->
+<!-- Version: 2026-06-24 19:09 admin -->
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -1611,7 +1611,7 @@ function DashboardPage({coachees,library,doodles,setPage,user}) {
         <div>
           <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.3rem",fontWeight:700,color:"var(--text)"}}>${greeting}</div>
           <div style=${{fontSize:".88rem",color:"var(--muted)",marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"calc(100vw - 120px)"}}>Admin-Portal · Raum für Selbstwirksamkeit</div>
-          <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-06-24 17:01 · Doku v3.42 · 2026-06-24 17:35
+          <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-06-24 19:09 · Doku v3.42 · 2026-06-24 17:35
           </div>
         </div>
       </div>
@@ -3379,6 +3379,7 @@ function DoodlePage({doodles,setDoodles,coachees,adminUid}) {
   const [newSlots,setNewSlots] = useState([]);
   const [newSlotDt,setNewSlotDt] = useState("");
   const [selRecip,setSelRecip] = useState([]);
+  const [doodleCat,setDoodleCat] = useState([]);
 
   const localDtStr = (d) => { const pad=n=>String(n).padStart(2,'0'); return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+'T'+pad(d.getHours())+':'+pad(d.getMinutes()); };
   const defaultDt = () => { const d=new Date(); d.setDate(d.getDate()+1); d.setHours(10,0,0,0); return localDtStr(d); };
@@ -3391,11 +3392,22 @@ function DoodlePage({doodles,setDoodles,coachees,adminUid}) {
     setNewSlotDt(localDtStr(d));
   };
 
+  const getCoacheeCats = c => [...(Array.isArray(c.coaching)?c.coaching:(c.coaching?[c.coaching]:[])), ...(Array.isArray(c.gender)?c.gender:(c.gender?[c.gender]:[])), ...(c.categories||[])];
+
+  const toggleDoodleCat = cat => {
+    setDoodleCat(prev=>{
+      const next = cat===null ? [] : (prev.includes(cat)?prev.filter(x=>x!==cat):[...prev,cat]);
+      const matching = next.length===0 ? [] : coachees.filter(c=>next.some(sel=>getCoacheeCats(c).includes(sel)));
+      setSelRecip(matching.map(c=>c.id));
+      return next;
+    });
+  };
+
   const createDoodle = () => {
     const allSlots = newSlotDt && !newSlots.includes(newSlotDt) ? [...newSlots, newSlotDt].sort() : newSlots;
     if(!newTitle.trim()||allSlots.length<1) return;
     const nd={id:"d"+Date.now(),title:newTitle.trim(),desc:newDesc.trim()||"Wähle alle möglichen Termine aus.",status:"open",recipients:[...selRecip],slots:allSlots.map(dt=>({dt,votes:{}}))};
-    setShowCreate(false);setNewTitle("");setNewDesc("");setNewSlots([]);setSelRecip([]);
+    setShowCreate(false);setNewTitle("");setNewDesc("");setNewSlots([]);setSelRecip([]);setDoodleCat([]);
     setDoodles(ds=>[nd,...ds]);
     const firestore = db();
     if(firestore) firestore.collection("doodles").doc(String(nd.id)).set(nd).catch(()=>{});
@@ -3481,11 +3493,11 @@ function DoodlePage({doodles,setDoodles,coachees,adminUid}) {
       })}
 
       ${/* CREATE MODAL */showCreate&&html`
-        <div class="overlay" onClick=${e=>{if(e.target===e.currentTarget)setShowCreate(false);}}>
+        <div class="overlay" onClick=${e=>{if(e.target===e.currentTarget){setShowCreate(false);setDoodleCat([]);}}}>
           <div class="modal" style=${{padding:0,display:"flex",flexDirection:"column"}}>
             <div style=${{padding:"16px 18px 14px",borderBottom:"1px solid var(--border)",display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0}}>
               <h2 class="modal-title" style=${{marginBottom:0}}>Neuer Terminvorschlag</h2>
-              <button style=${{background:"none",border:"none",cursor:"pointer",color:"var(--muted)",padding:4,borderRadius:8,display:"flex"}} onClick=${()=>setShowCreate(false)}><${Ic} name="x" size=${20}/></button>
+              <button style=${{background:"none",border:"none",cursor:"pointer",color:"var(--muted)",padding:4,borderRadius:8,display:"flex"}} onClick=${()=>{setShowCreate(false);setDoodleCat([]);}}><${Ic} name="x" size=${20}/></button>
             </div>
             <div style=${{padding:"16px 18px",overflowY:"auto",flex:1}}>
               <div class="form-row">
@@ -3513,6 +3525,19 @@ function DoodlePage({doodles,setDoodles,coachees,adminUid}) {
                   <button class="btn btn-sage btn-sm" onClick=${addSlot}>+ Hinzufügen</button>
                 </div>
               </div>
+              <div class="form-row">
+                <label class="label">Zielgruppe <span style=${{fontWeight:400,fontSize:".8em",opacity:.7}}>(optional — wählt Empfänger automatisch vor)</span></label>
+                <div style=${{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}>
+                  ${["Paare","Einzel","Eltern","Männer","Frauen"].map(cat=>
+                    h("div",{key:cat,
+                      onClick:()=>toggleDoodleCat(cat),
+                      style:{height:40,borderRadius:9,border:"1.5px solid "+(doodleCat.includes(cat)?"var(--teal)":"var(--border2)"),background:doodleCat.includes(cat)?"var(--teal)":"var(--surface2)",color:doodleCat.includes(cat)?"#fff":"var(--text)",fontSize:".82rem",fontWeight:700,fontFamily:"'Exo 2',sans-serif",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"}},
+                      cat
+                    )
+                  )}
+                  <div style=${{height:40,borderRadius:9,border:"1.5px solid "+(doodleCat.length===0?"var(--teal)":"var(--border2)"),background:doodleCat.length===0?"var(--teal)":"var(--surface2)",color:doodleCat.length===0?"#fff":"var(--text)",fontSize:".82rem",fontWeight:700,fontFamily:"'Exo 2',sans-serif",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",gridColumn:"1 / -1"}} onClick=${()=>toggleDoodleCat(null)}>Alle</div>
+                </div>
+              </div>
               <div class="form-row" style=${{marginBottom:0}}>
                 <label class="label">Senden an <span style=${{fontWeight:400,fontSize:".8em",opacity:.7}}>(optional)</span></label>
                 ${coachees.map(c=>{
@@ -3526,7 +3551,7 @@ function DoodlePage({doodles,setDoodles,coachees,adminUid}) {
               </div>
             </div>
             <div style=${{padding:"14px 18px 18px",borderTop:"1px solid var(--border)",display:"flex",gap:10,flexShrink:0}}>
-              <button class="btn btn-ghost" style=${{flex:1}} onClick=${()=>setShowCreate(false)}>Abbrechen</button>
+              <button class="btn btn-ghost" style=${{flex:1}} onClick=${()=>{setShowCreate(false);setDoodleCat([]);}}>Abbrechen</button>
               <button class="btn btn-primary" style=${{flex:2}} onClick=${createDoodle} disabled=${!newTitle.trim()||newSlots.length<1}>Erstellen & Senden</button>
             </div>
           </div>
