@@ -1,4 +1,4 @@
-<!-- Version: 2026-06-25 15:29 coachee -->
+<!-- Version: 2026-06-25 18:19 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -3404,6 +3404,25 @@ function fmtDt(dt) {
   return days[d.getDay()]+", "+d.getDate()+". "+months[d.getMonth()]+" · "+
     String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0")+" Uhr";
 }
+// .ics-Kalenderdatei als data-URI — geräteunabhängig (iOS Apple-Kalender, Android Google Calendar, Desktop).
+// dt: datetime-local String, durationMin: Dauer in Minuten (Default 120).
+function icsDataUrl(dt, title, details, durationMin=120) {
+  try {
+    const start = new Date(dt);
+    const end = new Date(start.getTime() + durationMin*60000);
+    const fmt = d => d.getFullYear()+String(d.getMonth()+1).padStart(2,"0")+String(d.getDate()).padStart(2,"0")+"T"+String(d.getHours()).padStart(2,"0")+String(d.getMinutes()).padStart(2,"0")+"00";
+    const esc = s => String(s||"").replace(/[,;\\]/g,m=>"\\"+m).replace(/\n/g,"\\n");
+    const ics = ["BEGIN:VCALENDAR","VERSION:2.0","CALSCALE:GREGORIAN","BEGIN:VEVENT",
+      "UID:"+Date.now()+"@selbstwirksamkeit.ch",
+      "DTSTAMP:"+fmt(new Date()),
+      "DTSTART:"+fmt(start),
+      "DTEND:"+fmt(end),
+      "SUMMARY:"+esc(title||"Coaching-Termin"),
+      "DESCRIPTION:"+esc(details||""),
+      "END:VEVENT","END:VCALENDAR"].join("\r\n");
+    return "data:text/calendar;charset=utf-8,"+encodeURIComponent(ics);
+  } catch(e){ return "#"; }
+}
 function bestSlotIdx(doodle) {
   let best=-1,bestCount=-1;
   doodle.slots.forEach((s,i)=>{
@@ -3543,6 +3562,12 @@ function DoodlePage({user,doodles,setDoodles,coachees,events}) {
                       <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.1rem",fontWeight:700,color:"var(--forest)",marginBottom:6}}>Termin bestätigt!</div>
                       <p style=${{color:"var(--muted)",fontSize:".85rem",marginBottom:8}}>${d.title}</p>
                       <div style=${{background:"var(--teal)",color:"#fff",borderRadius:10,padding:"10px 18px",display:"inline-block",fontWeight:700,fontSize:".95rem",marginBottom:16}}>${fmtDt(best.dt)}</div>
+                      <div style=${{marginTop:4}}>
+                        <a href=${icsDataUrl(best.dt, d.title, d.desc, 120)} download=${"Termin_"+d.title.replace(/[^a-zA-Z0-9]/g,"_")+".ics"}
+                          style=${{display:"inline-flex",alignItems:"center",gap:7,background:"var(--sage-pale)",color:"var(--forest)",fontWeight:700,fontSize:".85rem",padding:"10px 18px",borderRadius:10,textDecoration:"none"}}>
+                          <${Ic} name="calendar" size=${15}/> Zum Kalender hinzufügen
+                        </a>
+                      </div>
                       <div style=${{marginTop:14,textAlign:"center"}}>
                       <p style=${{fontSize:".78rem",color:"var(--muted)",marginBottom:8}}>Tippe «Erledigt» an, sobald du den Termin in deinen Kalender eingetragen hast.</p>
                       <button style=${{padding:"9px 20px",borderRadius:8,background:"none",border:"1px solid var(--border2)",color:"var(--muted)",fontSize:".83rem",cursor:"pointer"}} onClick=${()=>dismissDoodle(d.id)}>✓ Erledigt</button>
