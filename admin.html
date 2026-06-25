@@ -1,4 +1,4 @@
-<!-- Version: 2026-06-25 15:29 admin -->
+<!-- Version: 2026-06-25 16:00 admin -->
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -1617,7 +1617,7 @@ function DashboardPage({coachees,library,doodles,setPage,user}) {
         <div>
           <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.3rem",fontWeight:700,color:"var(--text)"}}>${greeting}</div>
           <div style=${{fontSize:".88rem",color:"var(--muted)",marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"calc(100vw - 120px)"}}>Admin-Portal · Raum für Selbstwirksamkeit</div>
-          <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-06-25 15:29 · Doku v3.44 · 2026-06-25 13:24
+          <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-06-25 16:00 · Doku v3.45 · 2026-06-25 16:00
           </div>
         </div>
       </div>
@@ -3313,6 +3313,8 @@ function DoodlePage({doodles,setDoodles,coachees,adminUid}) {
   const [newSlotDt,setNewSlotDt] = useState("");
   const [selRecip,setSelRecip] = useState([]);
   const [doodleCat,setDoodleCat] = useState([]);
+  const [catModeActive,setCatModeActive] = useState(false);
+  const [recipSearch,setRecipSearch] = useState("");
 
   const localDtStr = (d) => { const pad=n=>String(n).padStart(2,'0'); return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+'T'+pad(d.getHours())+':'+pad(d.getMinutes()); };
   const defaultDt = () => { const d=new Date(); d.setDate(d.getDate()+1); d.setHours(10,0,0,0); return localDtStr(d); };
@@ -3328,19 +3330,27 @@ function DoodlePage({doodles,setDoodles,coachees,adminUid}) {
   const getCoacheeCats = c => [...(Array.isArray(c.coaching)?c.coaching:(c.coaching?[c.coaching]:[])), ...(Array.isArray(c.gender)?c.gender:(c.gender?[c.gender]:[])), ...(c.categories||[])];
 
   const toggleDoodleCat = cat => {
+    setCatModeActive(true);
     setDoodleCat(prev=>{
       const next = cat===null ? [] : (prev.includes(cat)?prev.filter(x=>x!==cat):[...prev,cat]);
-      const matching = next.length===0 ? [] : coachees.filter(c=>next.some(sel=>getCoacheeCats(c).includes(sel)));
+      const matching = next.length===0 ? coachees : coachees.filter(c=>next.some(sel=>getCoacheeCats(c).includes(sel)));
       setSelRecip(matching.map(c=>c.id));
       return next;
     });
+  };
+
+  // Manuelle Checkbox-Änderung in "Senden an": deaktiviert den Kategorie-Modus,
+  // damit Alle/Paare/Einzel... nicht mehr fälschlich als aktiv markiert bleiben.
+  const toggleManualRecip = id => {
+    setCatModeActive(false);
+    setSelRecip(r=>r.includes(id)?r.filter(x=>x!==id):[...r,id]);
   };
 
   const createDoodle = () => {
     const allSlots = newSlotDt && !newSlots.includes(newSlotDt) ? [...newSlots, newSlotDt].sort() : newSlots;
     if(!newTitle.trim()||allSlots.length<1) return;
     const nd={id:"d"+Date.now(),title:newTitle.trim(),desc:newDesc.trim()||"Wähle alle möglichen Termine aus.",status:"open",recipients:[...selRecip],slots:allSlots.map(dt=>({dt,votes:{}}))};
-    setShowCreate(false);setNewTitle("");setNewDesc("");setNewSlots([]);setSelRecip([]);setDoodleCat([]);
+    setShowCreate(false);setNewTitle("");setNewDesc("");setNewSlots([]);setSelRecip([]);setDoodleCat([]);setCatModeActive(false);setRecipSearch("");
     setDoodles(ds=>[nd,...ds]);
     const firestore = db();
     if(firestore) firestore.collection("doodles").doc(String(nd.id)).set(nd).catch(()=>{});
@@ -3426,11 +3436,11 @@ function DoodlePage({doodles,setDoodles,coachees,adminUid}) {
       })}
 
       ${/* CREATE MODAL */showCreate&&html`
-        <div class="overlay" onClick=${e=>{if(e.target===e.currentTarget){setShowCreate(false);setDoodleCat([]);}}}>
+        <div class="overlay" onClick=${e=>{if(e.target===e.currentTarget){setShowCreate(false);setDoodleCat([]);setCatModeActive(false);setRecipSearch("");}}}>
           <div class="modal" style=${{padding:0,display:"flex",flexDirection:"column"}}>
             <div style=${{padding:"16px 18px 14px",borderBottom:"1px solid var(--border)",display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0}}>
               <h2 class="modal-title" style=${{marginBottom:0}}>Neuer Terminvorschlag</h2>
-              <button style=${{background:"none",border:"none",cursor:"pointer",color:"var(--muted)",padding:4,borderRadius:8,display:"flex"}} onClick=${()=>{setShowCreate(false);setDoodleCat([]);}}><${Ic} name="x" size=${20}/></button>
+              <button style=${{background:"none",border:"none",cursor:"pointer",color:"var(--muted)",padding:4,borderRadius:8,display:"flex"}} onClick=${()=>{setShowCreate(false);setDoodleCat([]);setCatModeActive(false);setRecipSearch("");}}><${Ic} name="x" size=${20}/></button>
             </div>
             <div style=${{padding:"16px 18px",overflowY:"auto",flex:1}}>
               <div class="form-row">
@@ -3461,30 +3471,37 @@ function DoodlePage({doodles,setDoodles,coachees,adminUid}) {
               <div class="form-row">
                 <label class="label">Zielgruppe <span style=${{fontWeight:400,fontSize:".8em",opacity:.7}}>(optional — wählt Empfänger automatisch vor)</span></label>
                 <div style=${{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}>
-                  ${["Paare","Einzel","Eltern","Männer","Frauen"].map(cat=>
-                    h("div",{key:cat,
+                  ${["Paare","Einzel","Eltern","Männer","Frauen"].map(cat=>{
+                    const active = catModeActive && doodleCat.includes(cat);
+                    return h("div",{key:cat,
                       onClick:()=>toggleDoodleCat(cat),
-                      style:{height:40,borderRadius:9,border:"1.5px solid "+(doodleCat.includes(cat)?"var(--teal)":"var(--border2)"),background:doodleCat.includes(cat)?"var(--teal)":"var(--surface2)",color:doodleCat.includes(cat)?"#fff":"var(--text)",fontSize:".82rem",fontWeight:700,fontFamily:"'Exo 2',sans-serif",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"}},
+                      style:{height:40,borderRadius:9,border:"1.5px solid "+(active?"var(--teal)":"var(--border2)"),background:active?"var(--teal)":"var(--surface2)",color:active?"#fff":"var(--text)",fontSize:".82rem",fontWeight:700,fontFamily:"'Exo 2',sans-serif",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"}},
                       cat
-                    )
-                  )}
-                  <div style=${{height:40,borderRadius:9,border:"1.5px solid "+(doodleCat.length===0?"var(--teal)":"var(--border2)"),background:doodleCat.length===0?"var(--teal)":"var(--surface2)",color:doodleCat.length===0?"#fff":"var(--text)",fontSize:".82rem",fontWeight:700,fontFamily:"'Exo 2',sans-serif",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",gridColumn:"1 / -1"}} onClick=${()=>toggleDoodleCat(null)}>Alle</div>
+                    );
+                  })}
+                  <div style=${{height:40,borderRadius:9,border:"1.5px solid "+(catModeActive&&doodleCat.length===0?"var(--teal)":"var(--border2)"),background:catModeActive&&doodleCat.length===0?"var(--teal)":"var(--surface2)",color:catModeActive&&doodleCat.length===0?"#fff":"var(--text)",fontSize:".82rem",fontWeight:700,fontFamily:"'Exo 2',sans-serif",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",gridColumn:"1 / -1"}} onClick=${()=>toggleDoodleCat(null)}>Alle</div>
                 </div>
               </div>
               <div class="form-row" style=${{marginBottom:0}}>
                 <label class="label">Senden an <span style=${{fontWeight:400,fontSize:".8em",opacity:.7}}>(optional)</span></label>
-                ${coachees.map(c=>{
+                <div style=${{position:"relative",marginBottom:8}}>
+                  <div style=${{position:"absolute",left:11,top:0,bottom:0,display:"flex",alignItems:"center",color:"var(--muted)",pointerEvents:"none"}}><${Ic} name="search" size=${15}/></div>
+                  <input class="input" type="text" value=${recipSearch} onInput=${e=>setRecipSearch(e.target.value)} placeholder="Coachee suchen…" style=${{paddingLeft:34}}/>
+                </div>
+                ${coachees.filter(c=>c.name.toLowerCase().includes(recipSearch.trim().toLowerCase())).map(c=>{
                   const sel=selRecip.includes(c.id);
                   return html`<label key=${c.id} style=${{display:"flex",alignItems:"center",gap:12,padding:"10px 12px",borderRadius:10,cursor:"pointer",marginBottom:6,border:sel?"1.5px solid var(--teal)":"1.5px solid var(--border2)",background:sel?"var(--teal-pale)":"var(--surface2)",userSelect:"none"}}>
-                    <input type="checkbox" checked=${sel} onChange=${()=>setSelRecip(r=>r.includes(c.id)?r.filter(x=>x!==c.id):[...r,c.id])} style=${{width:20,height:20,accentColor:"var(--teal)",cursor:"pointer",flexShrink:0}}/>
+                    <input type="checkbox" checked=${sel} onChange=${()=>toggleManualRecip(c.id)} style=${{width:20,height:20,accentColor:"var(--teal)",cursor:"pointer",flexShrink:0}}/>
                     <div style=${{width:34,height:34,borderRadius:"50%",background:c.color,display:"flex",alignItems:"center",justifyContent:"center",fontSize:".7rem",fontWeight:700,color:"#fff",flexShrink:0}}>${c.initials}</div>
                     <span style=${{fontSize:".9rem",fontWeight:sel?600:400,color:"var(--text)"}}>${c.name}</span>
                   </label>`;
                 })}
+                ${recipSearch.trim()&&coachees.filter(c=>c.name.toLowerCase().includes(recipSearch.trim().toLowerCase())).length===0&&html`<div style=${{fontSize:".82rem",color:"var(--muted)",padding:"8px 2px"}}>Keine Coachees gefunden.</div>`}
               </div>
             </div>
+
             <div style=${{padding:"14px 18px 18px",borderTop:"1px solid var(--border)",display:"flex",gap:10,flexShrink:0}}>
-              <button class="btn btn-ghost" style=${{flex:1}} onClick=${()=>{setShowCreate(false);setDoodleCat([]);}}>Abbrechen</button>
+              <button class="btn btn-ghost" style=${{flex:1}} onClick=${()=>{setShowCreate(false);setDoodleCat([]);setCatModeActive(false);setRecipSearch("");}}>Abbrechen</button>
               <button class="btn btn-primary" style=${{flex:2}} onClick=${createDoodle} disabled=${!newTitle.trim()||newSlots.length<1}>Erstellen & Senden</button>
             </div>
           </div>
