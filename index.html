@@ -1,4 +1,4 @@
-<!-- Version: 2026-06-25 18:48 coachee -->
+<!-- Version: 2026-06-25 18:57 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -1661,7 +1661,7 @@ function App({ user }) {
           // verhindert, dass ein lückenhaftes Array dauerhaft in der Datenbank landet (siehe Pitfall 39).
           const fsDoc = {
             ...d, uid,
-            slots: (d.slots||[]).filter(Boolean).map(s=>({
+            slots: toSlotsArray(d.slots).map(s=>({
               dt: s.dt,
               votes: Object.fromEntries(Object.entries(s.votes||{}).map(([k,v])=>[String(k),v]))
             }))
@@ -2419,7 +2419,7 @@ function DashboardPage({coachees,library,reminders,doodles,setPage,user,onLogoTa
             <div style=${{width:42,height:42,borderRadius:12,background:"var(--lime-pale)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><${Ic} name="calendar" size=${20} style=${{color:"var(--lime-dark)"}}/></div>
             <div style=${{flex:1}}>
               <div style=${{fontFamily:"'Manuale',serif",fontWeight:700,fontSize:"1rem",color:"var(--text)"}}>Termine & Events</div>
-              <div style=${{fontSize:".82rem",color:"var(--muted)",marginTop:1}}>${(n=>n===1?"1 offener Terminvorschlag":n===0?"Keine offenen Termine":n+" offene Terminvorschläge")(doodles.filter(d=>(d.recipients||[]).includes(uid)&&!(d.dismissed||[]).includes(uid)&&d.status!=="closed"&&!(d.slots||[]).some(s=>s?.votes?.[uid])).length)}</div>
+              <div style=${{fontSize:".82rem",color:"var(--muted)",marginTop:1}}>${(n=>n===1?"1 offener Terminvorschlag":n===0?"Keine offenen Termine":n+" offene Terminvorschläge")(doodles.filter(d=>(d.recipients||[]).includes(uid)&&!(d.dismissed||[]).includes(uid)&&d.status!=="closed"&&!toSlotsArray(d.slots).some(s=>s?.votes?.[uid])).length)}</div>
             </div>
             <${Ic} name="chevron" size=${16} style=${{color:"var(--border2)"}}/>
           </div>
@@ -3399,6 +3399,14 @@ const INIT_EVENTS = [
    url:"https://www.selbstwirksamkeit.ch/events/vortrag-selbstwirksamkeit-familie",
    spots:50,registered:28},
 ];
+// Normalisiert das Doodle-Feld 'slots' zu einem echten JS-Array, unabhängig davon, ob Firestore es
+// als Array oder (fälschlich, durch Dot-Notation-Updates auf nicht-existente Indizes) als Map mit
+// numerischen String-Keys gespeichert hat. Siehe Pitfall 40.
+function toSlotsArray(slots) {
+  if(Array.isArray(slots)) return slots;
+  if(slots && typeof slots==="object") return Object.keys(slots).sort((a,b)=>Number(a)-Number(b)).map(k=>slots[k]);
+  return [];
+}
 function fmtDt(dt) {
   const d=new Date(dt);
   const days=["So","Mo","Di","Mi","Do","Fr","Sa"];
@@ -3427,7 +3435,7 @@ function icsDataUrl(dt, title, details, durationMin=120) {
 }
 function bestSlotIdx(doodle) {
   let best=-1,bestCount=-1;
-  (doodle.slots||[]).forEach((s,i)=>{
+  toSlotsArray(doodle.slots).forEach((s,i)=>{
     if(!s) return;
     const yes=Object.values(s.votes||{}).filter(v=>v==="yes").length;
     if(yes>bestCount){bestCount=yes;best=i;}
@@ -3487,21 +3495,19 @@ function DoodlePage({user,doodles,setDoodles,coachees,events}) {
   const submitVotes = (did) => {
     const votes=coacheeVotes[did]||{};
     // Lokalen State aktualisieren (sofortiges UI-Feedback) — unverändert wie zuvor
-    setDoodles(ds=>ds.map(x=>x.id!==did?x:{...x,
-      slots:(x.slots||[]).map((s,i)=>s&&votes[i]&&uid?{...s,votes:{...s.votes,[uid]:votes[i]}}:s)
+    let updatedSlots;
+    setDoodles(ds=>ds.map(x=>{
+      if(x.id!==did) return x;
+      updatedSlots = toSlotsArray(x.slots).map((s,i)=>votes[i]&&uid?{...s,votes:{...s.votes,[uid]:votes[i]}}:s);
+      return {...x, slots:updatedSlots};
     }));
-    // Firestore: NUR den eigenen Vote-Pfad je Slot schreiben (kein .set() des ganzen Dokuments).
-    // Schreibt gezielt slots.<index>.votes.<uid> statt das komplette Doodle zu überschreiben —
-    // damit Security Rules den Schreibzugriff von Coachees auf genau dieses Feld einschränken können.
+    // Firestore: Schreibt das KOMPLETTE slots-Array neu (nicht per Dot-Notation auf einzelne Indizes) —
+    // verhindert, dass Firestore das Feld bei fehlendem/kürzerem Array fälschlich als Map statt Array anlegt
+    // (siehe Pitfall 40). Security Rule bleibt erfüllt: affectedKeys().hasOnly(["slots"]), da weiterhin nur
+    // genau dieses eine Feld geschrieben wird — nur eben als Ganzes statt einzelner Unterpfade.
     const fbDb = window._fb?.db;
-    if(fbDb && uid) {
-      const updates = {};
-      Object.entries(votes).forEach(([sidx,vote])=>{
-        updates[`slots.${sidx}.votes.${uid}`] = vote;
-      });
-      if(Object.keys(updates).length) {
-        fbDb.collection("doodles").doc(String(did)).update(updates).catch(()=>{});
-      }
+    if(fbDb && uid && updatedSlots) {
+      fbDb.collection("doodles").doc(String(did)).update({slots: updatedSlots}).catch(()=>{});
     }
     showToastMsg("✓ Deine Antwort wurde gesendet!");
   };
@@ -3521,7 +3527,7 @@ function DoodlePage({user,doodles,setDoodles,coachees,events}) {
 
       <div style=${{display:"flex",gap:8,marginBottom:16}}>
         ${(()=>{
-          const openCount = doodles.filter(d=>(d.recipients||[]).includes(uid)&&!(d.dismissed||[]).includes(uid)&&d.status!=="closed"&&!(d.slots||[]).some(s=>s?.votes?.[uid])).length;
+          const openCount = doodles.filter(d=>(d.recipients||[]).includes(uid)&&!(d.dismissed||[]).includes(uid)&&d.status!=="closed"&&!toSlotsArray(d.slots).some(s=>s?.votes?.[uid])).length;
           const btnStyle = (active) => ({
             flex:"1 1 0",height:"40px",maxHeight:"40px",display:"flex",alignItems:"center",
             justifyContent:"center",gap:"7px",padding:"8px 18px",position:"relative",
@@ -3550,10 +3556,10 @@ function DoodlePage({user,doodles,setDoodles,coachees,events}) {
       ${subTab==="coachee" && html`
         ${doodles.filter(d=>(d.recipients||[]).includes(uid)&&!(d.dismissed||[]).includes(uid)).map(d=>html`
           <div key=${d.id} style=${{background:"var(--surface)",borderRadius:"var(--radius)",boxShadow:"var(--shadow)",padding:24,marginBottom:14,border:"1.5px solid var(--border2)"}}>
-            ${(d.slots||[]).some(s=>s?.votes?.[uid])
+            ${toSlotsArray(d.slots).some(s=>s?.votes?.[uid])
               ? (() => {
                   if(d.status==="closed") {
-                    const slots = d.slots||[];
+                    const slots = toSlotsArray(d.slots);
                     const bestIdx = d.confirmedSlot!=null ? d.confirmedSlot : slots.reduce((bi,s,i)=>Object.keys(s?.votes||{}).length>Object.keys(slots[bi]?.votes||{}).length?i:bi, 0);
                     const best = slots[bestIdx];
                     if(!best) return html`<div style=${{textAlign:"center",padding:"24px 0",color:"var(--muted)"}}><p>Termindaten konnten nicht geladen werden.</p></div>`;
@@ -3588,7 +3594,7 @@ function DoodlePage({user,doodles,setDoodles,coachees,events}) {
               : html`
                 <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.05rem",fontWeight:700,color:"var(--text)",marginBottom:4}}>${d.title}</div>
                 <div style=${{fontSize:".83rem",color:"var(--muted)",marginBottom:14}}>${d.desc}</div>
-                ${(d.slots||[]).map((s,i)=>{
+                ${toSlotsArray(d.slots).map((s,i)=>{
                   if(!s) return null;
                   const v=(coacheeVotes[d.id]||{})[i];
                   return html`
@@ -3663,7 +3669,7 @@ function DoodlePage({user,doodles,setDoodles,coachees,events}) {
             <div class="modal">
               <div style=${{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4}}><h2 class="modal-title" style=${{marginBottom:0}}>${d.title} — Ergebnisse</h2><button style=${{background:"none",border:"none",cursor:"pointer",color:"var(--muted)",padding:4,borderRadius:8,display:"flex"}} onClick=${()=>setShowResults(null)}><${Ic} name="x" size=${20}/></button></div>
               <p style=${{fontSize:".83rem",color:"var(--muted)",marginBottom:14}}>${d.desc}</p>
-              ${(d.slots||[]).map((s,i)=>{
+              ${toSlotsArray(d.slots).map((s,i)=>{
                 if(!s) return null;
                 const yesV=(d.recipients||[]).filter(rid=>(s.votes||{})[rid]==="yes");
                 const isBest=i===best&&yesV.length>0;

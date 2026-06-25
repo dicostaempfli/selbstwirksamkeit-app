@@ -1,4 +1,4 @@
-<!-- Version: 2026-06-25 18:48 admin -->
+<!-- Version: 2026-06-25 18:57 admin -->
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -1265,6 +1265,14 @@ import { html } from 'https://esm.sh/htm@3/preact';
 // ── HELPERS ──
 const nowTime = () => new Date().toLocaleTimeString('de-CH',{hour:'2-digit',minute:'2-digit'});
 const fmtDate = d => { if(!d) return ''; try { return new Date(d).toLocaleDateString('de-CH',{day:'2-digit',month:'long',year:'numeric'}); } catch(e){ return d; }};
+// Normalisiert das Doodle-Feld 'slots' zu einem echten JS-Array, unabhängig davon, ob Firestore es
+// als Array oder (fälschlich, durch Dot-Notation-Updates auf nicht-existente Indizes) als Map mit
+// numerischen String-Keys gespeichert hat. Siehe Pitfall 40.
+const toSlotsArray = slots => {
+  if(Array.isArray(slots)) return slots;
+  if(slots && typeof slots==="object") return Object.keys(slots).sort((a,b)=>Number(a)-Number(b)).map(k=>slots[k]);
+  return [];
+};
 const fmtDt = dt => { try { const d=new Date(dt); const days=["So","Mo","Di","Mi","Do","Fr","Sa"]; const months=["Jan","Feb","Mär","Apr","Mai","Jun","Jul","Aug","Sep","Okt","Nov","Dez"]; return days[d.getDay()]+", "+d.getDate()+". "+months[d.getMonth()]+" · "+String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0")+" Uhr"; } catch(e){ return dt; }};
 // Google-Calendar-Quicklink (kein Login/API nötig) — öffnet vorausgefülltes Event zum manuellen Speichern.
 // dt: datetime-local String (z.B. "2026-06-26T10:00"), durationMin: Termindauer in Minuten (Default 120).
@@ -1628,7 +1636,7 @@ function DashboardPage({coachees,library,doodles,setPage,user}) {
         <div>
           <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.3rem",fontWeight:700,color:"var(--text)"}}>${greeting}</div>
           <div style=${{fontSize:".88rem",color:"var(--muted)",marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"calc(100vw - 120px)"}}>Admin-Portal · Raum für Selbstwirksamkeit</div>
-          <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-06-25 18:48 · Doku v3.51 · 2026-06-25 18:48
+          <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-06-25 18:57 · Doku v3.52 · 2026-06-25 18:57
           </div>
         </div>
       </div>
@@ -3370,7 +3378,7 @@ function DoodlePage({doodles,setDoodles,coachees,adminUid}) {
 
   const bestSlotIdx = d => {
     let best=-1,bestCount=-1;
-    (d.slots||[]).forEach((s,i)=>{
+    toSlotsArray(d.slots).forEach((s,i)=>{
       if(!s) return;
       const yes=Object.values(s.votes||{}).filter(v=>v==="yes").length;
       if(yes>bestCount){bestCount=yes;best=i;}
@@ -3406,7 +3414,7 @@ function DoodlePage({doodles,setDoodles,coachees,adminUid}) {
       ${doodles.length===0&&html`<div style=${{textAlign:"center",padding:"48px",color:"var(--muted)"}}><p>Noch kein Terminvorschlag erstellt.</p></div>`}
 
       ${doodles.filter(d=>!(d.dismissed||[]).includes(adminUid)).map(d=>{
-        const votedCount=(d.recipients||[]).filter(rid=>(d.slots||[]).some(s=>s?.votes?.[rid])).length;
+        const votedCount=(d.recipients||[]).filter(rid=>toSlotsArray(d.slots).some(s=>s?.votes?.[rid])).length;
         const borderCol = d.status==="open" ? "var(--teal)" : "var(--border2)";
         return html`
           <div key=${d.id} style=${{background:"var(--surface)",borderRadius:"0 var(--radius) var(--radius) 0",boxShadow:"var(--shadow)",padding:"16px 18px",marginBottom:12,borderLeft:"3px solid "+borderCol,border:"1px solid var(--border2)",borderLeftWidth:"3px",borderLeftColor:borderCol,opacity:d.status==="closed"?.7:1,transition:"transform .15s"}} onMouseEnter=${e=>e.currentTarget.style.transform="translateY(-1px)"} onMouseLeave=${e=>e.currentTarget.style.transform=""}>
@@ -3415,7 +3423,7 @@ function DoodlePage({doodles,setDoodles,coachees,adminUid}) {
               <span class=${"status-pill "+(d.status==="open"?"status-open":"status-closed")}>${d.status==="open"?"Offen":"Abgeschlossen"}</span>
             </div>
             <div style=${{display:"flex",alignItems:"center",gap:12,marginBottom:14}}>              <div style=${{textAlign:"center"}}>
-                <div style=${{fontSize:"1.2rem",fontWeight:700,color:"var(--teal)",lineHeight:1}}>${(d.slots||[]).length}</div>
+                <div style=${{fontSize:"1.2rem",fontWeight:700,color:"var(--teal)",lineHeight:1}}>${toSlotsArray(d.slots).length}</div>
                 <div style=${{fontSize:".72rem",color:"var(--muted)",marginTop:2}}>Vorschläge</div>
               </div>
               <div style=${{width:1,height:32,background:"var(--border)"}}></div>
@@ -3534,7 +3542,7 @@ function DoodlePage({doodles,setDoodles,coachees,adminUid}) {
               <button style=${{background:"none",border:"none",cursor:"pointer",color:"var(--muted)",padding:4,borderRadius:8,display:"flex"}} onClick=${()=>setShowResults(null)}>${h(Ic,{name:"x",size:20})}</button>
             </div>
             <div style=${{padding:"14px 18px",overflowY:"auto",flex:1,display:"flex",flexDirection:"column",gap:8}}>
-              ${(resultDoodle.slots||[]).map((s,i)=>{
+              ${toSlotsArray(resultDoodle.slots).map((s,i)=>{
                 if(!s) return null;
                 const best=bestSlotIdx(resultDoodle);
                 const isBest=i===best&&Object.values(s.votes||{}).some(v=>v==="yes");
