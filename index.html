@@ -1,4 +1,4 @@
-<!-- Version: 2026-06-25 18:57 coachee -->
+<!-- Version: 2026-06-25 19:09 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -3409,6 +3409,7 @@ function toSlotsArray(slots) {
 }
 function fmtDt(dt) {
   const d=new Date(dt);
+  if(isNaN(d.getTime())) return "Datum ungültig";
   const days=["So","Mo","Di","Mi","Do","Fr","Sa"];
   const months=["Jan","Feb","Mär","Apr","Mai","Jun","Jul","Aug","Sep","Okt","Nov","Dez"];
   return days[d.getDay()]+", "+d.getDate()+". "+months[d.getMonth()]+" · "+
