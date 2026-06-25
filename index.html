@@ -1,4 +1,4 @@
-<!-- Version: 2026-06-25 18:30 coachee -->
+<!-- Version: 2026-06-25 18:38 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -3426,6 +3426,7 @@ function icsDataUrl(dt, title, details, durationMin=120) {
 function bestSlotIdx(doodle) {
   let best=-1,bestCount=-1;
   (doodle.slots||[]).forEach((s,i)=>{
+    if(!s) return;
     const yes=Object.values(s.votes||{}).filter(v=>v==="yes").length;
     if(yes>bestCount){bestCount=yes;best=i;}
   });
@@ -3485,7 +3486,7 @@ function DoodlePage({user,doodles,setDoodles,coachees,events}) {
     const votes=coacheeVotes[did]||{};
     // Lokalen State aktualisieren (sofortiges UI-Feedback) — unverändert wie zuvor
     setDoodles(ds=>ds.map(x=>x.id!==did?x:{...x,
-      slots:(x.slots||[]).map((s,i)=>votes[i]&&uid?{...s,votes:{...s.votes,[uid]:votes[i]}}:s)
+      slots:(x.slots||[]).map((s,i)=>s&&votes[i]&&uid?{...s,votes:{...s.votes,[uid]:votes[i]}}:s)
     }));
     // Firestore: NUR den eigenen Vote-Pfad je Slot schreiben (kein .set() des ganzen Dokuments).
     // Schreibt gezielt slots.<index>.votes.<uid> statt das komplette Doodle zu überschreiben —
@@ -3551,7 +3552,7 @@ function DoodlePage({user,doodles,setDoodles,coachees,events}) {
               ? (() => {
                   if(d.status==="closed") {
                     const slots = d.slots||[];
-                    const bestIdx = d.confirmedSlot!=null ? d.confirmedSlot : slots.reduce((bi,s,i)=>Object.keys(s.votes||{}).length>Object.keys(slots[bi]?.votes||{}).length?i:bi, 0);
+                    const bestIdx = d.confirmedSlot!=null ? d.confirmedSlot : slots.reduce((bi,s,i)=>Object.keys(s?.votes||{}).length>Object.keys(slots[bi]?.votes||{}).length?i:bi, 0);
                     const best = slots[bestIdx];
                     if(!best) return html`<div style=${{textAlign:"center",padding:"24px 0",color:"var(--muted)"}}><p>Termindaten konnten nicht geladen werden.</p></div>`;
                     const dismissDoodle = (did) => {
@@ -3586,6 +3587,7 @@ function DoodlePage({user,doodles,setDoodles,coachees,events}) {
                 <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.05rem",fontWeight:700,color:"var(--text)",marginBottom:4}}>${d.title}</div>
                 <div style=${{fontSize:".83rem",color:"var(--muted)",marginBottom:14}}>${d.desc}</div>
                 ${(d.slots||[]).map((s,i)=>{
+                  if(!s) return null;
                   const v=(coacheeVotes[d.id]||{})[i];
                   return html`
                     <div key=${i} class=${"vote-row-c"+(v==="yes"?" sel-yes":v==="no"?" sel-no":"")}>
@@ -3660,6 +3662,7 @@ function DoodlePage({user,doodles,setDoodles,coachees,events}) {
               <div style=${{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4}}><h2 class="modal-title" style=${{marginBottom:0}}>${d.title} — Ergebnisse</h2><button style=${{background:"none",border:"none",cursor:"pointer",color:"var(--muted)",padding:4,borderRadius:8,display:"flex"}} onClick=${()=>setShowResults(null)}><${Ic} name="x" size=${20}/></button></div>
               <p style=${{fontSize:".83rem",color:"var(--muted)",marginBottom:14}}>${d.desc}</p>
               ${(d.slots||[]).map((s,i)=>{
+                if(!s) return null;
                 const yesV=(d.recipients||[]).filter(rid=>(s.votes||{})[rid]==="yes");
                 const isBest=i===best&&yesV.length>0;
                 return html`
