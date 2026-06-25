@@ -1,4 +1,4 @@
-<!-- Version: 2026-06-24 17:21 coachee -->
+<!-- Version: 2026-06-25 10:58 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -4055,7 +4055,24 @@ function AppGate({user}) {
     const firestore = window._fb?.db;
     if(!firestore) { setUserDoc(null); return; }
     firestore.collection("users").doc(user.uid).get()
-      .then(snap => setUserDoc(snap.exists ? snap.data() : null))
+      .then(async snap => {
+        if(snap.exists) { setUserDoc(snap.data()); return; }
+        // Kein users-Dokument vorhanden — prüfen, ob ein passender users_pending-Eintrag
+        // (angelegt von Diana/Rico in der Admin-App) per E-Mail-Adresse geclaimt werden kann.
+        const email = user.email;
+        if(!email) { setUserDoc(null); return; }
+        try {
+          const pendingSnap = await firestore.collection("users_pending").doc(email).get();
+          if(!pendingSnap.exists) { setUserDoc(null); return; }
+          const pendingData = pendingSnap.data();
+          const newDoc = {...pendingData, uid:user.uid, status:"active"};
+          await firestore.collection("users").doc(user.uid).set(newDoc);
+          await firestore.collection("users_pending").doc(email).delete().catch(()=>{});
+          setUserDoc(newDoc);
+        } catch(e) {
+          setUserDoc(null);
+        }
+      })
       .catch(() => setUserDoc(null));
   }, [user.uid]);
 
