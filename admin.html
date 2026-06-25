@@ -1,4 +1,4 @@
-<!-- Version: 2026-06-25 13:24 admin -->
+<!-- Version: 2026-06-25 15:29 admin -->
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -1019,6 +1019,12 @@ window.addEventListener('orientationchange', ()=>setTimeout(setVH,150));
 .login-card { background:var(--surface); border-radius:20px; padding:36px 32px; width:100%; max-width:400px; box-shadow:var(--shadow2); margin:auto 0; }
 .login-logo { display:flex; flex-direction:column; align-items:center; text-align:center; margin-bottom:28px; }
 
+/* Login Desktop: vollständig in der Bildschirmmitte statt oben ausgerichtet */
+@media (min-width: 769px) {
+  .login-wrap { align-items:center; }
+  .login-card { margin:0; }
+}
+
 /* Mobile: sidebar hidden, bottom nav shown */
 @media (max-width: 768px) {
   .app-layout { flex-direction: column; }
@@ -1611,7 +1617,7 @@ function DashboardPage({coachees,library,doodles,setPage,user}) {
         <div>
           <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.3rem",fontWeight:700,color:"var(--text)"}}>${greeting}</div>
           <div style=${{fontSize:".88rem",color:"var(--muted)",marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"calc(100vw - 120px)"}}>Admin-Portal · Raum für Selbstwirksamkeit</div>
-          <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-06-25 13:24 · Doku v3.43 · 2026-06-25 10:58
+          <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-06-25 15:29 · Doku v3.44 · 2026-06-25 13:24
           </div>
         </div>
       </div>

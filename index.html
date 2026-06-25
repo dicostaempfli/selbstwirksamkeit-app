@@ -1,4 +1,4 @@
-<!-- Version: 2026-06-25 13:24 coachee -->
+<!-- Version: 2026-06-25 15:29 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -3743,7 +3743,7 @@ function LoginPage({ onLogin }) {
 
   return html`
     <div style=${{
-      minHeight:"100vh", display:"flex", alignItems:"center", justifyContent:"center",
+      minHeight:"100vh", width:"100%", display:"flex", alignItems:"center", justifyContent:"center",
       background:"var(--bg)", padding:"24px"
     }}>
       <div style=${{
@@ -3925,7 +3925,7 @@ function PendingScreen({user}) {
     if(fbAuth) fbAuth.signOut().catch(()=>{});
   };
   return html`
-    <div style=${{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",minHeight:"100vh",background:"var(--bg)",padding:"32px 24px",textAlign:"center"}}>
+    <div style=${{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",minHeight:"100vh",width:"100%",background:"var(--bg)",padding:"32px 24px",textAlign:"center"}}>
       <${Wordmark} dark=${true} height=${48}/>
       <div style=${{marginTop:32,width:64,height:64,borderRadius:"50%",background:"var(--accent-pale)",display:"flex",alignItems:"center",justifyContent:"center"}}>
         <${Ic} name="clock" size=${28} color="var(--teal)"/>
@@ -3978,7 +3978,7 @@ function Root() {
   }, []);
 
   if(!authReady) return html`
-    <div style=${{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",flexDirection:"column",gap:16,background:"var(--bg)"}}>
+    <div style=${{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",width:"100%",flexDirection:"column",gap:16,background:"var(--bg)"}}>
       <${Wordmark} dark=${true} height=${52}/>
       <div style=${{width:36,height:36,borderRadius:"50%",border:"3px solid var(--border)",borderTopColor:"var(--teal)",animation:"spin .8s linear infinite"}}/>
     </div>`;
@@ -4007,7 +4007,7 @@ function PrivacyScreen({user, onAccept}) {
   const btnBg = checked ? "var(--teal)" : "var(--neutral)";
 
   return html`
-    <div style=${{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",minHeight:"100vh",background:"var(--bg)",padding:"32px 20px"}}>
+    <div style=${{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",minHeight:"100vh",width:"100%",background:"var(--bg)",padding:"32px 20px"}}>
       <div style=${{width:"100%",maxWidth:420,display:"flex",flexDirection:"column",alignItems:"center"}}>
         <${Wordmark} dark=${true} height=${44}/>
         <div style=${{marginTop:24,width:52,height:52,borderRadius:"50%",background:"var(--accent-pale)",display:"flex",alignItems:"center",justifyContent:"center"}}>
@@ -4077,7 +4077,7 @@ function AppGate({user}) {
   }, [user.uid]);
 
   if(userDoc === undefined) return html`
-    <div style=${{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",flexDirection:"column",gap:16,background:"var(--bg)"}}>
+    <div style=${{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",width:"100%",flexDirection:"column",gap:16,background:"var(--bg)"}}>
       <${Wordmark} dark=${true} height=${52}/>
       <div style=${{width:36,height:36,borderRadius:"50%",border:"3px solid var(--border)",borderTopColor:"var(--teal)",animation:"spin .8s linear infinite"}}/>
     </div>`;
