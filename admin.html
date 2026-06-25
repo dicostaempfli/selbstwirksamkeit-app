@@ -1,4 +1,4 @@
-<!-- Version: 2026-06-24 19:09 admin -->
+<!-- Version: 2026-06-25 10:58 admin -->
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -1611,7 +1611,7 @@ function DashboardPage({coachees,library,doodles,setPage,user}) {
         <div>
           <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.3rem",fontWeight:700,color:"var(--text)"}}>${greeting}</div>
           <div style=${{fontSize:".88rem",color:"var(--muted)",marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"calc(100vw - 120px)"}}>Admin-Portal · Raum für Selbstwirksamkeit</div>
-          <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-06-24 19:09 · Doku v3.42 · 2026-06-24 17:35
+          <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-06-25 10:58 · Doku v3.43 · 2026-06-25 10:58
           </div>
         </div>
       </div>
@@ -2275,28 +2275,10 @@ function ChatWindow({coachee,onSend,onSendImg,onSendFile,onDeleteMsg,onBack,mobi
 
 function CoacheesPage({coachees,setCoachees,setPage,pending,setPending,deleted,setDeleted}) {
   const [showAdd,setShowAdd]         = useState(false);
-  const [form,setForm]               = useState({firstname:"",lastname:"",email:"",password:"",notes:"",modell:"",coaching:[],kids:false,gender:[]});
+  const [form,setForm]               = useState({firstname:"",lastname:"",email:"",notes:"",modell:"",coaching:[],kids:false,gender:[]});
   const [editId,setEditId]           = useState(null);
   const [showEmail,setShowEmail]     = useState(null);
-  const [activateUid,setActivateUid] = useState("");
   const [editForm,setEditForm]       = useState({});
-  const [activatingId,setActivatingId] = useState(null); // docId of pending being activated
-  const [pendingUids,setPendingUids]   = useState({});   // {docId: uid}
-
-  const activatePending = (p) => {
-    const uid = (pendingUids[p.docId]||"").trim();
-    if(uid.length < 10) return;
-    const firestore = db();
-    if(!firestore) return;
-    firestore.collection("users").doc(uid).set({
-      ...p, uid, status:"active"
-    }).then(() => {
-      firestore.collection("users_pending").doc(p.docId).delete().catch(()=>{});
-      showToast("✓ " + p.name + " aktiviert!");
-      setActivatingId(null);
-      setPendingUids(m => { const n={...m}; delete n[p.docId]; return n; });
-    }).catch(err => showToast("Fehler: " + err.message));
-  };
 
   const fmtDate = (iso) => {
     if(!iso) return "–";
@@ -2338,34 +2320,18 @@ function CoacheesPage({coachees,setCoachees,setPage,pending,setPending,deleted,s
   const pendingSection = pending && pending.length > 0 ? h("div", {style:{marginBottom:24}},
     h("div", {style:{fontFamily:"'Manuale',serif",fontSize:"1rem",fontWeight:700,color:"var(--teal)",marginBottom:10,display:"flex",alignItems:"center",gap:8}},
       h("span", {style:{background:"var(--teal)",color:"#fff",borderRadius:"99px",padding:"1px 9px",fontSize:".78rem",fontWeight:700}}, pending.length),
-      "Neue Anfragen"
+      "Noch nicht registriert"
     ),
+    h("p", {style:{fontSize:".78rem",color:"var(--muted)",marginBottom:10,marginTop:-4}}, "Diese Coachees haben die Willkommens-E-Mail erhalten, sich aber noch nicht selbst registriert. Sobald sie das tun, werden sie automatisch freigeschaltet."),
     pending.map(p => h("div", {key:p.docId, style:{background:"var(--surface)",border:"0.5px solid var(--border)",borderRadius:14,padding:"14px 16px",marginBottom:10}},
-      h("div", {style:{display:"flex",alignItems:"center",gap:10,marginBottom:8}},
+      h("div", {style:{display:"flex",alignItems:"center",gap:10}},
         h("div", {style:{width:36,height:36,borderRadius:"50%",background:"var(--accent-pale)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}},
           h("span", {style:{fontWeight:700,color:"var(--teal)",fontSize:".85rem"}}, (p.name||"?").split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase())
         ),
         h("div", {style:{flex:1,minWidth:0}},
           h("div", {style:{fontWeight:700,color:"var(--text)",fontSize:".92rem"}}, p.name||"–"),
           h("div", {style:{color:"var(--muted)",fontSize:".78rem",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}, p.email||"")
-        ),
-        h("button", {
-          onClick: () => setActivatingId(activatingId===p.docId ? null : p.docId),
-          style:{height:32,padding:"0 14px",background:"var(--teal)",color:"#fff",border:"none",borderRadius:8,fontWeight:700,fontFamily:"'Exo 2',sans-serif",fontSize:".78rem",cursor:"pointer",whiteSpace:"nowrap"}
-        }, activatingId===p.docId ? "Abbrechen" : "⚡ Freischalten")
-      ),
-      activatingId===p.docId && h("div", {style:{marginTop:4,display:"flex",gap:8,alignItems:"center"}},
-        h("input", {
-          value: pendingUids[p.docId]||"",
-          onInput: e => setPendingUids(m=>({...m,[p.docId]:e.target.value.trim()})),
-          placeholder: "Firebase UID (z.B. GnoCR1t4ls...)",
-          style:{flex:1,height:36,border:"1.5px solid var(--border2)",borderRadius:8,padding:"0 10px",fontFamily:"monospace",fontSize:".75rem",background:"var(--bg)",color:"var(--text)",outline:"none"}
-        }),
-        h("button", {
-          disabled: (pendingUids[p.docId]||"").length < 10,
-          onClick: () => activatePending(p),
-          style:{height:36,padding:"0 14px",background:(pendingUids[p.docId]||"").length>=10?"var(--teal)":"var(--border)",color:(pendingUids[p.docId]||"").length>=10?"#fff":"var(--muted)",border:"none",borderRadius:8,fontWeight:700,fontFamily:"'Exo 2',sans-serif",fontSize:".78rem",cursor:(pendingUids[p.docId]||"").length>=10?"pointer":"default",transition:"background .2s",whiteSpace:"nowrap"}
-        }, "Aktivieren")
+        )
       )
     ))
   ) : null;
@@ -2375,25 +2341,22 @@ function CoacheesPage({coachees,setCoachees,setPage,pending,setPending,deleted,s
     if(!fname||!form.email.trim()) return;
     const fullname = [fname, form.lastname.trim()].filter(Boolean).join(" ");
     const initials = fullname.split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase();
-    const pw = form.password.trim() || "Selbstwirksamkeit2026!";
+    const emailNorm = form.email.trim().toLowerCase();
     const firestore = db();
     const pendingData = {
-      name:fullname, email:form.email.trim(),
+      name:fullname, email:emailNorm,
       packageType:(form.coaching||[])[0]?.toLowerCase()||form.modell?.toLowerCase()||"einzel",
       coaching:form.coaching||[], gender:form.gender||[],
       categories:[...(form.coaching||[]),...(form.gender||[])],
       modell:form.modell, notes:form.notes, kids:form.kids,
       activePhase:1, createdAt:Date.now()
     };
-    let pendingDocId = null;
     if(firestore) {
-      firestore.collection("users_pending").add(pendingData)
-        .then(docRef=>{ pendingDocId = docRef.id; setShowEmail(e=>({...e,pendingDocId,pendingData})); })
-        .catch(()=>{});
+      firestore.collection("users_pending").doc(emailNorm).set(pendingData).catch(()=>{});
     }
-    setShowEmail({name:fullname, email:form.email.trim(), password:pw, pendingDocId:null, pendingData});
+    setShowEmail({name:fullname, email:emailNorm, pendingData});
     setShowAdd(false);
-    setForm({firstname:"",lastname:"",email:"",password:"",notes:"",modell:"",coaching:[],kids:false,gender:[]});
+    setForm({firstname:"",lastname:"",email:"",notes:"",modell:"",coaching:[],kids:false,gender:[]});
   };
 
   const openEdit = (c) => { setEditId(c.id); setEditForm({firstname:c.name.split(" ")[0]||"",lastname:c.name.split(" ").slice(1).join(" ")||"",notes:c.notes||"",modell:c.modell||"",coaching:c.coaching||"",kids:c.kids||false,gender:c.gender||""}); };
@@ -2435,20 +2398,17 @@ function CoacheesPage({coachees,setCoachees,setPage,pending,setPending,deleted,s
   const showEmailModal = showEmail ? h("div",{style:{position:"fixed",inset:0,background:"rgba(0,0,0,0.45)",zIndex:300,display:"flex",alignItems:"center",justifyContent:"center",padding:"20px"}},
         h("div",{style:{background:"var(--surface)",borderRadius:18,padding:28,maxWidth:560,width:"100%",maxHeight:"90dvh",overflowY:"auto",boxShadow:"0 8px 40px rgba(0,0,0,.18)"}},
           h("div",{style:{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16}},
-            h("div",{style:{fontFamily:"'Manuale',serif",fontSize:"1.15rem",fontWeight:700,color:"var(--text)"}},"\u00dcbersicht & Aktivierung"),
-            h("button",{onClick:()=>{setShowEmail(null);setActivateUid("");},style:{background:"none",border:"none",cursor:"pointer",color:"var(--muted)",fontSize:"1.3rem"}},"\u2715")
+            h("div",{style:{fontFamily:"'Manuale',serif",fontSize:"1.15rem",fontWeight:700,color:"var(--text)"}},"Willkommens-E-Mail"),
+            h("button",{onClick:()=>{setShowEmail(null);},style:{background:"none",border:"none",cursor:"pointer",color:"var(--muted)",fontSize:"1.3rem"}},"\u2715")
           ),
           h("div",{style:{background:"var(--sage-pale)",border:"1px solid var(--border)",borderRadius:12,padding:"14px 16px",marginBottom:16,fontSize:".82rem",color:"var(--muted)",lineHeight:1.6}},
-            h("strong",{style:{color:"var(--forest)",display:"block",marginBottom:6}},"\u26a0\ufe0f Noch zu tun: Firebase Auth-User anlegen"),
-            h("span",null,"Gehe zu "),
-            h("a",{href:"https://console.firebase.google.com/project/selbstwirksamkeits-app/authentication/users",target:"_blank",rel:"noopener",style:{color:"var(--teal)",fontWeight:700}},"Firebase Console \u2192 Authentication"),
-            h("span",null," \u2192 \u00abNutzer hinzuf\u00fcgen\u00bb \u2192 E-Mail: "),
+            h("strong",{style:{color:"var(--forest)",display:"block",marginBottom:6}},"\u2713 Nichts weiter zu tun"),
+            h("span",null,"Der Coachee registriert sich beim ersten App-Start selbst mit "),
             h("strong",null,showEmail&&showEmail.email),
-            h("span",null," \u00b7 Passwort: "),
-            h("strong",null,showEmail&&showEmail.password)
+            h("span",null," und einem eigenen Passwort. Sein Zugang wird dabei automatisch freigeschaltet — du musst nichts mehr in der Firebase Console eintragen.")
           ),
           h("div",{className:"email-copy-area",style:{background:"var(--bg)",border:"1.5px solid var(--border)",borderRadius:12,padding:"16px 18px",fontFamily:"Georgia,serif",fontSize:".88rem",lineHeight:1.9,color:"var(--text)",whiteSpace:"pre-wrap",userSelect:"all",marginBottom:16}},
-            showEmail&&("Liebe/r "+showEmail.name+"\n\nHerzlich willkommen bei Raum f\u00fcr Selbstwirksamkeit!\n\nWir freuen uns sehr, dich auf diesem Weg begleiten zu d\u00fcrfen. Deine pers\u00f6nliche Coaching-App ist jetzt f\u00fcr dich freigeschaltet.\n\nBevor du startest, schau dir gerne kurz an, wie die App funktioniert:\nhttps://dicostaempfli.github.io/selbstwirksamkeit-app/onboarding.html\n\nSo gelangst du zur App:\nhttps://dicostaempfli.github.io/selbstwirksamkeit-app/\n\nDeine Zugangsdaten:\nE-Mail: "+showEmail.email+"\nPasswort: "+showEmail.password+"\n\nWas dich erwartet:\n\u2022 Tages-Impuls \u2014 ein t\u00e4glicher Impuls vom Denken ins F\u00fchlen\n\u2022 Atemball \u2014 dein t\u00e4gliches Ritual zur Zentrierung\n\u2022 Meine Impulse \u2014 deine eigenen, wiederkehrenden Impulse\n\u2022 Chat \u2014 direkte Verbindung zu uns\n\nDie App ist bewusst einfach gehalten \u2014 kein Zeitfresser, sondern ein sanfter Anker im Alltag.\n\nWir freuen uns auf den gemeinsamen Weg.\n\nHerzlich,\nDiana & Rico\nRaum f\u00fcr Selbstwirksamkeit\nwww.selbstwirksamkeit.ch")
+            showEmail&&("Liebe/r "+showEmail.name+"\n\nHerzlich willkommen bei Raum f\u00fcr Selbstwirksamkeit!\n\nWir freuen uns sehr, dich auf diesem Weg begleiten zu d\u00fcrfen. Deine pers\u00f6nliche Coaching-App ist jetzt f\u00fcr dich freigeschaltet.\n\nBevor du startest, schau dir gerne kurz an, wie die App funktioniert:\nhttps://dicostaempfli.github.io/selbstwirksamkeit-app/onboarding.html\n\nSo gelangst du zur App:\nhttps://dicostaempfli.github.io/selbstwirksamkeit-app/\n\nRichte dort deinen Zugang ein — mit deiner E-Mail-Adresse ("+showEmail.email+") und einem Passwort deiner Wahl. Alternativ geht es auch direkt mit deinem Google-Konto.\n\nWas dich erwartet:\n\u2022 Tages-Impuls \u2014 ein t\u00e4glicher Impuls vom Denken ins F\u00fchlen\n\u2022 Atemball \u2014 dein t\u00e4gliches Ritual zur Zentrierung\n\u2022 Meine Impulse \u2014 deine eigenen, wiederkehrenden Impulse\n\u2022 Chat \u2014 direkte Verbindung zu uns\n\nDie App ist bewusst einfach gehalten \u2014 kein Zeitfresser, sondern ein sanfter Anker im Alltag.\n\nWir freuen uns auf den gemeinsamen Weg.\n\nHerzlich,\nDiana & Rico\nRaum f\u00fcr Selbstwirksamkeit\nwww.selbstwirksamkeit.ch")
           ),
           h("div",{style:{display:"flex",gap:10}},
             h("button",{
@@ -2458,40 +2418,7 @@ function CoacheesPage({coachees,setCoachees,setPage,pending,setPending,deleted,s
               },
               style:{flex:1,height:42,background:"var(--teal)",color:"#fff",border:"none",borderRadius:10,fontWeight:700,fontFamily:"'Exo 2',sans-serif",fontSize:".85rem",cursor:"pointer"}
             },"E-Mail-Text kopieren"),
-            h("button",{onClick:()=>{setShowEmail(null);setActivateUid("");},style:{height:42,padding:"0 18px",background:"none",border:"1.5px solid var(--border2)",borderRadius:10,fontWeight:700,fontFamily:"'Exo 2',sans-serif",fontSize:".85rem",cursor:"pointer",color:"var(--muted)"}},"Schliessen")
-          ),
-          h("div",{style:{marginTop:20,padding:"16px 18px",background:"var(--bg)",border:"1.5px solid var(--border)",borderRadius:12}},
-            h("div",{style:{fontWeight:700,fontSize:".85rem",color:"var(--text)",marginBottom:6}},"\u2192 Schritt 2: Coachee aktivieren"),
-            h("div",{style:{fontSize:".8rem",color:"var(--muted)",marginBottom:10,lineHeight:1.5}},"Nachdem du den Firebase-Auth-User angelegt hast, erscheint die UID in der Firebase Console. Trage sie hier ein — der Coachee wird sofort freigeschaltet."),
-            h("div",{style:{display:"flex",gap:8,alignItems:"center"}},
-              h("input",{
-                value:activateUid,
-                onInput:e=>setActivateUid(e.target.value.trim()),
-                placeholder:"Firebase UID (z.B. GnoCR1t4ls...)",
-                style:{flex:1,height:38,border:"1.5px solid var(--border2)",borderRadius:8,padding:"0 12px",fontFamily:"monospace",fontSize:".78rem",background:"var(--surface)",color:"var(--text)",outline:"none"}
-              }),
-              h("button",{
-                disabled:activateUid.length < 10,
-                onClick:()=>{
-                  const uid = activateUid.trim();
-                  if(uid.length < 10) return;
-                  const firestore = db();
-                  if(!firestore) return;
-                  const data = showEmail.pendingData;
-                  firestore.collection("users").doc(uid).set({
-                    ...data, uid, status:"active"
-                  }).then(()=>{
-                    if(showEmail.pendingDocId) {
-                      firestore.collection("users_pending").doc(showEmail.pendingDocId).delete().catch(()=>{});
-                    }
-                    showToast("\u2713 "+data.name+" aktiviert!");
-                    setShowEmail(null);
-                    setActivateUid("");
-                  }).catch(err=>{showToast("Fehler: "+err.message);});
-                },
-                style:{height:38,padding:"0 16px",background:activateUid.length>=10?"var(--teal)":"var(--border)",color:activateUid.length>=10?"#fff":"var(--muted)",border:"none",borderRadius:8,fontWeight:700,fontFamily:"'Exo 2',sans-serif",fontSize:".82rem",cursor:activateUid.length>=10?"pointer":"default",whiteSpace:"nowrap",transition:"background .2s"}
-              },"\u26a1 Aktivieren")
-            )
+            h("button",{onClick:()=>{setShowEmail(null);},style:{height:42,padding:"0 18px",background:"none",border:"1.5px solid var(--border2)",borderRadius:10,fontWeight:700,fontFamily:"'Exo 2',sans-serif",fontSize:".85rem",cursor:"pointer",color:"var(--muted)"}},"Schliessen")
           )
           )
         ) : null;
@@ -2575,10 +2502,6 @@ function CoacheesPage({coachees,setCoachees,setPage,pending,setPending,deleted,s
             <div class="form-row">
               <label class="label">E-Mail *</label>
               <input class="input" type="email" value=${form.email} onInput=${e=>setForm(f=>({...f,email:e.target.value}))} placeholder="anna.meier@example.ch"/>
-            </div>
-            <div class="form-row">
-              <label class="label">Passwort <span style=${{fontSize:".7rem",fontWeight:400,textTransform:"none",color:"var(--muted)"}}>— leer = automatisch</span></label>
-              <input class="input" value=${form.password} onInput=${e=>setForm(f=>({...f,password:e.target.value}))} placeholder="Selbstwirksamkeit2026!"/>
             </div>
             <div class="form-row">
               <label class="label">Bemerkungen</label>
