@@ -1,4 +1,4 @@
-<!-- Version: 2026-06-25 12:19 coachee -->
+<!-- Version: 2026-06-25 13:24 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -4060,28 +4060,20 @@ function AppGate({user}) {
         // Kein users-Dokument vorhanden — prüfen, ob ein passender users_pending-Eintrag
         // (angelegt von Diana/Rico in der Admin-App) per E-Mail-Adresse geclaimt werden kann.
         const email = user.email;
-        console.log("[Claim-Debug] user.uid:", user.uid, "user.email:", email);
-        if(!email) { console.log("[Claim-Debug] Keine E-Mail am Auth-User vorhanden, Abbruch."); setUserDoc(null); return; }
+        if(!email) { setUserDoc(null); return; }
         try {
           const pendingSnap = await firestore.collection("users_pending").doc(email).get();
-          console.log("[Claim-Debug] pendingSnap.exists:", pendingSnap.exists, "Pfad:", "users_pending/"+email);
-          if(!pendingSnap.exists) { console.log("[Claim-Debug] Kein passender Pending-Eintrag gefunden."); setUserDoc(null); return; }
+          if(!pendingSnap.exists) { setUserDoc(null); return; }
           const pendingData = pendingSnap.data();
-          console.log("[Claim-Debug] pendingData:", JSON.stringify(pendingData));
           const newDoc = {...pendingData, uid:user.uid, status:"active"};
-          console.log("[Claim-Debug] Versuche users/"+user.uid+" zu erstellen mit:", JSON.stringify(newDoc));
           await firestore.collection("users").doc(user.uid).set(newDoc);
-          console.log("[Claim-Debug] users-Dokument erfolgreich erstellt!");
-          await firestore.collection("users_pending").doc(email).delete()
-            .then(()=>console.log("[Claim-Debug] users_pending-Eintrag gelöscht."))
-            .catch(e=>console.log("[Claim-Debug] Löschen von users_pending fehlgeschlagen:", e.message));
+          await firestore.collection("users_pending").doc(email).delete().catch(()=>{});
           setUserDoc(newDoc);
         } catch(e) {
-          console.log("[Claim-Debug] FEHLER beim Claim-Versuch:", e.code, e.message);
           setUserDoc(null);
         }
       })
-      .catch(e => { console.log("[Claim-Debug] Fehler beim initialen users-Lookup:", e.code, e.message); setUserDoc(null); });
+      .catch(() => setUserDoc(null));
   }, [user.uid]);
 
   if(userDoc === undefined) return html`
