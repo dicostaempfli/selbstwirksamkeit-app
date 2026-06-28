@@ -1,7 +1,7 @@
 // Service Worker — Raum für Selbstwirksamkeit
-// Version: 2026-06-28 17:43
+// Version: 2026-06-28 17:51
 
-const VERSION = '2026-06-28-1743';
+const VERSION = '2026-06-28-1751';
 
 // Bei Install: sofort aktivieren ohne auf alten SW zu warten
 self.addEventListener('install', e => {
@@ -52,19 +52,21 @@ self.addEventListener('push', e => {
 
 self.addEventListener('notificationclick', e => {
   e.notification.close();
-  const url = e.notification.data?.url || './';
+  // Absolute URL bauen statt relativem Pfad: ein relativer Pfad wie "#chat" würde sich
+  // sonst auf die zuletzt bekannte URL des fokussierten Clients beziehen — z.B. fälschlich
+  // sw.js#chat, falls irgendein Tab zuvor sw.js direkt angezeigt hat (Service-Worker-Scope
+  // gilt für die ganze Origin, nicht nur für Tabs, die index.html zeigten).
+  const relPath = e.notification.data?.url || './';
+  const absoluteUrl = new URL(relPath, self.registration.scope).href;
   e.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then(windowClients => {
       for(const client of windowClients) {
         if('focus' in client) {
-          // Nach Fokus zusätzlich zur passenden Seite navigieren (z.B. #chat) —
-          // reines focus() lässt sonst die zuvor offene Seite im Tab stehen,
-          // unabhängig davon, welcher Bereich der App dort gerade angezeigt wurde.
-          if('navigate' in client) client.navigate(url).catch(()=>{});
+          if('navigate' in client) client.navigate(absoluteUrl).catch(()=>{});
           return client.focus();
         }
       }
-      if(clients.openWindow) return clients.openWindow(url);
+      if(clients.openWindow) return clients.openWindow(absoluteUrl);
     })
   );
 });
