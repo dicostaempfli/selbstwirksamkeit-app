@@ -1,4 +1,4 @@
-<!-- Version: 2026-06-28 16:42 coachee -->
+<!-- Version: 2026-06-28 17:21 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -1339,11 +1339,24 @@ function urlBase64ToUint8Array(base64String) {
 
 // Erzeugt eine echte Push-Subscription (für Push bei geschlossener App) und speichert sie
 // pro Coachee in Firestore — die Cloud Function liest diese Subscriptions beim Versand.
+// Prüft den Public Key der bestehenden Browser-Subscription gegen den aktuellen PUSH_VAPID_KEY:
+// bei VAPID-Schlüsselwechsel (z.B. nach einem Secret-Reset) bleibt sonst eine alte, nicht mehr
+// passende Subscription im Browser/Service-Worker bestehen (unsubscribe() ist nötig, getSubscription()
+// allein liefert sonst die alte Subscription unverändert zurück → VapidPkHashMismatch beim Versand).
 async function subscribeToPush(uid) {
   try {
     if(!PUSH_VAPID_KEY || !uid) return;
     const reg = await navigator.serviceWorker.ready;
     let sub = await reg.pushManager.getSubscription();
+    if(sub) {
+      const currentKey = urlBase64ToUint8Array(PUSH_VAPID_KEY);
+      const subKey = new Uint8Array(sub.options?.applicationServerKey || []);
+      const keyMatches = subKey.length === currentKey.length && subKey.every((b,i) => b === currentKey[i]);
+      if(!keyMatches) {
+        await sub.unsubscribe().catch(()=>{});
+        sub = null;
+      }
+    }
     if(!sub) {
       sub = await reg.pushManager.subscribe({
         userVisibleOnly: true,
