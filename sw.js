@@ -1,7 +1,7 @@
 // Service Worker — Raum für Selbstwirksamkeit
-// Version: 2026-06-28 17:51
+// Version: 2026-06-28 18:21
 
-const VERSION = '2026-06-28-1751';
+const VERSION = '2026-06-28-1821';
 
 // Bei Install: sofort aktivieren ohne auf alten SW zu warten
 self.addEventListener('install', e => {
@@ -37,9 +37,13 @@ self.addEventListener('fetch', e => {
 self.addEventListener('push', e => {
   let data = { title: 'Raum für Selbstwirksamkeit', body: 'Du hast eine neue Nachricht.', tag: 'default', url: './' };
   try { if(e.data) data = { ...data, ...e.data.json() }; } catch(err) {}
+  // TEMP-DEBUG: eindeutige Kennung anhängen, um zu prüfen ob derselbe push-Event
+  // zweimal im Service Worker eintrifft (Browser-seitige Doppelzustellung) oder ob
+  // es sich um zwei tatsächlich unterschiedliche Events handelt. Wird nach Diagnose entfernt.
+  const debugId = Math.random().toString(36).slice(2, 7);
   e.waitUntil(
     self.registration.showNotification(data.title, {
-      body: data.body,
+      body: data.body + ' [DBG:' + debugId + ']',
       tag: data.tag,
       icon: './icon-192.png',
       badge: './icon-192.png',
