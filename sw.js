@@ -1,7 +1,7 @@
 // Service Worker — Raum für Selbstwirksamkeit
-// Version: 2026-06-28 18:25
+// Version: 2026-06-28 19:37
 
-const VERSION = '2026-06-28-1825';
+const VERSION = '2026-06-28-1937';
 
 // Bei Install: sofort aktivieren ohne auf alten SW zu warten
 self.addEventListener('install', e => {
@@ -22,7 +22,7 @@ self.addEventListener('message', e => {
 
 // Fetch: index.html und root immer Network-first (nie gecacht)
 self.addEventListener('fetch', e => {
-  const url = e.request.url;
+  const url = e.request.url.split('?')[0].split('#')[0];
   const isHTML = url.endsWith('/') || url.endsWith('/index.html') || url.endsWith('selbstwirksamkeit-app/');
   if(isHTML) {
     e.respondWith(

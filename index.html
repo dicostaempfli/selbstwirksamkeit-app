@@ -1,4 +1,4 @@
-<!-- Version: 2026-06-28 19:02 coachee -->
+<!-- Version: 2026-06-28 19:37 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -67,11 +67,28 @@
     }
   
     // Auto-reload when app comes back to foreground (gets latest version)
+    // Safari/iOS friert PWA-Tabs im Hintergrund ein; ein einfacher reload() kann dann an einem
+    // gerade erst wieder aufwachenden Service Worker "verhungern" (weisser Screen ohne Fehler).
+    // Fix: harter Reload via location.href (umgeht eher den SW-Fetch-Pfad als reload()) + kurzes
+    // Warten auf SW-Bereitschaft mit Timeout-Fallback, damit der Reload nie unbegrenzt blockiert.
+    function hardReload() {
+      const bust = 'rsw_reload=' + Date.now();
+      const url = window.location.href.split('#')[0];
+      const sep = url.includes('?') ? '&' : '?';
+      window.location.href = url + sep + bust + (window.location.hash || '');
+    }
     document.addEventListener('visibilitychange', function() {
       if(document.visibilityState === 'visible') {
         const now = Date.now();
         const last = parseInt(sessionStorage.getItem('lastVisible') || now);
-        if(now - last > 1 * 60 * 1000) window.location.reload(true);
+        if(now - last > 1 * 60 * 1000) {
+          if('serviceWorker' in navigator) {
+            const timeout = new Promise(res => setTimeout(res, 800));
+            Promise.race([navigator.serviceWorker.ready, timeout]).then(hardReload).catch(hardReload);
+          } else {
+            hardReload();
+          }
+        }
         sessionStorage.setItem('lastVisible', now);
       } else {
         sessionStorage.setItem('lastVisible', Date.now());
