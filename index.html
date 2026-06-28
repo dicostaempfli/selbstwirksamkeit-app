@@ -1,4 +1,4 @@
-<!-- Version: 2026-06-28 17:21 coachee -->
+<!-- Version: 2026-06-28 18:09 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -1571,37 +1571,13 @@ function App({ user }) {
     if(pushGranted && user?.uid) subscribeToPush(user.uid);
   }, [pushGranted, user?.uid]);
 
-  // ── Chat Push Listener ──
-  useEffect(() => {
-    if(!user?.uid) return;
-    const fbDb = window._fb?.db;
-    if(!fbDb) return;
-    let lastTs = Date.now();
-    const unsub = fbDb.collection("chats").doc(user.uid).collection("messages")
-      .orderBy("ts","desc").limit(1)
-      .onSnapshot(snap => {
-        if(snap.empty) return;
-        const msg = snap.docs[0].data();
-        const isNew = msg.ts > lastTs;
-        const isFromCoach = msg.from === "admin";
-        if(isNew && isFromCoach && document.visibilityState !== 'visible') {
-          lastTs = msg.ts;
-          // Notification nur wenn Erlaubnis vorhanden
-          // Bewusst ohne Chat-Inhalt: Push-Payloads laufen über externe Zustelldienste,
-          // daher steht hier nie der eigentliche Nachrichtentext (Datenschutz, Lockscreen-Diskretion).
-          if(Notification.permission === 'granted') {
-            showLocalNotification(
-              "Raum für Selbstwirksamkeit",
-              "Neue Nachricht für dich",
-              "chat-" + user.uid,
-              "#chat"
-            );
-          }
-        }
-        if(isNew) lastTs = msg.ts;
-      }, () => {});
-    return () => unsub();
-  }, [user?.uid]);
+  // ── Chat Push Listener: ENTFERNT (Session 28.06.2026) ──
+  // Dieser lokale Mechanismus (showLocalNotification via onSnapshot) lief parallel zur
+  // server-seitigen Cloud Function onChatMessageCreated (Kapitel 24) und erzeugte dadurch
+  // zwei Notifications für eine einzige Chat-Nachricht, sobald die App im Hintergrund
+  // (nicht vollständig beendet) lief: einmal sofort lokal hier, einmal über den echten
+  // Push-Dienst vom Server. Die Cloud Function deckt denselben Fall (App im Hintergrund
+  // oder komplett geschlossen) bereits zuverlässig ab — dieser Listener ist daher überflüssig.
 
   const handleLogoTap = () => {
     const next = tapCount + 1;
