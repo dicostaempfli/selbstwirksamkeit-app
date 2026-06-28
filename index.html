@@ -1,4 +1,4 @@
-<!-- Version: 2026-06-28 16:04 coachee -->
+<!-- Version: 2026-06-28 16:42 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -1326,7 +1326,7 @@ const PUSH_SCOPE  = './';
 // VAPID Public Key (Web Push — kostenlos, kein Server nötig für lokale Notifications)
 // Für echten Server-Push muss hier ein echter VAPID Key eingetragen werden.
 // Für lokale Browser-Notifications (kein Server) wird kein Key benötigt.
-const PUSH_VAPID_KEY = "BCyOPHt6WN6kTWBeaeVuriYCHKSfUIPeLo5K-IyhOiBy3WH5pcsvJ1BfR9U2qe6deIVH5VNAbVHT74oN4Xcjq60"; // Public Key — unbedenklich im Client, da nur zur Verschlüsselung der Subscription verwendet
+const PUSH_VAPID_KEY = "BBCn3O14AGtrDs2x0uADp8OAb3y-66BlJOJe84QnMMnRrVIjq1Ahfnexvz07VqUg7PdKxGKK943U6FD0mCphaiA"; // Public Key — unbedenklich im Client, da nur zur Verschlüsselung der Subscription verwendet
 
 function urlBase64ToUint8Array(base64String) {
   const padding = '='.repeat((4 - base64String.length % 4) % 4);
@@ -1526,7 +1526,6 @@ function App({ user }) {
   const [tapCount,setTapCount]             = useState(0);
   const [showInstallBanner,setShowInstallBanner] = useState(false);
   const [pushGranted,setPushGranted]             = useState(false);
-  const [pushDebugInfo,setPushDebugInfo]         = useState(''); // TEMP-DEBUG: wird nach Diagnose entfernt
   const tapTimer                           = useRef(null);
 
   // ── lastSeen beim App-Start schreiben ──
@@ -1539,13 +1538,6 @@ function App({ user }) {
 
   // ── Push + Install Setup ──
   useEffect(() => {
-    // TEMP-DEBUG: zeigt Diagnose-Status sichtbar an, wird nach Auswertung entfernt
-    try {
-      const notifSupported = 'Notification' in window;
-      setPushDebugInfo(
-        `isPWA=${isPWA()} | standalone=${window.navigator.standalone} | displayMode=${window.matchMedia('(display-mode: standalone)').matches} | NotifSupported=${notifSupported} | permission=${notifSupported ? Notification.permission : 'n/a'}`
-      );
-    } catch(e) { setPushDebugInfo('Debug-Fehler: ' + e.message); }
     // Zeige Install-Banner wenn: iOS + nicht als PWA installiert
     if(isIOS() && !isPWA()) {
       setTimeout(() => setShowInstallBanner(true), 2000);
@@ -1742,9 +1734,6 @@ function App({ user }) {
   ];
 
   return html`
-    ${pushDebugInfo && h("div", {
-      style:{position:"fixed",top:0,left:0,right:0,zIndex:29999,padding:"10px 12px",background:"#fff3cd",borderBottom:"2px solid #e0a800",fontSize:".72rem",color:"#000",lineHeight:1.4,wordBreak:"break-word"}
-    }, "TEMP-DEBUG: " + pushDebugInfo)}
     ${showInstallBanner && h("div", {
       style:{position:"fixed",bottom:0,left:0,right:0,zIndex:19999,padding:"16px 16px 20px",background:"#0f2927",borderTop:"2px solid #1D9E75"}
     },
