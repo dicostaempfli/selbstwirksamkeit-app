@@ -1,4 +1,4 @@
-<!-- Version: 2026-06-28 18:50 admin -->
+<!-- Version: 2026-06-28 18:57 admin -->
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -2005,7 +2005,16 @@ function ChatWindow({coachee,onSend,onSendImg,onSendFile,onDeleteMsg,onBack,mobi
     if(onDeleteMsg) await onDeleteMsg(id);
   };
 
-  useEffect(()=>{ bottomRef.current?.scrollIntoView({behavior:"smooth"}); },[coachee.messages.length]);
+  // Beim Öffnen eines Coachee-Chats (auch beim Wechsel zwischen Coachees) sofort ohne
+  // Animation ans Ende springen — "smooth" allein liess Diana/Rico manchmal mitten in der
+  // Historie landen statt bei der neuesten Nachricht, besonders bei langen Verläufen.
+  // coachee.id als Trigger: wechselt der Coachee, gilt das als "neu öffnen" → kein Smooth-Scroll.
+  const lastCoacheeIdRef = useRef(null);
+  useEffect(()=>{
+    const isNewChat = lastCoacheeIdRef.current !== coachee.id;
+    bottomRef.current?.scrollIntoView({behavior: isNewChat ? "auto" : "smooth"});
+    lastCoacheeIdRef.current = coachee.id;
+  },[coachee.messages.length, coachee.id]);
 
   const groups = coachee.messages.reduce((acc,msg)=>{
     const key = msg.ts ? dateKeyFromTs(msg.ts) : dateKeyFromTs(Date.now());
