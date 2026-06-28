@@ -1,7 +1,7 @@
 // Service Worker — Raum für Selbstwirksamkeit
-// Version: 2026-06-23 18:32
+// Version: 2026-06-28 17:43
 
-const VERSION = '2026-06-23-1832';
+const VERSION = '2026-06-28-1743';
 
 // Bei Install: sofort aktivieren ohne auf alten SW zu warten
 self.addEventListener('install', e => {
@@ -56,7 +56,13 @@ self.addEventListener('notificationclick', e => {
   e.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then(windowClients => {
       for(const client of windowClients) {
-        if('focus' in client) return client.focus();
+        if('focus' in client) {
+          // Nach Fokus zusätzlich zur passenden Seite navigieren (z.B. #chat) —
+          // reines focus() lässt sonst die zuvor offene Seite im Tab stehen,
+          // unabhängig davon, welcher Bereich der App dort gerade angezeigt wurde.
+          if('navigate' in client) client.navigate(url).catch(()=>{});
+          return client.focus();
+        }
       }
       if(clients.openWindow) return clients.openWindow(url);
     })
