@@ -1,4 +1,4 @@
-<!-- Version: 2026-06-25 19:09 admin -->
+<!-- Version: 2026-06-28 18:35 admin -->
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -1503,6 +1503,10 @@ function AdminApp({user}) {
   }, []);
 
   // ── Unread-Listener: pro Coachee letzte Nachricht beobachten ──
+  // localStorage statt sessionStorage: sessionStorage wird bei jedem neuen Tab/Browser-Neustart
+  // gelöscht, wodurch die Baseline fälschlich auf "alles gilt als gelesen" zurückgesetzt wurde,
+  // sobald Diana/Rico die Admin-App neu öffneten — unabhängig davon, ob sie den jeweiligen
+  // Chat tatsächlich angeschaut hatten.
   const unreadUnsubsRef = useRef({});
   useEffect(() => {
     const firestore = db();
@@ -1511,7 +1515,7 @@ function AdminApp({user}) {
     Object.values(unreadUnsubsRef.current).forEach(u=>u&&u());
     unreadUnsubsRef.current = {};
     coachees.forEach(c => {
-      const storedRead = parseInt(sessionStorage.getItem('lastRead_'+c.id)||'0');
+      const storedRead = parseInt(localStorage.getItem('lastRead_'+c.id)||'0');
       let initialized = false;
       const unsub = firestore.collection('chats').doc(c.id).collection('messages')
         .orderBy('ts','desc').limit(5)
@@ -1520,12 +1524,12 @@ function AdminApp({user}) {
             // Ersten Snapshot: wenn kein lastRead gespeichert → neueste Nachricht als Baseline
             if(!storedRead && snap.docs.length) {
               const maxTs = Math.max(...snap.docs.map(d=>d.data().ts||0));
-              sessionStorage.setItem('lastRead_'+c.id, maxTs);
+              localStorage.setItem('lastRead_'+c.id, maxTs);
             }
             initialized = true;
             return;
           }
-          const lastRead = parseInt(sessionStorage.getItem('lastRead_'+c.id)||'0');
+          const lastRead = parseInt(localStorage.getItem('lastRead_'+c.id)||'0');
           const unread = snap.docs.filter(d=>{
             const m=d.data();
             return m.from==='coachee' && (m.ts||0) > lastRead;
@@ -1805,7 +1809,7 @@ function ChatPage({coachees,setCoachees}) {
     setChatMessages([]);
     setMobileOpen(true);
     // lastRead für diesen Coachee setzen → unread zurückzählen
-    sessionStorage.setItem('lastRead_'+id, Date.now());
+    localStorage.setItem('lastRead_'+id, Date.now());
     if(chatUnsubRef.current) { chatUnsubRef.current(); chatUnsubRef.current=null; }
     const firestore = db();
     if(firestore && id) {
@@ -1816,7 +1820,7 @@ function ChatPage({coachees,setCoachees}) {
         // lastRead auf jüngste Nachricht setzen → unread = 0
         if(msgs.length) {
           const maxTs = Math.max(...msgs.map(m=>m.ts||0));
-          sessionStorage.setItem('lastRead_'+id, maxTs);
+          localStorage.setItem('lastRead_'+id, maxTs);
         }
         setCoachees(cs=>cs.map(c=>c.id===id?{...c,unread:0}:c));
       }, ()=>{});
