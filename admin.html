@@ -1,4 +1,4 @@
-<!-- Version: 2026-06-28 18:35 admin -->
+<!-- Version: 2026-06-28 18:50 admin -->
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -1452,6 +1452,20 @@ function AdminApp({user}) {
   const [deleted,setDeleted]   = useState([]);
   const totalUnread = coachees.reduce((a,c)=>a+(c.unread||0),0);
 
+  // ── Termine-Badge: neue Coachee-Stimmen seit letztem Besuch ──
+  // Votes haben keinen eigenen Zeitstempel (siehe Pitfall 40 / votes-Struktur), daher kein
+  // direkter ts-Vergleich wie beim Chat möglich. Stattdessen: Gesamtzahl aller abgegebenen
+  // Stimmen über alle offenen Doodles zählen und mit der beim letzten Besuch gespeicherten
+  // Zahl vergleichen — die Differenz sind neu hinzugekommene Stimmen.
+  const totalVotesNow = doodles
+    .filter(d => d.status !== "closed")
+    .reduce((sum,d) => sum + toSlotsArray(d.slots).reduce((s,slot) => s + Object.keys(slot?.votes||{}).length, 0), 0);
+  const lastSeenVotes = Number(localStorage.getItem("doodleLastVotes") || totalVotesNow);
+  const doodleUnread = Math.max(0, totalVotesNow - lastSeenVotes);
+  useEffect(() => {
+    if(page === "doodle") localStorage.setItem("doodleLastVotes", String(totalVotesNow));
+  }, [page, totalVotesNow]);
+
   // ── Library Firebase Sync ──
   useEffect(() => {
     const firestore = db();
@@ -1567,7 +1581,7 @@ function AdminApp({user}) {
     {id:"coachees",icon:"users",label:"Coachees",badge:pending.length+deleted.length},
     {id:"library",icon:"library",label:"Mediathek"},
     {id:"impuls",icon:"impuls",label:"Impulse"},
-    {id:"doodle",icon:"calendar",label:"Termine"},
+    {id:"doodle",icon:"calendar",label:"Termine",badge:doodleUnread},
   ];
 
   const doLogout = () => { (window._fb?.auth||window.firebase?.auth())?.signOut().catch(()=>{}); };

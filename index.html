@@ -1,4 +1,4 @@
-<!-- Version: 2026-06-28 18:35 coachee -->
+<!-- Version: 2026-06-28 18:50 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -1757,6 +1757,35 @@ function App({ user }) {
     }
   }, [page, user?.uid]);
 
+  // ── Mediathek-Badge: neue Elemente seit letztem Besuch ──
+  // Gleiches Baseline-Muster wie beim Chat-Zähler: localStorage merkt sich den Zeitpunkt
+  // des letzten Besuchs, Elemente mit createdAt danach zählen als "neu". library ist eine
+  // globale Collection (kein pro-Coachee-Feld), daher rein zeitbasierter Vergleich.
+  const [libraryUnreadCount, setLibraryUnreadCount] = useState(0);
+  useEffect(() => {
+    const lastVisit = Number(localStorage.getItem("libraryLastVisit_"+(user?.uid||"")) || 0);
+    const count = library.filter(item => (item.createdAt || 0) > lastVisit).length;
+    setLibraryUnreadCount(count);
+  }, [library, user?.uid]);
+  useEffect(() => {
+    if(page === "library" && user?.uid) {
+      localStorage.setItem("libraryLastVisit_"+user.uid, String(Date.now()));
+      setLibraryUnreadCount(0);
+    }
+  }, [page, user?.uid]);
+
+  // ── Termine-Badge: offene Doodle-Vorschläge ohne Antwort ──
+  // Wiederverwendet dieselbe Filterlogik, die im Dashboard bereits für die Textanzeige
+  // "X offene Terminvorschläge" existiert (Zeile ~2503) — hier nur als Zahl fürs Nav-Badge.
+  // Kein localStorage-Baseline nötig: "offen" ist bereits durch dismissed/status/votes definiert,
+  // verschwindet von selbst, sobald der Coachee abstimmt oder den Vorschlag verwirft.
+  const doodleUnreadCount = doodles.filter(d =>
+    (d.recipients||[]).includes(user?.uid) &&
+    !(d.dismissed||[]).includes(user?.uid) &&
+    d.status !== "closed" &&
+    !toSlotsArray(d.slots).some(s => s?.votes?.[user?.uid])
+  ).length;
+
   const navTo = (p) => { setPage(p); setMobileChatOpen(false); };
   const totalUnreadVal = chatUnreadCount;
 
@@ -1764,8 +1793,8 @@ function App({ user }) {
     {id:"dashboard", icon:"home",     label:"Home"},
     {id:"chat",      icon:"chat",     label:"Chat",      badge:totalUnreadVal},
     {id:"impulse",   icon:"impuls",   label:"Impulse"},
-    {id:"library",   icon:"library",  label:"Mediathek"},
-    {id:"doodle",    icon:"calendar", label:"Termine"},
+    {id:"library",   icon:"library",  label:"Mediathek", badge:libraryUnreadCount},
+    {id:"doodle",    icon:"calendar", label:"Termine",   badge:doodleUnreadCount},
     {id:"settings",  icon:"sliders",  label:"Konto"},
   ];
 
@@ -1827,7 +1856,7 @@ function App({ user }) {
         )
       )
     )}
-    <${Sidebar} page=${page} setPage=${navTo} totalUnread=${totalUnreadVal} user=${user} onLogoTap=${handleLogoTap}/>
+    <${Sidebar} page=${page} setPage=${navTo} totalUnread=${totalUnreadVal} libraryUnread=${libraryUnreadCount} doodleUnread=${doodleUnreadCount} user=${user} onLogoTap=${handleLogoTap}/>
     <div style=${{flex:1,display:'flex',overflow:'hidden',minWidth:0}}>
       ${page==="dashboard" && html`<${DashboardPage} coachees=${coachees} library=${library} reminders=${reminders} doodles=${doodles} setPage=${navTo} user=${user} onLogoTap=${handleLogoTap} setImpulseDefaultTab=${setImpulseDefaultTab} activeImpuls=${activeImpuls} setActiveImpuls=${setActiveImpuls}/>`}
       ${page==="chat"      && html`<${ChatPage} user=${user} coachees=${coachees} setCoachees=${setCoachees} mobileChatOpen=${mobileChatOpen} setMobileChatOpen=${setMobileChatOpen}/>`}
@@ -1921,13 +1950,13 @@ function ChatPage({user,coachees,setCoachees,mobileChatOpen,setMobileChatOpen}) 
 }
 
 
-function Sidebar({page,setPage,totalUnread,user,onLogoTap}) {
+function Sidebar({page,setPage,totalUnread,libraryUnread,doodleUnread,user,onLogoTap}) {
   const items = [
     {id:"dashboard",icon:"home",tip:"Übersicht",label:"Home"},
     {id:"chat",icon:"chat",tip:"Nachrichten",label:"Chat",badge:totalUnread},
     {id:"impulse",icon:"impuls",tip:"Meine Impulse",label:"Impulse"},
-    {id:"library",icon:"library",tip:"Mediathek",label:"Mediathek"},
-    {id:"doodle",   icon:"calendar",tip:"Termine & Events",label:"Termine"},
+    {id:"library",icon:"library",tip:"Mediathek",label:"Mediathek",badge:libraryUnread},
+    {id:"doodle",   icon:"calendar",tip:"Termine & Events",label:"Termine",badge:doodleUnread},
     {id:"settings", icon:"sliders", tip:"Konto",    label:"Konto"},
   ];
   return html`
