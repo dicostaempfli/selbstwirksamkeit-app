@@ -1,4 +1,4 @@
-<!-- Version: 2026-06-28 12:18 coachee -->
+<!-- Version: 2026-06-28 12:53 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -1326,7 +1326,36 @@ const PUSH_SCOPE  = './';
 // VAPID Public Key (Web Push — kostenlos, kein Server nötig für lokale Notifications)
 // Für echten Server-Push muss hier ein echter VAPID Key eingetragen werden.
 // Für lokale Browser-Notifications (kein Server) wird kein Key benötigt.
-const PUSH_VAPID_KEY = null; // wird gesetzt wenn Server-Push aktiviert wird
+const PUSH_VAPID_KEY = "BCyOPHt6WN6kTWBeaeVuriYCHKSfUIPeLo5K-IyhOiBy3WH5pcsvJ1BfR9U2qe6deIVH5VNAbVHT74oN4Xcjq60"; // Public Key — unbedenklich im Client, da nur zur Verschlüsselung der Subscription verwendet
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for(let i = 0; i < rawData.length; i++) outputArray[i] = rawData.charCodeAt(i);
+  return outputArray;
+}
+
+// Erzeugt eine echte Push-Subscription (für Push bei geschlossener App) und speichert sie
+// pro Coachee in Firestore — die Cloud Function liest diese Subscriptions beim Versand.
+async function subscribeToPush(uid) {
+  try {
+    if(!PUSH_VAPID_KEY || !uid) return;
+    const reg = await navigator.serviceWorker.ready;
+    let sub = await reg.pushManager.getSubscription();
+    if(!sub) {
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(PUSH_VAPID_KEY)
+      });
+    }
+    const fbDb = window._fb?.db;
+    if(fbDb && sub) {
+      fbDb.collection("users").doc(uid).update({ pushSubscription: JSON.parse(JSON.stringify(sub)) }).catch(()=>{});
+    }
+  } catch(e) {}
+}
 
 async function registerSW() {
   if(!('serviceWorker' in navigator)) return null;
@@ -1522,6 +1551,12 @@ function App({ user }) {
     }
     if(Notification.permission === 'granted') setPushGranted(true);
   }, []);
+
+  // ── Echte Push-Subscription erzeugen (für Push bei geschlossener App) ──
+  // Läuft erst, wenn Erlaubnis vorhanden ist UND der Coachee eingeloggt ist.
+  useEffect(() => {
+    if(pushGranted && user?.uid) subscribeToPush(user.uid);
+  }, [pushGranted, user?.uid]);
 
   // ── Chat Push Listener ──
   useEffect(() => {
