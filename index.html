@@ -1,4 +1,4 @@
-<!-- Version: 2026-06-28 19:37 coachee -->
+<!-- Version: 2026-06-29 08:49 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -3248,7 +3248,7 @@ function RemindersPage({reminders,setReminders}) {
     }
     setSaveError(false);
     const id = editId||Date.now();
-    const entry={...form,id,enabled:true,area:form.area||'Allgemein',additionalTimes:form.additionalTimes||[]};
+    const entry={...form,id,enabled:true,area:form.area||'Allgemein',additionalTimes:form.additionalTimes||[],createdAt:form.createdAt||Date.now()};
     // Store photos in localStorage separately (too large for Firestore)
     if(entry.photos&&entry.photos.length>0) {
       try { localStorage.setItem('rem_photos_'+id, JSON.stringify(entry.photos)); } catch(e){}
