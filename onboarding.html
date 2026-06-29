@@ -1,4 +1,4 @@
-<!-- Version: 2026-06-25 08:52 onboarding -->
+<!-- Version: 2026-06-29 17:07 onboarding -->
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -147,6 +147,36 @@
   }
   .step-body h3{ font-size:1.05rem; color:var(--teal-deep); margin-bottom:5px; }
   .step-body p{ font-size:.93rem; color:var(--muted); }
+
+  /* ───────── platform install tiles (Schritt 1: App installieren) ───────── */
+  .platform-grid{
+    display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:14px;
+    align-items:start;
+  }
+  @media (max-width:480px){ .platform-grid{ grid-template-columns:1fr; } }
+  .platform-tile{
+    background:var(--ivory); border:0.5px solid var(--border); border-radius:14px;
+    overflow:hidden; cursor:pointer; transition:border-color .2s ease;
+  }
+  .platform-tile.open{ border-color:var(--teal); }
+  .platform-head{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    padding:14px 16px; font-family:'Karla',sans-serif; font-weight:600; font-size:.92rem;
+    color:var(--ink);
+  }
+  .platform-head .pchev{ color:var(--teal); transition:transform .25s ease; flex-shrink:0; }
+  .platform-tile.open .platform-head .pchev{ transform:rotate(180deg); }
+  .platform-body{ max-height:0; overflow:hidden; transition:max-height .3s ease; padding:0 16px; }
+  .platform-tile.open .platform-body{ max-height:420px; padding-bottom:16px; }
+  .platform-body ol{ margin:0; padding-left:20px; display:flex; flex-direction:column; gap:7px; }
+  .platform-body ol li{ font-size:.85rem; color:var(--ink); line-height:1.4; }
+  .platform-body .pnote{ font-size:.8rem; color:var(--muted); font-style:italic; margin-top:10px; }
+  .platform-warn{
+    margin-top:14px; background:var(--surface); border:0.5px dashed var(--border); border-radius:12px;
+    padding:12px 14px; font-size:.82rem; color:var(--muted);
+  }
+  .platform-head .picon{ width:18px; height:18px; color:var(--teal-deep); flex-shrink:0; }
+  .platform-head .phead-label{ display:flex; align-items:center; gap:9px; }
 
   /* ───────── area cards (5 Bereiche) ───────── */
   .areas{
@@ -331,7 +361,38 @@
       <div class="step-num">1</div>
       <div class="step-body">
         <h3>App installieren</h3>
-        <p>Öffne den Link aus der E-Mail von Diana oder Rico in Safari (iPhone) oder Chrome (Android). Dann: Safari → Teilen-Symbol → «Zum Home-Bildschirm» · Android → Menü → «Zum Startbildschirm hinzufügen»</p>
+        <p>Öffne den Link aus dieser E-Mail auf deinem Smartphone und tippe unten auf dein Gerät, um die genaue Anleitung zu sehen.</p>
+        <div class="platform-grid">
+          <div class="platform-tile" id="tileIos">
+            <div class="platform-head">
+              <span class="phead-label"><svg class="picon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2" width="10" height="20" rx="2.5"/><line x1="11" y1="18.5" x2="13" y2="18.5"/></svg> iPhone / iPad — Safari</span><span class="pchev">⌄</span>
+            </div>
+            <div class="platform-body">
+              <ol>
+                <li>Öffne diesen Link in <strong>Safari</strong> (nicht Chrome oder Firefox)</li>
+                <li>Tippe unten in der Mitte auf das Teilen-Symbol (Quadrat mit Pfeil ↑)</li>
+                <li>Scrolle im Menü nach unten zu «Zum Home-Bildschirm»</li>
+                <li>Tippe oben rechts auf «Hinzufügen»</li>
+              </ol>
+              <p class="pnote">Fertig — das App-Icon erscheint auf deinem Home-Bildschirm.</p>
+            </div>
+          </div>
+          <div class="platform-tile" id="tileAndroid">
+            <div class="platform-head">
+              <span class="phead-label"><svg class="picon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="6.5" y="2" width="11" height="20" rx="2"/><circle cx="12" cy="18.5" r="0.9" fill="currentColor" stroke="none"/></svg> Android — Chrome</span><span class="pchev">⌄</span>
+            </div>
+            <div class="platform-body">
+              <ol>
+                <li>Öffne diesen Link in <strong>Chrome</strong></li>
+                <li>Tippe oben rechts auf die drei Punkte (⋮)</li>
+                <li>Tippe auf «App installieren» (oder «Zum Startbildschirm hinzufügen»)</li>
+                <li>Bestätige mit «Installieren» bzw. «Hinzufügen»</li>
+              </ol>
+              <p class="pnote">Fertig — das App-Icon erscheint auf deinem Home-Bildschirm.</p>
+            </div>
+          </div>
+        </div>
+        <p class="platform-warn">ℹ️ Mit anderen Browsern (z. B. Firefox auf dem iPhone) kann die Installation fehlschlagen oder das App-Icon falsch aussehen. Bitte Safari (iPhone) bzw. Chrome (Android) verwenden.</p>
         <p style="margin-top:10px; padding-top:10px; border-top:1px solid var(--border); color:#6b6420;">⚠ Wichtig: Erst installieren, dann öffnen — sonst wird der Atemball nicht freigeschaltet.</p>
       </div>
     </div>
@@ -494,6 +555,10 @@
       <button class="faq-q">Wie lösche ich mein Konto?<span class="chev">⌄</span></button>
       <div class="faq-a"><p>Tab «Konto» → «Konto löschen» auswählen. Oder eine E-Mail an info@selbstwirksamkeit.ch</p></div>
     </div>
+    <div class="faq-item">
+      <button class="faq-q">Die App-Installation hat nicht funktioniert?<span class="chev">⌄</span></button>
+      <div class="faq-a"><p>Bitte prüfe, ob du den richtigen Browser verwendest: Safari auf dem iPhone, Chrome auf Android (siehe Schritt 1 oben). Mit anderen Browsern kann die Installation fehlschlagen oder das App-Icon falsch aussehen.</p></div>
+    </div>
   </div>
 </section>
 
@@ -522,6 +587,15 @@
       const wasOpen = item.classList.contains('open');
       document.querySelectorAll('.faq-item').forEach(i=>i.classList.remove('open'));
       if(!wasOpen) item.classList.add('open');
+    });
+  });
+
+  // Platform tiles: tap to expand install instructions (iPhone / Android)
+  document.querySelectorAll('.platform-tile').forEach(tile=>{
+    tile.addEventListener('click', ()=>{
+      const wasOpen = tile.classList.contains('open');
+      document.querySelectorAll('.platform-tile').forEach(t=>t.classList.remove('open'));
+      if(!wasOpen) tile.classList.add('open');
     });
   });
 </script>
