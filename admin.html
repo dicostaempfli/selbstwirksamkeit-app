@@ -1,4 +1,4 @@
-<!-- Version: 2026-06-29 08:49 admin -->
+<!-- Version: 2026-06-30 08:52 admin -->
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -1290,6 +1290,71 @@ const showToast = msg => { const t=document.createElement('div'); t.className='t
 const db = () => window._fb?.db;
 const auth = () => window._fb?.auth;
 
+// ── PUSH NOTIFICATIONS (Admin → erhält Push bei Coachee-Aktivität) ──
+// Eigener, minimaler Service Worker (sw-admin.js) statt sw.js (Coachee) — siehe
+// Projektdoku v3.56: Admin lief bewusst ohne SW, um den dortigen Reload-Mechanismus
+// nicht zu übernehmen. Subscription wird in einer eigenen Collection gespeichert
+// (admin_push_subscriptions/{uid}), da Admins kein users/{uid}-Dokument wie Coachees haben.
+const ADMIN_PUSH_SW_URL = './sw-admin.js';
+const ADMIN_PUSH_SCOPE  = './';
+const ADMIN_PUSH_VAPID_KEY = "BBCn3O14AGtrDs2x0uADp8OAb3y-66BlJOJe84QnMMnRrVIjq1Ahfnexvz07VqUg7PdKxGKK943U6FD0mCphaiA"; // identischer Public Key wie Coachee — ein VAPID-Schlüsselpaar pro App-Projekt
+
+function adminUrlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for(let i = 0; i < rawData.length; i++) outputArray[i] = rawData.charCodeAt(i);
+  return outputArray;
+}
+
+async function registerAdminSW() {
+  if(!('serviceWorker' in navigator)) return null;
+  try {
+    return await navigator.serviceWorker.register(ADMIN_PUSH_SW_URL, { scope: ADMIN_PUSH_SCOPE });
+  } catch(e) { return null; }
+}
+
+async function requestAdminPushPermission() {
+  try {
+    if(!('Notification' in window)) return false;
+    if(Notification.permission === 'granted') return true;
+    if(Notification.permission === 'denied') return false;
+    const result = await Notification.requestPermission();
+    return result === 'granted';
+  } catch(e) { return false; }
+}
+
+// Identisches Schlüssel-Mismatch-Schutzmuster wie subscribeToPush() in index.html
+// (siehe dortigen Kommentar) — verhindert eine stehenbleibende, ungültige Subscription
+// nach einem VAPID-Secret-Reset.
+async function subscribeAdminToPush(uid) {
+  try {
+    if(!ADMIN_PUSH_VAPID_KEY || !uid) return;
+    const reg = await navigator.serviceWorker.ready;
+    let sub = await reg.pushManager.getSubscription();
+    if(sub) {
+      const currentKey = adminUrlBase64ToUint8Array(ADMIN_PUSH_VAPID_KEY);
+      const subKey = new Uint8Array(sub.options?.applicationServerKey || []);
+      const keyMatches = subKey.length === currentKey.length && subKey.every((b,i) => b === currentKey[i]);
+      if(!keyMatches) {
+        await sub.unsubscribe().catch(()=>{});
+        sub = null;
+      }
+    }
+    if(!sub) {
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: adminUrlBase64ToUint8Array(ADMIN_PUSH_VAPID_KEY)
+      });
+    }
+    const fbDb = window._fb?.db;
+    if(fbDb && sub) {
+      fbDb.collection("admin_push_subscriptions").doc(uid).set({ pushSubscription: JSON.parse(JSON.stringify(sub)) }).catch(()=>{});
+    }
+  } catch(e) {}
+}
+
 // ── LOGO ──
 const Logo = ({size=40}) => html`
   <svg width=${size} height=${size} viewBox="0 0 100 100" fill="none">
@@ -1451,6 +1516,21 @@ function AdminApp({user}) {
   const [pending,setPending]   = useState([]);
   const [deleted,setDeleted]   = useState([]);
   const totalUnread = coachees.reduce((a,c)=>a+(c.unread||0),0);
+
+  // ── Push-Notification-Setup: Service Worker registrieren, Erlaubnis anfragen,
+  // Subscription erzeugen — läuft sobald Admin eingeloggt ist. Kein isPWA()-Zwang wie
+  // bei Coachee, da Admin regulär als Browser-Tab läuft (Desktop primär, Firefox).
+  const [adminPushGranted, setAdminPushGranted] = useState(Notification?.permission === 'granted');
+  useEffect(() => {
+    registerAdminSW();
+    if(Notification?.permission === 'default') {
+      requestAdminPushPermission().then(setAdminPushGranted);
+    }
+  }, []);
+  useEffect(() => {
+    if(adminPushGranted && user?.uid) subscribeAdminToPush(user.uid);
+  }, [adminPushGranted, user?.uid]);
+
 
   // ── Termine-Badge: neue Coachee-Stimmen seit letztem Besuch ──
   // Votes haben keinen eigenen Zeitstempel (siehe Pitfall 40 / votes-Struktur), daher kein
