@@ -1,4 +1,4 @@
-<!-- Version: 2026-06-30 08:52 admin -->
+<!-- Version: 2026-06-30 10:46 admin -->
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -13,6 +13,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-title" content="Admin"/>
 <meta name="theme-color" content="#1C2118"/>
+<link rel="manifest" href="data:application/manifest+json,%7B%22name%22%3A%20%22Admin%20%E2%80%94%20Raum%20f%C3%BCr%20Selbstwirksamkeit%22%2C%20%22short_name%22%3A%20%22Admin%22%2C%20%22start_url%22%3A%20%22./admin.html%22%2C%20%22display%22%3A%20%22standalone%22%2C%20%22background_color%22%3A%20%22%23ffffff%22%2C%20%22theme_color%22%3A%20%22%231C2118%22%2C%20%22icons%22%3A%20%5B%7B%22src%22%3A%20%22./icon-192.png%22%2C%20%22sizes%22%3A%20%22192x192%22%2C%20%22type%22%3A%20%22image/png%22%7D%2C%20%7B%22src%22%3A%20%22./icon-512.png%22%2C%20%22sizes%22%3A%20%22512x512%22%2C%20%22type%22%3A%20%22image/png%22%7D%5D%7D"/>
+<link rel="apple-touch-icon" href="./icon-192.png"/>
 <title>Admin — Raum für Selbstwirksamkeit</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manuale:wght@400;600;700&family=Exo+2:wght@400;600;700&display=swap"/>
@@ -1328,6 +1330,17 @@ async function requestAdminPushPermission() {
 // Identisches Schlüssel-Mismatch-Schutzmuster wie subscribeToPush() in index.html
 // (siehe dortigen Kommentar) — verhindert eine stehenbleibende, ungültige Subscription
 // nach einem VAPID-Secret-Reset.
+function isAdminPWA() {
+  try {
+    return window.matchMedia('(display-mode: standalone)').matches
+      || window.navigator.standalone === true;
+  } catch(e) { return false; }
+}
+
+function isAdminIOS() {
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+}
+
 async function subscribeAdminToPush(uid) {
   try {
     if(!ADMIN_PUSH_VAPID_KEY || !uid) return;
@@ -1518,10 +1531,20 @@ function AdminApp({user}) {
   const totalUnread = coachees.reduce((a,c)=>a+(c.unread||0),0);
 
   // ── Push-Notification-Setup: Service Worker registrieren, Erlaubnis anfragen,
-  // Subscription erzeugen — läuft sobald Admin eingeloggt ist. Kein isPWA()-Zwang wie
-  // bei Coachee, da Admin regulär als Browser-Tab läuft (Desktop primär, Firefox).
+  // Subscription erzeugen — läuft sobald Admin eingeloggt ist.
+  // WICHTIG (Fund 30.06.2026): Auf iOS/iPadOS Safari kann ein normaler Browser-Tab
+  // grundsätzlich KEINE Push-Berechtigung anfragen — Notification.requestPermission()
+  // wird dort lautlos ignoriert, das Prompt erscheint nie. Apple erlaubt das nur für als
+  // PWA installierte Seiten (display: standalone). Auf Desktop/Firefox (Hauptnutzung laut
+  // Doku) gilt diese Einschränkung nicht — dort funktioniert es wie bisher ohne Umweg.
   const [adminPushGranted, setAdminPushGranted] = useState(Notification?.permission === 'granted');
+  const [showAdminInstallBanner, setShowAdminInstallBanner] = useState(false);
   useEffect(() => {
+    if(isAdminIOS() && !isAdminPWA()) {
+      // iOS + nicht installiert: Permission-Anfrage würde ins Leere laufen — Hinweis statt.
+      setTimeout(() => setShowAdminInstallBanner(true), 2000);
+      return;
+    }
     registerAdminSW();
     if(Notification?.permission === 'default') {
       requestAdminPushPermission().then(setAdminPushGranted);
@@ -1668,6 +1691,35 @@ function AdminApp({user}) {
 
   return html`
     <div class="app-layout">
+    ${showAdminInstallBanner && h("div", {
+      style:{position:"fixed",bottom:0,left:0,right:0,zIndex:19999,padding:"16px 16px 20px",background:"#0f2927",borderTop:"2px solid #1D9E75"}
+    },
+      h("div", {style:{maxWidth:480,margin:"0 auto"}},
+        h("div",{style:{display:"flex",alignItems:"center",gap:10,marginBottom:10}},
+          h("div",{style:{width:32,height:32,borderRadius:8,background:"#156e6e",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center"}},
+            h("svg",{width:16,height:16,viewBox:"0 0 100 100",fill:"none"},
+              h("circle",{cx:50,cy:50,r:46,fill:"#eaed53"}),
+              h("circle",{cx:57,cy:51,r:34,fill:"#9dd979"}),
+              h("circle",{cx:66,cy:51,r:20,fill:"#62ba7a"})
+            )
+          ),
+          h("div",{style:{fontWeight:700,fontSize:".95rem",color:"#fff",lineHeight:1.2}},
+            "Admin-App installieren für Push-Benachrichtigungen"
+          )
+        ),
+        h("div",{style:{fontSize:".8rem",color:"rgba(255,255,255,0.65)",marginBottom:12,lineHeight:1.5}},
+          "iOS erlaubt Push-Benachrichtigungen nur für installierte Apps. Tippe unten auf ",
+          h("span",{style:{fontWeight:700,color:"#fff"}},"Teilen"),
+          " → ",
+          h("span",{style:{fontWeight:700,color:"#fff"}},"Zum Home-Bildschirm"),
+          ", und öffne die App danach von dort."
+        ),
+        h("button",{
+          onClick:()=>setShowAdminInstallBanner(false),
+          style:{background:"transparent",border:"1px solid rgba(255,255,255,0.3)",color:"#fff",borderRadius:8,padding:"8px 16px",fontSize:".8rem",cursor:"pointer"}
+        },"Verstanden")
+      )
+    )}
 
       <!-- Desktop sidebar -->
       <div class="sidebar">
