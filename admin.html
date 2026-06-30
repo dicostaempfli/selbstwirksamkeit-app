@@ -1,4 +1,4 @@
-<!-- Version: 2026-06-30 10:54 admin -->
+<!-- Version: 2026-06-30 11:05 admin -->
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -1530,15 +1530,18 @@ function AdminApp({user}) {
   const [deleted,setDeleted]   = useState([]);
   const totalUnread = coachees.reduce((a,c)=>a+(c.unread||0),0);
 
-  // ── Push-Notification-Setup: Service Worker registrieren, Erlaubnis anfragen,
-  // Subscription erzeugen — läuft sobald Admin eingeloggt ist.
+  // ── Push-Notification-Setup: Service Worker registrieren automatisch, Erlaubnis aber
+  // NUR per explizitem Button-Tap anfragen (siehe showAdminNotifBanner unten).
   // WICHTIG (Fund 30.06.2026): Auf iOS/iPadOS Safari kann ein normaler Browser-Tab
-  // grundsätzlich KEINE Push-Berechtigung anfragen — Notification.requestPermission()
-  // wird dort lautlos ignoriert, das Prompt erscheint nie. Apple erlaubt das nur für als
-  // PWA installierte Seiten (display: standalone). Auf Desktop/Firefox (Hauptnutzung laut
-  // Doku) gilt diese Einschränkung nicht — dort funktioniert es wie bisher ohne Umweg.
+  // grundsätzlich KEINE Push-Berechtigung anfragen — nur als PWA installierte Seiten
+  // dürfen das (display: standalone). UND selbst dort verlangt iOS bei vielen Versionen
+  // eine direkte Nutzerinteraktion für Notification.requestPermission() — ein automatischer
+  // Aufruf via setTimeout im useEffect wurde beobachtet, lautlos zu verpuffen: kein Prompt
+  // erscheint, keine Fehlermeldung, Notification.permission bleibt einfach auf 'default'.
+  // Ein expliziter Button-Tap garantiert die nötige Nutzerinteraktion zuverlässig.
   const [adminPushGranted, setAdminPushGranted] = useState(typeof Notification !== 'undefined' && Notification.permission === 'granted');
   const [showAdminInstallBanner, setShowAdminInstallBanner] = useState(false);
+  const [showAdminNotifBanner, setShowAdminNotifBanner] = useState(false);
   useEffect(() => {
     if(isAdminIOS() && !isAdminPWA()) {
       // iOS + nicht installiert: Permission-Anfrage würde ins Leere laufen — Hinweis statt.
@@ -1547,9 +1550,14 @@ function AdminApp({user}) {
     }
     registerAdminSW();
     if(typeof Notification !== 'undefined' && Notification.permission === 'default') {
-      requestAdminPushPermission().then(setAdminPushGranted);
+      setTimeout(() => setShowAdminNotifBanner(true), 1500);
     }
   }, []);
+  const handleEnableAdminPush = async () => {
+    const granted = await requestAdminPushPermission();
+    setAdminPushGranted(granted);
+    setShowAdminNotifBanner(false);
+  };
   useEffect(() => {
     if(adminPushGranted && user?.uid) subscribeAdminToPush(user.uid);
   }, [adminPushGranted, user?.uid]);
@@ -1691,6 +1699,23 @@ function AdminApp({user}) {
 
   return html`
     <div class="app-layout">
+    ${showAdminNotifBanner && h("div", {
+      style:{position:"fixed",bottom:0,left:0,right:0,zIndex:19999,padding:"14px 16px 18px",background:"#0f2927",borderTop:"2px solid #1D9E75",display:"flex",alignItems:"center",gap:14,flexWrap:"wrap"}
+    },
+      h("div",{style:{flex:1,minWidth:200,fontSize:".85rem",color:"#fff",lineHeight:1.4}},
+        "Push-Benachrichtigungen aktivieren, um bei Coachee-Aktivität (z.B. Terminabstimmung) sofort informiert zu werden."
+      ),
+      h("div",{style:{display:"flex",gap:8,flexShrink:0}},
+        h("button",{
+          onClick: handleEnableAdminPush,
+          style:{background:"#156e6e",color:"#fff",border:"none",borderRadius:8,padding:"9px 18px",fontSize:".85rem",fontWeight:600,cursor:"pointer"}
+        },"Aktivieren"),
+        h("button",{
+          onClick:()=>setShowAdminNotifBanner(false),
+          style:{background:"transparent",border:"1px solid rgba(255,255,255,0.3)",color:"rgba(255,255,255,0.7)",borderRadius:8,padding:"9px 14px",fontSize:".85rem",cursor:"pointer"}
+        },"Später")
+      )
+    )}
     ${showAdminInstallBanner && h("div", {
       style:{position:"fixed",bottom:0,left:0,right:0,zIndex:19999,padding:"16px 16px 20px",background:"#0f2927",borderTop:"2px solid #1D9E75"}
     },
