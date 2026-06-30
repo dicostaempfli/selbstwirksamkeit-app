@@ -1,4 +1,4 @@
-<!-- Version: 2026-06-30 11:20 admin -->
+<!-- Version: 2026-06-30 11:26 admin -->
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -1341,6 +1341,16 @@ function isAdminIOS() {
   return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
 }
 
+// Erzeugt einen kurzen, stabilen Schlüssel aus dem Subscription-Endpoint (eindeutig pro
+// Browser/Gerät), damit mehrere Geräte (z.B. iPhone + Desktop-Firefox) unter derselben
+// Coach-UID gleichzeitig registriert bleiben können, statt sich gegenseitig zu überschreiben.
+async function adminSubKeyFromEndpoint(endpoint) {
+  const enc = new TextEncoder().encode(endpoint);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', enc);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2,'0')).join('').slice(0, 24);
+}
+
 async function subscribeAdminToPush(uid) {
   try {
     if(!ADMIN_PUSH_VAPID_KEY || !uid) return;
@@ -1363,7 +1373,11 @@ async function subscribeAdminToPush(uid) {
     }
     const fbDb = window._fb?.db;
     if(fbDb && sub) {
-      fbDb.collection("admin_push_subscriptions").doc(uid).set({ pushSubscription: JSON.parse(JSON.stringify(sub)) }).catch(()=>{});
+      const subJson = JSON.parse(JSON.stringify(sub));
+      const deviceKey = await adminSubKeyFromEndpoint(subJson.endpoint);
+      fbDb.collection("admin_push_subscriptions").doc(uid)
+        .collection("devices").doc(deviceKey)
+        .set({ pushSubscription: subJson, updatedAt: Date.now() }).catch(()=>{});
     }
   } catch(e) {}
 }
