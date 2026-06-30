@@ -1,4 +1,4 @@
-<!-- Version: 2026-06-29 17:46 coachee -->
+<!-- Version: 2026-06-30 10:54 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -1621,14 +1621,15 @@ function App({ user }) {
     if(isIOS() && !isPWA()) {
       setTimeout(() => setShowInstallBanner(true), 2000);
     }
+    const notifAvailable = typeof Notification !== 'undefined';
     // Push Permission anfragen wenn: PWA installiert + noch nicht granted
-    if(isPWA() && Notification.permission === 'default') {
+    if(notifAvailable && isPWA() && Notification.permission === 'default') {
       setTimeout(async () => {
         const granted = await requestPushPermission();
         setPushGranted(granted);
       }, 3000);
     }
-    if(Notification.permission === 'granted') setPushGranted(true);
+    if(notifAvailable && Notification.permission === 'granted') setPushGranted(true);
   }, []);
 
   // ── Echte Push-Subscription erzeugen (für Push bei geschlossener App) ──

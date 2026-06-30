@@ -1,4 +1,4 @@
-<!-- Version: 2026-06-30 10:46 admin -->
+<!-- Version: 2026-06-30 10:54 admin -->
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -1537,7 +1537,7 @@ function AdminApp({user}) {
   // wird dort lautlos ignoriert, das Prompt erscheint nie. Apple erlaubt das nur für als
   // PWA installierte Seiten (display: standalone). Auf Desktop/Firefox (Hauptnutzung laut
   // Doku) gilt diese Einschränkung nicht — dort funktioniert es wie bisher ohne Umweg.
-  const [adminPushGranted, setAdminPushGranted] = useState(Notification?.permission === 'granted');
+  const [adminPushGranted, setAdminPushGranted] = useState(typeof Notification !== 'undefined' && Notification.permission === 'granted');
   const [showAdminInstallBanner, setShowAdminInstallBanner] = useState(false);
   useEffect(() => {
     if(isAdminIOS() && !isAdminPWA()) {
@@ -1546,7 +1546,7 @@ function AdminApp({user}) {
       return;
     }
     registerAdminSW();
-    if(Notification?.permission === 'default') {
+    if(typeof Notification !== 'undefined' && Notification.permission === 'default') {
       requestAdminPushPermission().then(setAdminPushGranted);
     }
   }, []);
