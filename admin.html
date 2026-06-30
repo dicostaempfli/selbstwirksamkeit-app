@@ -1,4 +1,4 @@
-<!-- Version: 2026-06-30 11:26 admin -->
+<!-- Version: 2026-06-30 12:54 admin -->
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -1535,8 +1535,22 @@ function LoginPage() {
 }
 
 // ── MAIN APP ──
+const ADMIN_HASH_TO_PAGE = { chat: "chat", doodle: "doodle", library: "library", impuls: "impuls", coachees: "coachees" };
+
 function AdminApp({user}) {
   const [page,setPage] = useState("dashboard");
+  // ── Hash-Routing: ermöglicht Deep-Links aus Push-Notifications (z.B. admin.html#doodle) ──
+  // Fehlte bisher komplett — ein Push-Tap mit #doodle in der URL landete deshalb immer auf
+  // der Default-Page (dashboard), statt direkt zur passenden Seite zu springen.
+  useEffect(() => {
+    const applyHash = () => {
+      const hash = window.location.hash.replace("#","");
+      if(ADMIN_HASH_TO_PAGE[hash]) setPage(ADMIN_HASH_TO_PAGE[hash]);
+    };
+    applyHash();
+    window.addEventListener("hashchange", applyHash);
+    return () => window.removeEventListener("hashchange", applyHash);
+  }, []);
   const [coachees,setCoachees] = useState(INIT_COACHEES);
   const [library,setLibrary] = useState([]);
   const [doodles,setDoodles] = useState(INIT_DOODLES);
