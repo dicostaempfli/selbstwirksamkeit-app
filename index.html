@@ -1,4 +1,4 @@
-<!-- Version: 2026-06-30 10:54 coachee -->
+<!-- Version: 2026-06-30 11:32 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -1385,6 +1385,17 @@ function urlBase64ToUint8Array(base64String) {
 // bei VAPID-Schlüsselwechsel (z.B. nach einem Secret-Reset) bleibt sonst eine alte, nicht mehr
 // passende Subscription im Browser/Service-Worker bestehen (unsubscribe() ist nötig, getSubscription()
 // allein liefert sonst die alte Subscription unverändert zurück → VapidPkHashMismatch beim Versand).
+// Erzeugt einen kurzen, stabilen Schlüssel aus dem Subscription-Endpoint (eindeutig pro
+// Browser/Gerät) — identisches Muster wie in admin.html, ermöglicht mehrere Geräte (z.B.
+// iPhone + Desktop) gleichzeitig unter derselben Coachee-UID, statt sich beim erneuten
+// Abonnieren gegenseitig zu überschreiben.
+async function subKeyFromEndpoint(endpoint) {
+  const enc = new TextEncoder().encode(endpoint);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', enc);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2,'0')).join('').slice(0, 24);
+}
+
 async function subscribeToPush(uid) {
   try {
     if(!PUSH_VAPID_KEY || !uid) return;
@@ -1407,7 +1418,11 @@ async function subscribeToPush(uid) {
     }
     const fbDb = window._fb?.db;
     if(fbDb && sub) {
-      fbDb.collection("users").doc(uid).update({ pushSubscription: JSON.parse(JSON.stringify(sub)) }).catch(()=>{});
+      const subJson = JSON.parse(JSON.stringify(sub));
+      const deviceKey = await subKeyFromEndpoint(subJson.endpoint);
+      fbDb.collection("users").doc(uid)
+        .collection("devices").doc(deviceKey)
+        .set({ pushSubscription: subJson, updatedAt: Date.now() }).catch(()=>{});
     }
   } catch(e) {}
 }
