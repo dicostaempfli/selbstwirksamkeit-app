@@ -1,4 +1,4 @@
-<!-- Version: 2026-07-01 10:35 coachee -->
+<!-- Version: 2026-07-01 10:43 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -3248,7 +3248,7 @@ const BLANK_FORM = {
   weekdays:[], monthDays:[], customWeekdays:[],
   customInterval:1, customUnit:"Tagen",
   area:"Allgemein", additionalTimes:[],
-  photos:[], files:[], sacredSymbol:""
+  sacredSymbol:""
 };
 
 const SymbolCard = ({s, selected, onSelect}) => {
@@ -3323,10 +3323,18 @@ function RemindersPage({reminders,setReminders,pendingReminderId,setPendingRemin
   const [showModal,setShowModal] = useState(false);
   const [editId,setEditId]       = useState(null);
   const [form,setForm]           = useState(BLANK_FORM);
-  const [lightbox,setLightbox]   = useState(null);
   const [viewReminder,setViewReminder] = useState(null); // {reminder, showEdit}
 
   const [showSymbolPicker,setShowSymbolPicker] = useState(false);
+  const labelRef = useRef(null);
+  // Bezeichnungsfeld wächst automatisch mit dem Text mit — auch beim Öffnen zum
+  // Bearbeiten (nicht nur beim Tippen), da der Text dort bereits vorhanden ist.
+  useEffect(() => {
+    if(labelRef.current) {
+      labelRef.current.style.height = "auto";
+      labelRef.current.style.height = labelRef.current.scrollHeight + "px";
+    }
+  }, [showModal, form.label]);
   const openNew  = () => { setForm(BLANK_FORM); setEditId(null); setShowModal(true); };
   const openView = (r, showEdit) => setViewReminder({reminder:r, showEdit});
   // Push-Deep-Link (#impulse-meine-<id>): Popup ohne Bearbeiten-Link öffnen, sobald der
@@ -3340,45 +3348,13 @@ function RemindersPage({reminders,setReminders,pendingReminderId,setPendingRemin
     if(setPendingReminderId) setPendingReminderId(null);
   }, [pendingReminderId, reminders]);
   const openEdit = r  => {
-    // Restore photos from localStorage if not in Firestore data
-    let photos = r.photos||[];
-    let files = r.files||[];
-    if(photos.length===0) {
-      try { const stored=localStorage.getItem('rem_photos_'+r.id); if(stored)photos=JSON.parse(stored); } catch(e){}
-    }
-    setForm({...BLANK_FORM,...r,photos,files,additionalTimes:r.additionalTimes||[],area:r.area||'Allgemein'});
+    setForm({...BLANK_FORM,...r,additionalTimes:r.additionalTimes||[],area:r.area||'Allgemein'});
     setEditId(r.id);
     setShowModal(true);
   };
   const togWD = d => setForm(f=>({...f,weekdays:f.weekdays.includes(d)?f.weekdays.filter(x=>x!==d):[...f.weekdays,d]}));
   const togMD = d => setForm(f=>({...f,monthDays:f.monthDays.includes(d)?f.monthDays.filter(x=>x!==d):[...f.monthDays,d]}));
   const togCD = d => setForm(f=>({...f,customWeekdays:f.customWeekdays.includes(d)?f.customWeekdays.filter(x=>x!==d):[...f.customWeekdays,d]}));
-
-  const addPhotosToReminder = async (id,files) => {
-    const urls = await Promise.all(Array.from(files).map(readFile));
-    setReminders(rs=>rs.map(r=>r.id===id?{...r,photos:[...(r.photos||[]),...urls]}:r));
-  };
-  const removeReminderPhoto = (remId,photoIdx) => setReminders(rs=>rs.map(r=>r.id===remId?{...r,photos:(r.photos||[]).filter((_,i)=>i!==photoIdx)}:r));
-  const modalPhotoRef = useRef(null);
-  const modalFileRef  = useRef(null);
-  const handleModalFiles = async e => {
-    if(!e.target.files||!e.target.files.length) return;
-    const files = Array.from(e.target.files);
-    e.target.value = '';
-    const results = await Promise.all(files.map(f => new Promise(res => {
-      const r = new FileReader();
-      r.onload = ev => res({url:ev.target.result, name:f.name, type:f.type});
-      r.readAsDataURL(f);
-    })));
-    setForm(f=>({...f, files:[...(f.files||[]),...results]}));
-  };
-  const handleModalPhotos = async e => {
-    if(!e.target.files||!e.target.files.length) return;
-    const urls = await Promise.all(Array.from(e.target.files).map(readFile));
-    setForm(f=>({...f, photos:[...(f.photos||[]),...urls]}));
-    e.target.value = '';
-  };
-  const removeModalPhoto = idx => setForm(f=>({...f, photos:(f.photos||[]).filter((_,i)=>i!==idx)}));
 
   const [saveError,setSaveError] = useState(false);
   const save = () => {
@@ -3390,12 +3366,6 @@ function RemindersPage({reminders,setReminders,pendingReminderId,setPendingRemin
     setSaveError(false);
     const id = editId||Date.now();
     const entry={...form,id,enabled:true,area:form.area||'Allgemein',additionalTimes:form.additionalTimes||[],createdAt:form.createdAt||Date.now()};
-    // Store photos in localStorage separately (too large for Firestore)
-    if(entry.photos&&entry.photos.length>0) {
-      try { localStorage.setItem('rem_photos_'+id, JSON.stringify(entry.photos)); } catch(e){}
-    } else {
-      try { localStorage.removeItem('rem_photos_'+id); } catch(e){}
-    }
     setShowModal(false);
     setReminders(rs=>editId?rs.map(r=>r.id===editId?entry:r):[...rs,entry]);
   };
@@ -3490,9 +3460,16 @@ function RemindersPage({reminders,setReminders,pendingReminderId,setPendingRemin
               <p style=${{fontSize:".76rem",color:"var(--muted)",marginBottom:8,marginTop:2}}>Wähle hier dein stimmiges Symbol aus</p>
               <${SymbolButton} sacredSymbol=${form.sacredSymbol} onClick=${()=>setShowSymbolPicker(true)}/>
             </div>
-            <div class="form-grid" style=${{gridTemplateColumns:'1fr 115px'}}>
-              <div class="form-row" style=${{marginBottom:0}}><label class="label">Bezeichnung</label><input class="input" value=${form.label} onInput=${e=>setForm(f=>({...f,label:e.target.value}))} placeholder="z.B. Morgenroutine" style=${{borderColor:saveError&&!form.label.trim()?"var(--danger)":undefined}}/></div>
-              <div class="form-row" style=${{marginBottom:0}}><label class="label">Uhrzeit</label><input class="input" type="time" value=${form.time} onInput=${e=>setForm(f=>({...f,time:e.target.value}))} style=${{width:"110px",maxWidth:"110px",fontSize:".82rem",padding:"6px 8px"}}/></div>
+            <div class="form-row" style=${{marginBottom:12}}>
+              <label class="label">Bezeichnung</label>
+              <textarea ref=${labelRef} class="textarea" rows=${3} value=${form.label}
+                onInput=${e=>{setForm(f=>({...f,label:e.target.value})); e.target.style.height="auto"; e.target.style.height=e.target.scrollHeight+"px";}}
+                placeholder="z.B. Morgenroutine"
+                style=${{width:"100%",boxSizing:"border-box",overflow:"hidden",borderColor:saveError&&!form.label.trim()?"var(--danger)":undefined}}/>
+            </div>
+            <div class="form-row" style=${{marginBottom:0}}>
+              <label class="label">Uhrzeit</label>
+              <input class="input" type="time" value=${form.time} onInput=${e=>setForm(f=>({...f,time:e.target.value}))} style=${{width:"110px",maxWidth:"110px",fontSize:".82rem",padding:"6px 8px"}}/>
             </div>
             <div class="form-row" style=${{marginTop:12}}>
               <label class="label">Bereich</label>
@@ -3550,68 +3527,6 @@ function RemindersPage({reminders,setReminders,pendingReminderId,setPendingRemin
                 </div>
               </div>`}
             <div class="rec-preview">${preview()}</div>
-            <div class="form-row" style=${{marginTop:16}}>
-              <label class="label">Foto-Anker</label>
-              <p style=${{fontSize:'.78rem',color:'var(--muted)',marginBottom:8}}>Ein inspirierendes Bild als visuellen Impuls.</p>
-              <div style=${{display:'flex',gap:7,flexWrap:'wrap',alignItems:'center'}}>
-                ${(form.photos||[]).map((src,i)=>html`
-                  <div key=${i} style=${{position:'relative',flexShrink:0}}>
-                    <img src=${src} onClick=${()=>setLightbox(src)}
-                      style=${{width:68,height:68,borderRadius:9,objectFit:'cover',
-                        border:'2px solid var(--border)',cursor:'zoom-in'}}/>
-                    <button onClick=${e=>{e.stopPropagation();removeModalPhoto(i);}}
-                      style=${{position:'absolute',top:-5,right:-5,width:18,height:18,
-                        background:'var(--danger)',border:'none',borderRadius:'50%',
-                        color:'white',cursor:'pointer',display:'flex',alignItems:'center',
-                        justifyContent:'center',fontSize:10,padding:0,lineHeight:1}}>✕</button>
-                  </div>`)}
-                <input ref=${modalPhotoRef} type="file" accept="image/*,video/*" multiple
-                  style=${{opacity:0,position:'fixed',top:0,left:0,width:'1px',height:'1px',zIndex:-1}}
-                  onChange=${e=>{e.stopPropagation();handleModalPhotos(e);}}/>
-                <input ref=${modalFileRef} type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,application/*,image/*,video/*,audio/*" multiple
-                  style=${{opacity:0,position:'fixed',top:0,left:0,width:'1px',height:'1px',zIndex:-1}}
-                  onChange=${e=>{e.stopPropagation();handleModalFiles(e);}}/>
-                <button type="button" onClick=${e=>{e.preventDefault();e.stopPropagation();modalPhotoRef.current&&modalPhotoRef.current.click();}}
-                  style=${{width:68,height:68,borderRadius:9,border:'2px dashed var(--border2)',
-                    display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',
-                    gap:3,cursor:'pointer',color:'var(--muted)',fontSize:'.62rem',fontWeight:700,
-                    background:'none',fontFamily:"'Exo 2',sans-serif"}}>
-                  <${Ic} name="camera" size=${18}/>
-                  <span>Foto/Video</span>
-                </button>
-                <button type="button" onClick=${e=>{e.preventDefault();e.stopPropagation();modalFileRef.current&&modalFileRef.current.click();}}
-                  style=${{width:68,height:68,borderRadius:9,border:'2px dashed var(--border2)',
-                    display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',
-                    gap:3,cursor:'pointer',color:'var(--muted)',fontSize:'.62rem',fontWeight:700,
-                    background:'none',fontFamily:"'Exo 2',sans-serif"}}>
-                  <${Ic} name="attach" size=${18}/>
-                  <span>Datei</span>
-                </button>
-              </div>
-              ${(form.files||[]).length>0&&html`
-                <div style=${{marginTop:8,display:'flex',flexWrap:'wrap',gap:6}}>
-                  ${(form.files||[]).map((f,i)=>html`
-                    <div key=${i} style=${{display:'flex',alignItems:'center',gap:6,
-                      background:'var(--surface2)',borderRadius:8,padding:'5px 10px',
-                      border:'1px solid var(--border)',maxWidth:'100%',cursor:'pointer'}}
-                      onClick=${()=>{
-                        const url = f.url||f;
-                        const name = f.name||('Datei_'+(i+1));
-                        const a = document.createElement('a');
-                        a.href = url;
-                        a.download = name;
-                        a.style.display = 'none';
-                        document.body.appendChild(a);
-                        a.click();
-                        setTimeout(()=>document.body.removeChild(a), 100);
-                      }}>
-                      <${Ic} name="attach" size=${14} style=${{flexShrink:0,color:'var(--teal-dark)'}}/>
-                      <span style=${{fontSize:'.72rem',color:'var(--teal-dark)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:140,textDecoration:'underline'}}>${f.name||'Datei '+(i+1)}</span>
-                      <button onClick=${e=>{e.stopPropagation();setForm(ff=>({...ff,files:(ff.files||[]).filter((_,j)=>j!==i)}));}}
-                        style=${{background:'none',border:'none',cursor:'pointer',color:'var(--danger)',padding:'0 2px',fontSize:13,lineHeight:1,flexShrink:0}}>✕</button>
-                    </div>`)}
-                </div>`}
-            </div>
             <div class="modal-actions" style=${{justifyContent:"space-between"}}>
               <div>
                 ${editId&&html`<button style=${{background:"#fff0ef",border:"1.5px solid #f5c0bc",color:"var(--danger)",padding:"7px 14px",borderRadius:10,cursor:"pointer",fontFamily:"'Exo 2',sans-serif",fontWeight:700,fontSize:".82rem",display:"flex",alignItems:"center",gap:6}}
@@ -3629,8 +3544,6 @@ function RemindersPage({reminders,setReminders,pendingReminderId,setPendingRemin
             </div>
           </div>
         </div>`}
-
-      ${lightbox&&html`<div class="lightbox" onClick=${()=>setLightbox(null)}><img src=${lightbox} alt="Foto"/><div class="lightbox-close"><${Ic} name="x" size=${26}/></div></div>`}
 
       ${showSymbolPicker&&html`
         <div class="overlay" onClick=${e=>{if(e.target===e.currentTarget)setShowSymbolPicker(false);}}>
