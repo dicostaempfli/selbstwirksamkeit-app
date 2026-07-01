@@ -1,4 +1,4 @@
-<!-- Version: 2026-07-01 11:22 coachee -->
+<!-- Version: 2026-07-01 11:37 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -598,9 +598,6 @@
   /* Reminders */
   .reminder-item { background:var(--surface2); border:1px solid var(--border); border-radius:12px; padding:12px 14px; margin-bottom:8px; }
   .reminder-item-top { display:flex; justify-content:space-between; align-items:center; }
-  .reminder-photos { display:flex; gap:6px; flex-wrap:wrap; margin-top:10px; padding-top:10px; border-top:1px solid var(--border); }
-  .rem-photo { width:60px; height:60px; border-radius:8px; object-fit:cover; cursor:pointer; border:1.5px solid transparent; transition:border-color .15s; }
-  .rem-photo:hover { border-color:var(--teal); }
   .rem-photo-add { width:60px; height:60px; border-radius:8px; border:2px dashed var(--border2); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; cursor:pointer; color:var(--muted); font-size:.6rem; font-weight:700; font-family:'Exo 2',sans-serif; transition:all .15s; }
   .rem-photo-add:hover { border-color:var(--teal); color:var(--teal-dark); background:var(--teal-pale); }
   .reminder-left { display:flex; align-items:center; gap:12px; }
@@ -2704,8 +2701,8 @@ const ImpulsPushPopup = ({impuls, onAnnehmen, onHeuteNicht, onClose}) => html`
       <div style=${{borderTop:"1px solid var(--border)",margin:"12px 0 16px"}}></div>
       <p style=${{fontFamily:"'Manuale',serif",fontSize:"1.05rem",lineHeight:1.6,color:"var(--text)",marginBottom:14}}>${impuls.text}</p>
       <p style=${{fontSize:".82rem",color:"var(--muted)",lineHeight:1.55,marginBottom:24}}>${impuls.hint || ""}</p>
-      <button class="btn btn-primary" style=${{width:"100%",marginBottom:10}} onClick=${onAnnehmen}>Ich nehme diesen Impuls mit</button>
-      <button class="btn btn-ghost" style=${{width:"100%",fontSize:".83rem"}} onClick=${onHeuteNicht}>Heute nicht</button>
+      <button class="impulse-subtab-btn active" style=${{width:"100%",marginBottom:10}} onClick=${onAnnehmen}>Ich nehme diesen Impuls mit</button>
+      <button class="impulse-subtab-btn" style=${{width:"100%"}} onClick=${onHeuteNicht}>Heute nicht</button>
     </div>
   </div>`;
 
@@ -2884,15 +2881,15 @@ function ImpulsPage({ user, setPage, setActiveImpuls, activeImpuls, pendingImpul
           style: { padding:"8px 14px", border: koerper===opt ? "2px solid var(--teal)" : "1.5px solid var(--border)", borderRadius:20, background: koerper===opt ? "var(--sage)" : "var(--surface)", color: koerper===opt ? "var(--forest)" : "var(--muted)", fontFamily:"'Exo 2',sans-serif", fontWeight:700, fontSize:".8rem", cursor:"pointer", transition:"all .15s" }
         }, opt))}
       </div>
-      <button class="btn btn-primary" style=${{width:"100%"}} onClick=${saveAndFinish} disabled=${saving}>${saving ? "Speichern…" : "Abschliessen"}</button>
+      <button class="impulse-subtab-btn active" style=${{width:"100%"}} onClick=${saveAndFinish} disabled=${saving}>${saving ? "Speichern…" : "Abschliessen"}</button>
     </div>`;
 
   if (step === 2) return html`
     <div class="content-main" style=${{maxWidth:520}}>
       <span style=${{fontSize:".72rem",fontWeight:700,textTransform:"uppercase",letterSpacing:".07em",color:"var(--muted)"}}>Reflexion</span>
       <p style=${{fontFamily:"'Manuale',serif",fontSize:"1.1rem",lineHeight:1.65,color:"var(--text)",margin:"20px 0 32px"}}>Möchtest du deine heutige neue Erfahrung reflektieren?</p>
-      <button class="btn btn-primary" style=${{width:"100%",marginBottom:10}} onClick=${() => setStep(3)}>Ja gerne</button>
-      <button class="btn btn-ghost" style=${{width:"100%",fontSize:".83rem"}} onClick=${handleNeinHeute}>Nein, heute nicht</button>
+      <button class="impulse-subtab-btn active" style=${{width:"100%",marginBottom:10}} onClick=${() => setStep(3)}>Ja gerne</button>
+      <button class="impulse-subtab-btn" style=${{width:"100%"}} onClick=${handleNeinHeute}>Nein, heute nicht</button>
     </div>`;
 
   if (step === 0.5) return h("div", {class:"content-main", style:{maxWidth:520, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", minHeight:320, textAlign:"center", paddingTop:40}},
@@ -2903,7 +2900,7 @@ function ImpulsPage({ user, setPage, setActiveImpuls, activeImpuls, pendingImpul
     h("p", {style:{fontFamily:"'Manuale',serif", fontSize:"1.05rem", lineHeight:1.75, color:"var(--text)", fontStyle:"italic", marginBottom:8}}, "Der Impuls begleitet dich heute."),
     h("p", {style:{fontFamily:"'Manuale',serif", fontSize:"1.05rem", lineHeight:1.75, color:"var(--text)", fontStyle:"italic", marginBottom:8}}, "Du findest ihn jederzeit auf deinem Homescreen."),
     h("p", {style:{fontSize:".85rem", color:"var(--muted)", lineHeight:1.6, marginBottom:32}}, "Heute Abend laden wir dich ein, deine Erfahrung zu reflektieren."),
-    h("button", {class:"btn btn-ghost", style:{fontSize:".95rem", padding:"12px 28px", width:"100%"}, onClick:()=>{ if(setPage) setPage("dashboard"); }}, "Ich bin bereit")
+    h("button", {class:"impulse-subtab-btn active", style:{width:"100%"}, onClick:()=>{ if(setPage) setPage("dashboard"); }}, "Ich bin bereit")
   );
 
   if (step === 1) return h("div", {class:"content-main", style:{maxWidth:520}},
@@ -2912,7 +2909,7 @@ function ImpulsPage({ user, setPage, setActiveImpuls, activeImpuls, pendingImpul
     h("p", {style:{fontFamily:"'Manuale',serif", fontSize:"1.1rem", lineHeight:1.65, color:"var(--text)", marginBottom:24}}, impuls.text),
     h("p", {style:{fontSize:".83rem", color:"var(--muted)", lineHeight:1.6, marginBottom:"auto"}}, impuls.hint || ""),
     h("p", {style:{fontSize:".82rem", color:"var(--muted)", fontStyle:"italic", textAlign:"center", marginTop:32, marginBottom:12}}, "Tippe, um deine Erfahrung kurz zu reflektieren."),
-    h("button", {class:"btn btn-primary", style:{width:"100%"}, onClick:()=>setStep(2)}, "Ich habe die Erfahrung gemacht")
+    h("button", {class:"impulse-subtab-btn active", style:{width:"100%"}, onClick:()=>setStep(2)}, "Ich habe die Erfahrung gemacht")
   );
 
   return html`
@@ -2925,8 +2922,8 @@ function ImpulsPage({ user, setPage, setActiveImpuls, activeImpuls, pendingImpul
       <p style=${{fontFamily:"'Manuale',serif",fontSize:"1.15rem",lineHeight:1.65,color:"var(--text)",marginBottom:16}}>${impuls.text}</p>
       <div style=${{borderTop:"1px solid var(--border)",marginBottom:16}}></div>
       <p style=${{fontSize:".85rem",color:"var(--muted)",lineHeight:1.6,marginBottom:32}}>${impuls.hint || ""}</p>
-      <button class="btn btn-primary" style=${{width:"100%",marginBottom:10}} onClick=${handleAnnehmen}>Ich nehme diesen Impuls mit</button>
-      <button class="btn btn-ghost" style=${{width:"100%",fontSize:".83rem"}} onClick=${handleHeuteNicht}>Heute nicht</button>
+      <button class="impulse-subtab-btn active" style=${{width:"100%",marginBottom:10}} onClick=${handleAnnehmen}>Ich nehme diesen Impuls mit</button>
+      <button class="impulse-subtab-btn" style=${{width:"100%"}} onClick=${handleHeuteNicht}>Heute nicht</button>
       ${showPushPopup&&html`<${ImpulsPushPopup}
         impuls=${impuls}
         onAnnehmen=${()=>{handleAnnehmen();setShowPushPopup(false);}}
@@ -3489,7 +3486,7 @@ function RemindersPage({reminders,setReminders,pendingReminderId,setPendingRemin
           </button>
         </div>
         <p class="page-sub" style=${{marginBottom:8}}>Richte persönliche Impulse für deinen Alltag ein.</p>
-        <p style=${{fontSize:".8rem",color:"var(--muted)",lineHeight:1.5,padding:"10px 14px",background:"var(--sage-pale)",borderRadius:10,borderLeft:"3px solid var(--sage)"}}>Wähle zwischen täglichen, wöchentlichen, monatlichen oder individuellen Impulsen. Füge Fotos als visuelle Anker hinzu.</p>
+        <p style=${{fontSize:".8rem",color:"var(--muted)",lineHeight:1.5,padding:"10px 14px",background:"var(--sage-pale)",borderRadius:10,borderLeft:"3px solid var(--sage)"}}>Wähle zwischen täglichen, wöchentlichen, monatlichen oder individuellen Impulsen.</p>
       </div>
       ${REM_AREAS.map(area=>{
         const areaRems = reminders.filter(r=>(r.area||"Allgemein")===area);
