@@ -1,4 +1,4 @@
-<!-- Version: 2026-07-01 12:23 coachee -->
+<!-- Version: 2026-07-01 12:59 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -1619,6 +1619,12 @@ function App({ user }) {
     // #impulse-Hash wie ein Meine-Impulse-Reminder-Push, und damit fälschlich immer
     // auf dem Default-Subtab "Meine Impulse" statt "Tages-Impuls" (Fund 01.07.2026).
     if(hash === "impulse-tages") { setImpulseDefaultTab("tagesimpuls"); setPage("impulse"); setPendingImpulsPopup(true); }
+    else if(hash === "impulse-tages-snoozed") {
+      // "Später"-Reminder: 1h nach Tap auf "Später" schickt checkImpulsSnooze diesen
+      // Hash. Popup erscheint erneut, aber diesmal OHNE "Später"-Option (pendingImpulsPopup
+      // trägt den String "snoozed" statt true, damit ImpulsPage das unterscheiden kann).
+      setImpulseDefaultTab("tagesimpuls"); setPage("impulse"); setPendingImpulsPopup("snoozed");
+    }
     else if(hash.startsWith("impulse-meine-")) {
       // Reminder-Push trägt jetzt die konkrete reminderId im Hash (#impulse-meine-<id>),
       // damit das Anzeige-Popup weiss, welcher Impuls gemeint ist (statt nur der Subtab).
@@ -2689,7 +2695,7 @@ function ImpulseTab({ user, reminders, setReminders, setPage, defaultSubTab, set
 // nicht beim normalen Antippen in der App, wo die bestehende Vollbild-Darstellung bleibt.
 // Gleiches Overlay/Karten-Design wie beim "Meine Impulse"-Popup, aber mit den echten
 // .btn-Klassen der App statt eigens gestalteter Buttons — genau wie auf der Vollbildseite.
-const ImpulsPushPopup = ({impuls, onAnnehmen, onHeuteNicht, onClose}) => html`
+const ImpulsPushPopup = ({impuls, onAnnehmen, onSpaeter, onHeuteNicht, onClose, showSpaeter}) => html`
   <div onClick=${e=>{if(e.target===e.currentTarget)onClose();}} style=${{
     position:"fixed",inset:0,background:"rgba(14,78,78,.94)",
     zIndex:9999,display:"flex",alignItems:"center",justifyContent:"center"
@@ -2711,7 +2717,9 @@ const ImpulsPushPopup = ({impuls, onAnnehmen, onHeuteNicht, onClose}) => html`
       <p style=${{fontFamily:"'Manuale',serif",fontSize:"1.05rem",lineHeight:1.6,color:"var(--text)",marginBottom:14}}>${impuls.text}</p>
       <p style=${{fontSize:".82rem",color:"var(--muted)",lineHeight:1.55,marginBottom:24}}>${impuls.hint || ""}</p>
       <button class="impulse-subtab-btn active" style=${{width:"100%",marginBottom:10}} onClick=${onAnnehmen}>Ich nehme diesen Impuls mit</button>
+      ${showSpaeter && html`<button class="impulse-subtab-btn" style=${{width:"100%",marginBottom:10}} onClick=${onSpaeter}>Später</button>`}
       <button class="impulse-subtab-btn" style=${{width:"100%"}} onClick=${onHeuteNicht}>Heute nicht</button>
+      ${showSpaeter && html`<p style=${{fontSize:".72rem",color:"var(--muted)",textAlign:"center",margin:"12px 0 0"}}>"Später" fragt in 1 Stunde noch einmal — danach nur noch diese zwei Optionen.</p>`}
     </div>
   </div>`;
 
@@ -2723,6 +2731,9 @@ function ImpulsPage({ user, setPage, setActiveImpuls, activeImpuls, pendingImpul
   const [saving, setSaving]       = useState(false);
   const [activeEntryRef, setActiveEntryRef] = useState(null);
   const [showPushPopup, setShowPushPopup]   = useState(false);
+  // "Später" darf nur beim allerersten Push-Popup erscheinen, nicht mehr bei dessen
+  // eigenem 1h-später-Reminder-Popup (sonst könnte man sich beliebig oft weiter vertagen).
+  const [popupIsSnoozed, setPopupIsSnoozed] = useState(false);
 
   const KOERPER_OPTS = ["Kopf","Kehle","Herz","Brust","Bauch","Schultern","Arme","Beine"];
 
@@ -2734,7 +2745,7 @@ function ImpulsPage({ user, setPage, setActiveImpuls, activeImpuls, pendingImpul
   useEffect(() => {
     if(!pendingImpulsPopup) return;
     if(!impuls) return;
-    if(step === 0) setShowPushPopup(true);
+    if(step === 0) { setShowPushPopup(true); setPopupIsSnoozed(pendingImpulsPopup === "snoozed"); }
     if(setPendingImpulsPopup) setPendingImpulsPopup(false);
   }, [pendingImpulsPopup, impuls, step]);
 
@@ -2820,6 +2831,23 @@ function ImpulsPage({ user, setPage, setActiveImpuls, activeImpuls, pendingImpul
     // der Home-Seite), obwohl gerade ein aktiver Impuls existiert.
     localStorage.removeItem("impuls_dismissed_" + (user?.uid || "guest"));
     setStep(0.5);
+  };
+
+  // "Später": schreibt eine Snooze-Zeit in users/{uid}, die Cloud Function
+  // checkImpulsSnooze prüft das alle 10 Minuten und schickt nach 1h einen neuen Push
+  // (#impulse-tages-snoozed) — dort erscheint dasselbe Popup nochmal, aber ohne
+  // "Später"-Option (popupIsSnoozed steuert das, s. Push-Deep-Link-useEffect oben).
+  // Der Tagesimpuls selbst bleibt unverändert im Hintergrund stehen (kein Statuswechsel,
+  // keine Firestore-Schreibung auf impulse_entries) — "Später" ist reine Terminierung,
+  // keine Entscheidung.
+  const handleSpaeter = () => {
+    const fbDb = window._fb?.db;
+    if (fbDb && user?.uid) {
+      fbDb.collection("users").doc(user.uid).update({
+        impulsSnoozeAt: Date.now() + 60 * 60 * 1000
+      }).catch(() => {});
+    }
+    setShowPushPopup(false);
   };
 
   const handleHeuteNicht = () => {
@@ -2959,7 +2987,9 @@ function ImpulsPage({ user, setPage, setActiveImpuls, activeImpuls, pendingImpul
       <button class="impulse-subtab-btn" style=${{width:"100%"}} onClick=${handleHeuteNicht}>Heute nicht</button>
       ${showPushPopup&&html`<${ImpulsPushPopup}
         impuls=${impuls}
+        showSpaeter=${!popupIsSnoozed}
         onAnnehmen=${()=>{handleAnnehmen();setShowPushPopup(false);}}
+        onSpaeter=${handleSpaeter}
         onHeuteNicht=${()=>{handleHeuteNicht();setShowPushPopup(false);}}
         onClose=${()=>setShowPushPopup(false)}
       />`}
