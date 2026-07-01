@@ -1,4 +1,4 @@
-<!-- Version: 2026-07-01 11:59 coachee -->
+<!-- Version: 2026-07-01 12:05 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -2651,6 +2651,15 @@ function DashboardPage({coachees,library,reminders,doodles,setPage,user,onLogoTa
 // ── IMPULSE TAB (Sub-Tab: Meine Impulse + Tages-Impuls) ──
 function ImpulseTab({ user, reminders, setReminders, setPage, defaultSubTab, setDefaultSubTab, setActiveImpuls, activeImpuls, pendingReminderId, setPendingReminderId, pendingImpulsPopup, setPendingImpulsPopup }) {
   const [activeSubTab, setActiveSubTab] = useState(defaultSubTab || 'meine');
+  // Fix: War die Impulse-Seite beim Push-Tap schon offen (App im Hintergrund, nicht
+  // komplett geschlossen), bleibt ImpulseTab als Komponente bestehen — der useState-
+  // Initialwert oben greift dann NICHT mehr, da er nur beim allerersten Mount zieht.
+  // Ohne diesen Sync bleibt activeSubTab auf dem alten Subtab stehen, obwohl routeHash()
+  // defaultSubTab (impulseDefaultTab) bereits korrekt aktualisiert hat — Popup und Inhalt
+  // der Zielseite (z.B. Tages-Impuls) werden dadurch nie gerendert.
+  useEffect(() => {
+    if(defaultSubTab && defaultSubTab !== activeSubTab) setActiveSubTab(defaultSubTab);
+  }, [defaultSubTab]);
   const isMeine = activeSubTab === 'meine';
   const isTagesimpuls = activeSubTab === 'tagesimpuls';
   const subContent = isMeine
