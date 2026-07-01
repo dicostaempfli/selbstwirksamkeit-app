@@ -1,4 +1,4 @@
-<!-- Version: 2026-07-01 13:41 coachee -->
+<!-- Version: 2026-07-01 13:50 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -1599,6 +1599,7 @@ function App({ user }) {
   const [activeImpuls,setActiveImpuls]           = useState(null);
   const [pendingReminderId,setPendingReminderId] = useState(null);
   const [pendingImpulsPopup,setPendingImpulsPopup] = useState(false);
+  const [pendingReflexionPopup,setPendingReflexionPopup] = useState(false);
   const [tapCount,setTapCount]             = useState(0);
   const [showInstallBanner,setShowInstallBanner] = useState(false);
   const [pushGranted,setPushGranted]             = useState(false);
@@ -1624,6 +1625,14 @@ function App({ user }) {
       // Hash. Popup erscheint erneut, aber diesmal OHNE "Später"-Option (pendingImpulsPopup
       // trägt den String "snoozed" statt true, damit ImpulsPage das unterscheiden kann).
       setImpulseDefaultTab("tagesimpuls"); setPage("impulse"); setPendingImpulsPopup("snoozed");
+    }
+    else if(hash === "impulse-reflexion") {
+      // Abend-Reflexion (NEU 01.07.2026): checkImpulsReflexion schickt diesen Hash um
+      // 20:00 Uhr an Coachees mit einem angenommenen, noch nicht reflektierten Impuls
+      // (status "active"). Landet auf demselben Subtab wie der Morgen-Push — ImpulsPage
+      // zeigt bei status "active" ohnehin bereits Step 1, das Popup fragt von dort aus
+      // direkt nach der Reflexion.
+      setImpulseDefaultTab("tagesimpuls"); setPage("impulse"); setPendingReflexionPopup(true);
     }
     else if(hash.startsWith("impulse-meine-")) {
       // Reminder-Push trägt jetzt die konkrete reminderId im Hash (#impulse-meine-<id>),
@@ -1974,7 +1983,7 @@ function App({ user }) {
     <div style=${{flex:1,display:'flex',overflow:'hidden',minWidth:0}}>
       ${page==="dashboard" && html`<${DashboardPage} coachees=${coachees} library=${library} reminders=${reminders} doodles=${doodles} setPage=${navTo} user=${user} onLogoTap=${handleLogoTap} setImpulseDefaultTab=${setImpulseDefaultTab} activeImpuls=${activeImpuls} setActiveImpuls=${setActiveImpuls}/>`}
       ${page==="chat"      && html`<${ChatPage} user=${user} coachees=${coachees} setCoachees=${setCoachees} mobileChatOpen=${mobileChatOpen} setMobileChatOpen=${setMobileChatOpen}/>`}
-      ${page==="impulse"   && html`<${ImpulseTab} user=${user} reminders=${reminders} setReminders=${saveReminders} setPage=${navTo} defaultSubTab=${impulseDefaultTab} setDefaultSubTab=${setImpulseDefaultTab} setActiveImpuls=${setActiveImpuls} activeImpuls=${activeImpuls} pendingReminderId=${pendingReminderId} setPendingReminderId=${setPendingReminderId} pendingImpulsPopup=${pendingImpulsPopup} setPendingImpulsPopup=${setPendingImpulsPopup}/>`}
+      ${page==="impulse"   && html`<${ImpulseTab} user=${user} reminders=${reminders} setReminders=${saveReminders} setPage=${navTo} defaultSubTab=${impulseDefaultTab} setDefaultSubTab=${setImpulseDefaultTab} setActiveImpuls=${setActiveImpuls} activeImpuls=${activeImpuls} pendingReminderId=${pendingReminderId} setPendingReminderId=${setPendingReminderId} pendingImpulsPopup=${pendingImpulsPopup} setPendingImpulsPopup=${setPendingImpulsPopup} pendingReflexionPopup=${pendingReflexionPopup} setPendingReflexionPopup=${setPendingReflexionPopup}/>`}
       ${page==="library"   && html`<${LibraryPage} library=${library} setLibrary=${saveLibrary}/>`}
       ${page==="doodle"    && html`<${DoodlePage} user=${user} doodles=${doodles} setDoodles=${saveDoodles} coachees=${coachees} events=${events}/>`}
       ${page==="settings"  && html`<${SettingsPage} user=${user} onDeleted=${()=>{ const a=window._fb?.auth; if(a) a.signOut().catch(()=>{}); }}/>`}
@@ -2664,7 +2673,7 @@ function DashboardPage({coachees,library,reminders,doodles,setPage,user,onLogoTa
 }
 
 // ── IMPULSE TAB (Sub-Tab: Meine Impulse + Tages-Impuls) ──
-function ImpulseTab({ user, reminders, setReminders, setPage, defaultSubTab, setDefaultSubTab, setActiveImpuls, activeImpuls, pendingReminderId, setPendingReminderId, pendingImpulsPopup, setPendingImpulsPopup }) {
+function ImpulseTab({ user, reminders, setReminders, setPage, defaultSubTab, setDefaultSubTab, setActiveImpuls, activeImpuls, pendingReminderId, setPendingReminderId, pendingImpulsPopup, setPendingImpulsPopup, pendingReflexionPopup, setPendingReflexionPopup }) {
   const [activeSubTab, setActiveSubTab] = useState(defaultSubTab || 'meine');
   // Fix: War die Impulse-Seite beim Push-Tap schon offen (App im Hintergrund, nicht
   // komplett geschlossen), bleibt ImpulseTab als Komponente bestehen — der useState-
@@ -2679,7 +2688,7 @@ function ImpulseTab({ user, reminders, setReminders, setPage, defaultSubTab, set
   const isTagesimpuls = activeSubTab === 'tagesimpuls';
   const subContent = isMeine
     ? h(RemindersPage, { reminders, setReminders, pendingReminderId, setPendingReminderId })
-    : h(ImpulsPage, { user, setPage, setActiveImpuls, activeImpuls, pendingImpulsPopup, setPendingImpulsPopup });
+    : h(ImpulsPage, { user, setPage, setActiveImpuls, activeImpuls, pendingImpulsPopup, setPendingImpulsPopup, pendingReflexionPopup, setPendingReflexionPopup });
   return html`
     <div class="impulse-tab-wrap">
       <div class="impulse-subtab-nav">
@@ -2732,7 +2741,35 @@ const ImpulsPushPopup = ({impuls, onAnnehmen, onSpaeter, onHeuteNicht, onClose, 
     </div>
   </div>`;
 
-function ImpulsPage({ user, setPage, setActiveImpuls, activeImpuls, pendingImpulsPopup, setPendingImpulsPopup }) {
+// Popup für den Abend-Reflexions-Push (NEU 01.07.2026) — löst den bisher unbenutzten
+// Vollbild-Schritt 2 in ein Popup ab, analog zu ImpulsPushPopup. "Ja, gerne" führt
+// direkt ins Reflexionsformular (Step 3), "Heute nicht" verhält sich wie der bestehende
+// handleNeinHeute()-Pfad. Gleiches Overlay/Karten-Design wie die anderen Push-Popups.
+const ImpulsReflexionPopup = ({onJa, onNein, onClose}) => html`
+  <div onClick=${e=>{if(e.target===e.currentTarget)onClose();}} style=${{
+    position:"fixed",inset:0,background:"rgba(14,78,78,.94)",
+    zIndex:9999,display:"flex",alignItems:"center",justifyContent:"center"
+  }}>
+    <div style=${{
+      background:"var(--surface)",borderRadius:22,
+      width:"calc(100vw - 64px)",maxWidth:320,
+      boxShadow:"var(--shadow2)",boxSizing:"border-box",
+      padding:"26px 24px 24px",position:"relative",textAlign:"left"
+    }} onClick=${e=>e.stopPropagation()}>
+      <button aria-label="Schliessen" onClick=${onClose} style=${{
+        position:"absolute",top:12,right:12,width:28,height:28,borderRadius:"50%",
+        border:"none",background:"var(--surface2)",color:"var(--muted)",
+        display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"
+      }}><${Ic} name="x" size=${15}/></button>
+      <span style=${{fontSize:".68rem",fontWeight:700,textTransform:"uppercase",letterSpacing:".07em",color:"var(--muted)"}}>Reflexion</span>
+      <div style=${{borderTop:"1px solid var(--border)",margin:"12px 0 16px"}}></div>
+      <p style=${{fontFamily:"'Manuale',serif",fontSize:"1.05rem",fontStyle:"italic",lineHeight:1.6,color:"var(--text)",marginBottom:24}}>Möchtest du deine heutige Erfahrung kurz reflektieren?</p>
+      <button class="impulse-subtab-btn active" style=${{width:"100%",marginBottom:10}} onClick=${onJa}>Ja, gerne</button>
+      <button class="impulse-subtab-btn" style=${{width:"100%"}} onClick=${onNein}>Heute nicht</button>
+    </div>
+  </div>`;
+
+function ImpulsPage({ user, setPage, setActiveImpuls, activeImpuls, pendingImpulsPopup, setPendingImpulsPopup, pendingReflexionPopup, setPendingReflexionPopup }) {
   const [step, setStep]           = useState(0);
   const [reflexion, setReflexion] = useState("");
   const [koerper, setKoerper]     = useState(null);
@@ -2740,6 +2777,7 @@ function ImpulsPage({ user, setPage, setActiveImpuls, activeImpuls, pendingImpul
   const [saving, setSaving]       = useState(false);
   const [activeEntryRef, setActiveEntryRef] = useState(null);
   const [showPushPopup, setShowPushPopup]   = useState(false);
+  const [showReflexionPopup, setShowReflexionPopup] = useState(false);
   // "Später" darf nur beim allerersten Push-Popup erscheinen, nicht mehr bei dessen
   // eigenem 1h-später-Reminder-Popup (sonst könnte man sich beliebig oft weiter vertagen).
   const [popupIsSnoozed, setPopupIsSnoozed] = useState(false);
@@ -2757,6 +2795,17 @@ function ImpulsPage({ user, setPage, setActiveImpuls, activeImpuls, pendingImpul
     if(step === 0) { setShowPushPopup(true); setPopupIsSnoozed(pendingImpulsPopup === "snoozed"); }
     if(setPendingImpulsPopup) setPendingImpulsPopup(false);
   }, [pendingImpulsPopup, impuls, step]);
+
+  // Push-Deep-Link (#impulse-reflexion): Popup nur zeigen, wenn wirklich ein heute
+  // angenommener, noch nicht reflektierter Impuls vorliegt (step===1 — dieselbe
+  // Datenlage, die auch ohne Push zu Step 1 führt). Gleiches Warten-auf-echte-Daten-
+  // Muster wie oben (Pitfall 42): impuls/step starten beim Kaltstart als Platzhalter.
+  useEffect(() => {
+    if(!pendingReflexionPopup) return;
+    if(!impuls) return;
+    if(step === 1) setShowReflexionPopup(true);
+    if(setPendingReflexionPopup) setPendingReflexionPopup(false);
+  }, [pendingReflexionPopup, impuls, step]);
 
   useEffect(() => {
     // Fix: localStorage-Check zuerst — unabhängig von Firestore
@@ -2982,7 +3031,12 @@ function ImpulsPage({ user, setPage, setActiveImpuls, activeImpuls, pendingImpul
     h("p", {style:{fontFamily:"'Manuale',serif", fontSize:"1.1rem", lineHeight:1.65, color:"var(--text)", marginBottom:24}}, impuls.text),
     h("p", {style:{fontSize:".83rem", color:"var(--muted)", lineHeight:1.6, marginBottom:"auto"}}, impuls.hint || ""),
     h("p", {style:{fontSize:".82rem", color:"var(--muted)", fontStyle:"italic", textAlign:"center", marginTop:32, marginBottom:12}}, "Tippe, um deine Erfahrung kurz zu reflektieren."),
-    h("button", {class:"impulse-subtab-btn active", style:{width:"100%"}, onClick:()=>setStep(2)}, "Ich habe die Erfahrung gemacht")
+    h("button", {class:"impulse-subtab-btn active", style:{width:"100%"}, onClick:()=>setStep(2)}, "Ich habe die Erfahrung gemacht"),
+    showReflexionPopup && h(ImpulsReflexionPopup, {
+      onJa: () => { setShowReflexionPopup(false); setStep(3); },
+      onNein: () => { setShowReflexionPopup(false); handleNeinHeute(); },
+      onClose: () => setShowReflexionPopup(false)
+    })
   );
 
   return html`
