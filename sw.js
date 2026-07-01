@@ -1,7 +1,7 @@
 // Service Worker — Raum für Selbstwirksamkeit
-// Version: 2026-06-28 19:37
+// Version: 2026-07-01 14:15
 
-const VERSION = '2026-07-01-0927';
+const VERSION = '2026-07-01-1415';
 
 // Bei Install: sofort aktivieren ohne auf alten SW zu warten
 self.addEventListener('install', e => {
@@ -58,27 +58,32 @@ self.addEventListener('notificationclick', e => {
   // gilt für die ganze Origin, nicht nur für Tabs, die index.html zeigten).
   const relPath = e.notification.data?.url || './';
   const absoluteUrl = new URL(relPath, self.registration.scope).href;
-  // Zusätzlicher, von openWindow()/navigate() unabhängiger Übergabeweg (NEU 01.07.2026):
-  // Bei komplett geschlossener App (Kaltstart über die Notification) ist clients.openWindow()
-  // der einzig mögliche Pfad, da noch kein Client existiert — dabei gibt es eine bekannte
-  // WebKit/iOS-Einschränkung, bei der die übergebene URL beim Kaltstart einer standalone-PWA
-  // nicht zuverlässig übernommen wird und die App stattdessen bei der manifest-start_url ohne
-  // Hash landet. Fix: Ziel zusätzlich im Cache Storage ablegen (aus dem Service Worker heraus
-  // beschreibbar, anders als localStorage) — die App liest das beim eigenen Start zusätzlich
-  // aus (siehe applyPendingDeepLink() in index.html) und navigiert notfalls selbst dorthin.
-  e.waitUntil(
-    caches.open('pending-deeplink')
-      .then(c => c.put('/pending', new Response(JSON.stringify({ url: relPath, ts: Date.now() }))))
-      .catch(() => {})
-      .then(() => clients.matchAll({ type: 'window', includeUncontrolled: true }))
-      .then(windowClients => {
-        for(const client of windowClients) {
-          if('focus' in client) {
-            if('navigate' in client) client.navigate(absoluteUrl).catch(()=>{});
-            return client.focus();
-          }
+
+  // Fix (01.07.2026, Fund "App öffnet nach Push-Tap öfters gar nicht"): Cache-Write und
+  // Fenster-Öffnen laufen jetzt PARALLEL statt verkettet nacheinander. Vorher wartete
+  // clients.openWindow() auf den Abschluss des Cache-Storage-Schreibvorgangs — auf
+  // iOS/WebKit ist openWindow() aber nur zuverlässig, solange es noch innerhalb der
+  // ursprünglichen Nutzeraktivierung (dem Antippen der Notification) läuft. Jede
+  // zusätzliche await-Kette davor kann dieses Zeitfenster verbrauchen und openWindow()
+  // dann wirkungslos machen — genau das führte dazu, dass die App bei einem Teil der
+  // Push-Taps gar nicht mehr aufging (nicht "immer", da die Cache-Write-Dauer variiert).
+  // Der Cache-Storage-Fallback selbst (aus Kapitel 28.10, für den iOS-Kaltstart-Fall, bei
+  // dem die an openWindow() übergebene URL nicht zuverlässig ankommt) bleibt unverändert
+  // bestehen — er läuft nur nicht mehr blockierend davor.
+  const cacheWrite = caches.open('pending-deeplink')
+    .then(c => c.put('/pending', new Response(JSON.stringify({ url: relPath, ts: Date.now() }))))
+    .catch(() => {});
+
+  const openOrFocus = clients.matchAll({ type: 'window', includeUncontrolled: true })
+    .then(windowClients => {
+      for(const client of windowClients) {
+        if('focus' in client) {
+          if('navigate' in client) client.navigate(absoluteUrl).catch(()=>{});
+          return client.focus();
         }
-        if(clients.openWindow) return clients.openWindow(absoluteUrl);
-      })
-  );
+      }
+      if(clients.openWindow) return clients.openWindow(absoluteUrl);
+    });
+
+  e.waitUntil(Promise.all([cacheWrite, openOrFocus]));
 });
