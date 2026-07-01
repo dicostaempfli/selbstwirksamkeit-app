@@ -1,4 +1,4 @@
-<!-- Version: 2026-07-01 17:56 coachee -->
+<!-- Version: 2026-07-01 18:56 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -1602,6 +1602,7 @@ function App({ user }) {
   const [pendingReflexionPopup,setPendingReflexionPopup] = useState(false);
   const [tapCount,setTapCount]             = useState(0);
   const [showInstallBanner,setShowInstallBanner] = useState(false);
+  const [showPushBanner,setShowPushBanner]       = useState(false);
   const [pushGranted,setPushGranted]             = useState(false);
   const tapTimer                           = useRef(null);
 
@@ -1689,21 +1690,29 @@ function App({ user }) {
   }, [user?.uid]);
 
   // ── Push + Install Setup ──
+  // WICHTIG (Fund 30.06.2026, siehe admin.html): Auf iOS/iPadOS Safari verlangt
+  // Notification.requestPermission() eine direkte Nutzerinteraktion. Ein automatischer
+  // Aufruf via setTimeout im useEffect verpufft lautlos: kein Prompt, keine Fehlermeldung,
+  // Notification.permission bleibt einfach auf 'default'. Deshalb hier — analog zu
+  // admin.html — ein Banner mit explizitem "Aktivieren"-Button statt Auto-Request.
   useEffect(() => {
     // Zeige Install-Banner wenn: iOS + nicht als PWA installiert
     if(isIOS() && !isPWA()) {
       setTimeout(() => setShowInstallBanner(true), 2000);
     }
     const notifAvailable = typeof Notification !== 'undefined';
-    // Push Permission anfragen wenn: PWA installiert + noch nicht granted
+    // Push-Banner zeigen wenn: PWA installiert + noch nicht granted (statt Auto-Request)
     if(notifAvailable && isPWA() && Notification.permission === 'default') {
-      setTimeout(async () => {
-        const granted = await requestPushPermission();
-        setPushGranted(granted);
-      }, 3000);
+      setTimeout(() => setShowPushBanner(true), 2000);
     }
     if(notifAvailable && Notification.permission === 'granted') setPushGranted(true);
   }, []);
+
+  const handleEnablePush = async () => {
+    const granted = await requestPushPermission();
+    setPushGranted(granted);
+    setShowPushBanner(false);
+  };
 
   // ── Echte Push-Subscription erzeugen (für Push bei geschlossener App) ──
   // Läuft erst, wenn Erlaubnis vorhanden ist UND der Coachee eingeloggt ist.
@@ -1922,6 +1931,23 @@ function App({ user }) {
   ];
 
   return html`
+    ${showPushBanner && h("div", {
+      style:{position:"fixed",bottom:0,left:0,right:0,zIndex:19999,padding:"14px 16px 18px",background:"#0f2927",borderTop:"2px solid #1D9E75",display:"flex",alignItems:"center",gap:14,flexWrap:"wrap"}
+    },
+      h("div",{style:{flex:1,minWidth:200,fontSize:".85rem",color:"#fff",lineHeight:1.4}},
+        "Push-Benachrichtigungen aktivieren, um Impulse und Nachrichten auf deinem Sperrbildschirm zu erhalten."
+      ),
+      h("div",{style:{display:"flex",gap:8,flexShrink:0}},
+        h("button",{
+          onClick: handleEnablePush,
+          style:{background:"#156e6e",color:"#fff",border:"none",borderRadius:8,padding:"9px 18px",fontSize:".85rem",fontWeight:600,cursor:"pointer"}
+        },"Aktivieren"),
+        h("button",{
+          onClick:()=>setShowPushBanner(false),
+          style:{background:"transparent",border:"1px solid rgba(255,255,255,0.3)",color:"rgba(255,255,255,0.7)",borderRadius:8,padding:"9px 14px",fontSize:".85rem",cursor:"pointer"}
+        },"Später")
+      )
+    )}
     ${showInstallBanner && h("div", {
       style:{position:"fixed",bottom:0,left:0,right:0,zIndex:19999,padding:"16px 16px 20px",background:"#0f2927",borderTop:"2px solid #1D9E75"}
     },
