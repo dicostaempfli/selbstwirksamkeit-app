@@ -1,4 +1,4 @@
-<!-- Version: 2026-07-01 09:28 admin -->
+<!-- Version: 2026-07-01 13:22 admin -->
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -1585,6 +1585,15 @@ function AdminApp({user}) {
       } catch(e) {}
     };
     applyHash();
+    // Fix: Hash sofort nach der Anwendung aus der URL entfernen (via replaceState — löst
+    // bewusst KEIN hashchange aus, kein Schleifenrisiko). Sonst bleibt er im Tab-/PWA-
+    // Verlauf hängen: ein simples Neuladen oder Wiederöffnen landete dadurch immer wieder
+    // auf der zuletzt besuchten Seite statt auf der Home-Seite, obwohl useState("dashboard")
+    // das eigentlich als Standard vorsieht. Ein echter Push-Tap setzt den Hash bei jedem
+    // Tap ohnehin frisch neu — davon unberührt.
+    if(window.location.hash) {
+      history.replaceState(null, "", window.location.pathname + window.location.search);
+    }
     applyPendingDeepLink();
     window.addEventListener("hashchange", applyHash);
     return () => window.removeEventListener("hashchange", applyHash);
