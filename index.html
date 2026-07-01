@@ -1,4 +1,4 @@
-<!-- Version: 2026-07-01 09:28 coachee -->
+<!-- Version: 2026-07-01 10:11 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -1600,6 +1600,7 @@ function App({ user }) {
   const [mobileChatOpen,setMobileChatOpen] = useState(false);
   const [impulseDefaultTab,setImpulseDefaultTab] = useState('meine');
   const [activeImpuls,setActiveImpuls]           = useState(null);
+  const [pendingReminderId,setPendingReminderId] = useState(null);
   const [tapCount,setTapCount]             = useState(0);
   const [showInstallBanner,setShowInstallBanner] = useState(false);
   const [pushGranted,setPushGranted]             = useState(false);
@@ -1620,6 +1621,12 @@ function App({ user }) {
     // #impulse-Hash wie ein Meine-Impulse-Reminder-Push, und damit fälschlich immer
     // auf dem Default-Subtab "Meine Impulse" statt "Tages-Impuls" (Fund 01.07.2026).
     if(hash === "impulse-tages") { setImpulseDefaultTab("tagesimpuls"); setPage("impulse"); }
+    else if(hash.startsWith("impulse-meine-")) {
+      // Reminder-Push trägt jetzt die konkrete reminderId im Hash (#impulse-meine-<id>),
+      // damit das Anzeige-Popup weiss, welcher Impuls gemeint ist (statt nur der Subtab).
+      const remId = hash.slice("impulse-meine-".length);
+      setImpulseDefaultTab("meine"); setPage("impulse"); setPendingReminderId(remId);
+    }
     else if(hash === "impulse-meine" || hash === "impulse") { setImpulseDefaultTab("meine"); setPage("impulse"); }
     else if(HASH_TO_PAGE[hash]) setPage(HASH_TO_PAGE[hash]);
   };
@@ -1954,7 +1961,7 @@ function App({ user }) {
     <div style=${{flex:1,display:'flex',overflow:'hidden',minWidth:0}}>
       ${page==="dashboard" && html`<${DashboardPage} coachees=${coachees} library=${library} reminders=${reminders} doodles=${doodles} setPage=${navTo} user=${user} onLogoTap=${handleLogoTap} setImpulseDefaultTab=${setImpulseDefaultTab} activeImpuls=${activeImpuls} setActiveImpuls=${setActiveImpuls}/>`}
       ${page==="chat"      && html`<${ChatPage} user=${user} coachees=${coachees} setCoachees=${setCoachees} mobileChatOpen=${mobileChatOpen} setMobileChatOpen=${setMobileChatOpen}/>`}
-      ${page==="impulse"   && html`<${ImpulseTab} user=${user} reminders=${reminders} setReminders=${saveReminders} setPage=${navTo} defaultSubTab=${impulseDefaultTab} setDefaultSubTab=${setImpulseDefaultTab} setActiveImpuls=${setActiveImpuls} activeImpuls=${activeImpuls}/>`}
+      ${page==="impulse"   && html`<${ImpulseTab} user=${user} reminders=${reminders} setReminders=${saveReminders} setPage=${navTo} defaultSubTab=${impulseDefaultTab} setDefaultSubTab=${setImpulseDefaultTab} setActiveImpuls=${setActiveImpuls} activeImpuls=${activeImpuls} pendingReminderId=${pendingReminderId} setPendingReminderId=${setPendingReminderId}/>`}
       ${page==="library"   && html`<${LibraryPage} library=${library} setLibrary=${saveLibrary}/>`}
       ${page==="doodle"    && html`<${DoodlePage} user=${user} doodles=${doodles} setDoodles=${saveDoodles} coachees=${coachees} events=${events}/>`}
       ${page==="settings"  && html`<${SettingsPage} user=${user} onDeleted=${()=>{ const a=window._fb?.auth; if(a) a.signOut().catch(()=>{}); }}/>`}
@@ -2644,12 +2651,12 @@ function DashboardPage({coachees,library,reminders,doodles,setPage,user,onLogoTa
 }
 
 // ── IMPULSE TAB (Sub-Tab: Meine Impulse + Tages-Impuls) ──
-function ImpulseTab({ user, reminders, setReminders, setPage, defaultSubTab, setDefaultSubTab, setActiveImpuls, activeImpuls }) {
+function ImpulseTab({ user, reminders, setReminders, setPage, defaultSubTab, setDefaultSubTab, setActiveImpuls, activeImpuls, pendingReminderId, setPendingReminderId }) {
   const [activeSubTab, setActiveSubTab] = useState(defaultSubTab || 'meine');
   const isMeine = activeSubTab === 'meine';
   const isTagesimpuls = activeSubTab === 'tagesimpuls';
   const subContent = isMeine
-    ? h(RemindersPage, { reminders, setReminders })
+    ? h(RemindersPage, { reminders, setReminders, pendingReminderId, setPendingReminderId })
     : h(ImpulsPage, { user, setPage, setActiveImpuls, activeImpuls });
   return html`
     <div class="impulse-tab-wrap">
@@ -3267,14 +3274,68 @@ const SymbolButton = ({sacredSymbol, onClick}) => {
   </button>`;
 };
 
-function RemindersPage({reminders,setReminders}) {
+// Anzeige-Popup für einen einzelnen Impuls — Ebenenwechsel vom Verwalten (Liste) zum
+// Erleben: Symbol gross und zentral, Beschreibung ruhig darunter, keine Formularelemente.
+// Bei Push-Tap (showEdit=false) bewusst ganz ohne Bearbeiten-Link, um vom Moment nicht
+// abzulenken; bei Klick aus der Liste (showEdit=true) mit dezentem Bearbeiten-Zugang unten.
+const ReminderViewPopup = ({reminder:r, showEdit, onClose, onEdit}) => {
+  const ac = REM_AREA_COLOR[r.area||"Allgemein"] || REM_AREA_COLOR["Allgemein"];
+  const symbolSrc = r.sacredSymbol ? (SYMBOLS_B64[r.sacredSymbol]||"") : "";
+  const symbolEl = symbolSrc
+    ? html`<img src=${symbolSrc} style=${{width:98,height:98,objectFit:"contain",display:"block"}} alt=${r.sacredSymbol}/>`
+    : html`<${Ic} name=${r.icon||"bell"} size=${40} style=${{color:ac.text}}/>`;
+  return html`
+    <div class="overlay" onClick=${e=>{if(e.target===e.currentTarget)onClose();}}>
+      <div style=${{
+        background:"var(--surface)",borderRadius:22,
+        width:"calc(100vw - 64px)",maxWidth:290,minHeight:320,
+        boxShadow:"var(--shadow2)",boxSizing:"border-box",
+        padding:"26px 24px 24px",position:"relative",
+        display:"flex",flexDirection:"column",alignItems:"center",
+        justifyContent:"center",textAlign:"center"
+      }} onClick=${e=>e.stopPropagation()}>
+        <button aria-label="Schliessen" onClick=${onClose} style=${{
+          position:"absolute",top:12,right:12,width:28,height:28,borderRadius:"50%",
+          border:"none",background:"var(--surface2)",color:"var(--muted)",
+          display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"
+        }}><${Ic} name="x" size=${15}/></button>
+        <div style=${{
+          width:112,height:112,borderRadius:"50%",background:"var(--bg)",
+          border:"1px solid var(--border)",display:"flex",alignItems:"center",
+          justifyContent:"center",marginBottom:30,flexShrink:0
+        }}>
+          ${symbolEl}
+        </div>
+        ${r.area&&r.area!=="Allgemein"&&html`<span style=${{fontSize:".68rem",fontWeight:700,background:ac.tag,color:ac.text,padding:"2px 11px",borderRadius:99,marginBottom:9}}>${r.area}</span>`}
+        <div style=${{fontFamily:"'Manuale',serif",fontWeight:400,fontSize:"1.08rem",color:"var(--text)",lineHeight:1.6}}>${r.label}</div>
+        ${showEdit&&html`<div onClick=${onEdit} style=${{
+          marginTop:28,fontSize:".86rem",fontWeight:600,color:"var(--teal)",
+          textDecoration:"underline",cursor:"pointer"
+        }}>Bearbeiten</div>`}
+      </div>
+    </div>`;
+};
+
+function RemindersPage({reminders,setReminders,pendingReminderId,setPendingReminderId}) {
   const [showModal,setShowModal] = useState(false);
   const [editId,setEditId]       = useState(null);
   const [form,setForm]           = useState(BLANK_FORM);
   const [lightbox,setLightbox]   = useState(null);
+  const [viewReminder,setViewReminder] = useState(null); // {reminder, showEdit}
 
   const [showSymbolPicker,setShowSymbolPicker] = useState(false);
   const openNew  = () => { setForm(BLANK_FORM); setEditId(null); setShowModal(true); };
+  const openView = (r, showEdit) => setViewReminder({reminder:r, showEdit});
+  // Push-Deep-Link (#impulse-meine-<id>): Popup ohne Bearbeiten-Link öffnen, sobald der
+  // passende Reminder in der geladenen Liste vorhanden ist. Falls der Reminder inzwischen
+  // gelöscht/deaktiviert wurde, passiert bewusst nichts — kein Absturz, Coachee landet
+  // einfach auf der normalen "Meine Impulse"-Liste.
+  useEffect(() => {
+    if(!pendingReminderId) return;
+    const found = reminders.find(r=>String(r.id)===String(pendingReminderId));
+    if(found) openView(found, false);
+    if(setPendingReminderId) setPendingReminderId(null);
+  }, [pendingReminderId, reminders]);
   const openEdit = r  => {
     // Restore photos from localStorage if not in Firestore data
     let photos = r.photos||[];
@@ -3355,7 +3416,7 @@ function RemindersPage({reminders,setReminders}) {
       ? html`<img src=${symbolSrc} style=${{width:42,height:42,objectFit:"contain",display:"block"}} alt=${r.sacredSymbol}/>`
       : html`<${Ic} name=${r.icon||"bell"} size=${20} style=${{color:ac.text}}/>`;
     return html`
-      <div onClick=${()=>openEdit(r)} style=${{
+      <div onClick=${()=>openView(r, true)} style=${{
         background:"var(--surface)",borderRadius:14,marginBottom:8,
         padding:"14px 16px",display:"flex",alignItems:"center",gap:12,
         borderLeft:"3px solid "+ac.bar,
@@ -3410,6 +3471,13 @@ function RemindersPage({reminders,setReminders}) {
           </div>`;
       })}
       ${reminders.length===0&&html`<div style=${{textAlign:'center',padding:'44px',color:'var(--muted)'}}><p>Noch keine Impulse. Leg jetzt einen an.</p></div>`}
+
+      ${viewReminder&&html`<${ReminderViewPopup}
+        reminder=${viewReminder.reminder}
+        showEdit=${viewReminder.showEdit}
+        onClose=${()=>setViewReminder(null)}
+        onEdit=${()=>{setViewReminder(null);openEdit(viewReminder.reminder);}}
+      />`}
 
       ${showModal&&html`
         <div class="overlay" onClick=${e=>{if(e.target===e.currentTarget)setShowModal(false);}}>
