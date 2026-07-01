@@ -1,4 +1,4 @@
-<!-- Version: 2026-07-01 10:43 coachee -->
+<!-- Version: 2026-07-01 11:05 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -1601,6 +1601,7 @@ function App({ user }) {
   const [impulseDefaultTab,setImpulseDefaultTab] = useState('meine');
   const [activeImpuls,setActiveImpuls]           = useState(null);
   const [pendingReminderId,setPendingReminderId] = useState(null);
+  const [pendingImpulsPopup,setPendingImpulsPopup] = useState(false);
   const [tapCount,setTapCount]             = useState(0);
   const [showInstallBanner,setShowInstallBanner] = useState(false);
   const [pushGranted,setPushGranted]             = useState(false);
@@ -1620,7 +1621,7 @@ function App({ user }) {
     // Unterscheidung landete ein Tages-Impuls-Push (Kategorie "impuls") auf demselben
     // #impulse-Hash wie ein Meine-Impulse-Reminder-Push, und damit fälschlich immer
     // auf dem Default-Subtab "Meine Impulse" statt "Tages-Impuls" (Fund 01.07.2026).
-    if(hash === "impulse-tages") { setImpulseDefaultTab("tagesimpuls"); setPage("impulse"); }
+    if(hash === "impulse-tages") { setImpulseDefaultTab("tagesimpuls"); setPage("impulse"); setPendingImpulsPopup(true); }
     else if(hash.startsWith("impulse-meine-")) {
       // Reminder-Push trägt jetzt die konkrete reminderId im Hash (#impulse-meine-<id>),
       // damit das Anzeige-Popup weiss, welcher Impuls gemeint ist (statt nur der Subtab).
@@ -1961,7 +1962,7 @@ function App({ user }) {
     <div style=${{flex:1,display:'flex',overflow:'hidden',minWidth:0}}>
       ${page==="dashboard" && html`<${DashboardPage} coachees=${coachees} library=${library} reminders=${reminders} doodles=${doodles} setPage=${navTo} user=${user} onLogoTap=${handleLogoTap} setImpulseDefaultTab=${setImpulseDefaultTab} activeImpuls=${activeImpuls} setActiveImpuls=${setActiveImpuls}/>`}
       ${page==="chat"      && html`<${ChatPage} user=${user} coachees=${coachees} setCoachees=${setCoachees} mobileChatOpen=${mobileChatOpen} setMobileChatOpen=${setMobileChatOpen}/>`}
-      ${page==="impulse"   && html`<${ImpulseTab} user=${user} reminders=${reminders} setReminders=${saveReminders} setPage=${navTo} defaultSubTab=${impulseDefaultTab} setDefaultSubTab=${setImpulseDefaultTab} setActiveImpuls=${setActiveImpuls} activeImpuls=${activeImpuls} pendingReminderId=${pendingReminderId} setPendingReminderId=${setPendingReminderId}/>`}
+      ${page==="impulse"   && html`<${ImpulseTab} user=${user} reminders=${reminders} setReminders=${saveReminders} setPage=${navTo} defaultSubTab=${impulseDefaultTab} setDefaultSubTab=${setImpulseDefaultTab} setActiveImpuls=${setActiveImpuls} activeImpuls=${activeImpuls} pendingReminderId=${pendingReminderId} setPendingReminderId=${setPendingReminderId} pendingImpulsPopup=${pendingImpulsPopup} setPendingImpulsPopup=${setPendingImpulsPopup}/>`}
       ${page==="library"   && html`<${LibraryPage} library=${library} setLibrary=${saveLibrary}/>`}
       ${page==="doodle"    && html`<${DoodlePage} user=${user} doodles=${doodles} setDoodles=${saveDoodles} coachees=${coachees} events=${events}/>`}
       ${page==="settings"  && html`<${SettingsPage} user=${user} onDeleted=${()=>{ const a=window._fb?.auth; if(a) a.signOut().catch(()=>{}); }}/>`}
@@ -2651,13 +2652,13 @@ function DashboardPage({coachees,library,reminders,doodles,setPage,user,onLogoTa
 }
 
 // ── IMPULSE TAB (Sub-Tab: Meine Impulse + Tages-Impuls) ──
-function ImpulseTab({ user, reminders, setReminders, setPage, defaultSubTab, setDefaultSubTab, setActiveImpuls, activeImpuls, pendingReminderId, setPendingReminderId }) {
+function ImpulseTab({ user, reminders, setReminders, setPage, defaultSubTab, setDefaultSubTab, setActiveImpuls, activeImpuls, pendingReminderId, setPendingReminderId, pendingImpulsPopup, setPendingImpulsPopup }) {
   const [activeSubTab, setActiveSubTab] = useState(defaultSubTab || 'meine');
   const isMeine = activeSubTab === 'meine';
   const isTagesimpuls = activeSubTab === 'tagesimpuls';
   const subContent = isMeine
     ? h(RemindersPage, { reminders, setReminders, pendingReminderId, setPendingReminderId })
-    : h(ImpulsPage, { user, setPage, setActiveImpuls, activeImpuls });
+    : h(ImpulsPage, { user, setPage, setActiveImpuls, activeImpuls, pendingImpulsPopup, setPendingImpulsPopup });
   return html`
     <div class="impulse-tab-wrap">
       <div class="impulse-subtab-nav">
@@ -2678,15 +2679,58 @@ function ImpulseTab({ user, reminders, setReminders, setPage, defaultSubTab, set
 
 // ── GOALS PAGE ──
 // ── IMPULS PAGE ──
-function ImpulsPage({ user, setPage, setActiveImpuls, activeImpuls }) {
+// Popup für den Tages-Impuls-Push — nur bei Push-Tap gezeigt (Kaltstart/Hintergrund),
+// nicht beim normalen Antippen in der App, wo die bestehende Vollbild-Darstellung bleibt.
+// Gleiches Overlay/Karten-Design wie beim "Meine Impulse"-Popup, aber mit den echten
+// .btn-Klassen der App statt eigens gestalteter Buttons — genau wie auf der Vollbildseite.
+const ImpulsPushPopup = ({impuls, onAnnehmen, onHeuteNicht, onClose}) => html`
+  <div onClick=${e=>{if(e.target===e.currentTarget)onClose();}} style=${{
+    position:"fixed",inset:0,background:"rgba(14,78,78,.94)",
+    zIndex:9999,display:"flex",alignItems:"center",justifyContent:"center"
+  }}>
+    <div style=${{
+      background:"var(--surface)",borderRadius:22,
+      width:"calc(100vw - 64px)",maxWidth:320,
+      maxHeight:"calc(100dvh - 80px)",overflowY:"auto",
+      boxShadow:"var(--shadow2)",boxSizing:"border-box",
+      padding:"26px 24px 24px",position:"relative",textAlign:"left"
+    }} onClick=${e=>e.stopPropagation()}>
+      <button aria-label="Schliessen" onClick=${onClose} style=${{
+        position:"absolute",top:12,right:12,width:28,height:28,borderRadius:"50%",
+        border:"none",background:"var(--surface2)",color:"var(--muted)",
+        display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"
+      }}><${Ic} name="x" size=${15}/></button>
+      <span style=${{fontSize:".68rem",fontWeight:700,textTransform:"uppercase",letterSpacing:".07em",color:"var(--muted)"}}>Tages-Impuls</span>
+      <div style=${{borderTop:"1px solid var(--border)",margin:"12px 0 16px"}}></div>
+      <p style=${{fontFamily:"'Manuale',serif",fontSize:"1.05rem",lineHeight:1.6,color:"var(--text)",marginBottom:14}}>${impuls.text}</p>
+      <p style=${{fontSize:".82rem",color:"var(--muted)",lineHeight:1.55,marginBottom:24}}>${impuls.hint || ""}</p>
+      <button class="btn btn-primary" style=${{width:"100%",marginBottom:10}} onClick=${onAnnehmen}>Ich nehme diesen Impuls mit</button>
+      <button class="btn btn-ghost" style=${{width:"100%",fontSize:".83rem"}} onClick=${onHeuteNicht}>Heute nicht</button>
+    </div>
+  </div>`;
+
+function ImpulsPage({ user, setPage, setActiveImpuls, activeImpuls, pendingImpulsPopup, setPendingImpulsPopup }) {
   const [step, setStep]           = useState(0);
   const [reflexion, setReflexion] = useState("");
   const [koerper, setKoerper]     = useState(null);
   const [impuls, setImpuls]       = useState(null);
   const [saving, setSaving]       = useState(false);
   const [activeEntryRef, setActiveEntryRef] = useState(null);
+  const [showPushPopup, setShowPushPopup]   = useState(false);
 
   const KOERPER_OPTS = ["Kopf","Kehle","Herz","Brust","Bauch","Schultern","Arme","Beine"];
+
+  // Push-Deep-Link (#impulse-tages): Popup nur zeigen, wenn wirklich ein frischer,
+  // noch nicht entschiedener Tages-Impuls vorliegt (step===0). Analog zum Reminder-Popup
+  // NICHT sofort auf pendingImpulsPopup reagieren, sondern erst wenn impuls geladen ist —
+  // sonst würde die Entscheidung anhand des Platzhalter-Zustands (impuls noch null) beim
+  // Kaltstart über Push-Tap fälschlich getroffen, bevor die echten Firestore-Daten da sind.
+  useEffect(() => {
+    if(!pendingImpulsPopup) return;
+    if(!impuls) return;
+    if(step === 0) setShowPushPopup(true);
+    if(setPendingImpulsPopup) setPendingImpulsPopup(false);
+  }, [pendingImpulsPopup, impuls, step]);
 
   useEffect(() => {
     // Fix: localStorage-Check zuerst — unabhängig von Firestore
@@ -2883,6 +2927,12 @@ function ImpulsPage({ user, setPage, setActiveImpuls, activeImpuls }) {
       <p style=${{fontSize:".85rem",color:"var(--muted)",lineHeight:1.6,marginBottom:32}}>${impuls.hint || ""}</p>
       <button class="btn btn-primary" style=${{width:"100%",marginBottom:10}} onClick=${handleAnnehmen}>Ich nehme diesen Impuls mit</button>
       <button class="btn btn-ghost" style=${{width:"100%",fontSize:".83rem"}} onClick=${handleHeuteNicht}>Heute nicht</button>
+      ${showPushPopup&&html`<${ImpulsPushPopup}
+        impuls=${impuls}
+        onAnnehmen=${()=>{handleAnnehmen();setShowPushPopup(false);}}
+        onHeuteNicht=${()=>{handleHeuteNicht();setShowPushPopup(false);}}
+        onClose=${()=>setShowPushPopup(false)}
+      />`}
     </div>`;
 }
 
@@ -3292,6 +3342,7 @@ const ReminderViewPopup = ({reminder:r, showEdit, onClose, onEdit}) => {
       <div style=${{
         background:"var(--surface)",borderRadius:22,
         width:"calc(100vw - 64px)",maxWidth:290,minHeight:320,
+        maxHeight:"calc(100dvh - 80px)",overflowY:"auto",
         boxShadow:"var(--shadow2)",boxSizing:"border-box",
         padding:"26px 24px 24px",position:"relative",
         display:"flex",flexDirection:"column",alignItems:"center",
@@ -3337,15 +3388,18 @@ function RemindersPage({reminders,setReminders,pendingReminderId,setPendingRemin
   }, [showModal, form.label]);
   const openNew  = () => { setForm(BLANK_FORM); setEditId(null); setShowModal(true); };
   const openView = (r, showEdit) => setViewReminder({reminder:r, showEdit});
-  // Push-Deep-Link (#impulse-meine-<id>): Popup ohne Bearbeiten-Link öffnen, sobald der
-  // passende Reminder in der geladenen Liste vorhanden ist. Falls der Reminder inzwischen
-  // gelöscht/deaktiviert wurde, passiert bewusst nichts — kein Absturz, Coachee landet
-  // einfach auf der normalen "Meine Impulse"-Liste.
+  // Push-Deep-Link (#impulse-meine-<id>): Popup öffnen, sobald der passende Reminder in
+  // der geladenen Liste vorhanden ist. WICHTIG: reminders startet beim Kaltstart mit
+  // INIT_REMINDERS (Platzhalter) und wird erst asynchron per Firestore-Listener mit den
+  // echten Daten befüllt — die ID darf deshalb NICHT sofort gelöscht werden, sonst ist sie
+  // schon weg, bevor die echten Daten überhaupt geladen sind (v.a. bei komplett geschlossener
+  // App / Kaltstart über Push-Tap). Erst löschen, wenn der Reminder wirklich gefunden wurde.
+  // Falls er inzwischen gelöscht/deaktiviert wurde, bleibt pendingReminderId bewusst gesetzt
+  // (kein Effekt, kein Absturz) — harmlos, da reminders sich danach nicht mehr ständig ändert.
   useEffect(() => {
     if(!pendingReminderId) return;
     const found = reminders.find(r=>String(r.id)===String(pendingReminderId));
-    if(found) openView(found, false);
-    if(setPendingReminderId) setPendingReminderId(null);
+    if(found) { openView(found, false); if(setPendingReminderId) setPendingReminderId(null); }
   }, [pendingReminderId, reminders]);
   const openEdit = r  => {
     setForm({...BLANK_FORM,...r,additionalTimes:r.additionalTimes||[],area:r.area||'Allgemein'});
@@ -3364,7 +3418,11 @@ function RemindersPage({reminders,setReminders,pendingReminderId,setPendingRemin
       return;
     }
     setSaveError(false);
-    const id = editId||Date.now();
+    // Date.now() allein kann bei sehr schnellem Doppel-Speichern (gleiche Millisekunde)
+    // theoretisch kollidieren — Zufalls-Suffix macht die ID praktisch eindeutig. Als
+    // Firestore-Doc-ID und beim Matching wird r.id ohnehin immer als String behandelt
+    // (nie arithmetisch als Zeitstempel weiterverwendet), daher unproblematisch.
+    const id = editId||(Date.now()+"-"+Math.random().toString(36).slice(2,8));
     const entry={...form,id,enabled:true,area:form.area||'Allgemein',additionalTimes:form.additionalTimes||[],createdAt:form.createdAt||Date.now()};
     setShowModal(false);
     setReminders(rs=>editId?rs.map(r=>r.id===editId?entry:r):[...rs,entry]);
@@ -3403,10 +3461,8 @@ function RemindersPage({reminders,setReminders,pendingReminderId,setPendingRemin
           ${symbolEl}
         </div>
         <div style=${{flex:1,minWidth:0}}>
-          <div style=${{fontWeight:700,fontSize:".92rem",color:"var(--text)",marginBottom:3,display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
-            ${r.label}
-            ${r.area&&r.area!=="Allgemein"&&html`<span style=${{fontSize:".6rem",fontWeight:700,padding:"1px 7px",borderRadius:99,background:ac.tag,color:ac.text}}>${r.area}</span>`}
-          </div>
+          <div style=${{fontWeight:700,fontSize:".92rem",color:"var(--text)",marginBottom:4,lineHeight:1.35,display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical",overflow:"hidden"}}>${r.label}</div>
+          ${r.area&&r.area!=="Allgemein"&&html`<span style=${{display:"inline-block",fontSize:".6rem",fontWeight:700,padding:"1px 7px",borderRadius:99,background:ac.tag,color:ac.text,marginBottom:4}}>${r.area}</span>`}
           <div style=${{fontSize:".77rem",color:"var(--muted)"}}>
             ${allTimes} Uhr · ${recLabel(r)}
           </div>
