@@ -1,4 +1,4 @@
-<!-- Version: 2026-07-01 10:11 coachee -->
+<!-- Version: 2026-07-01 10:26 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -3285,7 +3285,10 @@ const ReminderViewPopup = ({reminder:r, showEdit, onClose, onEdit}) => {
     ? html`<img src=${symbolSrc} style=${{width:98,height:98,objectFit:"contain",display:"block"}} alt=${r.sacredSymbol}/>`
     : html`<${Ic} name=${r.icon||"bell"} size=${40} style=${{color:ac.text}}/>`;
   return html`
-    <div class="overlay" onClick=${e=>{if(e.target===e.currentTarget)onClose();}}>
+    <div onClick=${e=>{if(e.target===e.currentTarget)onClose();}} style=${{
+      position:"fixed",inset:0,background:"rgba(21,110,110,.6)",
+      zIndex:9999,display:"flex",alignItems:"center",justifyContent:"center"
+    }}>
       <div style=${{
         background:"var(--surface)",borderRadius:22,
         width:"calc(100vw - 64px)",maxWidth:290,minHeight:320,
