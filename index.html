@@ -1,4 +1,4 @@
-<!-- Version: 2026-07-01 12:05 coachee -->
+<!-- Version: 2026-07-01 12:14 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -2754,33 +2754,39 @@ function ImpulsPage({ user, setPage, setActiveImpuls, activeImpuls, pendingImpul
     const fbDb = window._fb?.db;
     if (!fbDb || !user?.uid) return;
     const todayStr = new Date().toISOString().split("T")[0];
-    fbDb.collection("settings").doc("impulse_library").get()
-      .then(doc => {
+    // Fix: settings/impulse_library und users/{uid} sind voneinander unabhängig —
+    // parallel per Promise.all statt verschachtelt sequenziell laden. Spart einen
+    // vollen Firestore-Round-Trip, spürbar v.a. bei Kaltstart über Push-Tap auf
+    // schwachem Netz (nur impulse_entries hängt wirklich von activePhase ab und
+    // bleibt daher als dritter, abhängiger Schritt bestehen).
+    Promise.all([
+      fbDb.collection("settings").doc("impulse_library").get(),
+      fbDb.collection("users").doc(user.uid).get()
+    ])
+      .then(([doc, uDoc]) => {
         const getData = (data) => {
-          fbDb.collection("users").doc(user.uid).get().then(uDoc => {
-            const uData = uDoc.exists ? uDoc.data() : {};
-            const activePhase = uData.activePhase || 1;
-            const nextImpulseAt = uData.nextImpulseAt || 0;
-            const phase = (data.phases || []).find(p => p.id === activePhase);
-            const impulse = phase ? (phase.impulse || []) : [];
-            fbDb.collection("impulse_entries").where("uid","==",user.uid)
-              .orderBy("createdAt","desc").limit(30).get()
-              .then(snap => {
-                const done = snap.docs.map(d => d.data().impulsId).filter(Boolean);
-                const next = impulse.find(imp => !done.includes(imp.id)) || impulse[0];
-                setImpuls(next || null);
-                const todayEntry = snap.docs.find(d => d.data().date === todayStr);
-                if (todayEntry) {
-                  const s = todayEntry.data().status;
-                  if (s === "active") { setStep(1); setActiveEntryRef(todayEntry.ref); }
-                  else if (s === "done") setStep(4);
-                  else if (s === "skipped") setStep(6);
-                  else setStep(5);
-                } else if (nextImpulseAt > Date.now()) {
-                  setStep(5);
-                }
-              }).catch(() => setImpuls(impulse[0] || null));
-          }).catch(() => {});
+          const uData = uDoc.exists ? uDoc.data() : {};
+          const activePhase = uData.activePhase || 1;
+          const nextImpulseAt = uData.nextImpulseAt || 0;
+          const phase = (data.phases || []).find(p => p.id === activePhase);
+          const impulse = phase ? (phase.impulse || []) : [];
+          fbDb.collection("impulse_entries").where("uid","==",user.uid)
+            .orderBy("createdAt","desc").limit(30).get()
+            .then(snap => {
+              const done = snap.docs.map(d => d.data().impulsId).filter(Boolean);
+              const next = impulse.find(imp => !done.includes(imp.id)) || impulse[0];
+              setImpuls(next || null);
+              const todayEntry = snap.docs.find(d => d.data().date === todayStr);
+              if (todayEntry) {
+                const s = todayEntry.data().status;
+                if (s === "active") { setStep(1); setActiveEntryRef(todayEntry.ref); }
+                else if (s === "done") setStep(4);
+                else if (s === "skipped") setStep(6);
+                else setStep(5);
+              } else if (nextImpulseAt > Date.now()) {
+                setStep(5);
+              }
+            }).catch(() => setImpuls(impulse[0] || null));
         };
         if (doc.exists) getData(doc.data());
         else if (activeImpuls === null) { setStep(6); return; }
@@ -2801,6 +2807,11 @@ function ImpulsPage({ user, setPage, setActiveImpuls, activeImpuls, pendingImpul
         impulsText: impuls.text, status: "active", createdAt: Date.now()
       }).catch(() => {});
     }
+    // Fix: Ein früherer "Heute nicht"-Klick am selben Tag darf eine spätere, echte
+    // Annahme nicht mehr überstrahlen — sonst blockiert der alte Dismiss-Flag jede
+    // weitere Navigation zum Tages-Impuls (z.B. über die "Aktiver Impuls"-Karte auf
+    // der Home-Seite), obwohl gerade ein aktiver Impuls existiert.
+    localStorage.removeItem("impuls_dismissed_" + (user?.uid || "guest"));
     setStep(0.5);
   };
 
