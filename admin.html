@@ -1,4 +1,4 @@
-<!-- Version: 2026-07-01 09:08 admin -->
+<!-- Version: 2026-07-01 09:28 admin -->
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -1545,6 +1545,16 @@ function AdminApp({user}) {
   // pendingChatId: aus einem Push-Deep-Link (#chat-<uid>) übernommene Coachee-UID, die
   // ChatPage beim Öffnen direkt anwählen soll (siehe applyHash unten + ChatPage-Prop openId).
   const [pendingChatId,setPendingChatId] = useState(null);
+  // Gemeinsame Routing-Logik, sowohl für den normalen Hash-Weg (hashchange/Erst-Laden)
+  // als auch für den Kaltstart-Fallback über Cache Storage (applyPendingDeepLink unten).
+  const routeHash = (hash) => {
+    if(hash.startsWith("chat-")) {
+      setPage("chat");
+      setPendingChatId(hash.slice(5));
+    } else if(ADMIN_HASH_TO_PAGE[hash]) {
+      setPage(ADMIN_HASH_TO_PAGE[hash]);
+    }
+  };
   // ── Hash-Routing: ermöglicht Deep-Links aus Push-Notifications (z.B. admin.html#doodle) ──
   // Fehlte bisher komplett — ein Push-Tap mit #doodle in der URL landete deshalb immer auf
   // der Default-Page (dashboard), statt direkt zur passenden Seite zu springen.
@@ -1552,16 +1562,30 @@ function AdminApp({user}) {
   // konkrete Coachee-Konversation zu öffnen — ChatPage verwaltet die aktive Konversation
   // über einen internen activeId-State, der ohne pendingChatId nie befüllt wurde (Fund 01.07.2026).
   useEffect(() => {
-    const applyHash = () => {
-      const hash = window.location.hash.replace("#","");
-      if(hash.startsWith("chat-")) {
-        setPage("chat");
-        setPendingChatId(hash.slice(5));
-      } else if(ADMIN_HASH_TO_PAGE[hash]) {
-        setPage(ADMIN_HASH_TO_PAGE[hash]);
-      }
+    const applyHash = () => routeHash(window.location.hash.replace("#",""));
+    // Kaltstart-Fallback (NEU 01.07.2026): Bei komplett geschlossener App (v.a. iOS-PWA)
+    // reicht der Browser die an clients.openWindow() übergebene URL nicht immer zuverlässig
+    // weiter (bekannte WebKit-Einschränkung) — Rico beobachtete das konkret bei
+    // #chat-<uid>: Landung auf der Startseite statt der Konversation, nur mobil reproduzierbar.
+    // sw-admin.js legt das eigentliche Ziel deshalb zusätzlich im Cache Storage ab; hier wird
+    // das beim Boot ausgelesen und nachträglich angewendet, unabhängig davon, ob der Hash in
+    // der URL selbst angekommen ist. Freshness-Check (60s) verhindert, dass ein längst
+    // erledigter Deep-Link bei einem späteren, regulären App-Start irrtümlich erneut greift.
+    const applyPendingDeepLink = async () => {
+      if(!('caches' in window)) return;
+      try {
+        const cache = await caches.open('pending-deeplink');
+        const resp = await cache.match('/pending');
+        if(!resp) return;
+        const data = await resp.json();
+        await cache.delete('/pending');
+        if(Date.now() - (data.ts || 0) > 60000) return;
+        const hash = (data.url || '').includes('#') ? data.url.split('#')[1] : '';
+        if(hash) routeHash(hash);
+      } catch(e) {}
     };
     applyHash();
+    applyPendingDeepLink();
     window.addEventListener("hashchange", applyHash);
     return () => window.removeEventListener("hashchange", applyHash);
   }, []);

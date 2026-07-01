@@ -1,4 +1,4 @@
-<!-- Version: 2026-07-01 09:07 coachee -->
+<!-- Version: 2026-07-01 09:28 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -1612,18 +1612,41 @@ function App({ user }) {
   // URL navigiert. Reagiert sowohl beim Erst-Laden (App war geschlossen) als auch auf
   // spätere hashchange-Events (App war im Hintergrund offen, SW navigiert den Client neu).
   const HASH_TO_PAGE = { chat: "chat", library: "library", doodle: "doodle" };
+  // Gemeinsame Routing-Logik, sowohl für den normalen Hash-Weg (hashchange/Erst-Laden)
+  // als auch für den Kaltstart-Fallback über Cache Storage (applyPendingDeepLink unten).
+  const routeHash = (hash) => {
+    // Impulse-Seite hat zwei Subtabs (Meine Impulse / Tages-Impuls) — ohne diese
+    // Unterscheidung landete ein Tages-Impuls-Push (Kategorie "impuls") auf demselben
+    // #impulse-Hash wie ein Meine-Impulse-Reminder-Push, und damit fälschlich immer
+    // auf dem Default-Subtab "Meine Impulse" statt "Tages-Impuls" (Fund 01.07.2026).
+    if(hash === "impulse-tages") { setImpulseDefaultTab("tagesimpuls"); setPage("impulse"); }
+    else if(hash === "impulse-meine" || hash === "impulse") { setImpulseDefaultTab("meine"); setPage("impulse"); }
+    else if(HASH_TO_PAGE[hash]) setPage(HASH_TO_PAGE[hash]);
+  };
   useEffect(() => {
-    const applyHash = () => {
-      const hash = window.location.hash.replace("#", "");
-      // Impulse-Seite hat zwei Subtabs (Meine Impulse / Tages-Impuls) — ohne diese
-      // Unterscheidung landete ein Tages-Impuls-Push (Kategorie "impuls") auf demselben
-      // #impulse-Hash wie ein Meine-Impulse-Reminder-Push, und damit fälschlich immer
-      // auf dem Default-Subtab "Meine Impulse" statt "Tages-Impuls" (Fund 01.07.2026).
-      if(hash === "impulse-tages") { setImpulseDefaultTab("tagesimpuls"); setPage("impulse"); }
-      else if(hash === "impulse-meine" || hash === "impulse") { setImpulseDefaultTab("meine"); setPage("impulse"); }
-      else if(HASH_TO_PAGE[hash]) setPage(HASH_TO_PAGE[hash]);
+    const applyHash = () => routeHash(window.location.hash.replace("#", ""));
+    // Kaltstart-Fallback (NEU 01.07.2026): Bei komplett geschlossener App (v.a. iOS) reicht
+    // der Browser die an clients.openWindow() übergebene URL nicht immer zuverlässig weiter
+    // (bekannte WebKit-Einschränkung) — die App startet dann ohne Hash bei der start_url.
+    // sw.js legt das eigentliche Ziel deshalb zusätzlich im Cache Storage ab; hier wird das
+    // beim Boot ausgelesen und nachträglich angewendet, unabhängig davon, ob der Hash in der
+    // URL selbst angekommen ist. Freshness-Check (60s) verhindert, dass ein längst erledigter
+    // Deep-Link bei einem späteren, regulären App-Start irrtümlich erneut angewendet wird.
+    const applyPendingDeepLink = async () => {
+      if(!('caches' in window)) return;
+      try {
+        const cache = await caches.open('pending-deeplink');
+        const resp = await cache.match('/pending');
+        if(!resp) return;
+        const data = await resp.json();
+        await cache.delete('/pending');
+        if(Date.now() - (data.ts || 0) > 60000) return;
+        const hash = (data.url || '').includes('#') ? data.url.split('#')[1] : '';
+        if(hash) routeHash(hash);
+      } catch(e) {}
     };
     applyHash();
+    applyPendingDeepLink();
     window.addEventListener("hashchange", applyHash);
     return () => window.removeEventListener("hashchange", applyHash);
   }, []);
