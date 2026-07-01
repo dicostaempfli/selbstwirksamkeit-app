@@ -1,4 +1,4 @@
-<!-- Version: 2026-07-01 11:05 coachee -->
+<!-- Version: 2026-07-01 11:22 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -3428,11 +3428,18 @@ function RemindersPage({reminders,setReminders,pendingReminderId,setPendingRemin
     setReminders(rs=>editId?rs.map(r=>r.id===editId?entry:r):[...rs,entry]);
   };
 
+  // Vorschau-Zeitangabe: form.time UND alle form.additionalTimes zusammen — vorher zeigte
+  // die Vorschau in allen 4 Wiederholungsvarianten nur form.time, obwohl weiter oben unter
+  // "Weitere Uhrzeiten" zusätzliche Zeiten eingetragen sein können (Fund 01.07.2026).
+  const timesText = () => {
+    const times = [form.time, ...(form.additionalTimes||[])].filter(Boolean);
+    return times.join(", ") + " Uhr";
+  };
   const preview = () => {
-    if(form.recurrence==="daily")   return html`Jeden Tag um <strong>${form.time} Uhr</strong>.`;
-    if(form.recurrence==="weekly")  return form.weekdays.length>0?html`Jeden <strong>${form.weekdays.map(d=>WEEKDAY_FULL[d]).join(", ")}</strong> um <strong>${form.time} Uhr</strong>.`:"Bitte Wochentage wählen.";
-    if(form.recurrence==="monthly") return form.monthDays.length>0?html`Am <strong>${form.monthDays.slice().sort((a,b)=>a-b).map(d=>d+".").join(", ")}</strong> des Monats um <strong>${form.time} Uhr</strong>.`:"Bitte Tag(e) wählen.";
-    if(form.recurrence==="custom")  return html`Alle <strong>${form.customInterval} ${form.customUnit}</strong>${form.customWeekdays.length>0?html` an <strong>${form.customWeekdays.map(d=>DAYS_SHORT[d]).join(", ")}</strong>`:""} um <strong>${form.time} Uhr</strong>.`;
+    if(form.recurrence==="daily")   return html`Jeden Tag um <strong>${timesText()}</strong>.`;
+    if(form.recurrence==="weekly")  return form.weekdays.length>0?html`Jeden <strong>${form.weekdays.map(d=>WEEKDAY_FULL[d]).join(", ")}</strong> um <strong>${timesText()}</strong>.`:"Bitte Wochentage wählen.";
+    if(form.recurrence==="monthly") return form.monthDays.length>0?html`Am <strong>${form.monthDays.slice().sort((a,b)=>a-b).map(d=>d+".").join(", ")}</strong> des Monats um <strong>${timesText()}</strong>.`:"Bitte Tag(e) wählen.";
+    if(form.recurrence==="custom")  return html`Alle <strong>${form.customInterval} ${form.customUnit}</strong>${form.customWeekdays.length>0?html` an <strong>${form.customWeekdays.map(d=>DAYS_SHORT[d]).join(", ")}</strong>`:""} um <strong>${timesText()}</strong>.`;
   };
 
   const groups    = REC_TYPES.map(rt=>({...rt,items:reminders.filter(r=>r.recurrence===rt.id)})).filter(g=>g.items.length>0);
