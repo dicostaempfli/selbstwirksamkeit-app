@@ -1,4 +1,4 @@
-<!-- Version: 2026-07-01 13:50 coachee -->
+<!-- Version: 2026-07-01 14:10 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -2595,8 +2595,15 @@ function DashboardPage({coachees,library,reminders,doodles,setPage,user,onLogoTa
     const fbDb=window._fb?.db;
     if(!fbDb||!user?.uid) return;
     const todayStr = new Date().toISOString().split("T")[0];
+    // Fix (01.07.2026): .limit(5) ohne orderBy entfernt — bei vielen Testeinträgen für
+    // denselben Tag lieferte Firestore ohne Sortierung eine faktisch willkürliche Auswahl
+    // von 5 Dokumenten zurück, die den gerade frisch angenommenen "active"-Eintrag
+    // zufällig NICHT enthalten konnte. Der Listener setzte activeImpuls dann fälschlich
+    // auf null und überschrieb damit den korrekten Wert aus handleAnnehmen(). Im echten
+    // Betrieb legt ein Coachee ohnehin nur 0–1 Einträge/Tag an — die Begrenzung war nie
+    // nötig. Kein orderBy nötig, daher auch kein neuer Firestore-Composite-Index.
     const unsub = fbDb.collection("impulse_entries")
-      .where("uid","==",user.uid).where("date","==",todayStr).limit(5)
+      .where("uid","==",user.uid).where("date","==",todayStr)
       .onSnapshot(snap=>{
         const active = snap.docs.find(d=>d.data().status==="active");
         setActiveImpuls(active ? active.data() : null);
