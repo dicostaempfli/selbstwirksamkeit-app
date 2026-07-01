@@ -1,4 +1,4 @@
-<!-- Version: 2026-06-30 13:50 admin -->
+<!-- Version: 2026-07-01 09:08 admin -->
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -1542,13 +1542,24 @@ const ADMIN_HASH_TO_PAGE = { chat: "chat", doodle: "doodle", library: "library",
 
 function AdminApp({user}) {
   const [page,setPage] = useState("dashboard");
+  // pendingChatId: aus einem Push-Deep-Link (#chat-<uid>) übernommene Coachee-UID, die
+  // ChatPage beim Öffnen direkt anwählen soll (siehe applyHash unten + ChatPage-Prop openId).
+  const [pendingChatId,setPendingChatId] = useState(null);
   // ── Hash-Routing: ermöglicht Deep-Links aus Push-Notifications (z.B. admin.html#doodle) ──
   // Fehlte bisher komplett — ein Push-Tap mit #doodle in der URL landete deshalb immer auf
   // der Default-Page (dashboard), statt direkt zur passenden Seite zu springen.
+  // #chat-<uid> (NEU, 01.07.2026): landete bisher nur auf der Chat-Übersicht, ohne die
+  // konkrete Coachee-Konversation zu öffnen — ChatPage verwaltet die aktive Konversation
+  // über einen internen activeId-State, der ohne pendingChatId nie befüllt wurde (Fund 01.07.2026).
   useEffect(() => {
     const applyHash = () => {
       const hash = window.location.hash.replace("#","");
-      if(ADMIN_HASH_TO_PAGE[hash]) setPage(ADMIN_HASH_TO_PAGE[hash]);
+      if(hash.startsWith("chat-")) {
+        setPage("chat");
+        setPendingChatId(hash.slice(5));
+      } else if(ADMIN_HASH_TO_PAGE[hash]) {
+        setPage(ADMIN_HASH_TO_PAGE[hash]);
+      }
     };
     applyHash();
     window.addEventListener("hashchange", applyHash);
@@ -1802,7 +1813,7 @@ function AdminApp({user}) {
       <!-- Main content -->
       <div class="main-content">
         ${page==="dashboard"&&html`<${DashboardPage} coachees=${coachees} library=${library} doodles=${doodles} setPage=${setPage} user=${user}/>`}
-        ${page==="chat"&&html`<${ChatPage} coachees=${coachees} setCoachees=${setCoachees}/>`}
+        ${page==="chat"&&html`<${ChatPage} coachees=${coachees} setCoachees=${setCoachees} openId=${pendingChatId} clearOpenId=${()=>setPendingChatId(null)}/>`}
         ${page==="coachees"&&html`<${CoacheesPage} coachees=${coachees} setCoachees=${setCoachees} setPage=${setPage} pending=${pending} setPending=${setPending} deleted=${deleted} setDeleted=${setDeleted}/>`}
         ${page==="library"&&html`<${LibraryPage} library=${library} setLibrary=${setLibrary}/>`}
         ${page==="impuls"&&html`<${ImpulsAdminPage}/>`}
@@ -1964,7 +1975,7 @@ function QuoteEditor() {
 }
 
 // ── CHAT PAGE ──
-function ChatPage({coachees,setCoachees}) {
+function ChatPage({coachees,setCoachees,openId,clearOpenId}) {
   const [activeId,setActiveId] = useState(null);
   const [search,setSearch] = useState("");
   const [mobileView,setMobileView] = useState("list");
@@ -2028,6 +2039,17 @@ function ChatPage({coachees,setCoachees}) {
       }, ()=>{});
     }
   };
+
+  // Push-Deep-Link (#chat-<uid>): öffnet automatisch die passende Coachee-Konversation,
+  // sobald sowohl openId als auch die coachees-Liste (Firestore-Listener, kann nach dem
+  // Mount noch nachladen) verfügbar sind. clearOpenId() danach, damit ein erneutes Öffnen
+  // derselben Seite (z.B. manueller Klick auf einen anderen Coachee) nicht wieder überschrieben wird.
+  useEffect(() => {
+    if(openId && coachees.some(c=>c.id===openId)) {
+      selectCoachee(openId);
+      if(clearOpenId) clearOpenId();
+    }
+  }, [openId, coachees]);
 
   const sendMsg = (text, sender="Diana") => {
     if(!text.trim()||!activeId) return;

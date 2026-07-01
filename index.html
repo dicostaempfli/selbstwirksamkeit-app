@@ -1,4 +1,4 @@
-<!-- Version: 2026-06-30 11:32 coachee -->
+<!-- Version: 2026-07-01 09:07 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -1611,11 +1611,17 @@ function App({ user }) {
   // hier hätte der Hash keinen Effekt, da die App intern über page-State statt über die
   // URL navigiert. Reagiert sowohl beim Erst-Laden (App war geschlossen) als auch auf
   // spätere hashchange-Events (App war im Hintergrund offen, SW navigiert den Client neu).
-  const HASH_TO_PAGE = { chat: "chat", impulse: "impulse", library: "library", doodle: "doodle" };
+  const HASH_TO_PAGE = { chat: "chat", library: "library", doodle: "doodle" };
   useEffect(() => {
     const applyHash = () => {
       const hash = window.location.hash.replace("#", "");
-      if(HASH_TO_PAGE[hash]) setPage(HASH_TO_PAGE[hash]);
+      // Impulse-Seite hat zwei Subtabs (Meine Impulse / Tages-Impuls) — ohne diese
+      // Unterscheidung landete ein Tages-Impuls-Push (Kategorie "impuls") auf demselben
+      // #impulse-Hash wie ein Meine-Impulse-Reminder-Push, und damit fälschlich immer
+      // auf dem Default-Subtab "Meine Impulse" statt "Tages-Impuls" (Fund 01.07.2026).
+      if(hash === "impulse-tages") { setImpulseDefaultTab("tagesimpuls"); setPage("impulse"); }
+      else if(hash === "impulse-meine" || hash === "impulse") { setImpulseDefaultTab("meine"); setPage("impulse"); }
+      else if(HASH_TO_PAGE[hash]) setPage(HASH_TO_PAGE[hash]);
     };
     applyHash();
     window.addEventListener("hashchange", applyHash);
