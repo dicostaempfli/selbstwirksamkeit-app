@@ -1,4 +1,4 @@
-<!-- Version: 2026-07-01 11:37 coachee -->
+<!-- Version: 2026-07-01 11:59 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -2731,10 +2731,16 @@ function ImpulsPage({ user, setPage, setActiveImpuls, activeImpuls, pendingImpul
 
   useEffect(() => {
     // Fix: localStorage-Check zuerst — unabhängig von Firestore
+    // WICHTIG: Bei Push-Tap (pendingImpulsPopup, Hash #impulse-tages) NICHT auf den
+    // lokalen Dismiss-Flag verlassen — der Push selbst ist das autoritative Signal,
+    // dass gerade ein frischer Impuls ansteht (z.B. nach Admin-Phasenwechsel). Sonst
+    // würde ein früherer "Heute nicht"-Klick im Tagesverlauf jeden weiteren Push für
+    // den Rest des Tages stumm verschlucken (step===6 → kompletter Render-Abbruch,
+    // impuls wird nie aus Firestore geladen).
     const todayStr2 = new Date().toISOString().split("T")[0];
     const dismissedKey = "impuls_dismissed_" + (user?.uid || "guest");
     const dismissedDate = localStorage.getItem(dismissedKey);
-    if (dismissedDate === todayStr2) { setStep(6); return; }
+    if (dismissedDate === todayStr2 && !pendingImpulsPopup) { setStep(6); return; }
 
     const fbDb = window._fb?.db;
     if (!fbDb || !user?.uid) return;
