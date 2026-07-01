@@ -1,4 +1,4 @@
-<!-- Version: 2026-07-01 10:32 coachee -->
+<!-- Version: 2026-07-01 10:35 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -3286,7 +3286,7 @@ const ReminderViewPopup = ({reminder:r, showEdit, onClose, onEdit}) => {
     : html`<${Ic} name=${r.icon||"bell"} size=${40} style=${{color:ac.text}}/>`;
   return html`
     <div onClick=${e=>{if(e.target===e.currentTarget)onClose();}} style=${{
-      position:"fixed",inset:0,background:"rgba(14,78,78,.85)",
+      position:"fixed",inset:0,background:"rgba(14,78,78,.94)",
       zIndex:9999,display:"flex",alignItems:"center",justifyContent:"center"
     }}>
       <div style=${{
