@@ -1,4 +1,4 @@
-<!-- Version: 2026-07-01 12:14 coachee -->
+<!-- Version: 2026-07-01 12:23 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -2807,6 +2807,13 @@ function ImpulsPage({ user, setPage, setActiveImpuls, activeImpuls, pendingImpul
         impulsText: impuls.text, status: "active", createdAt: Date.now()
       }).catch(() => {});
     }
+    // Fix: App-weiten activeImpuls-State sofort setzen, analog zu handleHeuteNicht()
+    // (die dort schon setActiveImpuls(null) aufruft). Ohne das verlässt sich die
+    // "Aktiver Impuls"-Karte auf der Home-Seite ausschliesslich auf DashboardPages
+    // eigenen Firestore-Listener — der läuft aber nur, während Home gerade gemountet
+    // ist, und verpasst die Änderung, solange man auf der Impuls-Seite bleibt. Erst ein
+    // kompletter App-Neustart baute den Listener bisher zuverlässig neu auf.
+    if (setActiveImpuls) setActiveImpuls({ uid: user?.uid, date: todayStr, impulsId: impuls.id, impulsText: impuls.text, status: "active" });
     // Fix: Ein früherer "Heute nicht"-Klick am selben Tag darf eine spätere, echte
     // Annahme nicht mehr überstrahlen — sonst blockiert der alte Dismiss-Flag jede
     // weitere Navigation zum Tages-Impuls (z.B. über die "Aktiver Impuls"-Karte auf
