@@ -1,4 +1,4 @@
-<!-- Version: 2026-07-02 14:13 coachee -->
+<!-- Version: 2026-07-02 14:35 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -2965,6 +2965,22 @@ function ImpulsPage({ user, setPage, setActiveImpuls, activeImpuls, pendingImpul
               if (todayEntry) {
                 const s = todayEntry.data().status;
                 if (s === "active") { setStep(1); setActiveEntryRef(todayEntry.ref); }
+                else if (pendingImpulsPopup) {
+                  // Fix (02.07.2026, Kapitel 35, Fund "Admin-Phasenwechsel-Push erscheint
+                  // trotz nextImpulseAt-Fix weiterhin nicht, wenn heute schon getestet wurde"):
+                  // Ein bereits abgeschlossener/abgelehnter heutiger Tageseintrag (done/skipped/
+                  // closed_no_reflexion) wurde bisher UNBEDINGT ausgewertet — noch bevor geprüft
+                  // wurde, ob gerade ein neuer, admin-ausgelöster Push angekommen ist. Jeder
+                  // frühere Entscheid desselben Tages (auch aus reinen Testzwecken) blockierte
+                  // dadurch jeden weiteren Phasenwechsel-Push, komplett unabhängig vom bereits
+                  // behobenen nextImpulseAt-Fall. Gleiches Prinzip wie dort: der Push selbst ist
+                  // das autoritative, aktuellere Signal — Step 0 zeigt den frischen, neu
+                  // geladenen Impuls (impuls-Variable spiegelt bereits die NEUE Phase wider),
+                  // ImpulsPushPopup erscheint darauf über seinen eigenen step===0-Effect.
+                  // Status "active" bewusst ausgenommen: ein noch offener, bereits angenommener
+                  // Impuls soll nicht stillschweigend überschrieben werden.
+                  setStep(0);
+                }
                 else if (s === "done") setStep(4);
                 else if (s === "skipped") setStep(6);
                 else setStep(5);
@@ -3000,11 +3016,27 @@ function ImpulsPage({ user, setPage, setActiveImpuls, activeImpuls, pendingImpul
                   if (!snap2.empty) {
                     const doc2 = snap2.docs[0];
                     const s2 = doc2.data().status;
-                    if (s2 === "active") { setStep(1); setActiveEntryRef(doc2.ref); }
-                    else if (s2 === "done") setStep(4);
-                    else if (s2 === "skipped") setStep(6);
-                    else setStep(5);
-                    setImpuls({ id: doc2.data().impulsId, text: doc2.data().impulsText, hint: "" });
+                    if (s2 === "active") {
+                      setStep(1); setActiveEntryRef(doc2.ref);
+                      setImpuls({ id: doc2.data().impulsId, text: doc2.data().impulsText, hint: "" });
+                    } else if (pendingImpulsPopup) {
+                      // Fix (02.07.2026, Kapitel 35): identischer Bypass wie im primären
+                      // Query-Pfad oben — zusätzlich HIER wichtig: setImpuls NICHT mit dem
+                      // alten doc2-Eintrag überschreiben, sonst zeigt das Push-Popup den
+                      // Text des früheren (heute schon abgeschlossenen) Impulses statt des
+                      // frisch geladenen Impulses der NEUEN Phase (bereits weiter oben via
+                      // setImpuls(next || null) korrekt gesetzt).
+                      setStep(0);
+                    } else if (s2 === "done") {
+                      setStep(4);
+                      setImpuls({ id: doc2.data().impulsId, text: doc2.data().impulsText, hint: "" });
+                    } else if (s2 === "skipped") {
+                      setStep(6);
+                      setImpuls({ id: doc2.data().impulsId, text: doc2.data().impulsText, hint: "" });
+                    } else {
+                      setStep(5);
+                      setImpuls({ id: doc2.data().impulsId, text: doc2.data().impulsText, hint: "" });
+                    }
                   } else {
                     setImpuls(impulse[0] || null);
                   }
