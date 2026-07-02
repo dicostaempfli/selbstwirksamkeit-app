@@ -1,4 +1,4 @@
-<!-- Version: 2026-07-01 18:56 coachee -->
+<!-- Version: 2026-07-02 09:07 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -88,6 +88,13 @@
           } else {
             hardReload();
           }
+        } else if(window.__swApplyPendingDeepLink) {
+          // Fix 02.07.2026 (Kapitel 32): kein Reload nötig (App war <60s im Hintergrund) —
+          // trotzdem kann ein Push-Tap währenddessen einen neuen Deep-Link in den Cache
+          // geschrieben haben. sw.js navigiert bestehende Clients nicht mehr selbst
+          // (Race-Fix, siehe sw.js), daher hier aktiv nachschauen statt auf einen Reload
+          // oder ein automatisches hashchange zu warten.
+          window.__swApplyPendingDeepLink();
         }
         sessionStorage.setItem('lastVisible', now);
       } else {
@@ -1666,6 +1673,11 @@ function App({ user }) {
         if(hash) routeHash(hash);
       } catch(e) {}
     };
+    // Fix 02.07.2026 (Kapitel 32): global exponieren, damit der visibilitychange-Handler
+    // ganz oben im File (ausserhalb von React/Preact) sie bei kurzer Hintergrundzeit
+    // (kein Reload) direkt aufrufen kann — ohne diesen Hook bliebe ein während des
+    // Fokuswechsels geschriebener Deep-Link sonst wirkungslos.
+    window.__swApplyPendingDeepLink = applyPendingDeepLink;
     applyHash();
     // Fix: Hash sofort nach der Anwendung aus der URL entfernen (via replaceState — löst
     // bewusst KEIN hashchange aus, kein Schleifenrisiko). Sonst bleibt er im Tab-/PWA-

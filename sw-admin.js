@@ -3,7 +3,7 @@
 // controllerchange-Reload-Mechanismus. Admin lief bisher absichtlich ohne Service Worker
 // (siehe Projektdoku v3.56) — dieser SW erweitert das NICHT um die Komplexität von sw.js
 // (Coachee), sondern bleibt eigenständig und schlank, damit Admin stabil und einfach bleibt.
-// Version: 2026-07-01 14:15
+// Version: 2026-07-02 09:07
 
 self.addEventListener('install', e => {
   self.skipWaiting();
@@ -50,13 +50,16 @@ self.addEventListener('notificationclick', e => {
     .then(c => c.put('/pending', new Response(JSON.stringify({ url: relPath, ts: Date.now() }))))
     .catch(() => {});
 
+  // Fix (02.07.2026, Fund "App lädt nach Push-Tap unzuverlässig", Kapitel 32, identisch
+  // zu sw.js): kein client.navigate() mehr für bereits offene Clients — lief bisher
+  // unabaited parallel zu client.focus() und konkurrierte mit dem eigenen, durch
+  // visibilitychange ausgelösten Reload der Seite (bei admin.html bisher sogar
+  // reload(true), siehe admin.html-Fix im selben Commit). Cache-Storage bleibt die
+  // einzige Quelle für das Deep-Link-Ziel (Pflichtregel 22).
   const openOrFocus = clients.matchAll({ type: 'window', includeUncontrolled: true })
     .then(windowClients => {
       for(const client of windowClients) {
-        if('focus' in client) {
-          if('navigate' in client) client.navigate(absoluteUrl).catch(()=>{});
-          return client.focus();
-        }
+        if('focus' in client) return client.focus();
       }
       if(clients.openWindow) return clients.openWindow(absoluteUrl);
     });

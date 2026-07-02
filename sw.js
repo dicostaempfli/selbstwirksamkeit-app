@@ -1,7 +1,7 @@
 // Service Worker — Raum für Selbstwirksamkeit
-// Version: 2026-07-01 14:15
+// Version: 2026-07-02 09:07
 
-const VERSION = '2026-07-01-1415';
+const VERSION = '2026-07-02-0907';
 
 // Bei Install: sofort aktivieren ohne auf alten SW zu warten
 self.addEventListener('install', e => {
@@ -74,13 +74,21 @@ self.addEventListener('notificationclick', e => {
     .then(c => c.put('/pending', new Response(JSON.stringify({ url: relPath, ts: Date.now() }))))
     .catch(() => {});
 
+  // Fix (02.07.2026, Fund "App lädt nach Push-Tap unzuverlässig", Kapitel 32): kein
+  // client.navigate() mehr für bereits offene Clients. navigate() lief bisher unabaited
+  // parallel zu client.focus() — focus() löste auf der Seite sofort 'visibilitychange'
+  // aus, was (bei >60s im Hintergrund) seinerseits einen komplett unabhängigen zweiten
+  // Reload auslöste (hardReload() in index.html bzw. bisher reload(true) in admin.html).
+  // Zwei konkurrierende Navigationen auf demselben Client erklären exakt das beobachtete
+  // "mal geht's, mal nicht" — je nachdem, welche Navigation zuerst gewann bzw. die andere
+  // mitten im Laden abbrach. Der Cache-Storage-Eintrag (cacheWrite oben) ist jetzt die
+  // EINZIGE Quelle für das Deep-Link-Ziel; die Seite liest ihn selbst aus — entweder beim
+  // Boot nach einem durch visibilitychange ausgelösten Reload, oder direkt via
+  // applyPendingDeepLink(), falls kein Reload nötig war (Pflichtregel 22).
   const openOrFocus = clients.matchAll({ type: 'window', includeUncontrolled: true })
     .then(windowClients => {
       for(const client of windowClients) {
-        if('focus' in client) {
-          if('navigate' in client) client.navigate(absoluteUrl).catch(()=>{});
-          return client.focus();
-        }
+        if('focus' in client) return client.focus();
       }
       if(clients.openWindow) return clients.openWindow(absoluteUrl);
     });
