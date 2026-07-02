@@ -1,4 +1,4 @@
-<!-- Version: 2026-07-02 10:31 admin -->
+<!-- Version: 2026-07-02 11:23 admin -->
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -1276,9 +1276,13 @@ window.addEventListener('orientationchange', ()=>setTimeout(setVH,150));
   }
 
 </style>
+<link rel="modulepreload" href="https://esm.sh/preact@10">
+<link rel="modulepreload" href="https://esm.sh/preact@10/hooks">
+<link rel="modulepreload" href="https://esm.sh/htm@3/preact">
 </head>
 <body>
-<div id="root"></div>
+<div id="root"><div style="display:flex;align-items:center;justify-content:center;min-height:100vh;background:#f9f7f3"><div style="width:34px;height:34px;border:3px solid #e3dfda;border-top-color:#156e6e;border-radius:50%;animation:rswspin .8s linear infinite"></div></div></div>
+<style>@keyframes rswspin{to{transform:rotate(360deg)}}</style>
 <script>
 // Watchdog AUSSERHALB des type="module"-Scripts — läuft garantiert, auch wenn der
 // Modul-Import unten (esm.sh CDN) hängt oder fehlschlägt. Fix (02.07.2026, Kapitel 32):
@@ -1292,7 +1296,9 @@ window._rswAdminAppRendered = false;
 setTimeout(function() {
   if(window._rswAdminAppRendered) return;
   var root = document.getElementById('root');
-  if(!root || root.children.length > 0) return; // App ist doch geladen, nur spät
+  if(!root) return;
+  // Fix (02.07.2026, Kapitel 32): root.children.length>0 ist seit dem Sofort-Spinner
+  // immer wahr — ausschliesslich auf das verlässliche _rswAdminAppRendered-Flag verlassen.
   root.innerHTML = '';
   var div = document.createElement('div');
   div.style.cssText = 'display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;background:#f8f6f0;padding:32px 24px;text-align:center;font-family:Arial,sans-serif';
@@ -1302,7 +1308,7 @@ setTimeout(function() {
     + '<button onclick="window.location.reload()" style="background:#156e6e;color:#fff;border:none;border-radius:10px;padding:11px 28px;font-size:.9rem;font-weight:600;cursor:pointer">App neu laden</button>'
     + '<div style="margin-top:20px;font-size:.72rem;color:#9CA3AF">Bleibt das Problem? info@selbstwirksamkeit.ch</div>';
   root.appendChild(div);
-}, 8000);
+}, 6000);
 </script>
 <script type="module">
 
@@ -3960,6 +3966,7 @@ function Root() {
   return html`<${AdminApp} user=${user}/>`;
 }
 
+document.getElementById('root').innerHTML = '';
 render(h(Root,null), document.getElementById('root'));
 window._rswAdminAppRendered = true;
 
