@@ -1,4 +1,4 @@
-<!-- Version: 2026-07-02 10:22 coachee -->
+<!-- Version: 2026-07-02 10:31 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -408,7 +408,7 @@
     border-radius: 20px;
     padding: 9px 15px;
     font-family: 'Exo 2';
-    font-size: .89rem;
+    font-size: 16px;
     color: var(--text);
     resize: none;
     max-height: 130px;
@@ -566,7 +566,7 @@
   .label { font-size:.72rem; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; margin-bottom:5px; display:block; }
   .input,.textarea,.select {
     width:100%; padding:8px 12px; border:1.5px solid var(--border); border-radius:10px;
-    font-family:'Exo 2'; font-size:.87rem; background:var(--surface); color:var(--text); transition:border .2s;
+    font-family:'Exo 2'; font-size:16px; background:var(--surface); color:var(--text); transition:border .2s;
   }
   .input:focus,.textarea:focus,.select:focus { outline:none; border-color:var(--teal); }
   .textarea { resize:vertical; min-height:74px; }
@@ -872,7 +872,7 @@
       flex-shrink: 0;
       padding: 8px 10px;
     }
-    .input-box { font-size: .88rem; padding: 8px 12px; }
+    .input-box { font-size: 16px; padding: 8px 12px; }
 
     /* Quick replies */
     .quick-replies { padding: 0 12px 6px; }
@@ -1070,7 +1070,7 @@
     }
     .msg-bubble-wrap { max-width: 82%; }
     .msg-bubble { font-size: .91rem; }
-    .input-box { font-size: .88rem; padding: 8px 12px; }
+    .input-box { font-size: 16px; padding: 8px 12px; }
 
   }
 
@@ -2979,7 +2979,15 @@ function ImpulsPage({ user, setPage, setActiveImpuls, activeImpuls, pendingImpul
     // weitere Navigation zum Tages-Impuls (z.B. über die "Aktiver Impuls"-Karte auf
     // der Home-Seite), obwohl gerade ein aktiver Impuls existiert.
     localStorage.removeItem("impuls_dismissed_" + (user?.uid || "guest"));
-    setStep(0.5);
+    // Fix (02.07.2026, Fund per Screenshot): Bisher setStep(0.5) — eine Zwischenseite
+    // ("Gut. Der Impuls begleitet dich heute...") mit eigenem "Ich bin bereit"-Button.
+    // Direkter Sprung zu Home, analog zum selben Fix bei "Nein, heute nicht" — die
+    // "Aktiver Impuls"-Karte auf Home zeigt den Tages-Impuls sofort an (activeImpuls
+    // wird direkt oben gesetzt). Behebt nebenbei einen Race: setActiveImpuls() änderte
+    // die activeImpuls-Prop, was den step-bestimmenden useEffect (Dependency
+    // [user, activeImpuls]) erneut auslöste und das gerade gesetzte Step 0.5 mit dem neu
+    // aus Firestore geladenen Step 1 überschrieb (genau das zeigte der zweite Screenshot).
+    if (setPage) setPage("dashboard"); else setStep(0.5);
   };
 
   // "Später": schreibt eine Snooze-Zeit in users/{uid}, die Cloud Function
@@ -3089,7 +3097,7 @@ function ImpulsPage({ user, setPage, setActiveImpuls, activeImpuls, pendingImpul
         <p style=${{fontSize:".78rem",color:"var(--teal-dark)",lineHeight:1.5,margin:0}}>Heutiger Impuls: ${impuls.text}</p>
       </div>
       <p style=${{fontFamily:"'Manuale',serif",fontSize:"1.1rem",fontStyle:"italic",lineHeight:1.6,color:"var(--text)",marginBottom:12}}>«Welche neue Erfahrung hast du gemacht?»</p>
-      <textarea class="form-input" rows="4"
+      <textarea class="textarea" rows="4"
         placeholder="Ein Satz reicht. Oder zwei. Oder einfach kurz innehalten."
         value=${reflexion} onInput=${e => setReflexion(e.target.value)}
         style=${{width:"100%",resize:"none",marginBottom:20,boxSizing:"border-box"}}></textarea>
