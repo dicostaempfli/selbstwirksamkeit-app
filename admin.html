@@ -1,4 +1,4 @@
-<!-- Version: 2026-07-02 14:40 admin -->
+<!-- Version: 2026-07-02 15:03 admin -->
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -1974,7 +1974,7 @@ function DashboardPage({coachees,library,doodles,setPage,user}) {
         <div>
           <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.3rem",fontWeight:700,color:"var(--text)"}}>${greeting}</div>
           <div style=${{fontSize:".88rem",color:"var(--muted)",marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"calc(100vw - 120px)"}}>Admin-Portal · Raum für Selbstwirksamkeit</div>
-          <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-07-02 13:34 · Doku v3.69 · 2026-07-02 13:34
+          <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-07-02 15:03 · Doku v3.69 · 2026-07-02 13:34
           </div>
         </div>
       </div>
@@ -3719,7 +3719,7 @@ function ImpulsPhasenTab() {
                     fontSize:".72rem", fontWeight:700, cursor: isResetting ? "default" : "pointer",
                     transition:"all .15s", justifyContent:"center", whiteSpace:"nowrap"
                   }}
-                >${isResetDone ? html`<${Ic} name="check" size=${15}/>` : isResetConfirm ? "Sicher?" : html`<${Ic} name="repeat" size=${15}/>`}</button>
+                >${isResetDone ? h(Ic,{name:"check",size:15}) : isResetConfirm ? "Sicher?" : h(Ic,{name:"repeat",size:15})}</button>
               </div>
             </div>
             ${interval && html`
