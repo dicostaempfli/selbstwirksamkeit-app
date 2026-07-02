@@ -1,4 +1,4 @@
-<!-- Version: 2026-07-02 10:12 admin -->
+<!-- Version: 2026-07-02 10:17 admin -->
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -1279,6 +1279,31 @@ window.addEventListener('orientationchange', ()=>setTimeout(setVH,150));
 </head>
 <body>
 <div id="root"></div>
+<script>
+// Watchdog AUSSERHALB des type="module"-Scripts — läuft garantiert, auch wenn der
+// Modul-Import unten (esm.sh CDN) hängt oder fehlschlägt. Fix (02.07.2026, Kapitel 32):
+// bisher nur in index.html vorhanden (Kapitel 28.3) — admin.html empfängt inzwischen
+// aber ebenfalls Push-Notifications, die bei komplett geschlossener App einen Kaltstart
+// über clients.openWindow() auslösen (z.B. Chat-Push von Coachees, Doodle-Abstimmungen).
+// Genau dieser Fall (schwaches Netz beim Kaltstart) liess #root dauerhaft leer bleiben,
+// ohne dass window.onerror je feuert — identisches Risiko wie bei index.html, bisher
+// ungeschützt.
+window._rswAdminAppRendered = false;
+setTimeout(function() {
+  if(window._rswAdminAppRendered) return;
+  var root = document.getElementById('root');
+  if(!root || root.children.length > 0) return; // App ist doch geladen, nur spät
+  root.innerHTML = '';
+  var div = document.createElement('div');
+  div.style.cssText = 'display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;background:#f8f6f0;padding:32px 24px;text-align:center;font-family:Arial,sans-serif';
+  div.innerHTML = '<div style="font-size:52px;margin-bottom:16px">⏳</div>'
+    + '<div style="font-size:1.2rem;font-weight:700;color:#1C1914;margin-bottom:10px">Die Verbindung dauert länger als erwartet</div>'
+    + '<div style="font-size:.85rem;color:#6B7280;line-height:1.6;max-width:300px;margin-bottom:24px">Das kann bei schwachem Empfang vorkommen. Bitte lade die App neu.</div>'
+    + '<button onclick="window.location.reload()" style="background:#156e6e;color:#fff;border:none;border-radius:10px;padding:11px 28px;font-size:.9rem;font-weight:600;cursor:pointer">App neu laden</button>'
+    + '<div style="margin-top:20px;font-size:.72rem;color:#9CA3AF">Bleibt das Problem? info@selbstwirksamkeit.ch</div>';
+  root.appendChild(div);
+}, 8000);
+</script>
 <script type="module">
 
 
@@ -3936,6 +3961,7 @@ function Root() {
 }
 
 render(h(Root,null), document.getElementById('root'));
+window._rswAdminAppRendered = true;
 
 </script>
 </body>
