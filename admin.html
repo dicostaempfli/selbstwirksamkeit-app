@@ -1,4 +1,4 @@
-<!-- Version: 2026-07-02 13:34 admin -->
+<!-- Version: 2026-07-02 14:40 admin -->
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -3559,6 +3559,9 @@ function ImpulsPhasenTab() {
   const [loading, setLoading]   = useState(true);
   const [saving, setSaving]     = useState({});
   const [saved, setSaved]       = useState({});
+  const [resetConfirm, setResetConfirm] = useState({});
+  const [resetting, setResetting]       = useState({});
+  const [resetDone, setResetDone]       = useState({});
 
   useEffect(() => {
     const firestore = db();
@@ -3605,6 +3608,40 @@ function ImpulsPhasenTab() {
       .catch(() => {});
   };
 
+  // Fix (02.07.2026, Kapitel 36, auf Ricos Wunsch): Manuelles Testen des Tages-Impuls-
+  // Phasenwechsel-Flows erforderte bisher umständliches Firestore-Console-Gefummel (heutigen
+  // impulse_entries-Eintrag von Hand suchen+löschen, nextImpulseAt/pushedForImpulseAt von Hand
+  // zurücksetzen) — siehe Kapitel 34/35 zu den Bugs, die genau dieser bestehende Tageszustand
+  // ausgelöst hat. Ein-Klick-Button direkt im Admin-Portal: löscht den/die heutigen
+  // impulse_entries-Einträge des Coachees und setzt nextImpulseAt/pushedForImpulseAt auf 0 —
+  // ein anschliessender Phasenwechsel (oder erneutes Klicken derselben Phase) triggert
+  // onActivePhaseChanged sofort wieder frisch, ohne alte Zustände aus früheren Tests.
+  // Zwei-Klick-Bestätigung (kein natives confirm(), passend zum bestehenden UI-Stil) statt
+  // Browser-Dialog, da dies echte Firestore-Löschungen auslöst.
+  const resetTodayImpuls = (uid) => {
+    const firestore = db();
+    if (!firestore) return;
+    if (!resetConfirm[uid]) {
+      setResetConfirm(s => ({...s, [uid]: true}));
+      setTimeout(() => setResetConfirm(s => ({...s, [uid]: false})), 4000);
+      return;
+    }
+    setResetConfirm(s => ({...s, [uid]: false}));
+    setResetting(s => ({...s, [uid]: true}));
+    const todayStr = new Date().toISOString().split("T")[0];
+    Promise.all([
+      firestore.collection("impulse_entries").where("uid","==",uid).where("date","==",todayStr).get()
+        .then(snap => Promise.all(snap.docs.map(d => d.ref.delete()))),
+      firestore.collection("users").doc(uid).set({ nextImpulseAt: 0, pushedForImpulseAt: 0 }, { merge: true })
+    ])
+      .then(() => {
+        setResetDone(s => ({...s, [uid]: true}));
+        setTimeout(() => setResetDone(s => ({...s, [uid]: false})), 1800);
+      })
+      .catch(() => {})
+      .finally(() => setResetting(s => ({...s, [uid]: false})));
+  };
+
   const INTERVALS = {
     einzel:      { label: "Einzelcoaching",        sub: "6 Impulse · 2 Wochen · alle 2–3 Tage",            color: "var(--pkg-einzel)" },
     paar:        { label: "Paar- / Elterncoaching", sub: "6 Impulse · 4 Wochen · alle 4–7 Tage",            color: "var(--pkg-paar)" },
@@ -3628,6 +3665,9 @@ function ImpulsPhasenTab() {
         const isSaved = saved[c.uid];
         const name = c.name || c.email || c.uid.slice(0,8);
         const interval = pkg ? INTERVALS[pkg] : null;
+        const isResetConfirm = resetConfirm[c.uid];
+        const isResetting = resetting[c.uid];
+        const isResetDone = resetDone[c.uid];
         return html`
           <div key=${c.uid} class="card" style=${{marginBottom:12}}>
             <div style=${{display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:12,marginBottom:interval?10:0}}>
@@ -3667,6 +3707,19 @@ function ImpulsPhasenTab() {
                     >${n}</button>`;
                 })}
                 ${isSaved && html`<span style=${{fontSize:".78rem",color:"var(--forest)",fontWeight:700,marginLeft:4}}>✓</span>`}
+                <button onClick=${() => resetTodayImpuls(c.uid)} disabled=${isResetting}
+                  title=${isResetConfirm ? "Sicher? Löscht heutigen Tages-Impuls-Eintrag + Pacing-Sperre — nochmal klicken zum Bestätigen" : "Test zurücksetzen: löscht heutigen Tages-Impuls-Eintrag + Pacing-Sperre, für erneutes Testen desselben Tages"}
+                  style=${{
+                    display:"flex", alignItems:"center", gap:5, marginLeft:6,
+                    padding: isResetConfirm ? "5px 10px" : "0", width: isResetConfirm ? "auto" : 32,
+                    height:32, borderRadius:8, flexShrink:0,
+                    border: isResetConfirm ? "1.5px solid var(--danger-dark)" : "1px solid var(--border2)",
+                    background: isResetConfirm ? "var(--danger)" : "transparent",
+                    color: isResetConfirm ? "#fff" : "var(--muted)",
+                    fontSize:".72rem", fontWeight:700, cursor: isResetting ? "default" : "pointer",
+                    transition:"all .15s", justifyContent:"center", whiteSpace:"nowrap"
+                  }}
+                >${isResetDone ? html`<${Ic} name="check" size=${15}/>` : isResetConfirm ? "Sicher?" : html`<${Ic} name="repeat" size=${15}/>`}</button>
               </div>
             </div>
             ${interval && html`
