@@ -1,4 +1,4 @@
-<!-- Version: 2026-07-02 09:07 coachee -->
+<!-- Version: 2026-07-02 09:22 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -2737,16 +2737,23 @@ function ImpulseTab({ user, reminders, setReminders, setPage, defaultSubTab, set
   return html`
     <div class="impulse-tab-wrap">
       <div class="impulse-subtab-nav">
-        <button
-          class=${"impulse-subtab-btn" + (isMeine ? " active" : "")}
-          onClick=${() => { setActiveSubTab('meine'); if(setDefaultSubTab) setDefaultSubTab('meine'); }}>
-          Meine Impulse
-        </button>
-        <button
-          class=${"impulse-subtab-btn" + (isTagesimpuls ? " active" : "")}
-          onClick=${() => setActiveSubTab('tagesimpuls')}>
-          Tages-Impuls
-        </button>
+        <div style=${{display:"flex",gap:8,flex:1}}>
+          <button
+            class=${"impulse-subtab-btn" + (isMeine ? " active" : "")}
+            onClick=${() => { setActiveSubTab('meine'); if(setDefaultSubTab) setDefaultSubTab('meine'); }}>
+            Meine Impulse
+          </button>
+          <button
+            class=${"impulse-subtab-btn" + (isTagesimpuls ? " active" : "")}
+            onClick=${() => setActiveSubTab('tagesimpuls')}>
+            Tages-Impuls
+          </button>
+        </div>
+        <button aria-label="Schliessen" onClick=${() => { if(setPage) setPage("dashboard"); }} style=${{
+          width:40,height:40,borderRadius:"50%",flexShrink:0,
+          border:"1.5px solid var(--border2)",background:"transparent",color:"var(--muted)",
+          display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"
+        }}><${Ic} name="x" size=${16}/></button>
       </div>
       <div style=${{flex:1,overflowY:"auto",minHeight:0}}>${subContent}</div>
     </div>`;
@@ -2900,7 +2907,26 @@ function ImpulsPage({ user, setPage, setActiveImpuls, activeImpuls, pendingImpul
               } else if (nextImpulseAt > Date.now()) {
                 setStep(5);
               }
-            }).catch(() => setImpuls(impulse[0] || null));
+            }).catch(() => {
+              // Fix (02.07.2026, Fund "Aktiver Impuls zeigt Accept/Decline statt
+              // 'Ich habe die Erfahrung gemacht'"): Diese Query kombiniert
+              // where(uid)+orderBy(createdAt) auf unterschiedlichen Feldern — das
+              // braucht praktisch immer einen Firestore-Composite-Index (anders als
+              // reine Gleichheitsfilter-Kombinationen, siehe Kapitel 30.9). Fehlt der
+              // Index, schlägt die Query fehl; bisher landete step dann beim
+              // useState(0)-Startwert, obwohl längst ein aktiver Eintrag existierte —
+              // die Home-Karte zeigte "Aktiver Impuls" korrekt an (eigener Listener,
+              // Kapitel 32), diese Seite aber nicht. activeImpuls (dieselbe Quelle wie
+              // die Home-Karte) jetzt als robuster Fallback: unabhängig vom Ausgang
+              // dieser Query liefert er den korrekten Step, sobald ein aktiver
+              // Eintrag für heute bekannt ist.
+              if (activeImpuls && activeImpuls.status === "active") {
+                setImpuls({ id: activeImpuls.impulsId, text: activeImpuls.impulsText, hint: "" });
+                setStep(1);
+              } else {
+                setImpuls(impulse[0] || null);
+              }
+            });
         };
         if (doc.exists) getData(doc.data());
         else if (activeImpuls === null) { setStep(6); return; }
