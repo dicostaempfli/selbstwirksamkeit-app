@@ -1,4 +1,4 @@
-<!-- Version: 2026-07-02 10:40 coachee -->
+<!-- Version: 2026-07-02 10:48 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -2684,7 +2684,7 @@ function DashboardPage({coachees,library,reminders,doodles,setPage,user,onLogoTa
         )
       )}
       <div class="stat-grid">
-        <div class="stat-card" onClick=${()=>setPage("impulse")} style=${{cursor:"pointer",borderLeft:"4px solid var(--teal)",padding:"16px 20px"}}>
+        <div class="stat-card" onClick=${()=>{ setImpulseDefaultTab("meine"); setPage("impulse"); }} style=${{cursor:"pointer",borderLeft:"4px solid var(--teal)",padding:"16px 20px"}}>
           <div style=${{display:"flex",alignItems:"center",gap:14}}>
             <div style=${{width:42,height:42,borderRadius:12,background:"var(--teal-pale)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><${Ic} name="impuls" size=${22} style=${{color:"var(--teal-dark)"}}/></div>
             <div style=${{flex:1}}>
