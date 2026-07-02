@@ -1,4 +1,4 @@
-<!-- Version: 2026-07-02 10:48 coachee -->
+<!-- Version: 2026-07-02 11:34 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -1194,10 +1194,14 @@
   @keyframes bh-done-glow{0%,100%{box-shadow:0 0 30px rgba(21,110,110,.15)}50%{box-shadow:0 0 60px rgba(21,110,110,.38)}}
 
   </style>
+  <link rel="modulepreload" href="https://esm.sh/preact@10">
+  <link rel="modulepreload" href="https://esm.sh/preact@10/hooks">
+  <link rel="modulepreload" href="https://esm.sh/htm@3/preact">
 </head>
 <body>
 
-<div id="app"></div>
+<div id="app"><div style="display:flex;align-items:center;justify-content:center;min-height:100vh;background:#f9f7f3"><div style="width:34px;height:34px;border:3px solid #e3dfda;border-top-color:#156e6e;border-radius:50%;animation:rswspin .8s linear infinite"></div></div></div>
+<style>@keyframes rswspin{to{transform:rotate(360deg)}}</style>
 <div id="breath-portal"></div>
 
 <script>
@@ -1211,7 +1215,11 @@ window._rswAppRendered = false;
 setTimeout(function() {
   if(window._rswAppRendered) return;
   var app = document.getElementById('app');
-  if(!app || app.children.length > 0) return; // App ist doch geladen, nur spät
+  if(!app) return;
+  // Fix (02.07.2026, Kapitel 32): Der neue Sofort-Spinner in #app sorgt dafür, dass
+  // app.children.length > 0 IMMER wahr ist, egal ob die echte App schon geladen hat oder
+  // nicht — die vorige Prüfung hätte den Watchdog dadurch nie mehr auslösen können. Jetzt
+  // ausschliesslich auf das bereits vorhandene, verlässliche _rswAppRendered-Flag verlassen.
   app.innerHTML = '';
   var div = document.createElement('div');
   div.style.cssText = 'display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;background:#f8f6f0;padding:32px 24px;text-align:center;font-family:Arial,sans-serif';
@@ -1221,7 +1229,7 @@ setTimeout(function() {
     + '<button onclick="window.location.reload()" style="background:#156e6e;color:#fff;border:none;border-radius:10px;padding:11px 28px;font-size:.9rem;font-weight:600;cursor:pointer">App neu laden</button>'
     + '<div style="margin-top:20px;font-size:.72rem;color:#9CA3AF">Bleibt das Problem? info@selbstwirksamkeit.ch</div>';
   app.appendChild(div);
-}, 8000);
+}, 6000);
 </script>
 
 <script type="module">
@@ -1680,7 +1688,15 @@ function App({ user }) {
         }
         const data = await resp.json();
         await cache.delete('/pending');
-        if(Date.now() - (data.ts || 0) > 60000) return;
+        // Fix (02.07.2026, Fund "alle Push-Kategorien landen zufällig auf Home", Kapitel
+        // 32): 60s-Fenster war für reale Nutzung viel zu knapp — eine Push-Notification
+        // wird selten sofort angetippt, sondern oft erst nach Minuten aus der
+        // Mitteilungszentrale. War die Zeitspanne überschritten, verwarf die App den
+        // Deep-Link und landete beim Default (Home) — unabhängig von der Push-Kategorie.
+        // Der Cache-Eintrag wird ohnehin immer gelöscht, sobald er gelesen wird (Zeile
+        // oben), ein kurzes Zeitfenster bringt daher kaum Schutz, verwirft aber legitime,
+        // verspätete Taps. Grosszügig auf 24h erweitert.
+        if(Date.now() - (data.ts || 0) > 24*60*60*1000) return;
         const hash = (data.url || '').includes('#') ? data.url.split('#')[1] : '';
         if(hash) routeHash(hash);
       } catch(e) {}
@@ -4651,6 +4667,7 @@ window._showCrashScreen = function() {
   app.appendChild(div);
 };
 
+document.getElementById('app').innerHTML = '';
 render(h(Root, null), document.getElementById('app'));
 window._rswAppRendered = true;
 render(h(BreathPortal, null), document.getElementById('breath-portal'));

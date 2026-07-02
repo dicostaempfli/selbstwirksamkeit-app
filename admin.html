@@ -1,4 +1,4 @@
-<!-- Version: 2026-07-02 11:23 admin -->
+<!-- Version: 2026-07-02 11:34 admin -->
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -1640,7 +1640,9 @@ function AdminApp({user}) {
         }
         const data = await resp.json();
         await cache.delete('/pending');
-        if(Date.now() - (data.ts || 0) > 60000) return;
+        // Fix (02.07.2026, Kapitel 32, identisch zu index.html): 60s-Fenster viel zu
+        // knapp für reale Push-Nutzung, grosszügig auf 24h erweitert.
+        if(Date.now() - (data.ts || 0) > 24*60*60*1000) return;
         const hash = (data.url || '').includes('#') ? data.url.split('#')[1] : '';
         if(hash) routeHash(hash);
       } catch(e) {}
