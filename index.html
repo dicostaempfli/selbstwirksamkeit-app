@@ -1,4 +1,4 @@
-<!-- Version: 2026-07-02 09:30 coachee -->
+<!-- Version: 2026-07-02 10:08 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -2824,7 +2824,13 @@ const ImpulsReflexionPopup = ({onJa, onNein, onClose}) => html`
 function ImpulsPage({ user, setPage, setActiveImpuls, activeImpuls, pendingImpulsPopup, setPendingImpulsPopup, pendingReflexionPopup, setPendingReflexionPopup }) {
   const [step, setStep]           = useState(0);
   const [reflexion, setReflexion] = useState("");
-  const [koerper, setKoerper]     = useState(null);
+  // Fix (02.07.2026, Kapitel 32): Multi-Select statt Single-Select — koerper ist jetzt ein
+  // Array statt ein einzelner String, damit mehrere Körperregionen gleichzeitig gewählt
+  // werden können (z.B. "Herz" und "Bauch"). Wichtig für später: Bestehende Firestore-
+  // Einträge vor diesem Fix haben koerper als einzelnen String, neue Einträge als Array —
+  // eine künftige Reflexion-Anzeige muss beide Formate abfangen können.
+  const [koerper, setKoerper]     = useState([]);
+  const toggleKoerper = (opt) => setKoerper(prev => prev.includes(opt) ? prev.filter(k => k !== opt) : [...prev, opt]);
   const [impuls, setImpuls]       = useState(null);
   const [saving, setSaving]       = useState(false);
   const [activeEntryRef, setActiveEntryRef] = useState(null);
@@ -2834,7 +2840,9 @@ function ImpulsPage({ user, setPage, setActiveImpuls, activeImpuls, pendingImpul
   // eigenem 1h-später-Reminder-Popup (sonst könnte man sich beliebig oft weiter vertagen).
   const [popupIsSnoozed, setPopupIsSnoozed] = useState(false);
 
-  const KOERPER_OPTS = ["Kopf","Kehle","Herz","Brust","Bauch","Schultern","Arme","Beine"];
+  // Fix (02.07.2026, Kapitel 32): "Kehle" raus (redundant zu "Hals"), "Hals", "Rücken" und
+  // "Ganzer Körper" dazu — vollständigere Körperliste für die Reflexion.
+  const KOERPER_OPTS = ["Kopf","Hals","Herz","Brust","Bauch","Rücken","Schultern","Arme","Beine","Ganzer Körper"];
 
   // Push-Deep-Link (#impulse-tages): Popup nur zeigen, wenn wirklich ein frischer,
   // noch nicht entschiedener Tages-Impuls vorliegt (step===0). Analog zum Reminder-Popup
@@ -3026,7 +3034,7 @@ function ImpulsPage({ user, setPage, setActiveImpuls, activeImpuls, pendingImpul
     setSaving(true);
     const fbDb = window._fb?.db;
     if (fbDb && user?.uid) {
-      const update = { status:"done", reflexion: reflexion.trim(), koerper: koerper || "", closedAt: Date.now() };
+      const update = { status:"done", reflexion: reflexion.trim(), koerper: koerper, closedAt: Date.now() };
       fbDb.collection("impulse_entries")
         .where("uid","==",user.uid).where("date","==",todayStr).where("status","==","active").limit(1).get()
         .then(snap => {
@@ -3060,24 +3068,29 @@ function ImpulsPage({ user, setPage, setActiveImpuls, activeImpuls, pendingImpul
   if (step === 3) return html`
     <div class="content-main" style=${{maxWidth:520}}>
       <span style=${{fontSize:".72rem",fontWeight:700,textTransform:"uppercase",letterSpacing:".07em",color:"var(--muted)"}}>Reflexion</span>
-      <p style=${{fontFamily:"'Manuale',serif",fontSize:"1.1rem",fontStyle:"italic",lineHeight:1.6,color:"var(--text)",margin:"16px 0 8px"}}>«Was war anders als du erwartet hast?»</p>
-      <div style=${{borderTop:"1px solid var(--border)",marginBottom:20}}></div>
+      <div style=${{borderTop:"1px solid var(--border)",margin:"16px 0 20px"}}></div>
+      <div style=${{background:"var(--sage-pale)",borderRadius:10,padding:"10px 12px",marginBottom:32}}>
+        <p style=${{fontSize:".78rem",color:"var(--teal-dark)",lineHeight:1.5,margin:0}}>Heutiger Impuls: ${impuls.text}</p>
+      </div>
+      <p style=${{fontFamily:"'Manuale',serif",fontSize:"1.1rem",fontStyle:"italic",lineHeight:1.6,color:"var(--text)",marginBottom:12}}>«Welche neue Erfahrung hast du gemacht?»</p>
       <textarea class="form-input" rows="4"
         placeholder="Ein Satz reicht. Oder zwei. Oder einfach kurz innehalten."
         value=${reflexion} onInput=${e => setReflexion(e.target.value)}
         style=${{width:"100%",resize:"none",marginBottom:20,boxSizing:"border-box"}}></textarea>
+      <div style=${{borderTop:"1px solid var(--border)",marginBottom:20}}></div>
       <p style=${{fontSize:".85rem",fontWeight:700,color:"var(--text)",marginBottom:4}}>Wo spürst du das im Körper?</p>
-      <p style=${{fontSize:".78rem",color:"var(--muted)",marginBottom:12}}>Atme einmal bewusst hinein.</p>
-      <div style=${{display:"flex",flexWrap:"wrap",gap:8,marginBottom:28}}>
+      <p style=${{fontSize:".78rem",color:"var(--muted)",marginBottom:14}}>Schliesse kurz die Augen und nimm einfach wahr.</p>
+      <div style=${{display:"flex",flexWrap:"wrap",gap:8,marginBottom:16}}>
         ${KOERPER_OPTS.map(opt => h("button", {
-          key: opt, onClick: () => setKoerper(opt),
+          key: opt, onClick: () => toggleKoerper(opt),
           // Fix (02.07.2026, Fund "Text bei Körper-Auswahl unsichtbar"): var(--sage) und
           // var(--forest) sind identisch (#156e6e) — Hintergrund und Text hatten dieselbe
           // Farbe. Weisser Text bei Auswahl, analog zu .impulse-subtab-btn.active (gleiches
           // dunkelteal-Hintergrund + weiss-Text-Muster, das im Rest der App schon verwendet wird).
-          style: { padding:"8px 14px", border: koerper===opt ? "2px solid var(--teal)" : "1.5px solid var(--border)", borderRadius:20, background: koerper===opt ? "var(--sage)" : "var(--surface)", color: koerper===opt ? "#fff" : "var(--muted)", fontFamily:"'Exo 2',sans-serif", fontWeight:700, fontSize:".8rem", cursor:"pointer", transition:"all .15s" }
+          style: { padding:"8px 14px", border: koerper.includes(opt) ? "2px solid var(--teal)" : "1.5px solid var(--border)", borderRadius:20, background: koerper.includes(opt) ? "var(--sage)" : "var(--surface)", color: koerper.includes(opt) ? "#fff" : "var(--muted)", fontFamily:"'Exo 2',sans-serif", fontWeight:700, fontSize:".8rem", cursor:"pointer", transition:"all .15s" }
         }, opt))}
       </div>
+      <p style=${{fontSize:".7rem",fontStyle:"italic",color:"var(--muted)",textAlign:"center",marginBottom:28}}>Mehrfachauswahl möglich</p>
       <button class="impulse-subtab-btn active" style=${{width:"100%"}} onClick=${saveAndFinish} disabled=${saving}>${saving ? "Speichern…" : "Abschliessen"}</button>
     </div>`;
 
@@ -3104,8 +3117,7 @@ function ImpulsPage({ user, setPage, setActiveImpuls, activeImpuls, pendingImpul
     h("span", {style:{fontSize:".72rem", fontWeight:700, textTransform:"uppercase", letterSpacing:".07em", color:"var(--muted)"}}, "Tages-Impuls"),
     h("div", {style:{borderTop:"1px solid var(--border)", margin:"16px 0 20px"}}),
     h("p", {style:{fontFamily:"'Manuale',serif", fontSize:"1.1rem", lineHeight:1.65, color:"var(--text)", marginBottom:24}}, impuls.text),
-    h("p", {style:{fontSize:".83rem", color:"var(--muted)", lineHeight:1.6, marginBottom:"auto"}}, impuls.hint || ""),
-    h("p", {style:{fontSize:".82rem", color:"var(--muted)", fontStyle:"italic", textAlign:"center", marginTop:32, marginBottom:12}}, "Tippe, um deine Erfahrung kurz zu reflektieren."),
+    h("p", {style:{fontSize:".83rem", color:"var(--muted)", lineHeight:1.6, marginBottom:32}}, impuls.hint || ""),
     h("button", {class:"impulse-subtab-btn active", style:{width:"100%"}, onClick:()=>setStep(2)}, "Ich habe die Erfahrung gemacht"),
     showReflexionPopup && h(ImpulsReflexionPopup, {
       onJa: () => { setShowReflexionPopup(false); setStep(3); },
