@@ -1,4 +1,4 @@
-<!-- Version: 2026-07-02 13:34 coachee -->
+<!-- Version: 2026-07-02 14:13 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -2968,7 +2968,16 @@ function ImpulsPage({ user, setPage, setActiveImpuls, activeImpuls, pendingImpul
                 else if (s === "done") setStep(4);
                 else if (s === "skipped") setStep(6);
                 else setStep(5);
-              } else if (nextImpulseAt > Date.now()) {
+              } else if (nextImpulseAt > Date.now() && !pendingImpulsPopup) {
+                // Fix (02.07.2026, Kapitel 34, Fund "Admin löst Tages-Impuls per Phasenwechsel
+                // aus, Push kommt an, aber App zeigt 'Alles klar. Der nächste Impuls kommt.'
+                // statt des neuen Impulses"): nextImpulseAt ist eine reine Client-Pacing-Sperre
+                // für den REGULÄREN Zyklus (nach Abschluss 2-9 Tage in die Zukunft gesetzt,
+                // siehe calcNextImpulseAt/saveAndFinish) — kennt aber keinen Push-Kontext. Ein
+                // Admin-Phasenwechsel ist ein bewusstes Override und darf diese alte Sperre nicht
+                // respektieren, sonst verschluckt Step 5 den frischen Impuls lautlos, obwohl der
+                // Push korrekt zum Tages-Impuls-Tab geroutet hat. Gleiches Prinzip wie Pitfall 43
+                // (lokaler Dismiss-Flag) — der Push selbst ist das autoritative, aktuellere Signal.
                 setStep(5);
               }
             }).catch(() => {
