@@ -1,4 +1,4 @@
-<!-- Version: 2026-07-02 11:34 admin -->
+<!-- Version: 2026-07-02 13:34 admin -->
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -34,7 +34,23 @@
       const bust = 'rsw_reload=' + Date.now();
       const url = window.location.href.split('#')[0];
       const sep = url.includes('?') ? '&' : '?';
-      window.location.href = url + sep + bust + (window.location.hash || '');
+      let hash = window.location.hash || '';
+      // Fix (02.07.2026, Kapitel 33, identisch zu index.html): Trägt die URL keinen Hash
+      // (Normalfall bei bereits offenen Clients), ging bei jedem Reload-Pfad (Watchdog,
+      // Hintergrund>60s) ein zuvor erfolgreich angewendetes Push-Ziel verloren, sobald der
+      // pending-deeplink-Cache-Eintrag schon konsumiert war. routeHash() hinterlegt deshalb
+      // einen kurzlebigen (30s) Recovery-Eintrag in localStorage, einmalig gelesen+gelöscht.
+      if(!hash) {
+        try {
+          const raw = localStorage.getItem('rsw_admin_crash_recover_hash');
+          if(raw) {
+            localStorage.removeItem('rsw_admin_crash_recover_hash');
+            const r = JSON.parse(raw);
+            if(r && r.hash && (Date.now() - (r.ts || 0) < 30000)) hash = '#' + r.hash;
+          }
+        } catch(e) {}
+      }
+      window.location.href = url + sep + bust + hash;
     }
     document.addEventListener('visibilitychange', function() {
       if(document.visibilityState === 'visible') {
@@ -1305,7 +1321,7 @@ setTimeout(function() {
   div.innerHTML = '<div style="font-size:52px;margin-bottom:16px">⏳</div>'
     + '<div style="font-size:1.2rem;font-weight:700;color:#1C1914;margin-bottom:10px">Die Verbindung dauert länger als erwartet</div>'
     + '<div style="font-size:.85rem;color:#6B7280;line-height:1.6;max-width:300px;margin-bottom:24px">Das kann bei schwachem Empfang vorkommen. Bitte lade die App neu.</div>'
-    + '<button onclick="window.location.reload()" style="background:#156e6e;color:#fff;border:none;border-radius:10px;padding:11px 28px;font-size:.9rem;font-weight:600;cursor:pointer">App neu laden</button>'
+    + '<button onclick="hardReload()" style="background:#156e6e;color:#fff;border:none;border-radius:10px;padding:11px 28px;font-size:.9rem;font-weight:600;cursor:pointer">App neu laden</button>'
     + '<div style="margin-top:20px;font-size:.72rem;color:#9CA3AF">Bleibt das Problem? info@selbstwirksamkeit.ch</div>';
   root.appendChild(div);
 }, 6000);
@@ -1603,6 +1619,12 @@ function AdminApp({user}) {
   // Gemeinsame Routing-Logik, sowohl für den normalen Hash-Weg (hashchange/Erst-Laden)
   // als auch für den Kaltstart-Fallback über Cache Storage (applyPendingDeepLink unten).
   const routeHash = (hash) => {
+    // Fix (02.07.2026, Kapitel 33, identisch zu index.html): Kurzlebigen Crash-Recovery-
+    // Eintrag hinterlegen, sobald ein gültiges Push-Ziel geroutet wird — greift nur, wenn
+    // hardReload() später ohne eigenen Hash aufgerufen wird (siehe dortiger Kommentar).
+    if(hash && (hash.startsWith("chat-") || ADMIN_HASH_TO_PAGE[hash])) {
+      try { localStorage.setItem('rsw_admin_crash_recover_hash', JSON.stringify({ hash, ts: Date.now() })); } catch(e) {}
+    }
     if(hash.startsWith("chat-")) {
       setPage("chat");
       setPendingChatId(hash.slice(5));
@@ -1952,7 +1974,7 @@ function DashboardPage({coachees,library,doodles,setPage,user}) {
         <div>
           <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.3rem",fontWeight:700,color:"var(--text)"}}>${greeting}</div>
           <div style=${{fontSize:".88rem",color:"var(--muted)",marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"calc(100vw - 120px)"}}>Admin-Portal · Raum für Selbstwirksamkeit</div>
-          <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-07-02 09:07 · Doku v3.68 · 2026-07-02 09:07
+          <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-07-02 13:34 · Doku v3.69 · 2026-07-02 13:34
           </div>
         </div>
       </div>

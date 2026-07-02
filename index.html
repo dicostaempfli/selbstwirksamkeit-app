@@ -1,4 +1,4 @@
-<!-- Version: 2026-07-02 11:44 coachee -->
+<!-- Version: 2026-07-02 13:34 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -75,7 +75,28 @@
       const bust = 'rsw_reload=' + Date.now();
       const url = window.location.href.split('#')[0];
       const sep = url.includes('?') ? '&' : '?';
-      window.location.href = url + sep + bust + (window.location.hash || '');
+      let hash = window.location.hash || '';
+      // Fix (02.07.2026, Kapitel 33, Fund "Tagesimpuls-Push nach Phasenwechsel: Crash +
+      // Reload landet auf Home statt Tagesimpuls"): Trägt die URL selbst keinen Hash (Normalfall,
+      // da sw.js für bereits offene Clients nur noch in Cache Storage schreibt statt einen Hash zu
+      // setzen), ging bei JEDEM Reload-Pfad (Watchdog, Crash-Screen, Hintergrund>60s) ein zuvor
+      // erfolgreich angewendetes Push-Ziel verloren, sobald der pending-deeplink-Cache-Eintrag
+      // schon konsumiert war (er wird beim ersten Lesen sofort gelöscht — applyPendingDeepLink).
+      // routeHash() hinterlegt deshalb bei jedem erfolgreichen Routing zusätzlich einen sehr
+      // kurzlebigen (30s) Recovery-Eintrag in localStorage — einmalig gelesen und sofort gelöscht,
+      // damit spätere, unabhängige Reloads (z.B. normales Hintergrund/Vordergrund-Wechseln nach
+      // Minuten) nicht ungewollt auf ein längst überholtes Ziel zurückspringen.
+      if(!hash) {
+        try {
+          const raw = localStorage.getItem('rsw_crash_recover_hash');
+          if(raw) {
+            localStorage.removeItem('rsw_crash_recover_hash');
+            const r = JSON.parse(raw);
+            if(r && r.hash && (Date.now() - (r.ts || 0) < 30000)) hash = '#' + r.hash;
+          }
+        } catch(e) {}
+      }
+      window.location.href = url + sep + bust + hash;
     }
     document.addEventListener('visibilitychange', function() {
       if(document.visibilityState === 'visible') {
@@ -1226,7 +1247,7 @@ setTimeout(function() {
   div.innerHTML = '<div style="font-size:52px;margin-bottom:16px">⏳</div>'
     + '<div style="font-size:1.2rem;font-weight:700;color:#1C1914;margin-bottom:10px">Die Verbindung dauert länger als erwartet</div>'
     + '<div style="font-size:.85rem;color:#6B7280;line-height:1.6;max-width:300px;margin-bottom:24px">Das kann bei schwachem Empfang vorkommen. Bitte lade die App neu.</div>'
-    + '<button onclick="window.location.reload()" style="background:#156e6e;color:#fff;border:none;border-radius:10px;padding:11px 28px;font-size:.9rem;font-weight:600;cursor:pointer">App neu laden</button>'
+    + '<button onclick="hardReload()" style="background:#156e6e;color:#fff;border:none;border-radius:10px;padding:11px 28px;font-size:.9rem;font-weight:600;cursor:pointer">App neu laden</button>'
     + '<div style="margin-top:20px;font-size:.72rem;color:#9CA3AF">Bleibt das Problem? info@selbstwirksamkeit.ch</div>';
   app.appendChild(div);
 }, 6000);
@@ -1631,6 +1652,13 @@ function App({ user }) {
   // Gemeinsame Routing-Logik, sowohl für den normalen Hash-Weg (hashchange/Erst-Laden)
   // als auch für den Kaltstart-Fallback über Cache Storage (applyPendingDeepLink unten).
   const routeHash = (hash) => {
+    // Fix (02.07.2026, Kapitel 33): Kurzlebigen Crash-Recovery-Eintrag hinterlegen, sobald
+    // ein gültiges Push-Ziel geroutet wird — greift nur, wenn hardReload() später ohne
+    // eigenen Hash aufgerufen wird (siehe dortiger Kommentar). Deckt ALLE Push-Kategorien ab
+    // (Chat, Mediathek, Doodle, alle Impuls-Varianten), nicht nur Tages-Impuls.
+    if(hash && (hash.startsWith("impulse") || HASH_TO_PAGE[hash])) {
+      try { localStorage.setItem('rsw_crash_recover_hash', JSON.stringify({ hash, ts: Date.now() })); } catch(e) {}
+    }
     // Impulse-Seite hat zwei Subtabs (Meine Impulse / Tages-Impuls) — ohne diese
     // Unterscheidung landete ein Tages-Impuls-Push (Kategorie "impuls") auf demselben
     // #impulse-Hash wie ein Meine-Impulse-Reminder-Push, und damit fälschlich immer
@@ -4673,7 +4701,7 @@ window._showCrashScreen = function() {
   div.innerHTML = '<div style="font-size:52px;margin-bottom:16px">⚠️</div>'
     + '<div style="font-size:1.2rem;font-weight:700;color:#1C1914;margin-bottom:10px">Etwas ist schiefgelaufen</div>'
     + '<div style="font-size:.85rem;color:#6B7280;line-height:1.6;max-width:300px;margin-bottom:24px">Die App hat einen unerwarteten Fehler. Bitte lade sie neu — das löst meistens das Problem.</div>'
-    + '<button onclick="window.location.reload(true)" style="background:#156e6e;color:#fff;border:none;border-radius:10px;padding:11px 28px;font-size:.9rem;font-weight:600;cursor:pointer">App neu laden</button>'
+    + '<button onclick="hardReload()" style="background:#156e6e;color:#fff;border:none;border-radius:10px;padding:11px 28px;font-size:.9rem;font-weight:600;cursor:pointer">App neu laden</button>'
     + '<div style="margin-top:20px;font-size:.72rem;color:#9CA3AF">Bleibt das Problem? info@selbstwirksamkeit.ch</div>';
   app.appendChild(div);
 };
