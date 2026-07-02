@@ -1,4 +1,4 @@
-<!-- Version: 2026-07-02 09:07 admin -->
+<!-- Version: 2026-07-02 10:12 admin -->
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -1595,12 +1595,18 @@ function AdminApp({user}) {
     // das beim Boot ausgelesen und nachträglich angewendet, unabhängig davon, ob der Hash in
     // der URL selbst angekommen ist. Freshness-Check (60s) verhindert, dass ein längst
     // erledigter Deep-Link bei einem späteren, regulären App-Start irrtümlich erneut greift.
-    const applyPendingDeepLink = async () => {
+    const applyPendingDeepLink = async (attempt) => {
+      attempt = attempt || 0;
       if(!('caches' in window)) return;
       try {
         const cache = await caches.open('pending-deeplink');
         const resp = await cache.match('/pending');
-        if(!resp) return;
+        if(!resp) {
+          // Fix (02.07.2026, Kapitel 32, identisch zu index.html): kurzer Retry gegen
+          // das Timing-Fenster zwischen sw-admin.js' Cache-Write und client.focus().
+          if(attempt < 4) setTimeout(() => applyPendingDeepLink(attempt + 1), 150);
+          return;
+        }
         const data = await resp.json();
         await cache.delete('/pending');
         if(Date.now() - (data.ts || 0) > 60000) return;
