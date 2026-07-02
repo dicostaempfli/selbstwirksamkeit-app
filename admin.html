@@ -1,4 +1,4 @@
-<!-- Version: 2026-07-02 10:17 admin -->
+<!-- Version: 2026-07-02 10:31 admin -->
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -3408,9 +3408,9 @@ function ImpulsAktuellTab() {
       <div class="card" style=${{marginBottom:24}}>
         <div class="card-title" style=${{marginBottom:16}}>Aktueller Impuls</div>
         <label style=${{fontSize:".78rem",fontWeight:700,textTransform:"uppercase",letterSpacing:".06em",color:"var(--muted)",display:"block",marginBottom:6}}>Impuls-Text</label>
-        <textarea class="form-input" rows="3" placeholder="z.B. Bitte heute jemanden bewusst um etwas — ohne dich dabei zu entschuldigen." value=${impulsText} onInput=${e=>setImpulsText(e.target.value)} style=${{width:"100%",resize:"vertical",marginBottom:16,boxSizing:"border-box"}}></textarea>
+        <textarea class="textarea" rows="3" placeholder="z.B. Bitte heute jemanden bewusst um etwas — ohne dich dabei zu entschuldigen." value=${impulsText} onInput=${e=>setImpulsText(e.target.value)} style=${{width:"100%",resize:"vertical",marginBottom:16,boxSizing:"border-box"}}></textarea>
         <label style=${{fontSize:".78rem",fontWeight:700,textTransform:"uppercase",letterSpacing:".06em",color:"var(--muted)",display:"block",marginBottom:6}}>Hinweis (optional)</label>
-        <textarea class="form-input" rows="2" placeholder="z.B. Nicht gross. Nicht mutig. Einfach einmal fragen — und beobachten, was passiert." value=${impulsHint} onInput=${e=>setImpulsHint(e.target.value)} style=${{width:"100%",resize:"vertical",marginBottom:20,boxSizing:"border-box"}}></textarea>
+        <textarea class="textarea" rows="2" placeholder="z.B. Nicht gross. Nicht mutig. Einfach einmal fragen — und beobachten, was passiert." value=${impulsHint} onInput=${e=>setImpulsHint(e.target.value)} style=${{width:"100%",resize:"vertical",marginBottom:20,boxSizing:"border-box"}}></textarea>
         <button class="btn btn-primary" onClick=${handleSave} disabled=${saving || !impulsText.trim()} style=${{minWidth:160}}>
           ${saving ? "Speichern…" : saved ? "✓ Gespeichert" : "Impuls veröffentlichen"}
         </button>
