@@ -1,4 +1,4 @@
-<!-- Version: 2026-07-02 11:34 coachee -->
+<!-- Version: 2026-07-02 11:44 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -2945,23 +2945,34 @@ function ImpulsPage({ user, setPage, setActiveImpuls, activeImpuls, pendingImpul
               }
             }).catch(() => {
               // Fix (02.07.2026, Fund "Aktiver Impuls zeigt Accept/Decline statt
-              // 'Ich habe die Erfahrung gemacht'"): Diese Query kombiniert
-              // where(uid)+orderBy(createdAt) auf unterschiedlichen Feldern — das
-              // braucht praktisch immer einen Firestore-Composite-Index (anders als
-              // reine Gleichheitsfilter-Kombinationen, siehe Kapitel 30.9). Fehlt der
-              // Index, schlägt die Query fehl; bisher landete step dann beim
-              // useState(0)-Startwert, obwohl längst ein aktiver Eintrag existierte —
-              // die Home-Karte zeigte "Aktiver Impuls" korrekt an (eigener Listener,
-              // Kapitel 32), diese Seite aber nicht. activeImpuls (dieselbe Quelle wie
-              // die Home-Karte) jetzt als robuster Fallback: unabhängig vom Ausgang
-              // dieser Query liefert er den korrekten Step, sobald ein aktiver
-              // Eintrag für heute bekannt ist.
-              if (activeImpuls && activeImpuls.status === "active") {
-                setImpuls({ id: activeImpuls.impulsId, text: activeImpuls.impulsText, hint: "" });
-                setStep(1);
-              } else {
-                setImpuls(impulse[0] || null);
-              }
+              // 'Ich habe die Erfahrung gemacht'" + Folgefund "nach 'Nein, heute nicht'
+              // bei der Reflexion zeigt Tages-Impuls-Tab wieder Accept/Decline"): Diese
+              // Query kombiniert where(uid)+orderBy(createdAt) auf unterschiedlichen
+              // Feldern — das braucht praktisch immer einen Firestore-Composite-Index
+              // (anders als reine Gleichheitsfilter-Kombinationen, siehe Kapitel 30.9).
+              // Fehlt der Index, schlägt die Query fehl. Der erste Fallback-Versuch
+              // deckte nur den Status "active" über die activeImpuls-Prop ab — bei allen
+              // anderen Status (done, skipped, closed_no_reflexion) blieb step beim
+              // Default (0) hängen, die Prop kennt nämlich ausschliesslich "active"
+              // (eigener Listener der Home-Karte, filtert selbst auf status=="active").
+              // Jetzt eine eigene, robuste Ersatz-Query: reine Gleichheitsfilter
+              // (uid+date, kein orderBy) — braucht keinen Composite-Index, deckt alle
+              // Status ab, unabhängig vom Ausgang der eigentlichen Query oben.
+              fbDb.collection("impulse_entries").where("uid","==",user.uid).where("date","==",todayStr).limit(1).get()
+                .then(snap2 => {
+                  if (!snap2.empty) {
+                    const doc2 = snap2.docs[0];
+                    const s2 = doc2.data().status;
+                    if (s2 === "active") { setStep(1); setActiveEntryRef(doc2.ref); }
+                    else if (s2 === "done") setStep(4);
+                    else if (s2 === "skipped") setStep(6);
+                    else setStep(5);
+                    setImpuls({ id: doc2.data().impulsId, text: doc2.data().impulsText, hint: "" });
+                  } else {
+                    setImpuls(impulse[0] || null);
+                  }
+                })
+                .catch(() => setImpuls(impulse[0] || null));
             });
         };
         if (doc.exists) getData(doc.data());
