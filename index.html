@@ -1,4 +1,4 @@
-<!-- Version: 2026-07-02 10:12 coachee -->
+<!-- Version: 2026-07-02 10:22 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -3033,7 +3033,11 @@ function ImpulsPage({ user, setPage, setActiveImpuls, activeImpuls, pendingImpul
         .then(snap => { if (!snap.empty) snap.docs[0].ref.update({ status:"closed_no_reflexion", closedAt: Date.now() }); })
         .catch(() => {});
     }
-    setStep(5);
+    // Fix (02.07.2026, Fund per Screenshot): "Nein, heute nicht" führte bisher auf Step 5
+    // ("Alles klar. Der nächste Impuls kommt.") — eine Zwischenseite ohne jede Aktion, auf
+    // der man hängen blieb, ohne dass sie automatisch weiterleitet. Direkter Sprung zu
+    // Home statt toter Zwischenseite.
+    if (setPage) setPage("dashboard"); else setStep(5);
   };
 
   const calcNextImpulseAt = (packageType) => {
