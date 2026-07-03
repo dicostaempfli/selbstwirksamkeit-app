@@ -1,4 +1,4 @@
-<!-- Version: 2026-07-02 14:35 coachee -->
+<!-- Version: 2026-07-03 10:04 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -3852,6 +3852,7 @@ function RemindersPage({reminders,setReminders,pendingReminderId,setPendingRemin
         <div class="overlay" onClick=${e=>{if(e.target===e.currentTarget)setShowModal(false);}}>
           <div class="modal" onClick=${e=>e.stopPropagation()}>
             <div style=${{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4}}><h2 class="modal-title" style=${{marginBottom:0}}>${editId?"Impuls bearbeiten":"Neuer Impuls"}</h2><button style=${{background:"none",border:"none",cursor:"pointer",color:"var(--muted)",padding:4,borderRadius:8,display:"flex"}} onClick=${()=>setShowModal(false)}><${Ic} name="x" size=${20}/></button></div>
+            ${!editId&&html`<p style=${{fontSize:".78rem",color:"var(--muted)",lineHeight:1.5,padding:"9px 12px",background:"var(--sage-pale)",borderRadius:10,borderLeft:"3px solid var(--sage)",marginBottom:14}}>Dieser Impuls wird ab morgen aktiv.</p>`}
             <div class="form-row"><label class="label">Symbole</label>
               <p style=${{fontSize:".76rem",color:"var(--muted)",marginBottom:8,marginTop:2}}>Wähle hier dein stimmiges Symbol aus</p>
               <${SymbolButton} sacredSymbol=${form.sacredSymbol} onClick=${()=>setShowSymbolPicker(true)}/>
