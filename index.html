@@ -1,4 +1,4 @@
-<!-- Version: 2026-07-03 10:04 coachee -->
+<!-- Version: 2026-07-03 15:49 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -1711,7 +1711,14 @@ function App({ user }) {
           // Deep-Link ging dadurch verloren, die App blieb auf der zuletzt sichtbaren
           // Seite (meist Home) stehen. Kurzer, mehrfacher Retry schliesst dieses enge
           // Zeitfenster, ohne bei echten "kein Deep-Link"-Fällen spürbar zu verzögern.
-          if(attempt < 4) setTimeout(() => applyPendingDeepLink(attempt + 1), 150);
+          // Erweiterung (03.07.2026, Fund "Meine-Impulse-Push landet auf Home"): Bei
+          // Hintergrundzeit >60s löst der visibilitychange-Handler zusätzlich hardReload()
+          // aus (volle Seiten-Navigation), NACHDEM client.focus() bereits das
+          // visibilitychange-Event ausgelöst hat — dieser Reload kann dem parallelen
+          // cacheWrite in sw.js zuvorkommen, das alte 600ms-Fenster (4×150ms) reichte in
+          // diesem Fall oft nicht. Grosszügiger auf ca. 2s (10×200ms) erweitert, damit auch
+          // dieser Reload-Pfad den Cache-Eintrag zuverlässig noch vorfindet.
+          if(attempt < 10) setTimeout(() => applyPendingDeepLink(attempt + 1), 200);
           return;
         }
         const data = await resp.json();
