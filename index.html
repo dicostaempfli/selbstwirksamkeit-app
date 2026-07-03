@@ -1,4 +1,4 @@
-<!-- Version: 2026-07-03 15:49 coachee -->
+<!-- Version: 2026-07-03 16:09 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -82,17 +82,28 @@
       // setzen), ging bei JEDEM Reload-Pfad (Watchdog, Crash-Screen, Hintergrund>60s) ein zuvor
       // erfolgreich angewendetes Push-Ziel verloren, sobald der pending-deeplink-Cache-Eintrag
       // schon konsumiert war (er wird beim ersten Lesen sofort gelöscht — applyPendingDeepLink).
-      // routeHash() hinterlegt deshalb bei jedem erfolgreichen Routing zusätzlich einen sehr
-      // kurzlebigen (30s) Recovery-Eintrag in localStorage — einmalig gelesen und sofort gelöscht,
+      // routeHash() hinterlegt deshalb bei jedem erfolgreichen Routing zusätzlich einen
+      // kurzlebigen Recovery-Eintrag in localStorage — einmalig gelesen und sofort gelöscht,
       // damit spätere, unabhängige Reloads (z.B. normales Hintergrund/Vordergrund-Wechseln nach
       // Minuten) nicht ungewollt auf ein längst überholtes Ziel zurückspringen.
+      // Fix (03.07.2026, Fund "Reload nach Absturz landet trotz Kapitel-33-Fix auf Home, nur auf
+      // Mobile"): 30s waren zu knapp — die eigentliche Absturzursache (weiterhin ungeklärt, siehe
+      // Kapitel 33.3) tritt auf Mobile oft erst auf, nachdem der Coachee eine Weile auf der
+      // Push-Zielseite gelesen/interagiert hat bzw. iOS den Tab zwischenzeitlich eingefroren und
+      // wieder aufgeweckt hat — beides regelmässig länger als 30s. Auf 2 Minuten erweitert: deckt
+      // realistische Verzögerungen ab, bleibt aber deutlich unter dem 24h-Fenster des
+      // Cache-Storage-Fallbacks. Restrisiko bewusst in Kauf genommen (siehe Pflichtregel-Kommentar
+      // unten): Da der Eintrag beim ersten Lesen sofort gelöscht wird, träfe ein wirklich
+      // unabhängiger, späterer Reload ohnehin auf einen bereits leeren Eintrag — einzige Ausnahme
+      // ist ein manueller Reload durch den Coachee innerhalb dieser 2 Minuten NACH manueller
+      // Weiternavigation, ein seltener Rand-Fall.
       if(!hash) {
         try {
           const raw = localStorage.getItem('rsw_crash_recover_hash');
           if(raw) {
             localStorage.removeItem('rsw_crash_recover_hash');
             const r = JSON.parse(raw);
-            if(r && r.hash && (Date.now() - (r.ts || 0) < 30000)) hash = '#' + r.hash;
+            if(r && r.hash && (Date.now() - (r.ts || 0) < 120000)) hash = '#' + r.hash;
           }
         } catch(e) {}
       }
