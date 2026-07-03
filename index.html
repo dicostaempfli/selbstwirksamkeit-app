@@ -1,4 +1,4 @@
-<!-- Version: 2026-07-03 16:09 coachee -->
+<!-- Version: 2026-07-03 16:32 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -82,43 +82,70 @@
       // setzen), ging bei JEDEM Reload-Pfad (Watchdog, Crash-Screen, Hintergrund>60s) ein zuvor
       // erfolgreich angewendetes Push-Ziel verloren, sobald der pending-deeplink-Cache-Eintrag
       // schon konsumiert war (er wird beim ersten Lesen sofort gelöscht — applyPendingDeepLink).
-      // routeHash() hinterlegt deshalb bei jedem erfolgreichen Routing zusätzlich einen
-      // kurzlebigen Recovery-Eintrag in localStorage — einmalig gelesen und sofort gelöscht,
+      // routeHash() hinterlegt deshalb bei jedem erfolgreichen Routing zusätzlich einen sehr
+      // kurzlebigen (30s) Recovery-Eintrag in localStorage — einmalig gelesen und sofort gelöscht,
       // damit spätere, unabhängige Reloads (z.B. normales Hintergrund/Vordergrund-Wechseln nach
       // Minuten) nicht ungewollt auf ein längst überholtes Ziel zurückspringen.
-      // Fix (03.07.2026, Fund "Reload nach Absturz landet trotz Kapitel-33-Fix auf Home, nur auf
-      // Mobile"): 30s waren zu knapp — die eigentliche Absturzursache (weiterhin ungeklärt, siehe
-      // Kapitel 33.3) tritt auf Mobile oft erst auf, nachdem der Coachee eine Weile auf der
-      // Push-Zielseite gelesen/interagiert hat bzw. iOS den Tab zwischenzeitlich eingefroren und
-      // wieder aufgeweckt hat — beides regelmässig länger als 30s. Auf 2 Minuten erweitert: deckt
-      // realistische Verzögerungen ab, bleibt aber deutlich unter dem 24h-Fenster des
-      // Cache-Storage-Fallbacks. Restrisiko bewusst in Kauf genommen (siehe Pflichtregel-Kommentar
-      // unten): Da der Eintrag beim ersten Lesen sofort gelöscht wird, träfe ein wirklich
-      // unabhängiger, späterer Reload ohnehin auf einen bereits leeren Eintrag — einzige Ausnahme
-      // ist ein manueller Reload durch den Coachee innerhalb dieser 2 Minuten NACH manueller
-      // Weiternavigation, ein seltener Rand-Fall.
       if(!hash) {
         try {
           const raw = localStorage.getItem('rsw_crash_recover_hash');
           if(raw) {
             localStorage.removeItem('rsw_crash_recover_hash');
             const r = JSON.parse(raw);
-            if(r && r.hash && (Date.now() - (r.ts || 0) < 120000)) hash = '#' + r.hash;
+            if(r && r.hash && (Date.now() - (r.ts || 0) < 30000)) hash = '#' + r.hash;
           }
         } catch(e) {}
       }
       window.location.href = url + sep + bust + hash;
     }
+    // Fix (03.07.2026, Fund "Watchdog-Timeout/Home-Landing bei Phasenwechsel-Push auf
+    // schwachem Netz"): Der harte Reload-Pfad braucht jetzt den ServiceWorker-Ready-Race
+    // als eigene, benannte Funktion, da er ab sofort NICHT mehr der einzige Ausgang aus
+    // dem >60s-Zweig ist (siehe visibilitychange-Handler unten).
+    function doHardReload() {
+      if('serviceWorker' in navigator) {
+        const timeout = new Promise(res => setTimeout(res, 800));
+        Promise.race([navigator.serviceWorker.ready, timeout]).then(hardReload).catch(hardReload);
+      } else {
+        hardReload();
+      }
+    }
     document.addEventListener('visibilitychange', function() {
       if(document.visibilityState === 'visible') {
         const now = Date.now();
         const last = parseInt(sessionStorage.getItem('lastVisible') || now);
-        if(now - last > 1 * 60 * 1000) {
-          if('serviceWorker' in navigator) {
-            const timeout = new Promise(res => setTimeout(res, 800));
-            Promise.race([navigator.serviceWorker.ready, timeout]).then(hardReload).catch(hardReload);
+        const longBackground = now - last > 1 * 60 * 1000;
+        sessionStorage.setItem('lastVisible', now);
+        if(longBackground) {
+          // Fix (03.07.2026, Fund "Watchdog-Timeout-Screen bei Phasenwechsel-Push auf
+          // schwachem Netz, plus vermuteter Zusammenhang mit dem seit Kapitel 33
+          // ungeklärten 'Etwas ist schiefgelaufen'-Absturz"): Bisher löste JEDES
+          // Zurückkehren aus >60s Hintergrund ausnahmslos einen vollen Netzwerk-Reload
+          // aus (index.html + alle ESM-CDN-Module neu laden) — unabhängig davon, ob
+          // gerade ein Push-Tap per focus() den Fokus ausgelöst hat. Bei schwachem
+          // Empfang kann dieser Reload den 6s-Watchdog reissen, obwohl der eigentliche
+          // Zweck (Deep-Link anzeigen) auch ohne Reload funktioniert hätte. Vor dem
+          // Reload-Entscheid deshalb kurz prüfen, ob ein FRISCHER (<10s alter)
+          // pending-deeplink-Cache-Eintrag vorliegt — zuverlässiges Zeichen, dass genau
+          // JETZT ein Push-Tap den Fokus ausgelöst hat. Falls ja: kein harter Reload,
+          // stattdessen der schon bestehende, leichte Deep-Link-Pfad (wie beim <60s-Fall
+          // unten) — der reguläre Versions-Check erfolgt weiterhin beim nächsten
+          // normalen, nicht Push-getriebenen Rückkehren aus dem Hintergrund. Reiner
+          // Read-Zugriff auf den Cache hier (kein delete) — applyPendingDeepLink() selbst
+          // liest/löscht den Eintrag danach wie gewohnt, kein Konflikt durch Doppellesen.
+          if('caches' in window) {
+            caches.open('pending-deeplink').then(c => c.match('/pending')).then(resp => {
+              if(!resp) { doHardReload(); return; }
+              resp.json().then(data => {
+                if(Date.now() - (data.ts || 0) < 10000 && window.__swApplyPendingDeepLink) {
+                  window.__swApplyPendingDeepLink();
+                } else {
+                  doHardReload();
+                }
+              }).catch(doHardReload);
+            }).catch(doHardReload);
           } else {
-            hardReload();
+            doHardReload();
           }
         } else if(window.__swApplyPendingDeepLink) {
           // Fix 02.07.2026 (Kapitel 32): kein Reload nötig (App war <60s im Hintergrund) —
@@ -128,7 +155,6 @@
           // oder ein automatisches hashchange zu warten.
           window.__swApplyPendingDeepLink();
         }
-        sessionStorage.setItem('lastVisible', now);
       } else {
         sessionStorage.setItem('lastVisible', Date.now());
       }
