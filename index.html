@@ -1,4 +1,4 @@
-<!-- Version: 2026-07-03 16:32 coachee -->
+<!-- Version: 2026-07-03 16:41 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -1287,7 +1287,13 @@ setTimeout(function() {
     + '<button onclick="hardReload()" style="background:#156e6e;color:#fff;border:none;border-radius:10px;padding:11px 28px;font-size:.9rem;font-weight:600;cursor:pointer">App neu laden</button>'
     + '<div style="margin-top:20px;font-size:.72rem;color:#9CA3AF">Bleibt das Problem? info@selbstwirksamkeit.ch</div>';
   app.appendChild(div);
-}, 6000);
+}, 10000);
+// Fix (03.07.2026, Fund "Watchdog-Timeout bei schwachem Empfang wiederholt sich auch nach
+// manuellem Neuladen"): 6s (seit Kapitel 32.8) erwies sich unter echtem schwachem Mobilfunk
+// als zu knapp — insbesondere beim ALLERERSTEN Laden auf einem Gerät, wo der neue esm-cdn-
+// Cache (siehe sw.js) noch leer ist und die volle Netzwerkzeit für alle drei CDN-Module
+// anfällt. Auf 10s grosszügiger gesetzt; ab dem zweiten Laden sorgt der SW-Cache ohnehin für
+// spürbar schnellere Ladezeiten, wodurch der Watchdog in der Praxis kaum noch greifen sollte.
 </script>
 
 <script type="module">

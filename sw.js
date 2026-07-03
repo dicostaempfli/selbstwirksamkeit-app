@@ -1,7 +1,7 @@
 // Service Worker — Raum für Selbstwirksamkeit
-// Version: 2026-07-02 09:07
+// Version: 2026-07-03 16:41
 
-const VERSION = '2026-07-02-0907';
+const VERSION = '2026-07-03-1641';
 
 // Bei Install: sofort aktivieren ohne auf alten SW zu warten
 self.addEventListener('install', e => {
@@ -27,6 +27,33 @@ self.addEventListener('fetch', e => {
   if(isHTML) {
     e.respondWith(
       fetch(e.request, { cache: 'no-store' }).catch(() => caches.match(e.request))
+    );
+    return;
+  }
+  // Fix (03.07.2026, Fund "Watchdog-Timeout bei schwachem Empfang, auch nach manuellem
+  // Neuladen"): index.html selbst bleibt bewusst Network-first (siehe oben), aber die drei
+  // ESM-CDN-Module (Preact, Preact-Hooks, htm von esm.sh) wurden bisher bei JEDEM Laden
+  // komplett neu übers Netz geholt — ohne jeden Cache-Fallback. Bei schwachem Mobilfunk
+  // (Kapitel 33/dieser Fund) kann allein das den 6s-Watchdog reissen, und ein manueller
+  // Reload wiederholt exakt denselben teuren Vorgang, statt schneller zu werden. Stale-
+  // While-Revalidate für esm.sh: sofort aus dem Cache servieren, falls vorhanden (schnell,
+  // funktioniert auch bei sehr schwachem/kurz unterbrochenem Netz), im Hintergrund parallel
+  // eine frische Version nachladen und für das nächste Mal cachen. Kein Sicherheitsrisiko,
+  // da die importierten Pakete (Preact/htm) keine sicherheitsrelevante Nutzerlogik enthalten
+  // und über Major-Version gepinnt sind (`@10`, `@3`) — bewusst kein Hard-Pin auf exakte
+  // Patch-Version, damit Bugfixes von esm.sh weiterhin ankommen, nur eben nicht bei jedem
+  // einzelnen Laden erneut vom Netz geholt werden müssen.
+  const isEsmCdn = url.startsWith('https://esm.sh/');
+  if(isEsmCdn) {
+    e.respondWith(
+      caches.open('esm-cdn-v1').then(async cache => {
+        const cached = await cache.match(e.request);
+        const networkFetch = fetch(e.request).then(resp => {
+          if(resp && resp.ok) cache.put(e.request, resp.clone());
+          return resp;
+        }).catch(() => cached);
+        return cached || networkFetch;
+      })
     );
     return;
   }
