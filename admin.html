@@ -1,4 +1,4 @@
-<!-- Version: 2026-07-02 15:03 admin -->
+<!-- Version: 2026-07-05 18:32 admin -->
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -1292,9 +1292,22 @@ window.addEventListener('orientationchange', ()=>setTimeout(setVH,150));
   }
 
 </style>
-<link rel="modulepreload" href="https://esm.sh/preact@10">
-<link rel="modulepreload" href="https://esm.sh/preact@10/hooks">
-<link rel="modulepreload" href="https://esm.sh/htm@3/preact">
+<!-- Fix (05.07.2026, Fund "Admin-App startet nach vollständigem Schliessen nicht mehr —
+Watchdog-Timeout-Screen"): identischer Root-Cause wie in index.html (siehe dortiger Kommentar)
+— Preact/htm liefen bisher live über esm.sh, admin.html hat (bewusst, Kapitel 28.2) zudem
+KEINEN Service-Worker-Cache dafür, war also noch stärker von der CDN-Erreichbarkeit abhängig.
+Root-Fix: lokal aus lib/ statt von esm.sh, aufgelöst per nativer Import-Map. -->
+<script type="importmap">
+{ "imports": {
+    "preact": "./lib/preact.module.js",
+    "preact/hooks": "./lib/preact-hooks.module.js",
+    "htm": "./lib/htm.module.js",
+    "htm/preact": "./lib/htm-preact.module.js"
+} }
+</script>
+<link rel="modulepreload" href="./lib/preact.module.js">
+<link rel="modulepreload" href="./lib/preact-hooks.module.js">
+<link rel="modulepreload" href="./lib/htm-preact.module.js">
 </head>
 <body>
 <div id="root"><div style="display:flex;align-items:center;justify-content:center;min-height:100vh;background:#f9f7f3"><div style="width:34px;height:34px;border:3px solid #e3dfda;border-top-color:#156e6e;border-radius:50%;animation:rswspin .8s linear infinite"></div></div></div>
@@ -1331,9 +1344,9 @@ setTimeout(function() {
 
 
 
-import { h, render, Fragment } from 'https://esm.sh/preact@10';
-import { useState, useRef, useEffect } from 'https://esm.sh/preact@10/hooks';
-import { html } from 'https://esm.sh/htm@3/preact';
+import { h, render, Fragment } from 'preact';
+import { useState, useRef, useEffect } from 'preact/hooks';
+import { html } from 'htm/preact';
 
 // ── HELPERS ──
 const nowTime = () => new Date().toLocaleTimeString('de-CH',{hour:'2-digit',minute:'2-digit'});
@@ -1974,7 +1987,7 @@ function DashboardPage({coachees,library,doodles,setPage,user}) {
         <div>
           <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.3rem",fontWeight:700,color:"var(--text)"}}>${greeting}</div>
           <div style=${{fontSize:".88rem",color:"var(--muted)",marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"calc(100vw - 120px)"}}>Admin-Portal · Raum für Selbstwirksamkeit</div>
-          <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-07-02 15:03 · Doku v3.69 · 2026-07-02 13:34
+          <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-07-05 18:32 · Doku v3.69 · 2026-07-02 13:34
           </div>
         </div>
       </div>

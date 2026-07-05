@@ -1,7 +1,7 @@
 // Service Worker — Raum für Selbstwirksamkeit
-// Version: 2026-07-03 16:41
+// Version: 2026-07-05 18:32
 
-const VERSION = '2026-07-03-1641';
+const VERSION = '2026-07-05-1832';
 
 // Bei Install: sofort aktivieren ohne auf alten SW zu warten
 self.addEventListener('install', e => {
@@ -10,7 +10,15 @@ self.addEventListener('install', e => {
 
 // Bei Activate: alle Clients übernehmen
 self.addEventListener('activate', e => {
-  e.waitUntil(clients.claim());
+  // Fix (05.07.2026): alten esm-cdn-v1-Cache entfernen — obsolet seit dem Umstieg auf lokal
+  // gehostetes Preact/htm (lib-v1 ersetzt ihn), sonst bleibt er als toter Ballast im
+  // Cache Storage des Geräts liegen.
+  e.waitUntil(
+    Promise.all([
+      caches.delete('esm-cdn-v1'),
+      clients.claim()
+    ])
+  );
 });
 
 // SKIP_WAITING Message von index.html empfangen
@@ -30,23 +38,20 @@ self.addEventListener('fetch', e => {
     );
     return;
   }
-  // Fix (03.07.2026, Fund "Watchdog-Timeout bei schwachem Empfang, auch nach manuellem
-  // Neuladen"): index.html selbst bleibt bewusst Network-first (siehe oben), aber die drei
-  // ESM-CDN-Module (Preact, Preact-Hooks, htm von esm.sh) wurden bisher bei JEDEM Laden
-  // komplett neu übers Netz geholt — ohne jeden Cache-Fallback. Bei schwachem Mobilfunk
-  // (Kapitel 33/dieser Fund) kann allein das den 6s-Watchdog reissen, und ein manueller
-  // Reload wiederholt exakt denselben teuren Vorgang, statt schneller zu werden. Stale-
-  // While-Revalidate für esm.sh: sofort aus dem Cache servieren, falls vorhanden (schnell,
-  // funktioniert auch bei sehr schwachem/kurz unterbrochenem Netz), im Hintergrund parallel
-  // eine frische Version nachladen und für das nächste Mal cachen. Kein Sicherheitsrisiko,
-  // da die importierten Pakete (Preact/htm) keine sicherheitsrelevante Nutzerlogik enthalten
-  // und über Major-Version gepinnt sind (`@10`, `@3`) — bewusst kein Hard-Pin auf exakte
-  // Patch-Version, damit Bugfixes von esm.sh weiterhin ankommen, nur eben nicht bei jedem
-  // einzelnen Laden erneut vom Netz geholt werden müssen.
-  const isEsmCdn = url.startsWith('https://esm.sh/');
-  if(isEsmCdn) {
+  // Fix (05.07.2026, Fund "App startet nach vollständigem Schliessen nicht mehr — Watchdog-
+  // Timeout-Screen"): Der bisherige esm.sh-Sonderfall (Stale-While-Revalidate für die drei
+  // live von der externen CDN geladenen Module) ist obsolet — Preact/Preact-Hooks/htm liegen
+  // seit diesem Fix lokal im Repo unter lib/ (siehe index.html/admin.html, Import-Map), keine
+  // Laufzeit-Abhängigkeit von esm.sh mehr. Gleiche Cache-Strategie (sofort aus Cache servieren
+  // falls vorhanden, im Hintergrund parallel auffrischen) jetzt für die eigenen lib/-Dateien:
+  // schützt weiterhin gegen langsame/kurz unterbrochene Verbindungen beim Kaltstart, aber ohne
+  // Abhängigkeit von einem fremden Anbieter — Best-Case (warmer Cache) genauso schnell wie
+  // vorher, Worst-Case (kalter Cache, z.B. allererstes Laden) jetzt nur noch von der eigenen
+  // GitHub-Pages-Antwortzeit abhängig statt zusätzlich von esm.sh.
+  const isLocalLib = url.includes('/lib/') && url.endsWith('.js');
+  if(isLocalLib) {
     e.respondWith(
-      caches.open('esm-cdn-v1').then(async cache => {
+      caches.open('lib-v1').then(async cache => {
         const cached = await cache.match(e.request);
         const networkFetch = fetch(e.request).then(resp => {
           if(resp && resp.ok) cache.put(e.request, resp.clone());

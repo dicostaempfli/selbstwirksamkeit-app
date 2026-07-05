@@ -1,4 +1,4 @@
-<!-- Version: 2026-07-03 16:41 coachee -->
+<!-- Version: 2026-07-05 18:32 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -1252,9 +1252,28 @@
   @keyframes bh-done-glow{0%,100%{box-shadow:0 0 30px rgba(21,110,110,.15)}50%{box-shadow:0 0 60px rgba(21,110,110,.38)}}
 
   </style>
-  <link rel="modulepreload" href="https://esm.sh/preact@10">
-  <link rel="modulepreload" href="https://esm.sh/preact@10/hooks">
-  <link rel="modulepreload" href="https://esm.sh/htm@3/preact">
+  <!-- Fix (05.07.2026, Fund "App startet nach vollständigem Schliessen nicht mehr — Watchdog-
+  Timeout-Screen"): Preact/htm liefen bisher bei JEDEM Kaltstart live über esm.sh (externe CDN).
+  Hängt oder antwortet die CDN nicht rechtzeitig, wird window.onerror nie registriert (die
+  import-Statements blockieren den gesamten restlichen Modul-Code, bis sie aufgelöst sind) —
+  der Screen erscheint dann selbst bei intaktem eigenen Code, rein durch die externe
+  Abhängigkeit. Root-Fix: Preact/htm liegen jetzt lokal im Repo (lib/), keine Laufzeit-
+  Abhängigkeit von esm.sh mehr. Import-Map löst die bare specifier "preact"/"preact/hooks"/
+  "htm/preact" unten im type=module-Script auf lokale Dateien auf (native Browser-Funktion,
+  kein Build-Step nötig — unterstützt seit Safari 16.4 / allen aktuellen Chrome-Versionen,
+  deckt beide Zielplattformen aus PLATTFORM-PRIORITÄT ab). Import-Map MUSS vor dem ersten
+  type=module-Script stehen. -->
+  <script type="importmap">
+  { "imports": {
+      "preact": "./lib/preact.module.js",
+      "preact/hooks": "./lib/preact-hooks.module.js",
+      "htm": "./lib/htm.module.js",
+      "htm/preact": "./lib/htm-preact.module.js"
+  } }
+  </script>
+  <link rel="modulepreload" href="./lib/preact.module.js">
+  <link rel="modulepreload" href="./lib/preact-hooks.module.js">
+  <link rel="modulepreload" href="./lib/htm-preact.module.js">
 </head>
 <body>
 
@@ -1307,9 +1326,9 @@ window.onerror = (msg, src, line, col, err) => {
 window.addEventListener('unhandledrejection', e => {
   if(window._showCrashScreen) window._showCrashScreen();
 });
-import { h, render, Fragment } from 'https://esm.sh/preact@10';
-import { useState, useRef, useEffect } from 'https://esm.sh/preact@10/hooks';
-import { html } from 'https://esm.sh/htm@3/preact';
+import { h, render, Fragment } from 'preact';
+import { useState, useRef, useEffect } from 'preact/hooks';
+import { html } from 'htm/preact';
 
 // ── FIREBASE via window (loaded by compat scripts in <head>) ──
 const FA = window._fb || {};
