@@ -1,7 +1,7 @@
 // Service Worker — Raum für Selbstwirksamkeit
-// Version: 2026-07-05 18:32
+// Version: 2026-07-05 20:18
 
-const VERSION = '2026-07-05-1832';
+const VERSION = '2026-07-05-2018';
 
 // Bei Install: sofort aktivieren ohne auf alten SW zu warten
 self.addEventListener('install', e => {
@@ -52,6 +52,29 @@ self.addEventListener('fetch', e => {
   if(isLocalLib) {
     e.respondWith(
       caches.open('lib-v1').then(async cache => {
+        const cached = await cache.match(e.request);
+        const networkFetch = fetch(e.request).then(resp => {
+          if(resp && resp.ok) cache.put(e.request, resp.clone());
+          return resp;
+        }).catch(() => cached);
+        return cached || networkFetch;
+      })
+    );
+    return;
+  }
+  // Fix (05.07.2026, Fund "App startet nach vollständigem Schliessen weiterhin nicht — trotz
+  // esm.sh-Fix identisches Verhalten"): Der esm.sh-Fix allein hat das Problem nicht gelöst.
+  // Zweite, bisher übersehene externe Laufzeit-Abhängigkeit gefunden: die vier Firebase-
+  // Compat-Skripte (app/auth/firestore/storage) werden bei JEDEM Kaltstart blockierend von
+  // www.gstatic.com geladen — ohne jeden Cache-Fallback, exakt dasselbe Fragilitäts-Muster
+  // wie zuvor bei esm.sh. Gleiche Stale-While-Revalidate-Strategie jetzt auch hier: sofort aus
+  // Cache servieren falls vorhanden, im Hintergrund auffrischen. Self-Hosting (wie bei Preact/
+  // htm) ist hier bewusst NICHT gewählt — Firebase empfiehlt offiziell den CDN-Bezug wegen
+  // automatischer Sicherheits-Patches; Caching statt Vendoring ist der richtige Mittelweg.
+  const isFirebaseCdn = url.startsWith('https://www.gstatic.com/firebasejs/');
+  if(isFirebaseCdn) {
+    e.respondWith(
+      caches.open('firebase-cdn-v1').then(async cache => {
         const cached = await cache.match(e.request);
         const networkFetch = fetch(e.request).then(resp => {
           if(resp && resp.ok) cache.put(e.request, resp.clone());

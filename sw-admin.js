@@ -1,9 +1,13 @@
 // Service Worker — Admin (Diana & Rico)
-// Bewusst minimal: NUR Push-Empfang, kein Caching, kein Network-first, kein
-// controllerchange-Reload-Mechanismus. Admin lief bisher absichtlich ohne Service Worker
-// (siehe Projektdoku v3.56) — dieser SW erweitert das NICHT um die Komplexität von sw.js
-// (Coachee), sondern bleibt eigenständig und schlank, damit Admin stabil und einfach bleibt.
-// Version: 2026-07-02 09:07
+// Bisher bewusst minimal: NUR Push-Empfang, kein Caching, kein Network-first, kein
+// controllerchange-Reload-Mechanismus (siehe Projektdoku v3.56). Fix (05.07.2026, Fund
+// "Admin-App startet nach vollständigem Schliessen nicht mehr — Watchdog-Timeout-Screen"):
+// Admin hatte KEINEN Cache-Fallback für die extern von CDNs geladenen Firebase-Compat-
+// Skripte (www.gstatic.com) und die neuen lokalen lib/-Module (Preact/htm) — dadurch war
+// Admin bei Kaltstart noch stärker von externer Netzwerk-Erreichbarkeit abhängig als
+// Coachee (sw.js). Zwei gezielte Cache-Strategien ergänzt, sonst bleibt dieser SW bewusst
+// minimal (kein Network-first für admin.html selbst, kein controllerchange-Mechanismus).
+// Version: 2026-07-05 20:18
 
 self.addEventListener('install', e => {
   self.skipWaiting();
@@ -11,6 +15,31 @@ self.addEventListener('install', e => {
 
 self.addEventListener('activate', e => {
   e.waitUntil(clients.claim());
+});
+
+// Fix (05.07.2026): Stale-While-Revalidate für lokale lib/-Module (Preact/htm) und für die
+// Firebase-Compat-Skripte von www.gstatic.com — identische Strategie wie in sw.js (Coachee),
+// hier aber bewusst als einzige zwei Fetch-Fälle, um den Rest des Service Workers minimal zu
+// halten. Sofort aus Cache servieren falls vorhanden, im Hintergrund auffrischen.
+self.addEventListener('fetch', e => {
+  const url = e.request.url.split('?')[0].split('#')[0];
+  const isLocalLib = url.includes('/lib/') && url.endsWith('.js');
+  const isFirebaseCdn = url.startsWith('https://www.gstatic.com/firebasejs/');
+  if(isLocalLib || isFirebaseCdn) {
+    const cacheName = isLocalLib ? 'lib-v1' : 'firebase-cdn-v1';
+    e.respondWith(
+      caches.open(cacheName).then(async cache => {
+        const cached = await cache.match(e.request);
+        const networkFetch = fetch(e.request).then(resp => {
+          if(resp && resp.ok) cache.put(e.request, resp.clone());
+          return resp;
+        }).catch(() => cached);
+        return cached || networkFetch;
+      })
+    );
+  }
+  // Alle anderen Requests (insbesondere admin.html selbst): weiterhin normal durchlassen,
+  // bewusst kein Network-first-Handling hier (Admin bleibt in diesem Punkt minimal).
 });
 
 // Push Notifications — identisches Payload-Format wie sw.js (Coachee), damit die
