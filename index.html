@@ -1,4 +1,4 @@
-<!-- Version: 2026-07-31 17:00 coachee -->
+<!-- Version: 2026-07-31 17:29 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -1699,8 +1699,19 @@ function recLabel(r) {
 function App({ user }) {
   const [page,setPage]           = useState("dashboard");
   const [coachees,setCoachees]   = useState(INIT_COACHEES);
-  const [reminders,setReminders] = useState(INIT_REMINDERS);
-  const [library,setLibrary]     = useState(INIT_LIBRARY);
+  // Fix (31.07.2026, Fund Rico "beim App-Start blitzt kurz eine andere/alte Ansicht auf"):
+  // reminders/library starteten bisher direkt mit INIT_REMINDERS/INIT_LIBRARY (5 fest
+  // codierte Demo-Einträge) als useState-Initialwert — das ist korrekt als SEED-Daten für
+  // brandneue Coachees (siehe syncCollection unten), aber falsch als UI-Startwert: Bei
+  // JEDEM App-Start (nicht nur beim allerersten Login) zeigte das Dashboard dadurch kurz
+  // "5 aktive Impulse"/"5 neue Impulse" (die Demo-Zahlen), bis der echte Firestore-Listener
+  // Sekundenbruchteile später die tatsächlichen Werte lieferte — sah aus wie eine alte,
+  // herumspukende Version. Fix: UI startet mit leeren Arrays, dataReady-Flag steuert in
+  // DashboardPage einen neutralen Platzhalter statt einer (kurzzeitig falschen) Zahl.
+  const [reminders,setReminders] = useState([]);
+  const [library,setLibrary]     = useState([]);
+  const [remindersReady,setRemindersReady] = useState(false);
+  const [libraryReady,setLibraryReady]     = useState(false);
   const [doodles,setDoodles]     = useState(INIT_DOODLES);
   const [events]                 = useState(INIT_EVENTS);
   const [mobileChatOpen,setMobileChatOpen] = useState(false);
@@ -1927,12 +1938,18 @@ function App({ user }) {
     syncCollection(doodleRef, INIT_DOODLES,   setDoodles);
 
     // Live listeners
+    // dataReady-Flags werden hier gesetzt (nicht schon nach syncCollection oben), da
+    // syncCollection bei einem brandneuen Coachee (snap.empty) nur seedet, aber den Setter
+    // nicht aufruft — erst dieser Listener liefert dann die frisch geseedeten Dokumente.
+    // Zwei getrennte Flags statt einem gemeinsamen dataReady, damit die "Meine Impulse"-
+    // Kachel nicht fälschlich schon "bereit" zeigt, nur weil die Mediathek-Daten (oder
+    // umgekehrt) zufällig zuerst eintrafen.
     const unsubRem = remRef.onSnapshot(
-      snap => { if(!snap.empty) setReminders(snap.docs.map(d=>({...d.data(),id:d.id}))); },
+      snap => { if(!snap.empty) setReminders(snap.docs.map(d=>({...d.data(),id:d.id}))); setRemindersReady(true); },
       ()=>{}
     );
     const unsubLib = libRef.orderBy("createdAt","desc").onSnapshot(
-      snap => { if(!snap.empty) setLibrary(snap.docs.map(d=>({...d.data(),id:d.id}))); },
+      snap => { if(!snap.empty) setLibrary(snap.docs.map(d=>({...d.data(),id:d.id}))); setLibraryReady(true); },
       ()=>{}
     );
     const unsubDoodle = doodleRef.onSnapshot(
@@ -2155,7 +2172,7 @@ function App({ user }) {
     )}
     <${Sidebar} page=${page} setPage=${navTo} totalUnread=${totalUnreadVal} libraryUnread=${libraryUnreadCount} doodleUnread=${doodleUnreadCount} user=${user} onLogoTap=${handleLogoTap}/>
     <div style=${{flex:1,display:'flex',overflow:'hidden',minWidth:0}}>
-      ${page==="dashboard" && html`<${DashboardPage} coachees=${coachees} library=${library} reminders=${reminders} doodles=${doodles} setPage=${navTo} user=${user} onLogoTap=${handleLogoTap} setImpulseDefaultTab=${setImpulseDefaultTab} activeImpuls=${activeImpuls} setActiveImpuls=${setActiveImpuls}/>`}
+      ${page==="dashboard" && html`<${DashboardPage} coachees=${coachees} library=${library} reminders=${reminders} remindersReady=${remindersReady} libraryReady=${libraryReady} doodles=${doodles} setPage=${navTo} user=${user} onLogoTap=${handleLogoTap} setImpulseDefaultTab=${setImpulseDefaultTab} activeImpuls=${activeImpuls} setActiveImpuls=${setActiveImpuls}/>`}
       ${page==="chat"      && html`<${ChatPage} user=${user} coachees=${coachees} setCoachees=${setCoachees} mobileChatOpen=${mobileChatOpen} setMobileChatOpen=${setMobileChatOpen}/>`}
       ${page==="impulse"   && html`<${ImpulseTab} user=${user} reminders=${reminders} setReminders=${saveReminders} setPage=${navTo} defaultSubTab=${impulseDefaultTab} setDefaultSubTab=${setImpulseDefaultTab} setActiveImpuls=${setActiveImpuls} activeImpuls=${activeImpuls} pendingReminderId=${pendingReminderId} setPendingReminderId=${setPendingReminderId} pendingImpulsPopup=${pendingImpulsPopup} setPendingImpulsPopup=${setPendingImpulsPopup} pendingReflexionPopup=${pendingReflexionPopup} setPendingReflexionPopup=${setPendingReflexionPopup}/>`}
       ${page==="library"   && html`<${LibraryPage} library=${library} setLibrary=${saveLibrary}/>`}
@@ -2752,7 +2769,7 @@ function SettingsPage({user, onDeleted}) {
     </div>`;
 }
 
-function DashboardPage({coachees,library,reminders,doodles,setPage,user,onLogoTap,setImpulseDefaultTab,activeImpuls,setActiveImpuls}) {
+function DashboardPage({coachees,library,reminders,remindersReady,libraryReady,doodles,setPage,user,onLogoTap,setImpulseDefaultTab,activeImpuls,setActiveImpuls}) {
   const uid = user?.uid || null;
   const avgProg = 0; // goals removed
   const hour = new Date().getHours();
@@ -2813,7 +2830,7 @@ function DashboardPage({coachees,library,reminders,doodles,setPage,user,onLogoTa
             <div style=${{width:42,height:42,borderRadius:12,background:"var(--teal-pale)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><${Ic} name="impuls" size=${22} style=${{color:"var(--teal-dark)"}}/></div>
             <div style=${{flex:1}}>
               <div style=${{fontFamily:"'Manuale',serif",fontWeight:700,fontSize:"1rem",color:"var(--text)"}}>Meine Impulse</div>
-              <div style=${{fontSize:".82rem",color:"var(--muted)",marginTop:1}}>${(n=>n===1?"1 aktiver Impuls":n+" aktive Impulse")(reminders.filter(r=>r.enabled).length)}</div>
+              <div style=${{fontSize:".82rem",color:"var(--muted)",marginTop:1}}>${remindersReady ? (n=>n===1?"1 aktiver Impuls":n+" aktive Impulse")(reminders.filter(r=>r.enabled).length) : "…"}</div>
             </div>
             <${Ic} name="chevron" size=${16} style=${{color:"var(--border2)"}}/>
           </div>
@@ -2823,7 +2840,7 @@ function DashboardPage({coachees,library,reminders,doodles,setPage,user,onLogoTa
             <div style=${{width:42,height:42,borderRadius:12,background:"var(--sage-pale)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><${Ic} name="library" size=${20} style=${{color:"var(--sage-dark)"}}/></div>
             <div style=${{flex:1}}>
               <div style=${{fontFamily:"'Manuale',serif",fontWeight:700,fontSize:"1rem",color:"var(--text)"}}>Mediathek</div>
-              <div style=${{fontSize:".82rem",color:"var(--muted)",marginTop:1}}>${(n=>n===1?"1 neuer Impuls":n+" neue Impulse")(library.length)}</div>
+              <div style=${{fontSize:".82rem",color:"var(--muted)",marginTop:1}}>${libraryReady ? (n=>n===1?"1 neuer Impuls":n+" neue Impulse")(library.length) : "…"}</div>
             </div>
             <${Ic} name="chevron" size=${16} style=${{color:"var(--border2)"}}/>
           </div>
