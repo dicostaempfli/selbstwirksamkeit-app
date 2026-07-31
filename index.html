@@ -1,4 +1,4 @@
-<!-- Version: 2026-07-31 17:29 coachee -->
+<!-- Version: 2026-07-31 17:51 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -2774,13 +2774,17 @@ function DashboardPage({coachees,library,reminders,remindersReady,libraryReady,d
   const avgProg = 0; // goals removed
   const hour = new Date().getHours();
   const greeting = hour<12?"Guten Morgen":hour<18?"Guten Tag":"Guten Abend";
-  const [quote,setQuote] = useState(QUOTES[0]);
+  // Fix (31.07.2026, Fortsetzung "Flash of Placeholder Content"): Analog zu reminders/
+  // library oben — quote startete bisher direkt mit QUOTES[0] (echtes, aber evtl. falsches
+  // Zitat), bis das eigentlich konfigurierte Zitat aus settings/quote geladen war. Start
+  // jetzt mit null, Render-Stelle unten zeigt "…" statt eines falschen Zitats.
+  const [quote,setQuote] = useState(null);
   useEffect(()=>{
     const fbDb=window._fb?.db;
-    if(!fbDb) return;
+    if(!fbDb) { setQuote(QUOTES[0]); return; }
     fbDb.collection("settings").doc("quote").get()
-      .then(doc=>{ if(doc.exists&&doc.data().text) setQuote(doc.data()); })
-      .catch(()=>{});
+      .then(doc=>{ setQuote(doc.exists&&doc.data().text ? doc.data() : QUOTES[0]); })
+      .catch(()=>setQuote(QUOTES[0]));
   },[]);
   useEffect(()=>{
     const fbDb=window._fb?.db;
@@ -2808,8 +2812,8 @@ function DashboardPage({coachees,library,reminders,remindersReady,libraryReady,d
         <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.4rem",fontWeight:600,color:"var(--text)",marginTop:14}}>${greeting}, ${(user?.displayName||user?.email||"").split(" ")[0].split("@")[0]}</div>
       </div>
       <div class="quote-block">
-        <p class="quote-text">${quote.text}</p>
-        <p class="quote-author">${quote.author}</p>
+        <p class="quote-text">${quote ? quote.text : "…"}</p>
+        <p class="quote-author">${quote ? quote.author : ""}</p>
       </div>
       ${activeImpuls && h("div", {
         class:"impuls-anker", style:{marginBottom:14},
