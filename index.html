@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-01 13:59 coachee -->
+<!-- Version: 2026-08-01 14:12 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -3577,13 +3577,21 @@ function LibraryPage({library, pendingLibraryId, clearPendingLibraryId, newItemI
     if(!pendingLibraryId) return;
     const exists = library.some(i => String(i.id) === String(pendingLibraryId));
     if(!exists) return;
-    const el = itemRefs.current[pendingLibraryId];
-    if(el) {
-      el.scrollIntoView({behavior:'smooth', block:'center'});
-      setHighlightId(pendingLibraryId);
-      setTimeout(() => setHighlightId(id => id === pendingLibraryId ? null : id), 2600);
-    }
-    clearPendingLibraryId && clearPendingLibraryId();
+    const targetId = pendingLibraryId;
+    // Fix (01.08.2026): scrollIntoView erst nach kurzer Verzögerung aufrufen — direkt beim
+    // Mount ist das Layout der Seite (Header, Suchfeld, Sektionsköpfe) auf iOS Safari teils
+    // noch nicht final berechnet, wodurch die Zielposition falsch bestimmt wird und die
+    // Seite stattdessen ans Ende scrollt (Fund von Rico, Live-Test).
+    const scrollTimer = setTimeout(() => {
+      const el = itemRefs.current[targetId];
+      if(el) {
+        el.scrollIntoView({behavior:'smooth', block:'center'});
+        setHighlightId(targetId);
+        setTimeout(() => setHighlightId(id => id === targetId ? null : id), 3200);
+      }
+      clearPendingLibraryId && clearPendingLibraryId();
+    }, 350);
+    return () => clearTimeout(scrollTimer);
   }, [pendingLibraryId, library]);
 
   const SECTIONS = [
@@ -3728,10 +3736,12 @@ function LibraryPage({library, pendingLibraryId, clearPendingLibraryId, newItemI
                 const isHighlighted = highlightId===item.id;
                 return html`
                   <div key=${item.id} ref=${el=>{ if(el) itemRefs.current[item.id]=el; }}
-                    style=${{borderTop:idx>0?'0.5px solid var(--border)':'none', position:'relative',
-                      boxShadow:isHighlighted?'inset 0 0 0 2px var(--sage)':'none', transition:'box-shadow .3s'}}>
+                    style=${{borderTop:idx>0?'0.5px solid var(--border)':'none', position:'relative'}}>
                     ${isNew&&html`<div style=${{position:'absolute',top:6,right:12,background:'var(--sage-pale)',color:'var(--sage-dark)',fontSize:'.62rem',fontWeight:700,padding:'2px 8px',borderRadius:20,zIndex:1}}>Neu</div>`}
-                    <div style=${{display:'flex',alignItems:'center',gap:11,padding:'10px 14px',background:'var(--surface)',cursor:'pointer'}}
+                    <div style=${{display:'flex',alignItems:'center',gap:11,padding:'10px 14px',
+                        background:isHighlighted?'var(--sage-pale)':'var(--surface)',
+                        boxShadow:isHighlighted?'inset 0 0 0 2px var(--sage)':'none',
+                        transition:'background .3s, box-shadow .3s', cursor:'pointer'}}
                       onClick=${()=>toggle(item.id)}>
                       <div style=${{width:52,height:52,borderRadius:9,flexShrink:0,overflow:'hidden'}}>
                         <${ThumbSmall} item=${item} sec=${sec}/>
