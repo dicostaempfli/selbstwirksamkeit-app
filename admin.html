@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-01 13:42 admin -->
+<!-- Version: 2026-08-01 16:11 admin -->
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -1502,7 +1502,7 @@ const IC = {
   camera:["M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z","M12 17A4 4 0 1012 9a4 4 0 000 8z"],
   upload:["M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4","M17 8l-5-5-5 5","M12 3v12"],
   play:["M5 3l14 9-14 9V3z"],
-  music:["M9 18V5l12-2v13","M9 18a3 3 0 100-6 3 3 0 000 6z","M21 16a3 3 0 100-6 3 3 0 000 6z"],
+  headphones:["M3 18v-6a9 9 0 0118 0v6","M21 19a2 2 0 01-2 2h-1a2 2 0 01-2-2v-3a2 2 0 012-2h3zM3 19a2 2 0 002 2h1a2 2 0 002-2v-3a2 2 0 00-2-2H3z"],
   video:["M23 7l-7 5 7 5V7z","M1 5h15a2 2 0 012 2v10a2 2 0 01-2 2H1a2 2 0 01-2-2V7a2 2 0 012-2z"],
   file:["M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z","M14 2v6h6","M16 13H8","M16 17H8","M10 9H8"],
   x:["M18 6L6 18","M6 6l12 12"],
@@ -3031,7 +3031,7 @@ function LibraryPage({library,setLibrary}) {
 
   const SECTIONS = [
     {type:'video', label:'Video',  icon:'play',   color:'#156e6e', bg:'#e0eded', border:'#b0d4d4'},
-    {type:'audio', label:'Audio',  icon:'music',  color:'#156e6e', bg:'#e0eded', border:'#b0d4d4'},
+    {type:'audio', label:'Audio',  icon:'headphones', color:'#156e6e', bg:'#e0eded', border:'#b0d4d4'},
     {type:'foto',  label:'Fotos',  icon:'image',  color:'#156e6e', bg:'#e0eded', border:'#b0d4d4'},
     {type:'dokus', label:'Dokus',  icon:'file',   color:'#156e6e', bg:'#e0eded', border:'#b0d4d4'},
   ];
@@ -3285,7 +3285,7 @@ function LibraryPage({library,setLibrary}) {
         const items=library.filter(i=>i.type===sec.type&&matches(i));
         if(items.length===0) return null;
         return html`
-          <div key=${sec.type} style=${{marginBottom:22}}>
+          <div key=${sec.type} style=${{marginBottom:32}}>
             <div style=${{display:'flex',alignItems:'center',gap:8,marginBottom:8}}>
               <div style=${{width:28,height:28,borderRadius:7,background:sec.bg,border:'0.5px solid '+sec.border,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
                 <${Ic} name=${sec.icon} size=${15} style=${{color:sec.color}}/>
@@ -3366,7 +3366,7 @@ function LibraryPage({library,setLibrary}) {
               <input class="input" value=${form.keywords} onInput=${e=>setForm(f=>({...f,keywords:e.target.value}))} placeholder="z.B. atem, körper, entspannung"/></div>
             <div class="form-row"><label class="label">Typ</label>
               <div style=${{display:'flex',gap:8,flexWrap:'wrap'}}>
-                ${[['audio','Audio','music'],['video','Video','play'],['foto','Foto','image'],['dokus','Doku','file']].map(([id,label,icon])=>html`
+                ${[['audio','Audio','headphones'],['video','Video','play'],['foto','Foto','image'],['dokus','Doku','file']].map(([id,label,icon])=>html`
                   <div key=${id} class=${'sel-btn'+(form.type===id?' active':'')} style=${{flex:1,minWidth:80,flexDirection:'column',gap:6,padding:'10px 8px'}} onClick=${()=>setForm(f=>({...f,type:id}))}>
                     <div style=${{width:28,height:28,borderRadius:7,background:form.type===id?'var(--teal)':'#e0eded',border:'0.5px solid '+(form.type===id?'var(--teal-dark)':'#b0d4d4'),display:'flex',alignItems:'center',justifyContent:'center'}}><${Ic} name=${icon} size=${14} style=${{color:form.type===id?'#fff':'#156e6e'}}/></div>
                     ${label}

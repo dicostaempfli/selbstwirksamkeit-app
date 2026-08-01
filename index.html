@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-01 15:49 coachee -->
+<!-- Version: 2026-08-01 16:11 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -1411,7 +1411,7 @@ const IC = {
   user:    ["M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2","M12 11A4 4 0 1012 3a4 4 0 000 8z"],
   camera:  ["M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z","M12 17A4 4 0 1012 9a4 4 0 000 8z"],
   image:   ["M21 19V5a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2z","M8.5 10A1.5 1.5 0 1010 8.5 1.5 1.5 0 008.5 10z","M21 15l-5-5L5 21"],
-  music:   ["M9 18V5l12-2v13","M9 18a3 3 0 100-6 3 3 0 000 6z","M21 16a3 3 0 100-6 3 3 0 000 6z"],
+  headphones: ["M3 18v-6a9 9 0 0118 0v6","M21 19a2 2 0 01-2 2h-1a2 2 0 01-2-2v-3a2 2 0 012-2h3zM3 19a2 2 0 002 2h1a2 2 0 002-2v-3a2 2 0 00-2-2H3z"],
   video:   ["M23 7l-7 5 7 5V7z","M1 5h15a2 2 0 012 2v10a2 2 0 01-2 2H1a2 2 0 01-2-2V7a2 2 0 012-2z"],
   file:    ["M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z","M14 2v6h6","M16 13H8","M16 17H8","M10 9H8"],
   upload:  ["M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4","M17 8l-5-5-5 5","M12 3v12"],
@@ -3612,7 +3612,7 @@ function LibraryPage({library, pendingLibraryId, clearPendingLibraryId, uid}) {
 
   const SECTIONS = [
     {type:'video', label:'Video',  icon:'play',   color:'#156e6e', bg:'#e0eded', border:'#b0d4d4'},
-    {type:'audio', label:'Audio',  icon:'music',  color:'#156e6e', bg:'#e0eded', border:'#b0d4d4'},
+    {type:'audio', label:'Audio',  icon:'headphones', color:'#156e6e', bg:'#e0eded', border:'#b0d4d4'},
     {type:'foto',  label:'Fotos',  icon:'image',  color:'#156e6e', bg:'#e0eded', border:'#b0d4d4'},
     {type:'dokus', label:'Dokus',  icon:'file',   color:'#156e6e', bg:'#e0eded', border:'#b0d4d4'},
   ];
@@ -3737,7 +3737,7 @@ function LibraryPage({library, pendingLibraryId, clearPendingLibraryId, uid}) {
         const items = library.filter(i=>i.type===sec.type && matches(i));
         if(items.length===0) return null;
         return html`
-          <div key=${sec.type} style=${{marginBottom:20}}>
+          <div key=${sec.type} style=${{marginBottom:32}}>
             <div style=${{display:'flex',alignItems:'center',gap:8,marginBottom:8}}>
               <div style=${{width:28,height:28,borderRadius:7,background:sec.bg,border:'0.5px solid '+sec.border,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
                 <${Ic} name=${sec.icon} size=${15} style=${{color:sec.color}}/>
