@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-01 16:34 coachee -->
+<!-- Version: 2026-08-01 16:40 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -2063,21 +2063,31 @@ function App({ user }) {
   }, [page, user?.uid]);
 
   // ── Mediathek-Badge: neue Elemente seit letztem Besuch ──
-  // Gleiches Baseline-Muster wie beim Chat-Zähler: localStorage merkt sich den Zeitpunkt
-  // des letzten Besuchs, Elemente mit createdAt danach zählen als "neu". library ist eine
-  // globale Collection (kein pro-Coachee-Feld), daher rein zeitbasierter Vergleich.
+  // Einheitliche Quelle mit den Pro-Item-"Neu"-Badges in der Mediathek (Option B):
+  // librarySeenIds_<uid> in localStorage merkt sich angetippte Items. Bei allererstem
+  // Einsatz (Key existiert noch nicht) gilt der aktuelle Bestand als bereits gesehen,
+  // damit nicht der ganze Altbestand fälschlich als "neu" gezählt wird.
+  // Fix (01.08.2026, nach Absturz "Etwas ist schiefgelaufen"): ALLE localStorage-Zugriffe
+  // jetzt einzeln try/catch-abgesichert (analog restorePhotos) — ein ungesichertes
+  // localStorage.setItem in der Vorversion war der wahrscheinlichste Absturzgrund
+  // (iOS kann Schreibzugriffe unter bestimmten Bedingungen blockieren/werfen).
   const [libraryUnreadCount, setLibraryUnreadCount] = useState(0);
   useEffect(() => {
-    const lastVisit = Number(localStorage.getItem("libraryLastVisit_"+(user?.uid||"")) || 0);
-    const count = library.filter(item => (item.createdAt || 0) > lastVisit).length;
-    setLibraryUnreadCount(count);
+    if(!user?.uid || library.length===0) return;
+    try {
+      const key = "librarySeenIds_"+user.uid;
+      if(localStorage.getItem(key) === null) {
+        localStorage.setItem(key, JSON.stringify(library.map(i=>i.id)));
+      }
+    } catch(e) {}
   }, [library, user?.uid]);
   useEffect(() => {
-    if(page === "library" && user?.uid) {
-      localStorage.setItem("libraryLastVisit_"+user.uid, String(Date.now()));
-      setLibraryUnreadCount(0);
-    }
-  }, [page, user?.uid]);
+    if(!user?.uid) { setLibraryUnreadCount(0); return; }
+    let seen = new Set();
+    try { seen = new Set(JSON.parse(localStorage.getItem("librarySeenIds_"+user.uid) || "[]")); }
+    catch(e) {}
+    setLibraryUnreadCount(library.filter(item => !seen.has(item.id)).length);
+  }, [library, user?.uid, page]);
 
   // ── Termine-Badge: offene Doodle-Vorschläge ohne Antwort ──
   // Wiederverwendet dieselbe Filterlogik, die im Dashboard bereits für die Textanzeige
@@ -2852,7 +2862,7 @@ function DashboardPage({coachees,library,reminders,remindersReady,libraryReady,d
             <div style=${{width:42,height:42,borderRadius:12,background:"var(--sage-pale)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><${Ic} name="library" size=${20} style=${{color:"var(--sage-dark)"}}/></div>
             <div style=${{flex:1}}>
               <div style=${{fontFamily:"'Manuale',serif",fontWeight:700,fontSize:"1rem",color:"var(--text)"}}>Mediathek</div>
-              <div style=${{fontSize:".82rem",color:"var(--muted)",marginTop:1}}>${libraryReady ? (n=>n===1?"1 neuer Impuls":n+" neue Impulse")(library.length) : "…"}</div>
+              <div style=${{fontSize:".82rem",color:"var(--muted)",marginTop:1}}>${libraryReady ? (n=>n===0?"Keine neuen Inhalte":n===1?"1 neuer Inhalt":n+" neue Inhalte")(libraryUnreadCount) : "…"}</div>
             </div>
             <${Ic} name="chevron" size=${16} style=${{color:"var(--border2)"}}/>
           </div>
@@ -3564,23 +3574,25 @@ function LibraryPage({library, pendingLibraryId, clearPendingLibraryId, uid}) {
   const [seenIds, setSeenIds] = useState(new Set());
   useEffect(() => {
     if(!uid || seededRef.current) return;
-    const key = 'librarySeenIds_'+uid;
-    const stored = localStorage.getItem(key);
-    if(stored !== null) {
-      seededRef.current = true;
-      try { setSeenIds(new Set(JSON.parse(stored))); } catch { setSeenIds(new Set()); }
-    } else if(library.length > 0) {
-      seededRef.current = true;
-      const ids = library.map(i=>i.id);
-      localStorage.setItem(key, JSON.stringify(ids));
-      setSeenIds(new Set(ids));
-    }
+    try {
+      const key = 'librarySeenIds_'+uid;
+      const stored = localStorage.getItem(key);
+      if(stored !== null) {
+        seededRef.current = true;
+        try { setSeenIds(new Set(JSON.parse(stored))); } catch(e) { setSeenIds(new Set()); }
+      } else if(library.length > 0) {
+        seededRef.current = true;
+        const ids = library.map(i=>i.id);
+        localStorage.setItem(key, JSON.stringify(ids));
+        setSeenIds(new Set(ids));
+      }
+    } catch(e) {}
   }, [uid, library]);
   const markSeen = (id) => {
     if(!uid || seenIds.has(id)) return;
     setSeenIds(prev => {
       const next = new Set(prev); next.add(id);
-      localStorage.setItem('librarySeenIds_'+uid, JSON.stringify([...next]));
+      try { localStorage.setItem('librarySeenIds_'+uid, JSON.stringify([...next])); } catch(e) {}
       return next;
     });
   };
