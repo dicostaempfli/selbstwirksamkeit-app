@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-01 14:26 coachee -->
+<!-- Version: 2026-08-01 15:49 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -1338,7 +1338,7 @@ window.addEventListener('unhandledrejection', e => {
   if(window._showCrashScreen) window._showCrashScreen();
 });
 import { h, render, Fragment } from 'preact';
-import { useState, useRef, useEffect, useMemo } from 'preact/hooks';
+import { useState, useRef, useEffect } from 'preact/hooks';
 import { html } from 'htm/preact';
 
 // ── FIREBASE via window (loaded by compat scripts in <head>) ──
@@ -2067,7 +2067,6 @@ function App({ user }) {
   // des letzten Besuchs, Elemente mit createdAt danach zählen als "neu". library ist eine
   // globale Collection (kein pro-Coachee-Feld), daher rein zeitbasierter Vergleich.
   const [libraryUnreadCount, setLibraryUnreadCount] = useState(0);
-  const [libraryVisitBaseline, setLibraryVisitBaseline] = useState(null);
   useEffect(() => {
     const lastVisit = Number(localStorage.getItem("libraryLastVisit_"+(user?.uid||"")) || 0);
     const count = library.filter(item => (item.createdAt || 0) > lastVisit).length;
@@ -2075,23 +2074,10 @@ function App({ user }) {
   }, [library, user?.uid]);
   useEffect(() => {
     if(page === "library" && user?.uid) {
-      // Alten Besuchszeitpunkt einmalig einfrieren, BEVOR er unten überschrieben wird —
-      // nur beim allerersten Öffnen der Mediathek in dieser Sitzung (libraryVisitBaseline
-      // ist danach nicht mehr null). Damit bleiben "Neu"-Badges auf den Item-Karten für
-      // die Dauer dieses Besuchs sichtbar, auch wenn der Nav-Zähler sofort auf 0 springt.
-      setLibraryVisitBaseline(prev => prev === null
-        ? Number(localStorage.getItem("libraryLastVisit_"+user.uid) || 0)
-        : prev);
       localStorage.setItem("libraryLastVisit_"+user.uid, String(Date.now()));
       setLibraryUnreadCount(0);
     }
   }, [page, user?.uid]);
-  // "Neu"-Set für die Item-Badges in LibraryPage — leer, solange die Mediathek in dieser
-  // Sitzung noch nie geöffnet wurde (dann zeigt allein der Nav-Badge-Zähler die Anzahl).
-  const newLibraryItemIds = useMemo(() => {
-    if(libraryVisitBaseline === null) return new Set();
-    return new Set(library.filter(item => (item.createdAt||0) > libraryVisitBaseline).map(item=>item.id));
-  }, [library, libraryVisitBaseline]);
 
   // ── Termine-Badge: offene Doodle-Vorschläge ohne Antwort ──
   // Wiederverwendet dieselbe Filterlogik, die im Dashboard bereits für die Textanzeige
@@ -2197,7 +2183,7 @@ function App({ user }) {
       ${page==="dashboard" && html`<${DashboardPage} coachees=${coachees} library=${library} reminders=${reminders} remindersReady=${remindersReady} libraryReady=${libraryReady} doodles=${doodles} setPage=${navTo} user=${user} onLogoTap=${handleLogoTap} setImpulseDefaultTab=${setImpulseDefaultTab} activeImpuls=${activeImpuls} setActiveImpuls=${setActiveImpuls}/>`}
       ${page==="chat"      && html`<${ChatPage} user=${user} coachees=${coachees} setCoachees=${setCoachees} mobileChatOpen=${mobileChatOpen} setMobileChatOpen=${setMobileChatOpen}/>`}
       ${page==="impulse"   && html`<${ImpulseTab} user=${user} reminders=${reminders} setReminders=${saveReminders} setPage=${navTo} defaultSubTab=${impulseDefaultTab} setDefaultSubTab=${setImpulseDefaultTab} setActiveImpuls=${setActiveImpuls} activeImpuls=${activeImpuls} pendingReminderId=${pendingReminderId} setPendingReminderId=${setPendingReminderId} pendingImpulsPopup=${pendingImpulsPopup} setPendingImpulsPopup=${setPendingImpulsPopup} pendingReflexionPopup=${pendingReflexionPopup} setPendingReflexionPopup=${setPendingReflexionPopup}/>`}
-      ${page==="library"   && html`<${LibraryPage} library=${library} setLibrary=${saveLibrary} pendingLibraryId=${pendingLibraryId} clearPendingLibraryId=${()=>setPendingLibraryId(null)} newItemIds=${newLibraryItemIds}/>`}
+      ${page==="library"   && html`<${LibraryPage} library=${library} setLibrary=${saveLibrary} pendingLibraryId=${pendingLibraryId} clearPendingLibraryId=${()=>setPendingLibraryId(null)} uid=${user?.uid}/>`}
       ${page==="doodle"    && html`<${DoodlePage} user=${user} doodles=${doodles} setDoodles=${saveDoodles} coachees=${coachees} events=${events}/>`}
       ${page==="settings"  && html`<${SettingsPage} user=${user} onDeleted=${()=>{ const a=window._fb?.auth; if(a) a.signOut().catch(()=>{}); }}/>`}
     </div>
@@ -3562,12 +3548,42 @@ function JournalPage({journal,setJournal}) {
     </div>`;
 }
 
-function LibraryPage({library, pendingLibraryId, clearPendingLibraryId, newItemIds}) {
+function LibraryPage({library, pendingLibraryId, clearPendingLibraryId, uid}) {
   const [openId, setOpenId] = useState(null);
   const [searchQ, setSearchQ] = useState('');
   const [photoOverlay, setPhotoOverlay] = useState(null);
   const [highlightId, setHighlightId] = useState(null);
   const itemRefs = useRef({});
+
+  // ── "Neu"-Badge pro Item (NEU 01.08.2026, Option B) ──
+  // Bleibt sichtbar, bis genau DIESES Item angetippt wurde — nicht nur bis die Mediathek
+  // einmal geöffnet wird. Persistiert pro Coachee in localStorage, damit es App-Neustarts
+  // übersteht. Beim allerersten Einsatz dieses Features (kein gespeicherter Wert vorhanden)
+  // gilt der aktuelle Bestand als bereits gesehen, damit nicht der ganze Altbestand aufblitzt.
+  const seededRef = useRef(false);
+  const [seenIds, setSeenIds] = useState(new Set());
+  useEffect(() => {
+    if(!uid || seededRef.current) return;
+    const key = 'librarySeenIds_'+uid;
+    const stored = localStorage.getItem(key);
+    if(stored !== null) {
+      seededRef.current = true;
+      try { setSeenIds(new Set(JSON.parse(stored))); } catch { setSeenIds(new Set()); }
+    } else if(library.length > 0) {
+      seededRef.current = true;
+      const ids = library.map(i=>i.id);
+      localStorage.setItem(key, JSON.stringify(ids));
+      setSeenIds(new Set(ids));
+    }
+  }, [uid, library]);
+  const markSeen = (id) => {
+    if(!uid || seenIds.has(id)) return;
+    setSeenIds(prev => {
+      const next = new Set(prev); next.add(id);
+      localStorage.setItem('librarySeenIds_'+uid, JSON.stringify([...next]));
+      return next;
+    });
+  };
 
   // ── Mediathek-Push-Deep-Link: zum neuen Item scrollen und kurz hervorheben ──
   // (NEU 01.08.2026) Vorher landete ein Push-Tap immer nur auf der allgemeinen Übersicht —
@@ -3732,7 +3748,7 @@ function LibraryPage({library, pendingLibraryId, clearPendingLibraryId, newItemI
             <div style=${{borderRadius:12,overflow:'hidden',border:'0.5px solid var(--border)'}}>
               ${items.map((item,idx) => {
                 const isOpen = openId===item.id;
-                const isNew = newItemIds && newItemIds.has(item.id);
+                const isNew = !seenIds.has(item.id);
                 const isHighlighted = highlightId===item.id;
                 const isFirst = idx===0, isLast = idx===items.length-1;
                 const cardRadius = (isFirst?'11px 11px ':'0 0 ')+(isLast?'11px 11px':'0 0');
@@ -3745,7 +3761,7 @@ function LibraryPage({library, pendingLibraryId, clearPendingLibraryId, newItemI
                         boxShadow:isHighlighted?'inset 0 0 0 2px var(--sage)':'none',
                         borderRadius:isHighlighted?cardRadius:0,
                         transition:'background .3s, box-shadow .3s', cursor:'pointer'}}
-                      onClick=${()=>toggle(item.id)}>
+                      onClick=${()=>{toggle(item.id); markSeen(item.id);}}>
                       <div style=${{width:52,height:52,borderRadius:9,flexShrink:0,overflow:'hidden'}}>
                         <${ThumbSmall} item=${item} sec=${sec}/>
                       </div>
