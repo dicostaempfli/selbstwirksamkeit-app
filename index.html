@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-01 14:12 coachee -->
+<!-- Version: 2026-08-01 14:26 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -3587,7 +3587,7 @@ function LibraryPage({library, pendingLibraryId, clearPendingLibraryId, newItemI
       if(el) {
         el.scrollIntoView({behavior:'smooth', block:'center'});
         setHighlightId(targetId);
-        setTimeout(() => setHighlightId(id => id === targetId ? null : id), 3200);
+        setTimeout(() => setHighlightId(id => id === targetId ? null : id), 6000);
       }
       clearPendingLibraryId && clearPendingLibraryId();
     }, 350);
@@ -3734,13 +3734,16 @@ function LibraryPage({library, pendingLibraryId, clearPendingLibraryId, newItemI
                 const isOpen = openId===item.id;
                 const isNew = newItemIds && newItemIds.has(item.id);
                 const isHighlighted = highlightId===item.id;
+                const isFirst = idx===0, isLast = idx===items.length-1;
+                const cardRadius = (isFirst?'11px 11px ':'0 0 ')+(isLast?'11px 11px':'0 0');
                 return html`
                   <div key=${item.id} ref=${el=>{ if(el) itemRefs.current[item.id]=el; }}
                     style=${{borderTop:idx>0?'0.5px solid var(--border)':'none', position:'relative'}}>
-                    ${isNew&&html`<div style=${{position:'absolute',top:6,right:12,background:'var(--sage-pale)',color:'var(--sage-dark)',fontSize:'.62rem',fontWeight:700,padding:'2px 8px',borderRadius:20,zIndex:1}}>Neu</div>`}
+                    ${isNew&&html`<div style=${{position:'absolute',top:6,right:12,background:'var(--sage-pale)',color:'var(--sage-dark)',fontSize:'.72rem',fontWeight:700,padding:'3px 10px',borderRadius:20,zIndex:1}}>Neu</div>`}
                     <div style=${{display:'flex',alignItems:'center',gap:11,padding:'10px 14px',
                         background:isHighlighted?'var(--sage-pale)':'var(--surface)',
                         boxShadow:isHighlighted?'inset 0 0 0 2px var(--sage)':'none',
+                        borderRadius:isHighlighted?cardRadius:0,
                         transition:'background .3s, box-shadow .3s', cursor:'pointer'}}
                       onClick=${()=>toggle(item.id)}>
                       <div style=${{width:52,height:52,borderRadius:9,flexShrink:0,overflow:'hidden'}}>
