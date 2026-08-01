@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-01 16:52 coachee -->
+<!-- Version: 2026-08-01 16:58 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -2189,7 +2189,7 @@ function App({ user }) {
     )}
     <${Sidebar} page=${page} setPage=${navTo} totalUnread=${totalUnreadVal} libraryUnread=${libraryUnreadCount} doodleUnread=${doodleUnreadCount} user=${user} onLogoTap=${handleLogoTap}/>
     <div style=${{flex:1,display:'flex',overflow:'hidden',minWidth:0}}>
-      ${page==="dashboard" && html`<${DashboardPage} coachees=${coachees} library=${library} reminders=${reminders} remindersReady=${remindersReady} libraryReady=${libraryReady} doodles=${doodles} setPage=${navTo} user=${user} onLogoTap=${handleLogoTap} setImpulseDefaultTab=${setImpulseDefaultTab} activeImpuls=${activeImpuls} setActiveImpuls=${setActiveImpuls}/>`}
+      ${page==="dashboard" && html`<${DashboardPage} coachees=${coachees} library=${library} reminders=${reminders} remindersReady=${remindersReady} libraryReady=${libraryReady} libraryUnreadCount=${libraryUnreadCount} doodles=${doodles} setPage=${navTo} user=${user} onLogoTap=${handleLogoTap} setImpulseDefaultTab=${setImpulseDefaultTab} activeImpuls=${activeImpuls} setActiveImpuls=${setActiveImpuls}/>`}
       ${page==="chat"      && html`<${ChatPage} user=${user} coachees=${coachees} setCoachees=${setCoachees} mobileChatOpen=${mobileChatOpen} setMobileChatOpen=${setMobileChatOpen}/>`}
       ${page==="impulse"   && html`<${ImpulseTab} user=${user} reminders=${reminders} setReminders=${saveReminders} setPage=${navTo} defaultSubTab=${impulseDefaultTab} setDefaultSubTab=${setImpulseDefaultTab} setActiveImpuls=${setActiveImpuls} activeImpuls=${activeImpuls} pendingReminderId=${pendingReminderId} setPendingReminderId=${setPendingReminderId} pendingImpulsPopup=${pendingImpulsPopup} setPendingImpulsPopup=${setPendingImpulsPopup} pendingReflexionPopup=${pendingReflexionPopup} setPendingReflexionPopup=${setPendingReflexionPopup}/>`}
       ${page==="library"   && html`<${LibraryPage} library=${library} setLibrary=${saveLibrary} pendingLibraryId=${pendingLibraryId} clearPendingLibraryId=${()=>setPendingLibraryId(null)} uid=${user?.uid}/>`}
@@ -2786,7 +2786,7 @@ function SettingsPage({user, onDeleted}) {
     </div>`;
 }
 
-function DashboardPage({coachees,library,reminders,remindersReady,libraryReady,doodles,setPage,user,onLogoTap,setImpulseDefaultTab,activeImpuls,setActiveImpuls}) {
+function DashboardPage({coachees,library,reminders,remindersReady,libraryReady,libraryUnreadCount,doodles,setPage,user,onLogoTap,setImpulseDefaultTab,activeImpuls,setActiveImpuls}) {
   const uid = user?.uid || null;
   const avgProg = 0; // goals removed
   const hour = new Date().getHours();
