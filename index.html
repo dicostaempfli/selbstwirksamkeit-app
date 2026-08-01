@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-01 13:19 coachee -->
+<!-- Version: 2026-08-01 13:59 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -1338,7 +1338,7 @@ window.addEventListener('unhandledrejection', e => {
   if(window._showCrashScreen) window._showCrashScreen();
 });
 import { h, render, Fragment } from 'preact';
-import { useState, useRef, useEffect } from 'preact/hooks';
+import { useState, useRef, useEffect, useMemo } from 'preact/hooks';
 import { html } from 'htm/preact';
 
 // ── FIREBASE via window (loaded by compat scripts in <head>) ──
@@ -1718,6 +1718,7 @@ function App({ user }) {
   const [impulseDefaultTab,setImpulseDefaultTab] = useState('meine');
   const [activeImpuls,setActiveImpuls]           = useState(null);
   const [pendingReminderId,setPendingReminderId] = useState(null);
+  const [pendingLibraryId,setPendingLibraryId]   = useState(null);
   const [pendingImpulsPopup,setPendingImpulsPopup] = useState(false);
   const [pendingReflexionPopup,setPendingReflexionPopup] = useState(false);
   const [tapCount,setTapCount]             = useState(0);
@@ -1769,6 +1770,13 @@ function App({ user }) {
       setImpulseDefaultTab("meine"); setPage("impulse"); setPendingReminderId(remId);
     }
     else if(hash === "impulse-meine" || hash === "impulse") { setImpulseDefaultTab("meine"); setPage("impulse"); }
+    else if(hash.startsWith("library-")) {
+      // Mediathek-Push trägt jetzt die konkrete Item-ID im Hash (#library-<id>), damit
+      // LibraryPage direkt dorthin scrollen und das Item kurz hervorheben kann, statt nur
+      // auf der allgemeinen Übersicht zu landen (Fund 01.08.2026).
+      const libId = hash.slice("library-".length);
+      setPage("library"); setPendingLibraryId(libId);
+    }
     else if(HASH_TO_PAGE[hash]) setPage(HASH_TO_PAGE[hash]);
   };
   useEffect(() => {
@@ -2059,6 +2067,7 @@ function App({ user }) {
   // des letzten Besuchs, Elemente mit createdAt danach zählen als "neu". library ist eine
   // globale Collection (kein pro-Coachee-Feld), daher rein zeitbasierter Vergleich.
   const [libraryUnreadCount, setLibraryUnreadCount] = useState(0);
+  const [libraryVisitBaseline, setLibraryVisitBaseline] = useState(null);
   useEffect(() => {
     const lastVisit = Number(localStorage.getItem("libraryLastVisit_"+(user?.uid||"")) || 0);
     const count = library.filter(item => (item.createdAt || 0) > lastVisit).length;
@@ -2066,10 +2075,23 @@ function App({ user }) {
   }, [library, user?.uid]);
   useEffect(() => {
     if(page === "library" && user?.uid) {
+      // Alten Besuchszeitpunkt einmalig einfrieren, BEVOR er unten überschrieben wird —
+      // nur beim allerersten Öffnen der Mediathek in dieser Sitzung (libraryVisitBaseline
+      // ist danach nicht mehr null). Damit bleiben "Neu"-Badges auf den Item-Karten für
+      // die Dauer dieses Besuchs sichtbar, auch wenn der Nav-Zähler sofort auf 0 springt.
+      setLibraryVisitBaseline(prev => prev === null
+        ? Number(localStorage.getItem("libraryLastVisit_"+user.uid) || 0)
+        : prev);
       localStorage.setItem("libraryLastVisit_"+user.uid, String(Date.now()));
       setLibraryUnreadCount(0);
     }
   }, [page, user?.uid]);
+  // "Neu"-Set für die Item-Badges in LibraryPage — leer, solange die Mediathek in dieser
+  // Sitzung noch nie geöffnet wurde (dann zeigt allein der Nav-Badge-Zähler die Anzahl).
+  const newLibraryItemIds = useMemo(() => {
+    if(libraryVisitBaseline === null) return new Set();
+    return new Set(library.filter(item => (item.createdAt||0) > libraryVisitBaseline).map(item=>item.id));
+  }, [library, libraryVisitBaseline]);
 
   // ── Termine-Badge: offene Doodle-Vorschläge ohne Antwort ──
   // Wiederverwendet dieselbe Filterlogik, die im Dashboard bereits für die Textanzeige
@@ -2175,7 +2197,7 @@ function App({ user }) {
       ${page==="dashboard" && html`<${DashboardPage} coachees=${coachees} library=${library} reminders=${reminders} remindersReady=${remindersReady} libraryReady=${libraryReady} doodles=${doodles} setPage=${navTo} user=${user} onLogoTap=${handleLogoTap} setImpulseDefaultTab=${setImpulseDefaultTab} activeImpuls=${activeImpuls} setActiveImpuls=${setActiveImpuls}/>`}
       ${page==="chat"      && html`<${ChatPage} user=${user} coachees=${coachees} setCoachees=${setCoachees} mobileChatOpen=${mobileChatOpen} setMobileChatOpen=${setMobileChatOpen}/>`}
       ${page==="impulse"   && html`<${ImpulseTab} user=${user} reminders=${reminders} setReminders=${saveReminders} setPage=${navTo} defaultSubTab=${impulseDefaultTab} setDefaultSubTab=${setImpulseDefaultTab} setActiveImpuls=${setActiveImpuls} activeImpuls=${activeImpuls} pendingReminderId=${pendingReminderId} setPendingReminderId=${setPendingReminderId} pendingImpulsPopup=${pendingImpulsPopup} setPendingImpulsPopup=${setPendingImpulsPopup} pendingReflexionPopup=${pendingReflexionPopup} setPendingReflexionPopup=${setPendingReflexionPopup}/>`}
-      ${page==="library"   && html`<${LibraryPage} library=${library} setLibrary=${saveLibrary}/>`}
+      ${page==="library"   && html`<${LibraryPage} library=${library} setLibrary=${saveLibrary} pendingLibraryId=${pendingLibraryId} clearPendingLibraryId=${()=>setPendingLibraryId(null)} newItemIds=${newLibraryItemIds}/>`}
       ${page==="doodle"    && html`<${DoodlePage} user=${user} doodles=${doodles} setDoodles=${saveDoodles} coachees=${coachees} events=${events}/>`}
       ${page==="settings"  && html`<${SettingsPage} user=${user} onDeleted=${()=>{ const a=window._fb?.auth; if(a) a.signOut().catch(()=>{}); }}/>`}
     </div>
@@ -3540,10 +3562,29 @@ function JournalPage({journal,setJournal}) {
     </div>`;
 }
 
-function LibraryPage({library}) {
+function LibraryPage({library, pendingLibraryId, clearPendingLibraryId, newItemIds}) {
   const [openId, setOpenId] = useState(null);
   const [searchQ, setSearchQ] = useState('');
   const [photoOverlay, setPhotoOverlay] = useState(null);
+  const [highlightId, setHighlightId] = useState(null);
+  const itemRefs = useRef({});
+
+  // ── Mediathek-Push-Deep-Link: zum neuen Item scrollen und kurz hervorheben ──
+  // (NEU 01.08.2026) Vorher landete ein Push-Tap immer nur auf der allgemeinen Übersicht —
+  // der Coachee musste selbst herausfinden, welches Item neu war. Wartet, bis sowohl die
+  // Item-ID als auch die (ggf. erst asynchron geladene) library-Liste vorhanden sind.
+  useEffect(() => {
+    if(!pendingLibraryId) return;
+    const exists = library.some(i => String(i.id) === String(pendingLibraryId));
+    if(!exists) return;
+    const el = itemRefs.current[pendingLibraryId];
+    if(el) {
+      el.scrollIntoView({behavior:'smooth', block:'center'});
+      setHighlightId(pendingLibraryId);
+      setTimeout(() => setHighlightId(id => id === pendingLibraryId ? null : id), 2600);
+    }
+    clearPendingLibraryId && clearPendingLibraryId();
+  }, [pendingLibraryId, library]);
 
   const SECTIONS = [
     {type:'video', label:'Video',  icon:'play',   color:'#156e6e', bg:'#e0eded', border:'#b0d4d4'},
@@ -3683,8 +3724,13 @@ function LibraryPage({library}) {
             <div style=${{borderRadius:12,overflow:'hidden',border:'0.5px solid var(--border)'}}>
               ${items.map((item,idx) => {
                 const isOpen = openId===item.id;
+                const isNew = newItemIds && newItemIds.has(item.id);
+                const isHighlighted = highlightId===item.id;
                 return html`
-                  <div key=${item.id} style=${{borderTop:idx>0?'0.5px solid var(--border)':'none'}}>
+                  <div key=${item.id} ref=${el=>{ if(el) itemRefs.current[item.id]=el; }}
+                    style=${{borderTop:idx>0?'0.5px solid var(--border)':'none', position:'relative',
+                      boxShadow:isHighlighted?'inset 0 0 0 2px var(--sage)':'none', transition:'box-shadow .3s'}}>
+                    ${isNew&&html`<div style=${{position:'absolute',top:6,right:12,background:'var(--sage-pale)',color:'var(--sage-dark)',fontSize:'.62rem',fontWeight:700,padding:'2px 8px',borderRadius:20,zIndex:1}}>Neu</div>`}
                     <div style=${{display:'flex',alignItems:'center',gap:11,padding:'10px 14px',background:'var(--surface)',cursor:'pointer'}}
                       onClick=${()=>toggle(item.id)}>
                       <div style=${{width:52,height:52,borderRadius:9,flexShrink:0,overflow:'hidden'}}>
