@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-03 13:12 admin -->
+<!-- Version: 2026-08-03 13:31 admin -->
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -513,7 +513,7 @@ window.addEventListener('orientationchange', ()=>setTimeout(setVH,150));
   .page-heading { font-family:'Manuale',serif; font-size:1.7rem; color:var(--text); margin-bottom:4px; }
   .page-sub { font-size:.87rem; color:var(--muted); margin-bottom:24px; }
 
-  .card { background:var(--surface); border-radius:var(--radius); box-shadow:var(--shadow); padding:22px; margin-bottom:16px; }
+  .card { background:#fff; border:1px solid var(--border2); border-radius:var(--radius); box-shadow:var(--shadow); padding:22px; margin-bottom:16px; }
   .card-title {
     font-family:'Manuale',serif; font-size:1.03rem; color:var(--text);
     margin-bottom:14px; padding-bottom:10px; border-bottom:1px solid var(--border);
@@ -1028,7 +1028,7 @@ window.addEventListener('orientationchange', ()=>setTimeout(setVH,150));
 
 /* Coachees page */
 .coachee-grid { display:flex; flex-direction:column; gap:10px; padding:4px 0; }
-.coachee-card { background:var(--surface); border-radius:14px; border:1px solid var(--border); padding:16px 18px; overflow:hidden; }
+.coachee-card { background:#fff; border-radius:14px; border:1px solid var(--border2); padding:16px 18px; overflow:hidden; box-shadow:var(--shadow); }
 .coachee-av { width:52px; height:52px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:.95rem; font-weight:700; flex-shrink:0; }
 .coachee-name { font-weight:700; font-size:1rem; color:var(--text); }
 .coachee-topic { font-size:.79rem; color:var(--muted); margin-top:2px; }
@@ -2849,23 +2849,17 @@ function CoacheesPage({coachees,setCoachees,setPage,pending,setPending,deleted,s
   // Datentyp bleibt bewusst ein Array (max. 1 Element) — sonst müssten alle Stellen, die
   // c.coaching bereits als Array lesen (ImpulsPhasenTab, Coachees-Liste, packageType-
   // Mapping bei Neuanlage), zusätzlich einen zweiten Datentyp (String) abfangen.
+  // Fix (03.08.2026, Folgewunsch): Geschlecht ebenfalls auf Einfachauswahl umgestellt,
+  // gleiches Muster/gleiche Begründung wie bei Coaching oben.
   const selBtn = (field,val) => setForm(f=>{
-    if(field==="coaching"){
-      return {...f,coaching:(f.coaching||[])[0]===val?[]:[val]};
-    }
-    if(field==="gender"){
-      const arr=f[field]||[];
-      return {...f,[field]:arr.includes(val)?arr.filter(x=>x!==val):[...arr,val]};
+    if(field==="coaching"||field==="gender"){
+      return {...f,[field]:(f[field]||[])[0]===val?[]:[val]};
     }
     return {...f,[field]:f[field]===val?"":val};
   });
   const selEditBtn = (field,val) => setEditForm(f=>{
-    if(field==="coaching"){
-      return {...f,coaching:(f.coaching||[])[0]===val?[]:[val]};
-    }
-    if(field==="gender"){
-      const arr=f[field]||[];
-      return {...f,[field]:arr.includes(val)?arr.filter(x=>x!==val):[...arr,val]};
+    if(field==="coaching"||field==="gender"){
+      return {...f,[field]:(f[field]||[])[0]===val?[]:[val]};
     }
     return {...f,[field]:f[field]===val?"":val};
   });
@@ -3012,7 +3006,7 @@ function CoacheesPage({coachees,setCoachees,setPage,pending,setPending,deleted,s
               </div>
             </div>
             <div class="form-row">
-              <label class="label">Geschlecht <span style=${{fontSize:".7rem",fontWeight:400,textTransform:"none",letterSpacing:0,color:"var(--muted)"}}>— mehrere möglich</span></label>
+              <label class="label">Geschlecht</label>
               <div style=${{display:"flex",gap:8}}>
                 ${[["Männlich",html`<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="14" r="6"/><path d="M22 2l-6 6M22 2h-6M22 2v6"/></svg>`],["Weiblich",html`<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6"/><path d="M12 14v8M9 19h6"/></svg>`]].map(([label,icon])=>html`
                   <div key=${label} class=${"sel-btn"+((form.gender||[]).includes(label)?" active":"")} style=${{flex:1,flexDirection:"column",gap:5,padding:"10px 8px"}} onClick=${()=>selBtn("gender",label)}>
@@ -3069,7 +3063,7 @@ function CoacheesPage({coachees,setCoachees,setPage,pending,setPending,deleted,s
               </div>
             </div>
             <div class="form-row">
-              <label class="label">Geschlecht <span style=${{fontSize:".7rem",fontWeight:400,textTransform:"none",letterSpacing:0,color:"var(--muted)"}}>— mehrere möglich</span></label>
+              <label class="label">Geschlecht</label>
               <div style=${{display:"flex",gap:8}}>
                 ${[["Männlich",html`<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="14" r="6"/><path d="M22 2l-6 6M22 2h-6M22 2v6"/></svg>`],["Weiblich",html`<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6"/><path d="M12 14v8M9 19h6"/></svg>`]].map(([label,icon])=>html`
                   <div key=${label} class=${"sel-btn"+((editForm.gender||[]).includes(label)?" active":"")} style=${{flex:1,flexDirection:"column",gap:5,padding:"10px 8px"}} onClick=${()=>selEditBtn("gender",label)}>
@@ -3601,6 +3595,19 @@ function ImpulsPhasenTab() {
   const [resetting, setResetting]       = useState({});
   const [resetDone, setResetDone]       = useState({});
 
+  // Fix (03.08.2026, Layout-Angleichung an Coachees-Seite): gleiche relative
+  // Zeitformatierung wie in CoacheesPage, damit "Aktiv: heute" hier identisch aussieht.
+  const fmtDate = (iso) => {
+    if(!iso) return null;
+    const d = new Date(iso);
+    const diff = Math.floor((Date.now() - d.getTime()) / 86400000);
+    if(diff === 0) return "heute";
+    if(diff === 1) return "gestern";
+    if(diff < 30) return "vor " + diff + " Tagen";
+    if(diff < 365) return "vor " + Math.floor(diff/30) + " Monat(en)";
+    return "vor " + Math.floor(diff/365) + " Jahr(en)";
+  };
+
   useEffect(() => {
     const firestore = db();
     if (!firestore) { setLoading(false); return; }
@@ -3616,7 +3623,10 @@ function ImpulsPhasenTab() {
             else if (typeof raw.toNumber === 'function') phase = raw.toNumber();
             else if (typeof raw.valueOf === 'function') phase = parseInt(raw.valueOf(), 10) || null;
           }
-          return { uid: d.id, ...data, activePhase: phase };
+          const n = data.name||"";
+          const parts = n.trim().split(/\s+/);
+          const initials = parts.length>=2 ? (parts[0][0]+(parts[parts.length-1][0])).toUpperCase() : n.slice(0,2).toUpperCase();
+          return { uid: d.id, ...data, activePhase: phase, initials };
         });
         setCoachees(list);
       })
@@ -3732,11 +3742,14 @@ function ImpulsPhasenTab() {
         const isResetting = resetting[c.uid];
         const isResetDone = resetDone[c.uid];
         return html`
-          <div key=${c.uid} class="card" style=${{marginBottom:12}}>
-            <div style=${{display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:12,marginBottom:10}}>
-              <div>
-                <div style=${{fontWeight:700,fontSize:".95rem",color:"var(--text)"}}>${name}</div>
-                <div style=${{fontSize:".78rem",color:"var(--muted)",marginTop:2}}>${c.email || c.uid.slice(0,12)+"…"}</div>
+          <div key=${c.uid} class="coachee-card" style=${{marginBottom:12}}>
+            <div style=${{display:"flex",alignItems:"flex-start",justifyContent:"space-between",flexWrap:"wrap",gap:12,marginBottom:12}}>
+              <div style=${{display:"flex",alignItems:"center",gap:10,minWidth:0}}>
+                <div style=${{width:44,height:44,borderRadius:"50%",background:AVATAR_BG[0],display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,fontSize:".9rem",color:"var(--text)",flexShrink:0}}>${c.initials||"?"}</div>
+                <div style=${{minWidth:0}}>
+                  <div style=${{fontWeight:700,fontSize:".92rem",color:"var(--text)"}}>${name}</div>
+                  <div style=${{fontSize:".74rem",color:"var(--muted)"}}>${c.lastSeen?("Aktiv: "+fmtDate(c.lastSeen)):(c.email || c.uid.slice(0,12)+"…")}</div>
+                </div>
               </div>
               ${!isResetConfirm && html`
                 <button onClick=${() => resetTodayImpuls(c.uid)} disabled=${isResetting}
