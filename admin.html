@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-03 20:37 admin -->
+<!-- Version: 2026-08-03 20:47 admin -->
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -1999,7 +1999,7 @@ function DashboardPage({coachees,library,doodles,setPage,user}) {
         <div>
           <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.3rem",fontWeight:700,color:"var(--text)"}}>${greeting}</div>
           <div style=${{fontSize:".88rem",color:"var(--muted)",marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"calc(100vw - 120px)"}}>Admin-Portal · Raum für Selbstwirksamkeit</div>
-          <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-08-03 20:37 · Doku v3.84 · 2026-08-03 20:24
+          <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-08-03 20:47 · Doku v3.84 · 2026-08-03 20:24
           </div>
         </div>
       </div>
@@ -2039,10 +2039,6 @@ function DashboardPage({coachees,library,doodles,setPage,user}) {
         </div>
         ${coachees.slice(0,4).map(c=>html`
           <div key=${c.id} style=${{display:"flex",alignItems:"center",gap:12,padding:"9px 0",borderBottom:"1px solid var(--border)",cursor:"pointer"}} onClick=${()=>setPage("chat")}>
-            <div class="conv-avatar" style=${{width:36,height:36,background:c.color}}>
-              ${c.photo?html`<img src=${c.photo} alt=""/>`:c.initials}
-              ${c.online&&html`<span class="online-dot"/>`}
-            </div>
             <div style=${{flex:1,minWidth:0}}>
               <div style=${{fontWeight:700,fontSize:".88rem"}}>${c.name}</div>
               <div style=${{fontSize:".74rem",color:"var(--muted)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>${c.messages?.at(-1)?.text||c.topic}</div>
@@ -2299,10 +2295,6 @@ function ChatPage({coachees,setCoachees,openId,clearOpenId}) {
             <div class="conv-list" style=${{flex:1,overflowY:"auto"}}>
               ${filtered.map(c=>html`
                 <div key=${c.id} class=${"conv-row"+(activeId===c.id?" active":"")} onClick=${()=>selectCoachee(c.id)}>
-                  <div class="conv-avatar" style=${{background:c.color}}>
-                    ${c.photo?html`<img src=${c.photo} alt=""/>`:c.initials}
-                    ${c.online&&html`<span class="online-dot"/>`}
-                  </div>
                   <div class="conv-info">
                     <div class="conv-name">${c.name}</div>
                     <div class="conv-preview">${c.messages?.length?c.messages.at(-1).from==="admin"?"Du: "+c.messages.at(-1).text:c.messages.at(-1).text:c.topic}</div>
@@ -2448,10 +2440,6 @@ function ChatWindow({coachee,onSend,onSendImg,onSendFile,onDeleteMsg,onBack,mobi
           display:"flex",alignItems:"center",justifyContent:"center",padding:"0 4px 0 0",color:"var(--text)"}}>
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
         </button>
-        <div class="ct-av" style=${{background:coachee.color,position:"relative",flexShrink:0}}>
-          ${coachee.photo?html`<img src=${coachee.photo} alt=""/>`:coachee.initials}
-          ${coachee.online&&html`<span class="online-dot" style=${{position:"absolute",bottom:0,right:0}}/>`}
-        </div>
         <div style=${{flex:1,minWidth:0}}>
           <div class="ct-name">${coachee.name}</div>
           <div class="ct-status">
@@ -2924,12 +2912,6 @@ function CoacheesPage({coachees,setCoachees,setPage,pending,setPending,deleted,s
         ${[...coachees].sort((a,b)=>a.name.localeCompare(b.name,"de")).map(c=>html`
           <div key=${c.id} class="coachee-card">
             <div class="coachee-header">
-              <div style=${{position:"relative",flexShrink:0}}>
-                <div class="coachee-av" style=${{background:c.color}}>
-                  ${c.photo?html`<img src=${c.photo} alt="" style=${{width:"100%",height:"100%",borderRadius:"50%",objectFit:"cover"}}/>`:c.initials}
-                </div>
-                ${c.online&&html`<span style=${{position:"absolute",bottom:1,right:1,width:11,height:11,borderRadius:"50%",background:"var(--teal)",border:"2px solid var(--surface)",display:"block"}}/>`}
-              </div>
               <div style=${{flex:1,minWidth:0}}>
                 <div class="coachee-name">${c.name}</div>
                 <div class="coachee-topic">${c.topic}</div>
@@ -3746,7 +3728,6 @@ function ImpulsPhasenTab() {
           <div key=${c.uid} class="coachee-card" style=${{marginBottom:12}}>
             <div style=${{display:"flex",alignItems:"flex-start",justifyContent:"space-between",flexWrap:"wrap",gap:12,marginBottom:12}}>
               <div style=${{display:"flex",alignItems:"center",gap:10,minWidth:0}}>
-                <div style=${{width:44,height:44,borderRadius:"50%",background:AVATAR_BG[0],display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,fontSize:".9rem",color:"var(--text)",flexShrink:0}}>${c.initials||"?"}</div>
                 <div style=${{minWidth:0}}>
                   <div style=${{fontWeight:700,fontSize:".92rem",color:"var(--text)"}}>${name}</div>
                   <div style=${{fontSize:".74rem",color:"var(--muted)"}}>${c.lastSeen?("Aktiv: "+fmtDate(c.lastSeen)):(c.email || c.uid.slice(0,12)+"…")}</div>
