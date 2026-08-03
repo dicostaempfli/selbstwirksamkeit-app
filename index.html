@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-01 16:58 coachee -->
+<!-- Version: 2026-08-03 12:07 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -3117,7 +3117,19 @@ function ImpulsPage({ user, setPage, setActiveImpuls, activeImpuls, pendingImpul
               const todayEntry = snap.docs.find(d => d.data().date === todayStr);
               if (todayEntry) {
                 const s = todayEntry.data().status;
-                if (s === "active") { setStep(1); setActiveEntryRef(todayEntry.ref); }
+                if (s === "active") {
+                  setStep(1); setActiveEntryRef(todayEntry.ref);
+                  // Fix (03.08.2026, Fund "Tagesimpulse stimmen nicht überein"): impuls-State
+                  // wurde bisher NICHT auf den tatsächlich aktiven Eintrag zurückgesetzt, sondern
+                  // blieb auf dem einige Zeilen weiter oben berechneten "next" (nächster, noch
+                  // nicht in impulse_entries vorhandener Impuls aus der Phasen-Bibliothek) stehen
+                  // — dieser next-Wert ist bewusst korrekt für step===0 (nächster anzubietender
+                  // Impuls), aber falsch für step===1 (hier muss der HEUTE bereits angenommene
+                  // Impuls angezeigt werden). Home-Karte zeigte dadurch einen anderen Text als
+                  // der Tages-Impuls-Tab. Analog zum bereits korrekten Fallback-Pfad (Zeile
+                  // ~3174) wird impuls jetzt explizit auf den todayEntry-Text gesetzt.
+                  setImpuls({ id: todayEntry.data().impulsId, text: todayEntry.data().impulsText, hint: "" });
+                }
                 else if (pendingImpulsPopup) {
                   // Fix (02.07.2026, Kapitel 35, Fund "Admin-Phasenwechsel-Push erscheint
                   // trotz nextImpulseAt-Fix weiterhin nicht, wenn heute schon getestet wurde"):
