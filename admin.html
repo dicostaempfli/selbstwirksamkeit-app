@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-03 12:18 admin -->
+<!-- Version: 2026-08-03 12:45 admin -->
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -2751,7 +2751,11 @@ function CoacheesPage({coachees,setCoachees,setPage,pending,setPending,deleted,s
     const firestore = db();
     const pendingData = {
       name:fullname, email:emailNorm,
-      packageType:(form.coaching||[])[0]?.toLowerCase()||form.modell?.toLowerCase()||"einzel",
+      // Fix (03.08.2026): "Eltern" fiel bisher 1:1 auf packageType "eltern" — diesen Wert
+      // gibt es in INTERVALS (Phasen-Tab) gar nicht, wodurch neu angelegte Eltern-Coachees
+      // dort ohne Intervall-Anzeige/Umschalter dastanden. "Eltern" gehört fachlich zum
+      // selben Package wie "Paar" (siehe INTERVALS.paar-Label "Paar- / Elterncoaching").
+      packageType:(()=>{ const k=(form.coaching||[])[0]?.toLowerCase(); return k==="eltern"?"paar":(k||form.modell?.toLowerCase()||"einzel"); })(),
       coaching:form.coaching||[], gender:form.gender||[],
       categories:[...(form.coaching||[]),...(form.gender||[])],
       modell:form.modell, notes:form.notes, kids:form.kids,
@@ -3400,7 +3404,10 @@ function ImpulsAdminPage() {
   // Fix (03.08.2026, Kapitel "Aktuell-Tab entfernt"): Default-Tab von "aktuell" auf
   // "bibliothek" umgestellt, da der "Aktuell"-Tab (settings/tagesimpuls) entfernt wurde —
   // siehe ImpulsAktuellTab-Entfernung unten.
-  const [activeSubTab, setActiveSubTab] = useState("bibliothek");
+  // Fix (03.08.2026, Folgewunsch): "Phasen der Coachees" ist der meistgenutzte Tab im
+  // Alltag (Package-Typ + Phase pro Coachee) — jetzt als Default UND als erster/linker
+  // Button, "Bibliothek" (selten genutzt, nur bei Impuls-Text-Änderungen) rutscht dahinter.
+  const [activeSubTab, setActiveSubTab] = useState("phasen");
 
   const subContent = activeSubTab === "bibliothek"
     ? h(ImpulsBibliothekTab, {})
@@ -3410,8 +3417,8 @@ function ImpulsAdminPage() {
     <div class="page">
       <h1 class="page-title">Impulse</h1>
       <div class="imp-sub-nav">
-        <button class=${"imp-sub-btn" + (activeSubTab==="bibliothek" ? " imp-sub-active" : "")} onClick=${()=>setActiveSubTab("bibliothek")}>Bibliothek</button>
         <button class=${"imp-sub-btn" + (activeSubTab==="phasen" ? " imp-sub-active" : "")} onClick=${()=>setActiveSubTab("phasen")}>Phasen der Coachees</button>
+        <button class=${"imp-sub-btn" + (activeSubTab==="bibliothek" ? " imp-sub-active" : "")} onClick=${()=>setActiveSubTab("bibliothek")}>Bibliothek</button>
       </div>
       ${subContent}
     </div>`;
@@ -3607,6 +3614,26 @@ function ImpulsPhasenTab() {
     integration: { label: "Integrationsphase",      sub: "1 Impuls/Woche · zufälliger Tag · 6 Monate",      color: "var(--pkg-integration)" }
   };
 
+  // Fix (03.08.2026, Kapitel "Transformations-/Integrationsphase"): Coaching-Art (Einzel/
+  // Paar/Eltern) kommt bereits aus der Coachee-Erfassung (Bearbeiten-Formular, "COACHING"-
+  // Feld) — dort ist laut Rico nur EIN Wert wählbar, kein Mehrfach-Stacking nötig. Diese
+  // Info wird hier nur noch read-only als Icon-Chip angezeigt (kein Button mehr, nicht
+  // anklickbar), damit sie nicht doppelt erfasst werden muss. Einzige noch aktive
+  // Auswahl pro Coachee ist der Umschalter Transformationsphase/Integrationsphase, da
+  // NUR dieser die tatsächlich ausgespielten Tages-Impulse beeinflusst (packageType).
+  const COACHING_ICON = {
+    einzel: html`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`,
+    paar:   html`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>`,
+    eltern: html`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="5" r="3"/><path d="M4 21v-2a4 4 0 014-4h0"/><circle cx="17" cy="8" r="2"/><path d="M14 21v-1.5a3 3 0 013-3h0a3 3 0 013 3V21"/></svg>`
+  };
+  // Basis-Package (einzel/paar) aus der Coaching-Art ableiten — "Eltern" fällt unter
+  // dasselbe Package wie "Paar" (siehe INTERVALS.paar-Label "Paar- / Elterncoaching").
+  const deriveBaseType = (c) => {
+    const raw = Array.isArray(c.coaching) ? c.coaching[0] : c.coaching;
+    const key = (raw || "").toLowerCase();
+    return key === "paar" || key === "eltern" ? "paar" : "einzel";
+  };
+
   if (loading) return html`<div style=${{color:"var(--muted)",padding:"40px 0",textAlign:"center"}}>Lade Coachees…</div>`;
 
   if (!coachees.length) return html`
@@ -3619,36 +3646,77 @@ function ImpulsPhasenTab() {
       <p style=${{color:"var(--muted)",fontSize:".9rem",marginBottom:24}}>Wähle Package-Typ und aktive Phase pro Coachee.</p>
       ${coachees.map(c => {
         const phase = c.activePhase || null;
-        const pkg = c.packageType || null;
+        const baseType = deriveBaseType(c);
+        const pkg = c.packageType || baseType;
+        const isIntegration = pkg === "integration";
+        const coachingRaw = Array.isArray(c.coaching) ? c.coaching[0] : c.coaching;
+        const coachingKey = (coachingRaw || "").toLowerCase();
+        const coachingLabel = coachingRaw || "—";
         const isSaving = saving[c.uid];
         const isSaved = saved[c.uid];
         const name = c.name || c.email || c.uid.slice(0,8);
-        const interval = pkg ? INTERVALS[pkg] : null;
+        const interval = INTERVALS[pkg];
         const isResetConfirm = resetConfirm[c.uid];
         const isResetting = resetting[c.uid];
         const isResetDone = resetDone[c.uid];
         return html`
           <div key=${c.uid} class="card" style=${{marginBottom:12}}>
-            <div style=${{display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:12,marginBottom:interval?10:0}}>
+            <div style=${{display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:12,marginBottom:10}}>
               <div>
                 <div style=${{fontWeight:700,fontSize:".95rem",color:"var(--text)"}}>${name}</div>
                 <div style=${{fontSize:".78rem",color:"var(--muted)",marginTop:2}}>${c.email || c.uid.slice(0,12)+"…"}</div>
               </div>
-              <div style=${{display:"flex",gap:4,flexWrap:"wrap",marginBottom:6}}>
-                  ${["einzel","paar","integration"].map(p => html`
-                    <button key=${p} onClick=${() => setPackage(c.uid, p)}
-                      style=${{
-                        padding:"4px 10px", borderRadius:6, border:"1.5px solid",
-                        borderColor: pkg===p ? INTERVALS[p].color : "var(--border2)",
-                        background: pkg===p ? INTERVALS[p].color : "transparent",
-                        color: pkg===p ? "#fff" : "var(--muted)",
-                        fontSize:".72rem", fontWeight:700, cursor:"pointer", transition:"all .15s",
-                        whiteSpace:"nowrap"
-                      }}
-                    >${p==="einzel"?"Einzel":p==="paar"?"Paar/Eltern":"Integration"}</button>
-                  `)}
+              ${!isResetConfirm && html`
+                <button onClick=${() => resetTodayImpuls(c.uid)} disabled=${isResetting}
+                  title="Test zurücksetzen: löscht heutigen Tages-Impuls-Eintrag + Pacing-Sperre, für erneutes Testen desselben Tages"
+                  style=${{
+                    display:"flex", alignItems:"center", justifyContent:"center", width:32, height:32,
+                    borderRadius:8, border:"1px solid var(--border2)", background:"transparent",
+                    color:"var(--muted)", cursor: isResetting ? "default" : "pointer", flexShrink:0
+                  }}
+                >${isResetDone ? h(Ic,{name:"check",size:15}) : h(Ic,{name:"repeat",size:15})}</button>`}
+              ${isResetConfirm && html`
+                <button onClick=${() => resetTodayImpuls(c.uid)}
+                  style=${{
+                    padding:"5px 10px", borderRadius:8, border:"1.5px solid var(--danger-dark)",
+                    background:"var(--danger)", color:"#fff", fontSize:".72rem", fontWeight:700,
+                    cursor:"pointer", whiteSpace:"nowrap", flexShrink:0
+                  }}
+                >Sicher?</button>`}
+            </div>
+
+            <!-- Read-only Chip: Coaching-Art (aus Coachee-Erfassung, hier nicht änderbar) -->
+            <div style=${{display:"flex",gap:8,marginBottom:12}}>
+              <div style=${{display:"flex",alignItems:"center",gap:5,background:"var(--teal-pale)",borderRadius:8,padding:"5px 10px"}}>
+                ${COACHING_ICON[coachingKey] ? h("span",{style:{color:"var(--teal-dark)",display:"flex"}},COACHING_ICON[coachingKey]) : null}
+                <span style=${{fontSize:".72rem",fontWeight:700,color:"var(--teal-dark)"}}>${coachingLabel}</span>
               </div>
-              <div style=${{display:"flex",gap:6,alignItems:"center",flexWrap:"nowrap"}}>
+            </div>
+
+            <!-- Umschalter: einzige noch aktive Auswahl — steuert packageType direkt -->
+            <div style=${{display:"flex",gap:6,marginBottom:isIntegration?0:12}}>
+              <button onClick=${() => setPackage(c.uid, baseType)}
+                style=${{
+                  flex:1, padding:"9px 0", borderRadius:9, border:"1.5px solid",
+                  borderColor: !isIntegration ? "var(--forest-dark)" : "var(--border2)",
+                  background: !isIntegration ? "var(--forest)" : "transparent",
+                  color: !isIntegration ? "#fff" : "var(--muted)",
+                  fontSize:".8rem", fontWeight:700, cursor:"pointer", transition:"all .15s"
+                }}
+              >Transformationsphase</button>
+              <button onClick=${() => setPackage(c.uid, "integration")}
+                style=${{
+                  flex:1, padding:"9px 0", borderRadius:9, border:"1.5px solid",
+                  borderColor: isIntegration ? "var(--forest-dark)" : "var(--border2)",
+                  background: isIntegration ? "var(--forest)" : "transparent",
+                  color: isIntegration ? "#fff" : "var(--muted)",
+                  fontSize:".8rem", fontWeight:700, cursor:"pointer", transition:"all .15s"
+                }}
+              >Integrationsphase</button>
+            </div>
+
+            ${!isIntegration && html`
+              <div style=${{display:"flex",gap:6,alignItems:"center",flexWrap:"nowrap",marginBottom:10}}>
                 ${[1,2,3,4].map(n => {
                   const isActive = phase == n;
                   return html`
@@ -3666,26 +3734,13 @@ function ImpulsPhasenTab() {
                     >${n}</button>`;
                 })}
                 ${isSaved && html`<span style=${{fontSize:".78rem",color:"var(--forest)",fontWeight:700,marginLeft:4}}>✓</span>`}
-                <button onClick=${() => resetTodayImpuls(c.uid)} disabled=${isResetting}
-                  title=${isResetConfirm ? "Sicher? Löscht heutigen Tages-Impuls-Eintrag + Pacing-Sperre — nochmal klicken zum Bestätigen" : "Test zurücksetzen: löscht heutigen Tages-Impuls-Eintrag + Pacing-Sperre, für erneutes Testen desselben Tages"}
-                  style=${{
-                    display:"flex", alignItems:"center", gap:5, marginLeft:6,
-                    padding: isResetConfirm ? "5px 10px" : "0", width: isResetConfirm ? "auto" : 32,
-                    height:32, borderRadius:8, flexShrink:0,
-                    border: isResetConfirm ? "1.5px solid var(--danger-dark)" : "1px solid var(--border2)",
-                    background: isResetConfirm ? "var(--danger)" : "transparent",
-                    color: isResetConfirm ? "#fff" : "var(--muted)",
-                    fontSize:".72rem", fontWeight:700, cursor: isResetting ? "default" : "pointer",
-                    transition:"all .15s", justifyContent:"center", whiteSpace:"nowrap"
-                  }}
-                >${isResetDone ? h(Ic,{name:"check",size:15}) : isResetConfirm ? "Sicher?" : h(Ic,{name:"repeat",size:15})}</button>
-              </div>
-            </div>
-            ${interval && html`
-              <div style=${{display:"flex",alignItems:"center",gap:8,paddingTop:8,borderTop:"1px solid var(--border)"}}>
-                <div style=${{width:8,height:8,borderRadius:"50%",background:interval.color,flexShrink:0}}></div>
-                <div style=${{fontSize:".78rem",color:"var(--muted)"}}>${interval.sub}${phase ? " · Phase " + phase + " aktiv" : " · Keine Phase gewählt"}</div>
               </div>`}
+
+            <!-- Anmerkungszeile unten bleibt erhalten (auf Ricos Wunsch) -->
+            <div style=${{display:"flex",alignItems:"center",gap:8,paddingTop:8,borderTop:"1px solid var(--border)"}}>
+              <div style=${{width:8,height:8,borderRadius:"50%",background:interval.color,flexShrink:0}}></div>
+              <div style=${{fontSize:".78rem",color:"var(--muted)"}}>${interval.sub}${!isIntegration ? (phase ? " · Phase " + phase + " aktiv" : " · Keine Phase gewählt") : ""}</div>
+            </div>
           </div>`;
       })}
     </div>`;
