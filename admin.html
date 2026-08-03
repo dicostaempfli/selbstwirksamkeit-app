@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-03 13:05 admin -->
+<!-- Version: 2026-08-03 13:12 admin -->
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -1038,7 +1038,7 @@ window.addEventListener('orientationchange', ()=>setTimeout(setVH,150));
 .coachee-header { display:flex; align-items:center; gap:14px; }
 .coachee-meta { display:flex; gap:5px; flex-wrap:wrap; margin-top:6px; }
 .coachee-gender { font-size:.68rem; font-weight:700; color:#fff; background:var(--teal); border-radius:99px; padding:2px 8px; }
-.coachee-chip-coaching { display:inline-flex; align-items:center; gap:4px; font-size:.68rem; font-weight:700; color:var(--teal-dark); background:var(--teal-pale); border-radius:99px; padding:2px 9px 2px 7px; }
+.coachee-chip-coaching, .coachee-chip { display:inline-flex; align-items:center; gap:4px; font-size:.68rem; font-weight:700; color:var(--teal-dark); background:var(--teal-pale); border-radius:99px; padding:2px 9px 2px 7px; }
 .coachee-actions { display:flex; flex-direction:column; gap:7px; flex-shrink:0; }
 .coachee-edit-sheet { position:fixed; inset:0; background:rgba(20,50,30,.35); z-index:9998; display:flex; align-items:flex-end; justify-content:center; }
 .coachee-edit-panel { background:var(--surface); border-radius:20px 20px 0 0; padding:24px; width:100%; max-width:480px; max-height:85dvh; overflow-y:auto; }
@@ -2699,6 +2699,18 @@ function CoacheesPage({coachees,setCoachees,setPage,pending,setPending,deleted,s
     paar:   html`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>`,
     eltern: html`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="5" r="3"/><path d="M4 21v-2a4 4 0 014-4h0"/><circle cx="17" cy="8" r="2"/><path d="M14 21v-1.5a3 3 0 013-3h0a3 3 0 013 3V21"/></svg>`
   };
+  // Fix (03.08.2026, Folgewunsch "übersichtlicher darstellen"): Modell- und Geschlecht-
+  // Badges bekommen dieselben Icons wie im Erfassungsformular, damit alle drei Badge-
+  // Typen (Coaching/Modell/Geschlecht) denselben einheitlichen Chip-Look tragen statt
+  // der bisherigen zwei unterschiedlichen Stile (dunkles Vollpill vs. helles Icon-Chip).
+  const MODELL_ICON = {
+    stunden: html`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>`,
+    package: html`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><path d="M3.27 6.96L12 12.01l8.73-5.05M12 22.08V12"/></svg>`
+  };
+  const GENDER_ICON = {
+    männlich: html`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="14" r="6"/><path d="M22 2l-6 6M22 2h-6M22 2v6"/></svg>`,
+    weiblich: html`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6"/><path d="M12 14v8M9 19h6"/></svg>`
+  };
 
   const fmtDate = (iso) => {
     if(!iso) return "–";
@@ -2928,9 +2940,9 @@ function CoacheesPage({coachees,setCoachees,setPage,pending,setPending,deleted,s
                 <div class="coachee-topic">${c.topic}</div>
                 ${c.lastSeen&&h("div",{style:{fontSize:".72rem",color:"var(--muted2)",marginTop:1}}, "Aktiv: "+fmtDate(c.lastSeen))}
                 <div class="coachee-meta">
-                  ${c.modell&&html`<span class="coachee-gender">${c.modell}</span>`}
-                  ${hasVal(c.coaching)&&html`<span class="coachee-chip-coaching">${h("span",{style:{display:"flex"}},COACHING_ICON[(Array.isArray(c.coaching)?c.coaching[0]:c.coaching||"").toLowerCase()]||null)}${Array.isArray(c.coaching)?c.coaching.join(", "):c.coaching}${c.kids?" + Kids":""}</span>`}
-                  ${hasVal(c.gender)&&html`<span class="coachee-gender">${Array.isArray(c.gender)?c.gender.join(", "):c.gender}</span>`}
+                  ${hasVal(c.coaching)&&html`<span class="coachee-chip">${h("span",{style:{display:"flex"}},COACHING_ICON[(Array.isArray(c.coaching)?c.coaching[0]:c.coaching||"").toLowerCase()]||null)}${Array.isArray(c.coaching)?c.coaching.join(", "):c.coaching}${c.kids?" + Kids":""}</span>`}
+                  ${c.modell&&html`<span class="coachee-chip">${h("span",{style:{display:"flex"}},MODELL_ICON[(c.modell||"").toLowerCase()]||null)}${c.modell}</span>`}
+                  ${hasVal(c.gender)&&html`<span class="coachee-chip">${h("span",{style:{display:"flex"}},GENDER_ICON[(Array.isArray(c.gender)?c.gender[0]:c.gender||"").toLowerCase()]||null)}${Array.isArray(c.gender)?c.gender.join(", "):c.gender}</span>`}
                 </div>
               </div>
               <div class="coachee-actions">
