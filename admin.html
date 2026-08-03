@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-03 13:44 admin -->
+<!-- Version: 2026-08-03 13:52 admin -->
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -297,7 +297,8 @@ window.addEventListener('orientationchange', ()=>setTimeout(setVH,150));
   .panel-list { flex:1; overflow-y:auto; }
   .conv-row {
     display:flex; align-items:center; gap:10px;
-    padding:11px 14px; cursor:pointer; border-bottom:1px solid var(--border);
+    padding:12px 14px; cursor:pointer; background:var(--surface);
+    border:1px solid var(--border2); box-shadow:var(--shadow); border-radius:14px; margin-bottom:8px;
     transition:background .15s;
   }
   .conv-row:hover { background:var(--surface2); }
@@ -591,7 +592,7 @@ window.addEventListener('orientationchange', ()=>setTimeout(setVH,150));
 
   /* Dashboard stats */
   .stat-grid { display:flex; flex-direction:column; gap:10px; margin-bottom:18px; }
-  .stat-card { background:var(--surface); border-radius:var(--radius); padding:16px 18px; border:0.5px solid var(--border); }
+  .stat-card { background:var(--surface); border-radius:var(--radius); padding:16px 18px; border:1px solid var(--border2); box-shadow:var(--shadow); }
   .stat-label { font-size:.69rem; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; }
   .stat-value { font-family:'Manuale',serif; font-size:1.75rem; color:var(--text); margin-top:2px; }
   .stat-hint { font-size:.74rem; color:var(--teal-dark); margin-top:2px; }
@@ -1005,7 +1006,7 @@ window.addEventListener('orientationchange', ()=>setTimeout(setVH,150));
 .chat-list-header { padding:14px 16px 10px; border-bottom:1px solid var(--border); flex-shrink:0; background:var(--bg); }
 .chat-list-title { font-family:'Manuale',serif; font-weight:700; font-size:1.05rem; color:var(--text); }
 .conv-list { flex:1; overflow-y:auto; }
-.conv-row { display:flex; align-items:center; gap:10px; padding:11px 14px; cursor:pointer; border-bottom:0.5px solid var(--border); background:var(--surface); transition:background .1s; }
+.conv-row { display:flex; align-items:center; gap:10px; padding:12px 14px; cursor:pointer; background:var(--surface); border:1px solid var(--border2); box-shadow:var(--shadow); border-radius:14px; margin-bottom:8px; transition:background .1s; }
 .conv-row:hover { background:var(--teal-pale); }
 .conv-row.active { background:var(--sage-pale); }
 .conv-avatar { width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:.82rem; font-weight:700; flex-shrink:0; position:relative; color:white; overflow:hidden; }
@@ -1021,7 +1022,7 @@ window.addEventListener('orientationchange', ()=>setTimeout(setVH,150));
 .chat-textarea:focus { outline:none; border-color:var(--teal); }
 
 /* Admin stat cards */
-.stat-card { padding:12px 14px; border-radius:12px; background:var(--surface); border:0.5px solid var(--border); }
+.stat-card { padding:12px 14px; border-radius:12px; background:var(--surface); border:1px solid var(--border2); box-shadow:var(--shadow); }
 .stat-label { font-size:.72rem; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.4px; margin-bottom:4px; }
 .stat-value { font-family:'Manuale',serif; font-size:1.8rem; font-weight:700; color:var(--text); line-height:1; }
 .stat-hint { font-size:.75rem; color:var(--teal-dark); margin-top:3px; }
@@ -3363,12 +3364,12 @@ function LibraryPage({library,setLibrary}) {
               <span style=${{fontFamily:"'Manuale',serif",fontWeight:700,fontSize:'.95rem',color:'var(--text)'}}>${sec.label}</span>
               <span style=${{fontSize:'.78rem',color:'var(--muted)'}}>${items.length}</span>
             </div>
-            <div style=${{borderRadius:12,overflow:'hidden',border:'0.5px solid var(--border)'}}>
+            <div style=${{display:'flex',flexDirection:'column',gap:8}}>
               ${items.map((item,idx)=>{
                 const isOpen=openId===item.id;
                 return html`
-                  <div key=${item.id} style=${{borderTop:idx>0?'0.5px solid var(--border)':'none'}}>
-                    <div style=${{display:'flex',alignItems:'center',gap:11,padding:'10px 14px',background:'var(--surface)',cursor:'pointer'}}
+                  <div key=${item.id} style=${{background:'var(--surface)',border:'1px solid var(--border2)',boxShadow:'var(--shadow)',borderRadius:14,overflow:'hidden'}}>
+                    <div style=${{display:'flex',alignItems:'center',gap:11,padding:'10px 14px',cursor:'pointer'}}
                       onClick=${()=>toggle(item.id)}>
                       <div style=${{width:52,height:52,borderRadius:9,flexShrink:0,overflow:'hidden'}}>
                         <${ThumbSmall} item=${item} sec=${sec}/>
