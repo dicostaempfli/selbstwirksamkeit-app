@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-03 20:47 admin -->
+<!-- Version: 2026-08-06 14:37 admin -->
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -1999,7 +1999,7 @@ function DashboardPage({coachees,library,doodles,setPage,user}) {
         <div>
           <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.3rem",fontWeight:700,color:"var(--text)"}}>${greeting}</div>
           <div style=${{fontSize:".88rem",color:"var(--muted)",marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"calc(100vw - 120px)"}}>Admin-Portal · Raum für Selbstwirksamkeit</div>
-          <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-08-03 20:47 · Doku v3.85 · 2026-08-06 14:15
+          <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-08-06 14:37 · Doku v3.87 · 2026-08-06 14:37
           </div>
         </div>
       </div>
@@ -3577,6 +3577,9 @@ function ImpulsPhasenTab() {
   const [resetConfirm, setResetConfirm] = useState({});
   const [resetting, setResetting]       = useState({});
   const [resetDone, setResetDone]       = useState({});
+  // NEU (06.08.2026, Kapitel 47, Trigger 2): eigener Ladezustand für den neuen
+  // "Tagesimpuls-Plan starten"-Button, analog zu saving/resetting.
+  const [starting, setStarting]         = useState({});
 
   // Fix (03.08.2026, Layout-Angleichung an Coachees-Seite): gleiche relative
   // Zeitformatierung wie in CoacheesPage, damit "Aktiv: heute" hier identisch aussieht.
@@ -3673,6 +3676,24 @@ function ImpulsPhasenTab() {
       .finally(() => setResetting(s => ({...s, [uid]: false})));
   };
 
+  // NEU (06.08.2026, Kapitel 47, Trigger 2): getrennt vom Phasenwechsel (setPhase oben) —
+  // schreibt impulsPlanStartedAt, was die neue Cloud Function onImpulsPlanStarted auslöst
+  // und dort nextImpulseAt auf 1-2 Tage in die Zukunft setzt. Bewusst ein bewusster, von
+  // Diana/Rico manuell ausgelöster zweiter Schritt (siehe Projektdoku Kapitel 47.1), erst
+  // nachdem die erste Sitzung in der neuen Phase stattgefunden hat.
+  const startImpulsPlan = (uid) => {
+    const firestore = db();
+    if (!firestore) return;
+    setStarting(s => ({...s, [uid]: true}));
+    const ts = Date.now();
+    firestore.collection("users").doc(uid).set({ impulsPlanStartedAt: ts }, { merge: true })
+      .then(() => {
+        setCoachees(cs => cs.map(c => c.uid === uid ? {...c, impulsPlanStartedAt: ts} : c));
+      })
+      .catch(() => {})
+      .finally(() => setStarting(s => ({...s, [uid]: false})));
+  };
+
   const INTERVALS = {
     einzel:      { label: "Einzelcoaching",        sub: "6 Impulse · 2 Wochen · alle 2–3 Tage",            color: "var(--pkg-einzel)" },
     paar:        { label: "Paar- / Elterncoaching", sub: "6 Impulse · 4 Wochen · alle 4–7 Tage",            color: "var(--pkg-paar)" },
@@ -3724,6 +3745,7 @@ function ImpulsPhasenTab() {
         const isResetConfirm = resetConfirm[c.uid];
         const isResetting = resetting[c.uid];
         const isResetDone = resetDone[c.uid];
+        const isStarting = starting[c.uid];
         return html`
           <div key=${c.uid} class="coachee-card" style=${{marginBottom:12}}>
             <div style=${{display:"flex",alignItems:"flex-start",justifyContent:"space-between",flexWrap:"wrap",gap:12,marginBottom:12}}>
@@ -3808,6 +3830,28 @@ function ImpulsPhasenTab() {
               <div style=${{width:8,height:8,borderRadius:"50%",background:interval.color,flexShrink:0}}></div>
               <div style=${{fontSize:".78rem",color:"var(--muted)"}}>${interval.sub}${!isIntegration ? (phase ? " · Phase " + phase + " aktiv" : " · Keine Phase gewählt") : ""}</div>
             </div>
+
+            <!-- NEU (06.08.2026, Kapitel 47, Trigger 2): getrennt vom Phasenwechsel — startet
+                 den eigentlichen Tagesimpuls-Rhythmus erst, wenn Diana/Rico bewusst klicken
+                 (nach Workbook-Bearbeitung + erster Sitzung der neuen Phase). Nur sichtbar,
+                 solange eine Transformationsphase mit gewählter Phase aktiv ist. -->
+            ${!isIntegration && phase && html`
+              <div style=${{marginTop:10,paddingTop:10,borderTop:"1px solid var(--border)"}}>
+                ${c.impulsPlanStartedAt && html`
+                  <div style=${{display:"flex",alignItems:"center",justifyContent:"space-between",gap:8}}>
+                    <span style=${{fontSize:".78rem",color:"var(--forest)"}}>Tagesimpuls-Plan: aktiv seit ${fmtDate(c.impulsPlanStartedAt)}</span>
+                    ${h(Ic,{name:"check",size:15,style:{color:"var(--forest)"}})}
+                  </div>`}
+                ${!c.impulsPlanStartedAt && html`
+                  <button onClick=${() => startImpulsPlan(c.uid)} disabled=${isStarting}
+                    style=${{
+                      width:"100%", padding:"9px 0", borderRadius:9, border:"none",
+                      background:"var(--forest)", color:"#fff", fontSize:".8rem", fontWeight:700,
+                      cursor: isStarting ? "default" : "pointer", display:"flex", alignItems:"center",
+                      justifyContent:"center", gap:6
+                    }}
+                  >${h(Ic,{name:"play",size:14})}${isStarting ? "Wird gestartet…" : "Tagesimpuls-Plan starten"}</button>`}
+              </div>`}
           </div>`;
       })}
     </div>`;
