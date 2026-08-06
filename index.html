@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-06 14:58 coachee -->
+<!-- Version: 2026-08-06 21:55 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -3391,7 +3391,11 @@ function ImpulsPage({ user, setPage, setActiveImpuls, activeImpuls, pendingImpul
   // eigentliche erste Impuls der neuen Phase folgt separat im gewohnten Rhythmus.
   if (step === 7) {
     const info = PHASE_INFO[welcomePhase] || PHASE_INFO[1];
-    return h("div", {class:"content-main", style:{maxWidth:520, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", minHeight:320, textAlign:"center", paddingTop:40}},
+    // GEÄNDERT (06.08.2026): height:"100%" statt minHeight:320, kein paddingTop mehr —
+    // .content-main hat bereits flex:1 (CSS), aber minHeight:320 verhinderte, dass der
+    // Container die volle verfügbare Höhe ausfüllt, wodurch justifyContent:"center" nicht
+    // wirklich vertikal zentrierte. Ricos Vorgabe: Inhalt soll ohne Scrollen mittig stehen.
+    return h("div", {class:"content-main", style:{maxWidth:520, height:"100%", boxSizing:"border-box", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", textAlign:"center"}},
       h("div", {style:{width:56, height:56, borderRadius:"50%", background:"var(--sage-pale)", display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 20px"}},
         h(Ic, {name:"impuls", size:26, style:{color:"var(--teal)"}})
       ),
