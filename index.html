@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-03 12:56 coachee -->
+<!-- Version: 2026-08-06 14:15 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -3030,8 +3030,23 @@ const ImpulsReflexionPopup = ({onJa, onNein, onClose}) => html`
     </div>
   </div>`;
 
+// NEU (06.08.2026): Willkommens-Screen bei Phasenwechsel (Variante A). Workbook-Titel
+// und Seitenzahlen sind an das physische Workbook gebunden und ändern sich praktisch nie
+// — deshalb bewusst als Konstante im Code statt als weiteres Firestore-/Admin-JSON-Feld,
+// analog zu den bereits hardcodierten Coach-UIDs. Quelle: Mastervorlage SC_2026,
+// Inhaltsverzeichnis (Phase 1: S.4, Phase 2: S.27, Phase 3: S.54, Phase 4: S.73, Schlusswort: S.83).
+const PHASE_INFO = {
+  1: { title: "Werte & Lebenssinn",              pageStart: 4,  pageEnd: 26 },
+  2: { title: "Gedanken & Gefühle",               pageStart: 27, pageEnd: 53 },
+  3: { title: "Beziehungen & Kommunikation",      pageStart: 54, pageEnd: 72 },
+  4: { title: "Körper & Achtsamkeit",             pageStart: 73, pageEnd: 82 }
+};
+
 function ImpulsPage({ user, setPage, setActiveImpuls, activeImpuls, pendingImpulsPopup, setPendingImpulsPopup, pendingReflexionPopup, setPendingReflexionPopup }) {
   const [step, setStep]           = useState(0);
+  // NEU (06.08.2026): welcomePhase hält die Phase, für die gerade der Willkommens-Screen
+  // (step===7) angezeigt wird — unabhängig vom später geladenen Tagesimpuls.
+  const [welcomePhase, setWelcomePhase] = useState(null);
   const [reflexion, setReflexion] = useState("");
   // Fix (02.07.2026, Kapitel 32): Multi-Select statt Single-Select — koerper ist jetzt ein
   // Array statt ein einzelner String, damit mehrere Körperregionen gleichzeitig gewählt
@@ -3106,6 +3121,26 @@ function ImpulsPage({ user, setPage, setActiveImpuls, activeImpuls, pendingImpul
           const uData = uDoc.exists ? uDoc.data() : {};
           const activePhase = uData.activePhase || 1;
           const nextImpulseAt = uData.nextImpulseAt || 0;
+
+          // NEU (06.08.2026, Variante A): Willkommens-Screen bei Phasenwechsel. Ein rein
+          // lokaler localStorage-Vergleich (kein neues Firestore-Feld nötig) — sobald die
+          // gespeicherte "zuletzt gesehene Phase" von der aktuellen activePhase abweicht,
+          // wird einmalig der Willkommens-Screen (step===7) gezeigt statt des normalen
+          // Tagesimpuls-Flows. Fehlt der Flag komplett (bestehende Coachees vor diesem
+          // Update, oder allererster App-Start), wird er nur gesetzt, OHNE den Screen zu
+          // zeigen — kein rückwirkendes/verfrühtes "Willkommen" für längst laufende Phasen.
+          const phaseSeenKey = "phaseWelcomeSeen_" + (user?.uid || "guest");
+          const seenPhase = localStorage.getItem(phaseSeenKey);
+          if (seenPhase === null) {
+            localStorage.setItem(phaseSeenKey, String(activePhase));
+          } else if (Number(seenPhase) !== activePhase) {
+            localStorage.setItem(phaseSeenKey, String(activePhase));
+            setWelcomePhase(activePhase);
+            setStep(7);
+            if (setPendingImpulsPopup) setPendingImpulsPopup(false);
+            return;
+          }
+
           const phase = (data.phases || []).find(p => p.id === activePhase);
           const impulse = phase ? (phase.impulse || []) : [];
           fbDb.collection("impulse_entries").where("uid","==",user.uid)
@@ -3334,6 +3369,23 @@ function ImpulsPage({ user, setPage, setActiveImpuls, activeImpuls, pendingImpul
   };
 
   if (step === 6) return null;
+
+  // NEU (06.08.2026, Variante A): Willkommens-Screen nach Phasenwechsel. Bewusst VOR dem
+  // !impuls-Ladehinweis platziert — der Screen braucht keinen geladenen Tagesimpuls, der
+  // eigentliche erste Impuls der neuen Phase folgt separat im gewohnten Rhythmus.
+  if (step === 7) {
+    const info = PHASE_INFO[welcomePhase] || PHASE_INFO[1];
+    return h("div", {class:"content-main", style:{maxWidth:520, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", minHeight:320, textAlign:"center", paddingTop:40}},
+      h("div", {style:{width:56, height:56, borderRadius:"50%", background:"var(--sage-pale)", display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 20px"}},
+        h(Ic, {name:"impuls", size:26, style:{color:"var(--teal)"}})
+      ),
+      h("p", {style:{fontFamily:"'Manuale',serif", fontSize:"1.15rem", fontWeight:700, color:"var(--text)", marginBottom:10}}, `Willkommen in Phase ${welcomePhase}`),
+      h("p", {style:{fontSize:".95rem", color:"var(--muted)", lineHeight:1.6, marginBottom:28}}, info.title),
+      h("p", {style:{fontSize:".9rem", color:"var(--muted)", lineHeight:1.7, maxWidth:320, margin:"0 auto"}}, `Ab Seite ${info.pageStart} im Workbook wartet, was zu dieser Phase gehört. Lesen allein reicht nicht — erst wenn du dich wirklich darauf einlässt, beginnt es zu wirken.`),
+      h("p", {style:{fontSize:".9rem", color:"var(--muted)", lineHeight:1.7, maxWidth:320, margin:"14px auto 32px"}}, "Wir sprechen in der nächsten Sitzung über deine neuen Erkenntnisse."),
+      h("button", {class:"impulse-subtab-btn active", style:{width:"100%"}, onClick:()=>{ if(setPage) setPage("dashboard"); }}, "Alles klar")
+    );
+  }
 
   if (!impuls) return html`<div class="content-main" style=${{display:"flex",alignItems:"center",justifyContent:"center",minHeight:200}}><div style=${{color:"var(--muted)",fontSize:".9rem"}}>Lade…</div></div>`;
 
