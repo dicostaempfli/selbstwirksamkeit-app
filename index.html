@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-07 14:57 coachee -->
+<!-- Version: 2026-08-07 15:03 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -3416,21 +3416,28 @@ function ImpulsPage({ user, setPage, setActiveImpuls, activeImpuls, pendingImpul
   // eigentliche erste Impuls der neuen Phase folgt separat im gewohnten Rhythmus.
   if (step === 7) {
     const info = PHASE_INFO[welcomePhase] || PHASE_INFO[1];
-    // GEÄNDERT (07.08.2026): height:"100%" verliess sich darauf, dass ein Eltern-Element eine
-    // konkrete Höhe hat (Prozent-Höhen brauchen das) — laut Ricos Live-Test war das nicht
-    // zuverlässig gegeben (Inhalt nicht mittig, Scrollbalken sichtbar). Jetzt direkt an der
-    // Viewport-Höhe orientiert: minHeight:"calc(100dvh - 170px)" — 170px deckt Sub-Tab-Leiste
-    // (~66px) + Bottom-Nav (~72px) + Sicherheitsabstand für Safe-Area/Rundung ab. Dadurch
-    // hängt die Zentrierung nicht mehr von der Höhenkette der Eltern-Elemente ab.
-    return h("div", {class:"content-main", style:{maxWidth:520, minHeight:"calc(100dvh - 170px)", boxSizing:"border-box", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", textAlign:"center"}},
-      h("div", {style:{width:56, height:56, borderRadius:"50%", background:"var(--sage-pale)", display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 20px"}},
-        h(Ic, {name:"impuls", size:26, style:{color:"var(--teal)"}})
-      ),
-      h("p", {style:{fontFamily:"'Manuale',serif", fontSize:"1.15rem", fontWeight:700, color:"var(--text)", marginBottom:10}}, `Willkommen in Phase ${welcomePhase}`),
-      h("p", {style:{fontSize:".95rem", color:"var(--muted)", lineHeight:1.6, marginBottom:28}}, info.title),
-      h("p", {style:{fontSize:".9rem", color:"var(--muted)", lineHeight:1.7, maxWidth:320, margin:"0 auto"}}, `Ab Seite ${info.pageStart} im Workbook wartet, was zu dieser Phase gehört. Lesen allein reicht nicht — erst wenn du dich wirklich darauf einlässt, beginnt es zu wirken.`),
-      h("p", {style:{fontSize:".9rem", color:"var(--muted)", lineHeight:1.7, maxWidth:320, margin:"14px auto 32px"}}, "Wir sprechen in der nächsten Sitzung über deine neuen Erkenntnisse."),
-      h("button", {class:"impulse-subtab-btn active", style:{width:"100%"}, onClick:()=>{ if(setPage) setPage("dashboard"); }}, "Alles klar")
+    // GEÄNDERT (07.08.2026): Weder height:"100%" noch calc(100dvh - Xpx) lieferten laut
+    // Ricos wiederholtem Live-Test eine echte Zentrierung — Ursache ist der in diesem Projekt
+    // bereits dokumentierte Pitfall "position:fixed innerhalb von overflow:hidden-Eltern
+    // bricht" (siehe Portal-Pattern-Kommentar bei ImpulsPushPopup). Da .impulse-tab-wrap und
+    // #app beide overflow:hidden haben, konnte KEIN CSS-Ansatz innerhalb der normalen
+    // Komponenten-Hierarchie zuverlässig auf die volle Bildschirmhöhe zentrieren. Fix: Step 7
+    // läuft jetzt komplett über das bestehende Portal (#overlay-portal, liegt als
+    // Geschwister-Element ausserhalb von #app) mit echtem position:fixed;inset:0 — dieselbe
+    // Technik, die bei ImpulsPushPopup bereits nachweislich zuverlässig funktioniert.
+    return h(Portal, null,
+      h("div", {style:{position:"fixed", inset:0, background:"var(--bg)", zIndex:9998, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:"32px 36px", boxSizing:"border-box", textAlign:"center"}},
+        h("div", {style:{maxWidth:520, width:"100%"}},
+          h("div", {style:{width:56, height:56, borderRadius:"50%", background:"var(--sage-pale)", display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 20px"}},
+            h(Ic, {name:"impuls", size:26, style:{color:"var(--teal)"}})
+          ),
+          h("p", {style:{fontFamily:"'Manuale',serif", fontSize:"1.15rem", fontWeight:700, color:"var(--text)", marginBottom:10}}, `Willkommen in Phase ${welcomePhase}`),
+          h("p", {style:{fontSize:".95rem", color:"var(--muted)", lineHeight:1.6, marginBottom:28}}, info.title),
+          h("p", {style:{fontSize:".9rem", color:"var(--muted)", lineHeight:1.7, maxWidth:320, margin:"0 auto"}}, `Ab Seite ${info.pageStart} im Workbook wartet, was zu dieser Phase gehört. Lesen allein reicht nicht — erst wenn du dich wirklich darauf einlässt, beginnt es zu wirken.`),
+          h("p", {style:{fontSize:".9rem", color:"var(--muted)", lineHeight:1.7, maxWidth:320, margin:"14px auto 32px"}}, "Wir sprechen in der nächsten Sitzung über deine neuen Erkenntnisse."),
+          h("button", {class:"impulse-subtab-btn active", style:{width:"100%"}, onClick:()=>{ if(setPage) setPage("dashboard"); }}, "Alles klar")
+        )
+      )
     );
   }
 
