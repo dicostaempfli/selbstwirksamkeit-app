@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-07 15:03 coachee -->
+<!-- Version: 2026-08-07 16:18 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -2100,13 +2100,49 @@ function App({ user }) {
     !toSlotsArray(d.slots).some(s => s?.votes?.[user?.uid])
   ).length;
 
+  // ── Impulse-Badge: Willkommens-Screen ungesehen ODER Tagesimpuls fällig ──
+  // Bewusst leicht gehalten (kein zusätzlicher impulse_entries-Query/Composite-Index
+  // hier auf App-Ebene nötig): nutzt dieselben zwei Felder, die ImpulsPage ohnehin
+  // schon aus dem User-Dokument liest (activePhase, nextImpulseAt), plus dieselben
+  // localStorage-Flags, die ImpulsPage selbst schreibt/liest (phaseWelcomeSeen_,
+  // impuls_dismissed_). Reine Anzeige-Logik, keine neue Datenquelle.
+  const [impulseFlagData, setImpulseFlagData] = useState({activePhase:1, nextImpulseAt:0});
+  useEffect(() => {
+    const fbDb = window._fb?.db;
+    if(!fbDb || !user?.uid) return;
+    const unsub = fbDb.collection("users").doc(user.uid).onSnapshot(doc => {
+      const d = doc.data() || {};
+      setImpulseFlagData({activePhase:d.activePhase||1, nextImpulseAt:d.nextImpulseAt||0});
+    }, () => {});
+    return () => unsub();
+  }, [user?.uid]);
+
+  const [impulseUnreadCount, setImpulseUnreadCount] = useState(0);
+  useEffect(() => {
+    if(!user?.uid) { setImpulseUnreadCount(0); return; }
+    let welcomePending = false;
+    try {
+      const seenPhase = localStorage.getItem("phaseWelcomeSeen_"+user.uid);
+      // Flag fehlt komplett → wie in ImpulsPage: kein rückwirkendes "Willkommen",
+      // zählt nicht als offen (deckungsgleich mit der dortigen Erstlauf-Logik).
+      welcomePending = seenPhase !== null && Number(seenPhase) !== impulseFlagData.activePhase;
+    } catch(e) {}
+    let dismissedToday = false;
+    try {
+      const todayStr2 = new Date().toISOString().split("T")[0];
+      dismissedToday = localStorage.getItem("impuls_dismissed_"+user.uid) === todayStr2;
+    } catch(e) {}
+    const impulseDue = impulseFlagData.nextImpulseAt <= Date.now() && !dismissedToday;
+    setImpulseUnreadCount((welcomePending || impulseDue) ? 1 : 0);
+  }, [impulseFlagData, user?.uid, page]);
+
   const navTo = (p) => { setPage(p); setMobileChatOpen(false); };
   const totalUnreadVal = chatUnreadCount;
 
   const NAV_ITEMS = [
     {id:"dashboard", icon:"home",     label:"Home"},
     {id:"chat",      icon:"chat",     label:"Chat",      badge:totalUnreadVal},
-    {id:"impulse",   icon:"impuls",   label:"Impulse"},
+    {id:"impulse",   icon:"impuls",   label:"Impulse",   badge:impulseUnreadCount},
     {id:"library",   icon:"library",  label:"Mediathek", badge:libraryUnreadCount},
     {id:"doodle",    icon:"calendar", label:"Termine",   badge:doodleUnreadCount},
     {id:"settings",  icon:"sliders",  label:"Konto"},
@@ -2212,7 +2248,7 @@ function App({ user }) {
         )
       )
     )}
-    <${Sidebar} page=${page} setPage=${navTo} totalUnread=${totalUnreadVal} libraryUnread=${libraryUnreadCount} doodleUnread=${doodleUnreadCount} user=${user} onLogoTap=${handleLogoTap}/>
+    <${Sidebar} page=${page} setPage=${navTo} totalUnread=${totalUnreadVal} impulseUnread=${impulseUnreadCount} libraryUnread=${libraryUnreadCount} doodleUnread=${doodleUnreadCount} user=${user} onLogoTap=${handleLogoTap}/>
     <div style=${{flex:1,display:'flex',overflow:'hidden',minWidth:0}}>
       ${page==="dashboard" && html`<${DashboardPage} coachees=${coachees} library=${library} reminders=${reminders} remindersReady=${remindersReady} libraryReady=${libraryReady} libraryUnreadCount=${libraryUnreadCount} doodles=${doodles} setPage=${navTo} user=${user} onLogoTap=${handleLogoTap} setImpulseDefaultTab=${setImpulseDefaultTab} activeImpuls=${activeImpuls} setActiveImpuls=${setActiveImpuls}/>`}
       ${page==="chat"      && html`<${ChatPage} user=${user} coachees=${coachees} setCoachees=${setCoachees} mobileChatOpen=${mobileChatOpen} setMobileChatOpen=${setMobileChatOpen}/>`}
@@ -2306,11 +2342,11 @@ function ChatPage({user,coachees,setCoachees,mobileChatOpen,setMobileChatOpen}) 
 }
 
 
-function Sidebar({page,setPage,totalUnread,libraryUnread,doodleUnread,user,onLogoTap}) {
+function Sidebar({page,setPage,totalUnread,impulseUnread,libraryUnread,doodleUnread,user,onLogoTap}) {
   const items = [
     {id:"dashboard",icon:"home",tip:"Übersicht",label:"Home"},
     {id:"chat",icon:"chat",tip:"Nachrichten",label:"Chat",badge:totalUnread},
-    {id:"impulse",icon:"impuls",tip:"Meine Impulse",label:"Impulse"},
+    {id:"impulse",icon:"impuls",tip:"Meine Impulse",label:"Impulse",badge:impulseUnread},
     {id:"library",icon:"library",tip:"Mediathek",label:"Mediathek",badge:libraryUnread},
     {id:"doodle",   icon:"calendar",tip:"Termine & Events",label:"Termine",badge:doodleUnread},
     {id:"settings", icon:"sliders", tip:"Konto",    label:"Konto"},
