@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-06 21:55 coachee -->
+<!-- Version: 2026-08-07 14:04 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -2150,40 +2150,78 @@ function App({ user }) {
           "Damit Impulse und Nachrichten auf deinem Sperrbildschirm erscheinen:"
         ),
         h("div",{style:{display:"flex",flexDirection:"column",gap:7}},
-          /Firefox/i.test(navigator.userAgent) ? [
-            h("div",{style:{display:"flex",alignItems:"center",gap:10}},
-              h("div",{style:{width:22,height:22,borderRadius:"50%",background:"#1D9E75",color:"#fff",fontWeight:700,fontSize:".75rem",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}},"1"),
-              h("span",{style:{fontSize:".82rem",color:"rgba(255,255,255,0.85)"}},
-                "Tippe unten rechts auf ",h("span",{style:{fontWeight:700,color:"#fff"}},"≡")," (Menü-Symbol)"
+          // GEÄNDERT (07.08.2026): Bisher nur Firefox vs. "alles andere" unterschieden — das warf
+          // Android-Chrome und iOS-Drittanbieter-Browser (Chrome/Edge für iOS) fälschlich in denselben
+          // Topf, obwohl der reale Ablauf unterschiedlich ist (Android: kein "Teilen"-Schritt, direkt
+          // "App installieren"; iOS-Drittanbieter: erst "•••"-Menü, dann "Teilen"; echtes iOS-Safari:
+          // "Teilen"-Icon direkt sichtbar in der Toolbar, kein "•••" nötig). Jetzt sauber getrennt.
+          (() => {
+            const ua = navigator.userAgent || "";
+            const isAndroid = /Android/i.test(ua);
+            const isIOS = /iPhone|iPad|iPod/i.test(ua);
+            // Safari-eigene UA enthält "Safari", aber Drittanbieter-Browser auf iOS hängen ihr eigenes
+            // Kürzel an (CriOS = Chrome, FxiOS = Firefox, EdgiOS = Edge, OPiOS = Opera) — nur wenn KEINES
+            // davon vorkommt, ist es tatsächlich Safari.
+            const isThirdPartyIOSBrowser = isIOS && /CriOS|FxiOS|EdgiOS|OPiOS/i.test(ua);
+            const isRealSafari = isIOS && !isThirdPartyIOSBrowser;
+
+            if (isAndroid) {
+              return [
+                h("div",{style:{display:"flex",alignItems:"center",gap:10}},
+                  h("div",{style:{width:22,height:22,borderRadius:"50%",background:"#1D9E75",color:"#fff",fontWeight:700,fontSize:".75rem",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}},"1"),
+                  h("span",{style:{fontSize:".82rem",color:"rgba(255,255,255,0.85)"}},
+                    "Tippe oben rechts auf ",h("span",{style:{fontWeight:700,color:"#fff"}},"⋮")," (drei Punkte)"
+                  )
+                ),
+                h("div",{style:{display:"flex",alignItems:"center",gap:10}},
+                  h("div",{style:{width:22,height:22,borderRadius:"50%",background:"#1D9E75",color:"#fff",fontWeight:700,fontSize:".75rem",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}},"2"),
+                  h("span",{style:{fontSize:".82rem",color:"rgba(255,255,255,0.85)"}},
+                    "Tippe auf ",h("span",{style:{fontWeight:700,color:"#fff"}},"«App installieren»")," (oder «Zum Startbildschirm hinzufügen»)"
+                  )
+                )
+              ];
+            }
+            if (isRealSafari) {
+              return [
+                h("div",{style:{display:"flex",alignItems:"center",gap:10}},
+                  h("div",{style:{width:22,height:22,borderRadius:"50%",background:"#1D9E75",color:"#fff",fontWeight:700,fontSize:".75rem",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}},"1"),
+                  h("span",{style:{fontSize:".82rem",color:"rgba(255,255,255,0.85)"}},
+                    "Tippe unten auf das ",h("span",{style:{fontWeight:700,color:"#fff"}},"Teilen-Symbol")," ⎙"
+                  )
+                ),
+                h("div",{style:{display:"flex",alignItems:"center",gap:10}},
+                  h("div",{style:{width:22,height:22,borderRadius:"50%",background:"#1D9E75",color:"#fff",fontWeight:700,fontSize:".75rem",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}},"2"),
+                  h("span",{style:{fontSize:".82rem",color:"rgba(255,255,255,0.85)"}},
+                    "Wähle ",h("span",{style:{fontWeight:700,color:"#fff"}},"«Zum Home-Bildschirm»")
+                  )
+                )
+              ];
+            }
+            // Fallback: iOS-Drittanbieter-Browser (Chrome/Edge/Firefox/Opera für iOS) sowie Desktop —
+            // dieser Ablauf mit vorgeschaltetem "•••"-Menü passt auch für den unwahrscheinlichen
+            // Desktop-Fall am ehesten.
+            return [
+              h("div",{style:{display:"flex",alignItems:"center",gap:10}},
+                h("div",{style:{width:22,height:22,borderRadius:"50%",background:"#1D9E75",color:"#fff",fontWeight:700,fontSize:".75rem",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}},"1"),
+                h("span",{style:{fontSize:".82rem",color:"rgba(255,255,255,0.85)"}},
+                  "Tippe auf ",h("span",{style:{fontWeight:700,color:"#fff"}},"«•••»")," (drei Punkte, meist unten oder oben rechts)"
+                )
+              ),
+              h("div",{style:{display:"flex",alignItems:"center",gap:10}},
+                h("div",{style:{width:22,height:22,borderRadius:"50%",background:"#1D9E75",color:"#fff",fontWeight:700,fontSize:".75rem",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}},"2"),
+                h("span",{style:{fontSize:".82rem",color:"rgba(255,255,255,0.85)"}},
+                  "Wähle ",h("span",{style:{fontWeight:700,color:"#fff"}},"«Teilen»")," ⎙"
+                )
+              ),
+              h("div",{style:{display:"flex",alignItems:"center",gap:10}},
+                h("div",{style:{width:22,height:22,borderRadius:"50%",background:"#1D9E75",color:"#fff",fontWeight:700,fontSize:".75rem",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}},"3"),
+                h("span",{style:{fontSize:".82rem",color:"rgba(255,255,255,0.85)"}},
+                  "Tippe auf ",h("span",{style:{fontWeight:700,color:"#fff"}},"«Zum Home-Bildschirm»"),
+                  h("span",{style:{color:"rgba(255,255,255,0.5)",fontSize:".75rem"}}," (evtl. unter «Mehr anzeigen»)")
+                )
               )
-            ),
-            h("div",{style:{display:"flex",alignItems:"center",gap:10}},
-              h("div",{style:{width:22,height:22,borderRadius:"50%",background:"#1D9E75",color:"#fff",fontWeight:700,fontSize:".75rem",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}},"2"),
-              h("span",{style:{fontSize:".82rem",color:"rgba(255,255,255,0.85)"}},
-                "Wähle ",h("span",{style:{fontWeight:700,color:"#fff"}},"«Zum Startbildschirm hinzufügen»")
-              )
-            )
-          ] : [
-            h("div",{style:{display:"flex",alignItems:"center",gap:10}},
-              h("div",{style:{width:22,height:22,borderRadius:"50%",background:"#1D9E75",color:"#fff",fontWeight:700,fontSize:".75rem",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}},"1"),
-              h("span",{style:{fontSize:".82rem",color:"rgba(255,255,255,0.85)"}},
-                "Tippe unten rechts auf ",h("span",{style:{fontWeight:700,color:"#fff"}},"···")," (drei Punkte)"
-              )
-            ),
-            h("div",{style:{display:"flex",alignItems:"center",gap:10}},
-              h("div",{style:{width:22,height:22,borderRadius:"50%",background:"#1D9E75",color:"#fff",fontWeight:700,fontSize:".75rem",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}},"2"),
-              h("span",{style:{fontSize:".82rem",color:"rgba(255,255,255,0.85)"}},
-                "Wähle ",h("span",{style:{fontWeight:700,color:"#fff"}},"«Teilen»")," ⎙"
-              )
-            ),
-            h("div",{style:{display:"flex",alignItems:"center",gap:10}},
-              h("div",{style:{width:22,height:22,borderRadius:"50%",background:"#1D9E75",color:"#fff",fontWeight:700,fontSize:".75rem",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}},"3"),
-              h("span",{style:{fontSize:".82rem",color:"rgba(255,255,255,0.85)"}},
-                "Tippe auf ",h("span",{style:{fontWeight:700,color:"#fff"}},"«Zum Home-Bildschirm»"),
-                h("span",{style:{color:"rgba(255,255,255,0.5)",fontSize:".75rem"}}," (evtl. unter «Mehr anzeigen»)")
-              )
-            )
-          ]
+            ];
+          })()
         )
       )
     )}
