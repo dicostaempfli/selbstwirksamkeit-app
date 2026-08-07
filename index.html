@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-07 16:18 coachee -->
+<!-- Version: 2026-08-07 16:22 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -2138,6 +2138,28 @@ function App({ user }) {
 
   const navTo = (p) => { setPage(p); setMobileChatOpen(false); };
   const totalUnreadVal = chatUnreadCount;
+
+  // ── Willkommensnachricht automatisch zeigen beim App-Öffnen ──
+  // Bisher musste der Coachee selbst zum Impuls-Tab navigieren, damit ImpulsPage
+  // (eigene Mount-Logik, Kapitel 46.2) den Screen zeigt. Jetzt: einmal pro App-Start,
+  // sobald feststeht, dass eine Willkommensnachricht aussteht, wird automatisch dorthin
+  // navigiert — ein echter Push-Deep-Link (Chat/Reminder/Mediathek) hat immer Vorrang
+  // und wird nicht überschrieben.
+  const autoWelcomeNavDone = useRef(false);
+  useEffect(() => {
+    if(autoWelcomeNavDone.current || !user?.uid) return;
+    if(pendingImpulsPopup || pendingReminderId || pendingLibraryId) return;
+    let welcomePending = false;
+    try {
+      const seenPhase = localStorage.getItem("phaseWelcomeSeen_"+user.uid);
+      welcomePending = seenPhase !== null && Number(seenPhase) !== impulseFlagData.activePhase;
+    } catch(e) {}
+    if(welcomePending && page === "dashboard") {
+      autoWelcomeNavDone.current = true;
+      setPage("impulse");
+    }
+  }, [impulseFlagData, user?.uid, pendingImpulsPopup, pendingReminderId, pendingLibraryId]);
+
 
   const NAV_ITEMS = [
     {id:"dashboard", icon:"home",     label:"Home"},
