@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-07 15:16 admin -->
+<!-- Version: 2026-08-07 15:27 admin -->
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -2027,7 +2027,7 @@ function DashboardPage({coachees,library,doodles,setPage,user}) {
         <div>
           <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.3rem",fontWeight:700,color:"var(--text)"}}>${greeting}</div>
           <div style=${{fontSize:".88rem",color:"var(--muted)",marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"calc(100vw - 120px)"}}>Admin-Portal · Raum für Selbstwirksamkeit</div>
-          <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-08-07 15:16 · Doku v3.99 · 2026-08-07 15:16
+          <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-08-07 15:27 · Doku v3.99 · 2026-08-07 15:27
           </div>
         </div>
       </div>
@@ -4181,27 +4181,39 @@ function Root() {
 
   useEffect(()=>{
     let unsub;
-    // Fix (07.08.2026): vorheriges `await initFB()` wartete nicht wirklich auf Firebase —
-    // initFB() ist synchron und plant bei fehlendem `firebase`-Objekt nur einen internen
-    // setTimeout-Retry, gibt aber sofort undefined zurück. Bei langsamer/instabiler Verbindung
-    // blieb `auth` dauerhaft undefined bzw. es gab gar keinen garantierten Ausweg aus dem
-    // "Admin-Portal lädt…"-Screen. Identisches, bereits bewährtes Retry-Polling-Muster wie in
-    // index.html (Root) übernommen: bis zu 20 Versuche à 300ms, danach garantierter Fallback.
+    let settled = false;
+    const finish = (u) => {
+      if(settled) return;
+      settled = true;
+      if(u !== undefined) setUser(u);
+      setReady(true);
+    };
+    // Fix (07.08.2026, 2. Runde): Erster Versuch (Retry auf `window._fb.auth`) griff zu kurz —
+    // `firebase.auth()` liefert praktisch sofort ein Auth-Objekt zurück, der Retry-Fallback
+    // wurde also nie erreicht. Das eigentliche Hängenbleiben passiert INNERHALB von Firebase:
+    // `onAuthStateChanged` feuert manchmal nie ein erstes Mal, wenn das interne Lesen des
+    // persistierten Login-Status (IndexedDB, `setPersistence(LOCAL)`) blockiert — bekanntes
+    // Verhalten bei als Home-Bildschirm-App installierten iOS-PWAs (Safari-Standalone-Modus).
+    // Deshalb jetzt ein UNBEDINGTER Sicherheits-Timeout zusätzlich zum Retry: `ready` wird so
+    // oder so nach spätestens 8s freigegeben, unabhängig davon, ob `onAuthStateChanged` je
+    // feuert. Gleiches Watchdog-Prinzip wie der bestehende äussere Kaltstart-Watchdog (Kapitel 32),
+    // hier zusätzlich innerhalb der Komponente für genau diesen inneren Hänger.
+    const safetyTimeout = setTimeout(() => finish(null), 8000);
     const tryAuth = (attempts) => {
       const auth = window._fb?.auth;
       if(auth) {
         // Handle redirect result first (Google Sign-In on mobile)
         auth.getRedirectResult().catch(()=>{});
-        unsub = auth.onAuthStateChanged(u=>{ setUser(u); setReady(true); });
+        unsub = auth.onAuthStateChanged(u=>{ finish(u); });
       } else if(attempts < 20) {
         setTimeout(()=>tryAuth(attempts+1), 300);
       } else {
-        // Firebase konnte nicht geladen werden — App trotzdem freigeben statt endlos zu laden
-        setReady(true);
+        // Firebase-Skripte konnten nicht geladen werden — App trotzdem freigeben statt endlos zu laden
+        finish(null);
       }
     };
     tryAuth(0);
-    return ()=>{ if(unsub) unsub(); };
+    return ()=>{ clearTimeout(safetyTimeout); if(unsub) unsub(); };
   },[]);
 
   if(!ready) return html`
