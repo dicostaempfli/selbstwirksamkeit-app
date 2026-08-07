@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-07 16:48 admin -->
+<!-- Version: 2026-08-07 16:57 admin -->
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -2085,7 +2085,7 @@ function DashboardPage({coachees,library,doodles,setPage,user}) {
         <div>
           <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.3rem",fontWeight:700,color:"var(--text)"}}>${greeting}</div>
           <div style=${{fontSize:".88rem",color:"var(--muted)",marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"calc(100vw - 120px)"}}>Admin-Portal · Raum für Selbstwirksamkeit</div>
-          <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-08-07 16:48 · Doku v3.101 · 2026-08-07 16:38
+          <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-08-07 16:57 · Doku v3.101 · 2026-08-07 16:38
           </div>
         </div>
       </div>
@@ -2210,6 +2210,18 @@ function ChatPage({coachees,setCoachees,openId,clearOpenId}) {
   const [mobileOpen,setMobileOpen] = useState(false);
   const [chatMessages,setChatMessages] = useState([]);
   const chatUnsubRef = useRef(null);
+
+  // Pitfall (Kapitel 64): ChatPage wird beim Seitenwechsel komplett ausgehängt
+  // (${page==="chat"&&html`...`}), der Message-Listener aus selectCoachee() wurde
+  // dabei aber nie abgemeldet — lief im Hintergrund unbegrenzt weiter und setzte bei
+  // jeder neuen Nachricht automatisch lastRead auf den neuesten Zeitstempel, egal ob
+  // die Konversation gerade sichtbar war. Dadurch galt jede Nachricht des zuletzt
+  // geöffneten Coachees sofort als gelesen — Badge/Karte zeigten nie ungelesene
+  // Nachrichten für genau diesen Coachee. Fix: Listener beim Unmount von ChatPage
+  // zuverlässig abmelden.
+  useEffect(() => {
+    return () => { if(chatUnsubRef.current) { chatUnsubRef.current(); chatUnsubRef.current = null; } };
+  }, []);
 
   const [showFilter,setShowFilter]       = useState(false);
   const [filterCat,setFilterCat]         = useState(null);
@@ -2395,7 +2407,7 @@ function ChatPage({coachees,setCoachees,openId,clearOpenId}) {
         : html`
           <div style=${{display:"flex",flexDirection:"column",width:"100%",flex:1,minHeight:0,overflow:"hidden"}}>
             ${active
-              ? html`<${ChatWindow} coachee=${{...active,messages:chatMessages}} onSend=${sendMsg} onSendImg=${sendImg} onSendFile=${sendFile} onDeleteMsg=${async id=>{ const fs=db(); if(fs&&activeId) await fs.collection("chats").doc(activeId).collection("messages").doc(id).delete().catch(()=>{}); }} setLightbox=${()=>{}} onBack=${()=>setMobileOpen(false)} mobileOpen=${true}/>`
+              ? html`<${ChatWindow} coachee=${{...active,messages:chatMessages}} onSend=${sendMsg} onSendImg=${sendImg} onSendFile=${sendFile} onDeleteMsg=${async id=>{ const fs=db(); if(fs&&activeId) await fs.collection("chats").doc(activeId).collection("messages").doc(id).delete().catch(()=>{}); }} setLightbox=${()=>{}} onBack=${()=>{ if(chatUnsubRef.current){ chatUnsubRef.current(); chatUnsubRef.current=null; } setMobileOpen(false); }} mobileOpen=${true}/>`
               : html`<div style=${{display:"flex",alignItems:"center",justifyContent:"center",flex:1,flexDirection:"column",gap:12,color:"var(--muted)"}}>
                   <${Logo} size=${60}/>
                   <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.1rem"}}>Wähle ein Gespräch</div>
