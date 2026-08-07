@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-07 15:27 admin -->
+<!-- Version: 2026-08-07 15:32 admin -->
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -1342,8 +1342,25 @@ setTimeout(function() {
 }, 6000);
 </script>
 <script type="module">
-
-
+// Fix (07.08.2026, Kapitel 44.6-Nachzug): admin.html hatte — im Gegensatz zu index.html —
+// bisher KEINEN window.onerror/unhandledrejection-Fänger, nur den externen Kaltstart-Watchdog
+// (der ausschliesslich greift, wenn render() nie aufgerufen wird). Ein Laufzeitfehler NACH
+// erfolgreichem render() (z.B. beim Übergang vom Splash-Screen zu AdminApp) blieb dadurch
+// bisher völlig unsichtbar — kein Crash-Screen, keine Fehlermeldung, einfach der zuletzt
+// gerenderte Zustand bleibt stehen. 1:1 identisches, bereits bewährtes Muster aus index.html
+// übernommen (dort seit Kapitel 44.6 im Einsatz, hat dort bereits mehrfach die entscheidende
+// Fehlermeldung geliefert, z.B. Pitfall 62).
+window.onerror = (msg, src, line, col, err) => {
+  if(line === 0 && !src) return true; // Cross-Origin-Fehler ignorieren
+  var info = msg + '\n' + (src||'?') + ':' + line + ':' + col + (err&&err.stack ? '\n' + String(err.stack).split('\n').slice(0,4).join('\n') : '');
+  if(window._showAdminCrashScreen) window._showAdminCrashScreen(info);
+  return true;
+};
+window.addEventListener('unhandledrejection', e => {
+  var r = e.reason;
+  var info = 'Unhandled Promise Rejection: ' + (r&&r.message ? r.message : String(r)) + (r&&r.stack ? '\n' + String(r.stack).split('\n').slice(0,4).join('\n') : '');
+  if(window._showAdminCrashScreen) window._showAdminCrashScreen(info);
+});
 
 
 import { h, render, Fragment } from 'preact';
@@ -2027,7 +2044,7 @@ function DashboardPage({coachees,library,doodles,setPage,user}) {
         <div>
           <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.3rem",fontWeight:700,color:"var(--text)"}}>${greeting}</div>
           <div style=${{fontSize:".88rem",color:"var(--muted)",marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"calc(100vw - 120px)"}}>Admin-Portal · Raum für Selbstwirksamkeit</div>
-          <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-08-07 15:27 · Doku v3.99 · 2026-08-07 15:27
+          <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-08-07 15:32 · Doku v3.99 · 2026-08-07 15:32
           </div>
         </div>
       </div>
@@ -4228,6 +4245,22 @@ function Root() {
 
   return html`<${AdminApp} user=${user}/>`;
 }
+
+// ── Fehler-Overlay (analog index.html, Kapitel 44.6) ──
+window._showAdminCrashScreen = function(errorInfo) {
+  var root = document.getElementById('root');
+  if(!root) return;
+  root.innerHTML = '';
+  var div = document.createElement('div');
+  div.style.cssText = 'display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;background:#f8f6f0;padding:32px 24px;text-align:center;font-family:Arial,sans-serif';
+  div.innerHTML = '<div style="font-size:52px;margin-bottom:16px">⚠️</div>'
+    + '<div style="font-size:1.2rem;font-weight:700;color:#1C1914;margin-bottom:10px">Etwas ist schiefgelaufen</div>'
+    + '<div style="font-size:.85rem;color:#6B7280;line-height:1.6;max-width:300px;margin-bottom:24px">Die App hat einen unerwarteten Fehler. Bitte lade sie neu — das löst meistens das Problem.</div>'
+    + '<button onclick="hardReload()" style="background:#156e6e;color:#fff;border:none;border-radius:10px;padding:11px 28px;font-size:.9rem;font-weight:600;cursor:pointer">App neu laden</button>'
+    + '<div style="margin-top:20px;font-size:.72rem;color:#9CA3AF">Bleibt das Problem? info@selbstwirksamkeit.ch</div>'
+    + (errorInfo ? '<div style="margin-top:22px;width:100%;max-width:340px;text-align:left;font-family:monospace;font-size:.68rem;color:#7A756B;background:#EFECE5;border:0.5px solid #D0CBC4;border-radius:8px;padding:10px 12px;white-space:pre-wrap;word-break:break-word;-webkit-user-select:text;user-select:text">' + String(errorInfo).replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</div>' : '');
+  root.appendChild(div);
+};
 
 document.getElementById('root').innerHTML = '';
 render(h(Root,null), document.getElementById('root'));
