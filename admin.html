@@ -1,7 +1,26 @@
-<!-- Version: 2026-08-07 15:32 admin -->
+<!-- Version: 2026-08-07 15:37 admin -->
 <!DOCTYPE html>
 <html lang="de">
 <head>
+<script>
+// Fix (07.08.2026): Bisherige <meta http-equiv="Cache-Control">-Tags wirken NICHT zuverlässig
+// gegen Browser-/CDN-Caching (v.a. iOS Safari, GitHub-Pages-CDN) — sie greifen erst NACH dem
+// Laden, können ein Ausliefern aus dem Cache selbst nicht verhindern. Root Cause für "Fix
+// deployed, Gerät zeigt trotzdem exakt denselben alten Zustand": admin.html selbst wurde
+// vermutlich wiederholt aus dem HTTP-/PWA-Cache bedient statt frisch vom Netz. Einzig
+// zuverlässiger Schutz: einmaliger, echter Cache-Bust per Query-Parameter direkt beim
+// allerersten Laden pro Session — eine URL mit neuem Parameter kann der Browser nicht aus
+// dem Cache für die alte URL bedienen. sessionStorage-Flag verhindert eine Redirect-Schleife.
+(function(){
+  try {
+    if(!location.search.includes('rswcb') && !sessionStorage.getItem('rsw_admin_cachebusted')) {
+      sessionStorage.setItem('rsw_admin_cachebusted', '1');
+      var sep = location.href.includes('?') ? '&' : '?';
+      location.replace(location.href.split('#')[0] + sep + 'rswcb=' + Date.now() + (location.hash || ''));
+    }
+  } catch(e) {}
+})();
+</script>
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
@@ -2044,7 +2063,7 @@ function DashboardPage({coachees,library,doodles,setPage,user}) {
         <div>
           <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.3rem",fontWeight:700,color:"var(--text)"}}>${greeting}</div>
           <div style=${{fontSize:".88rem",color:"var(--muted)",marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"calc(100vw - 120px)"}}>Admin-Portal · Raum für Selbstwirksamkeit</div>
-          <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-08-07 15:32 · Doku v3.99 · 2026-08-07 15:32
+          <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-08-07 15:37 · Doku v3.99 · 2026-08-07 15:37
           </div>
         </div>
       </div>
