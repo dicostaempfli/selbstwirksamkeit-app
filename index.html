@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-09 21:52 coachee -->
+<!-- Version: 2026-08-09 22:01 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -3969,8 +3969,8 @@ function LibraryPage({library, pendingLibraryId, clearPendingLibraryId, uid}) {
                 return html`
                   <div key=${item.id} ref=${el=>{ if(el) itemRefs.current[item.id]=el; }}
                     style=${{gridColumn:isOpen?'1 / -1':'auto',background:'var(--surface)',borderRadius:14,overflow:'hidden',
-                      border:isHighlighted?'0.5px solid var(--sage)':'0.5px solid var(--border)',
-                      boxShadow:isHighlighted?'inset 0 0 0 2px var(--sage)':'none',
+                      border:isHighlighted?'1px solid var(--sage)':'1px solid var(--border2)',
+                      boxShadow:isHighlighted?'var(--shadow), inset 0 0 0 2px var(--sage)':'var(--shadow)',
                       transition:'box-shadow .3s'}}>
                     <div style=${{position:'relative'}}>
                       ${isNew&&html`<div style=${{position:'absolute',top:6,left:6,background:'var(--sage-pale)',color:'var(--sage-dark)',fontSize:'.68rem',fontWeight:700,padding:'2px 9px',borderRadius:20,zIndex:1}}>Neu</div>`}
