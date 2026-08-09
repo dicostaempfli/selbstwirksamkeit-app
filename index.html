@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-09 21:31 coachee -->
+<!-- Version: 2026-08-09 21:39 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -3982,8 +3982,8 @@ function LibraryPage({library, pendingLibraryId, clearPendingLibraryId, uid}) {
                       </div>
                       ${isOpen&&html`
                         <div onClick=${e=>{e.stopPropagation();toggle(item.id);}}
-                          style=${{position:'absolute',top:8,right:8,width:28,height:28,borderRadius:'50%',background:'rgba(255,255,255,.92)',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',zIndex:2}}>
-                          <${Ic} name="x" size=${14} style=${{color:'#156e6e'}}/>
+                          style=${{position:'absolute',top:8,right:8,width:28,height:28,borderRadius:'50%',background:'rgba(0,0,0,.55)',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',zIndex:2}}>
+                          <${Ic} name="x" size=${14} style=${{color:'white'}}/>
                         </div>`}
                     </div>
                     <div style=${{padding:'9px 11px 8px',cursor:'pointer'}} onClick=${onCardTap}>
