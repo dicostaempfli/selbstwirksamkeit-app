@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-09 21:06 admin -->
+<!-- Version: 2026-08-09 21:12 admin -->
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -2087,7 +2087,7 @@ function DashboardPage({coachees,library,doodles,setPage,user}) {
         <div>
           <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.3rem",fontWeight:700,color:"var(--text)"}}>${greeting}</div>
           <div style=${{fontSize:".88rem",color:"var(--muted)",marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"calc(100vw - 120px)"}}>Admin-Portal · Raum für Selbstwirksamkeit</div>
-          <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-08-09 21:06 · Doku v3.101 · 2026-08-09 21:06
+          <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-08-09 21:12 · Doku v3.101 · 2026-08-09 21:12
           </div>
         </div>
       </div>
@@ -3466,11 +3466,14 @@ function LibraryPage({library,setLibrary}) {
             <div style=${{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
               ${items.map((item,idx)=>{
                 const isOpen=openId===item.id;
+                const isFoto=item.type==='foto';
+                const openFoto=()=>setPhotoOverlay(item.fileUrl||item.thumbData);
+                const onCardTap=()=>{ if(isFoto){ openFoto(); } else { toggle(item.id); } };
                 return html`
                   <div key=${item.id} style=${{gridColumn:isOpen?'1 / -1':'auto',background:'var(--surface)',border:'1px solid var(--border2)',boxShadow:'var(--shadow)',borderRadius:14,overflow:'hidden'}}>
                     <div style=${{position:'relative'}}>
-                      <div style=${{width:'100%',height:isOpen?'auto':110,borderRadius:'14px 14px 0 0',overflow:'hidden',cursor:isOpen?'default':'pointer'}}
-                        onClick=${()=>{if(!isOpen)toggle(item.id);}}>
+                      <div style=${{width:'100%',height:isOpen?'auto':110,borderRadius:'14px 14px 0 0',overflow:'hidden',cursor:'pointer'}}
+                        onClick=${()=>{if(isFoto){openFoto();} else if(!isOpen){toggle(item.id);}}}>
                         ${isOpen
                           ? html`<${ExpandedMedia} item=${item} sec=${sec}/>`
                           : html`<${ThumbSmall} item=${item} sec=${sec}/>`}
@@ -3481,7 +3484,7 @@ function LibraryPage({library,setLibrary}) {
                           <${Ic} name="x" size=${14} style=${{color:'#156e6e'}}/>
                         </div>`}
                     </div>
-                    <div style=${{padding:'9px 11px 8px',cursor:'pointer'}} onClick=${()=>toggle(item.id)}>
+                    <div style=${{padding:'9px 11px 8px',cursor:'pointer'}} onClick=${onCardTap}>
                       <div style=${{fontSize:'.82rem',fontWeight:700,color:'var(--text)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>${item.title}</div>
                       <div style=${{fontSize:'.72rem',color:'var(--muted)',marginTop:2,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>${[item.desc,item.duration].filter(Boolean).join(' · ')}</div>
                     </div>
@@ -3492,10 +3495,15 @@ function LibraryPage({library,setLibrary}) {
                           style=${{width:26,height:26,borderRadius:7,background:'var(--danger-pale)',border:'0.5px solid var(--danger-border)',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}}>
                           <${Ic} name="trash" size=${12} style=${{color:'var(--danger-dark)'}}/>
                         </div>
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2.5" stroke-linecap="round" style=${{transform:isOpen?'rotate(180deg)':'rotate(0deg)',transition:'transform .2s',cursor:'pointer'}}
-                          onClick=${e=>{e.stopPropagation();toggle(item.id);}}>
-                          <polyline points="6 9 12 15 18 9"/>
-                        </svg>
+                        ${!isFoto&&html`
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2.5" stroke-linecap="round" style=${{transform:isOpen?'rotate(180deg)':'rotate(0deg)',transition:'transform .2s',cursor:'pointer'}}
+                            onClick=${e=>{e.stopPropagation();toggle(item.id);}}>
+                            <polyline points="6 9 12 15 18 9"/>
+                          </svg>`}
+                        ${isFoto&&html`
+                          <div onClick=${e=>{e.stopPropagation();openFoto();}} style=${{cursor:'pointer',display:'flex',alignItems:'center'}}>
+                            <${Ic} name="image" size=${13} style=${{color:'var(--muted)'}}/>
+                          </div>`}
                       </div>
                     </div>
                   </div>`;
