@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-07 18:49 coachee -->
+<!-- Version: 2026-08-09 21:31 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -1426,6 +1426,8 @@ const IC = {
   mic:     ["M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z","M19 10v2a7 7 0 01-14 0v-2","M12 19v4","M8 23h8"],
   stop:    ["M18 3H6a3 3 0 00-3 3v12a3 3 0 003 3h12a3 3 0 003-3V6a3 3 0 00-3-3z"],
   ticket:  ["M2 9a1 1 0 01-1-1V5a2 2 0 012-2h18a2 2 0 012 2v3a1 1 0 01-1 1 2 2 0 000 4 1 1 0 011 1v3a2 2 0 01-2 2H3a2 2 0 01-2-2v-3a1 1 0 011-1 2 2 0 000-4","M12 5v2","M12 11v2","M12 17v2"],
+  link:    ["M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71","M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"],
+  extlink: ["M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6","M15 3h6v6","M10 14L21 3"],
 };
 
 const Ic = ({ name, size=16, style={} }) => {
@@ -3813,7 +3815,10 @@ function LibraryPage({library, pendingLibraryId, clearPendingLibraryId, uid}) {
     {type:'audio', label:'Audio',  icon:'headphones', color:'#156e6e', bg:'#e0eded', border:'#b0d4d4'},
     {type:'foto',  label:'Fotos',  icon:'image',  color:'#156e6e', bg:'#e0eded', border:'#b0d4d4'},
     {type:'dokus', label:'Dokus',  icon:'file',   color:'#156e6e', bg:'#e0eded', border:'#b0d4d4'},
+    {type:'link',  label:'Links',  icon:'link',   color:'#156e6e', bg:'#e0eded', border:'#b0d4d4'},
   ];
+
+  const urlHost = u => { try { return new URL(u).hostname.replace(/^www\./,''); } catch(e) { return null; } };
 
   const matches = item => !searchQ ||
     item.title?.toLowerCase().includes(searchQ.toLowerCase()) ||
@@ -3823,6 +3828,23 @@ function LibraryPage({library, pendingLibraryId, clearPendingLibraryId, uid}) {
   const toggle = id => setOpenId(v => v === id ? null : id);
 
   const ThumbSmall = ({item, sec}) => {
+    if(item.type==='link'){
+      if(item.thumbData) return html`
+        <div style=${{width:'100%',height:'100%',position:'relative',overflow:'hidden'}}>
+          <img src=${item.thumbData} style=${{width:'100%',height:'100%',objectFit:'cover',display:'block',borderRadius:9}}/>
+          <div style=${{position:'absolute',bottom:2,right:3,background:'rgba(0,0,0,.6)',color:'white',borderRadius:5,width:16,height:16,display:'flex',alignItems:'center',justifyContent:'center'}}><${Ic} name="extlink" size=${9} style=${{color:'white'}}/></div>
+        </div>`;
+      const host = urlHost(item.fileUrl);
+      return html`
+        <div style=${{width:'100%',height:'100%',background:sec.bg,borderRadius:9,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:5}}>
+          ${host
+            ? html`<img src=${'https://www.google.com/s2/favicons?sz=64&domain='+host} width="26" height="26"
+                style=${{borderRadius:6}} onError=${e=>{e.target.style.display='none';e.target.nextSibling.style.display='flex';}}/>`
+            : null}
+          <div style=${{display:host?'none':'flex',width:26,height:26,alignItems:'center',justifyContent:'center'}}><${Ic} name="link" size=${18} style=${{color:sec.color}}/></div>
+          ${host&&html`<div style=${{fontSize:'6.5px',fontWeight:700,color:sec.color,maxWidth:'90%',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>${host}</div>`}
+        </div>`;
+    }
     if((item.type==='video'||item.type==='foto') && item.thumbData) return html`
       <div style=${{width:'100%',height:'100%',position:'relative',overflow:'hidden'}}>
         <img src=${item.thumbData} style=${{width:'100%',height:'100%',objectFit:'cover',display:'block',borderRadius:9}}/>
@@ -3845,75 +3867,68 @@ function LibraryPage({library, pendingLibraryId, clearPendingLibraryId, uid}) {
       </div>`;
   };
 
-  const ExpandedContent = ({item, sec}) => {
-    const closeBtn = html`
-      <div style=${{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'8px 14px',background:'var(--surface)',borderTop:'0.5px solid var(--border)'}}>
-        <span style=${{fontSize:'.75rem',color:'var(--muted)',flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',marginRight:10}}>${item.title}</span>
-        <button onClick=${()=>setOpenId(null)} style=${{display:'flex',alignItems:'center',gap:5,padding:'5px 13px',background:'#156e6e',color:'white',border:'none',borderRadius:8,fontFamily:"'Exo 2',sans-serif",fontWeight:700,fontSize:'.78rem',cursor:'pointer',flexShrink:0}}>
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Schliessen
-        </button>
-      </div>`;
-
+  const ExpandedMedia = ({item, sec}) => {
     if(item.type==='video') return html`
-      <div>
-        <div style=${{width:'100%',maxWidth:560,maxHeight:320,aspectRatio:'16/9',background:'#111',position:'relative',overflow:'hidden',margin:'0 auto'}}>
-          ${item.fileUrl&&html`<video controls src=${item.fileUrl} poster=${item.thumbData||''} style=${{width:'100%',height:'100%',display:'block',objectFit:'contain'}}/>`}
-          ${item.duration&&html`<div style=${{position:'absolute',bottom:8,left:10,background:'rgba(0,0,0,.7)',color:'white',fontSize:'.65rem',fontWeight:700,padding:'2px 7px',borderRadius:4,pointerEvents:'none'}}>HD · ${item.duration}</div>`}
-        </div>
-        ${closeBtn}
+      <div style=${{width:'100%',aspectRatio:'16/9',background:'#111',position:'relative'}}>
+        ${item.fileUrl&&html`<video controls autoPlay src=${item.fileUrl} poster=${item.thumbData||''} style=${{width:'100%',height:'100%',display:'block',objectFit:'contain'}}/>`}
+        ${item.duration&&html`<div style=${{position:'absolute',bottom:8,left:10,background:'rgba(0,0,0,.7)',color:'white',fontSize:'.65rem',fontWeight:700,padding:'2px 7px',borderRadius:4,pointerEvents:'none'}}>HD · ${item.duration}</div>`}
       </div>`;
 
     if(item.type==='foto') return html`
-      <div>
-        <div style=${{width:'100%',maxHeight:400,background:'#111',overflow:'hidden',display:'flex',alignItems:'center',justifyContent:'center',position:'relative'}}>
-          ${(item.fileUrl||item.thumbData)
-            ? html`<img src=${item.fileUrl||item.thumbData} style=${{maxWidth:'100%',maxHeight:400,objectFit:'contain',display:'block',cursor:'zoom-in'}}
-                onClick=${()=>setPhotoOverlay(item.fileUrl||item.thumbData)}/>`
-            : html`<div style=${{padding:40,color:'rgba(255,255,255,.3)',fontSize:'.85rem'}}>Kein Vorschaubild</div>`}
-          <button onClick=${()=>setOpenId(null)} style=${{position:'absolute',top:10,right:10,width:32,height:32,borderRadius:'50%',background:'rgba(0,0,0,.55)',color:'white',border:'none',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-          </button>
-        </div>
+      <div style=${{width:'100%',maxHeight:320,minHeight:180,background:'var(--surface)',display:'flex',alignItems:'center',justifyContent:'center'}}>
+        ${(item.fileUrl||item.thumbData)
+          ? html`<img src=${item.fileUrl||item.thumbData} style=${{maxWidth:'100%',maxHeight:320,objectFit:'contain',display:'block',cursor:'zoom-in'}}
+              onClick=${e=>{e.stopPropagation();setPhotoOverlay(item.fileUrl||item.thumbData);}}/>`
+          : html`<div style=${{padding:40,color:'var(--muted)',fontSize:'.85rem'}}>Kein Vorschaubild</div>`}
       </div>`;
 
     if(item.type==='audio') return html`
-      <div>
-        <div style=${{padding:'16px 20px',background:sec.bg,borderTop:'0.5px solid '+sec.border}}>
-          <audio controls src=${item.fileUrl||''} style=${{width:'100%'}}/>
-        </div>
-        ${closeBtn}
+      <div style=${{padding:'16px 20px',background:sec.bg}}>
+        <audio controls src=${item.fileUrl||''} style=${{width:'100%'}} onClick=${e=>e.stopPropagation()}/>
       </div>`;
 
+    if(item.type==='link'){
+      const host = urlHost(item.fileUrl);
+      return html`
+        <div style=${{width:'100%',minHeight:150,background:'var(--surface)',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:10,padding:item.thumbData?0:'22px 16px'}}>
+          ${item.thumbData
+            ? html`<img src=${item.thumbData} style=${{width:'100%',maxHeight:220,objectFit:'cover',display:'block'}}/>`
+            : html`<div style=${{width:52,height:52,borderRadius:12,background:sec.bg,border:'0.5px solid '+sec.border,display:'flex',alignItems:'center',justifyContent:'center'}}>
+                ${host
+                  ? html`<img src=${'https://www.google.com/s2/favicons?sz=64&domain='+host} width="30" height="30" style=${{borderRadius:6}}/>`
+                  : html`<${Ic} name="link" size=${22} style=${{color:sec.color}}/>`}
+              </div>`}
+          <div style=${{textAlign:'center',padding:item.thumbData?'10px 16px 0':0}}>
+            <div style=${{fontSize:'.88rem',fontWeight:700,color:'var(--text)'}}>${item.title}</div>
+            ${host&&html`<div style=${{fontSize:'.75rem',color:'var(--muted)',marginTop:2}}>${host}</div>`}
+          </div>
+          ${item.fileUrl&&html`
+            <a href=${item.fileUrl} target="_blank" rel="noopener" onClick=${e=>e.stopPropagation()}
+              style=${{display:'flex',alignItems:'center',gap:6,padding:'8px 18px',background:'#156e6e',color:'white',borderRadius:8,fontFamily:"'Exo 2',sans-serif",fontWeight:700,fontSize:'.8rem',textDecoration:'none',marginTop:4,marginBottom:item.thumbData?16:0}}>
+              <${Ic} name="extlink" size=${13} style=${{color:'white'}}/> Öffnen
+            </a>`}
+        </div>`;
+    }
+
     if(item.type==='dokus') return html`
-      <div style=${{position:'relative'}}>
+      <div>
         ${item.fileUrl&&html`
-          <div style=${{width:'100%',overflow:'hidden',position:'relative',maxWidth:'100vw'}}>
+          <div style=${{width:'100%',overflow:'hidden',maxWidth:'100vw'}}>
             <iframe
               src=${'https://docs.google.com/viewer?url='+encodeURIComponent(item.fileUrl)+'&embedded=true'}
-              style=${{width:'100%',height:'70vh',border:'none',display:'block',background:'#f5f5f5'}}
+              style=${{width:'100%',height:340,border:'none',display:'block',background:'#f5f5f5'}}
               title=${item.title}/>
           </div>`}
         ${!item.fileUrl&&html`
           <div style=${{padding:'24px 16px',textAlign:'center',color:'var(--muted)',fontSize:'.85rem'}}>Keine Datei verfügbar</div>`}
-        <button onClick=${()=>setOpenId(null)}
-          style=${{position:'absolute',top:10,right:10,width:32,height:32,borderRadius:'50%',background:'rgba(0,0,0,.55)',color:'white',border:'none',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',zIndex:10}}>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-        </button>
-        <div style=${{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'8px 14px',background:'var(--surface)',borderTop:'0.5px solid var(--border)'}}>
-          <span style=${{fontSize:'.75rem',color:'var(--muted)',flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',marginRight:8}}>${item.fileName||item.title}</span>
-          <div style=${{display:'flex',gap:6,flexShrink:0}}>
-            ${item.fileUrl&&html`
-              <a href=${item.fileUrl} target="_blank" rel="noopener"
-                style=${{display:'flex',alignItems:'center',gap:5,padding:'5px 11px',background:'#156e6e',color:'white',borderRadius:7,fontFamily:"'Exo 2',sans-serif",fontWeight:700,fontSize:'.75rem',textDecoration:'none'}}>
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                Download
-              </a>`}
-            <button onClick=${()=>setOpenId(null)}
-              style=${{display:'flex',alignItems:'center',gap:5,padding:'5px 11px',background:'none',color:'#156e6e',border:'1.5px solid #156e6e',borderRadius:7,fontFamily:"'Exo 2',sans-serif",fontWeight:700,fontSize:'.75rem',cursor:'pointer'}}>
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#156e6e" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Schliessen
-            </button>
-          </div>
-        </div>
+        ${item.fileUrl&&html`
+          <div style=${{display:'flex',justifyContent:'flex-end',padding:'8px 12px',background:'var(--surface)'}}>
+            <a href=${item.fileUrl} target="_blank" rel="noopener" onClick=${e=>e.stopPropagation()}
+              style=${{display:'flex',alignItems:'center',gap:5,padding:'5px 11px',background:'#156e6e',color:'white',borderRadius:7,fontFamily:"'Exo 2',sans-serif",fontWeight:700,fontSize:'.75rem',textDecoration:'none'}}>
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Download
+            </a>
+          </div>`}
       </div>`;
 
     return null;
@@ -3943,36 +3958,50 @@ function LibraryPage({library, pendingLibraryId, clearPendingLibraryId, uid}) {
               <span style=${{fontFamily:"'Manuale',serif",fontWeight:700,fontSize:'.95rem',color:'var(--text)'}}>${sec.label}</span>
               <span style=${{fontSize:'.78rem',color:'var(--muted)',fontWeight:400}}>${items.length}</span>
             </div>
-            <div style=${{borderRadius:12,overflow:'hidden',border:'0.5px solid var(--border)'}}>
+            <div style=${{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
               ${items.map((item,idx) => {
                 const isOpen = openId===item.id;
                 const isNew = !seenIds.has(item.id);
                 const isHighlighted = highlightId===item.id;
-                const isFirst = idx===0, isLast = idx===items.length-1;
-                const cardRadius = (isFirst?'11px 11px ':'0 0 ')+(isLast?'11px 11px':'0 0');
+                const isFoto = item.type==='foto';
+                const openFoto = () => setPhotoOverlay(item.fileUrl||item.thumbData);
+                const onCardTap = () => { markSeen(item.id); if(isFoto){ openFoto(); } else { toggle(item.id); } };
                 return html`
                   <div key=${item.id} ref=${el=>{ if(el) itemRefs.current[item.id]=el; }}
-                    style=${{borderTop:idx>0?'0.5px solid var(--border)':'none', position:'relative'}}>
-                    ${isNew&&html`<div style=${{position:'absolute',top:6,right:12,background:'var(--sage-pale)',color:'var(--sage-dark)',fontSize:'.72rem',fontWeight:700,padding:'3px 10px',borderRadius:20,zIndex:1}}>Neu</div>`}
-                    <div style=${{display:'flex',alignItems:'center',gap:11,padding:'10px 14px',
-                        background:isHighlighted?'var(--sage-pale)':'var(--surface)',
-                        boxShadow:isHighlighted?'inset 0 0 0 2px var(--sage)':'none',
-                        borderRadius:isHighlighted?cardRadius:0,
-                        transition:'background .3s, box-shadow .3s', cursor:'pointer'}}
-                      onClick=${()=>{toggle(item.id); markSeen(item.id);}}>
-                      <div style=${{width:52,height:52,borderRadius:9,flexShrink:0,overflow:'hidden'}}>
-                        <${ThumbSmall} item=${item} sec=${sec}/>
+                    style=${{gridColumn:isOpen?'1 / -1':'auto',background:'var(--surface)',borderRadius:14,overflow:'hidden',
+                      border:isHighlighted?'0.5px solid var(--sage)':'0.5px solid var(--border)',
+                      boxShadow:isHighlighted?'inset 0 0 0 2px var(--sage)':'none',
+                      transition:'box-shadow .3s'}}>
+                    <div style=${{position:'relative'}}>
+                      ${isNew&&html`<div style=${{position:'absolute',top:6,left:6,background:'var(--sage-pale)',color:'var(--sage-dark)',fontSize:'.68rem',fontWeight:700,padding:'2px 9px',borderRadius:20,zIndex:1}}>Neu</div>`}
+                      <div style=${{width:'100%',height:isOpen?'auto':110,overflow:'hidden',cursor:'pointer'}}
+                        onClick=${()=>{if(isFoto){markSeen(item.id);openFoto();} else if(!isOpen){toggle(item.id);markSeen(item.id);}}}>
+                        ${isOpen
+                          ? html`<${ExpandedMedia} item=${item} sec=${sec}/>`
+                          : html`<${ThumbSmall} item=${item} sec=${sec}/>`}
                       </div>
-                      <div style=${{flex:1,minWidth:0}}>
-                        <div style=${{fontSize:'.85rem',fontWeight:700,color:'var(--text)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>${item.title}</div>
-                        <div style=${{fontSize:'.75rem',color:'var(--muted)',marginTop:2}}>${[item.desc,item.duration].filter(Boolean).join(' · ')}</div>
-                        <div style=${{fontSize:'.7rem',color:'var(--muted)',marginTop:1,opacity:.7}}>${item.uploadedAt||''}</div>
-                      </div>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2.5" stroke-linecap="round" style=${{flexShrink:0,transform:isOpen?'rotate(180deg)':'rotate(0deg)',transition:'transform .2s'}}>
-                        <polyline points="6 9 12 15 18 9"/>
-                      </svg>
+                      ${isOpen&&html`
+                        <div onClick=${e=>{e.stopPropagation();toggle(item.id);}}
+                          style=${{position:'absolute',top:8,right:8,width:28,height:28,borderRadius:'50%',background:'rgba(255,255,255,.92)',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',zIndex:2}}>
+                          <${Ic} name="x" size=${14} style=${{color:'#156e6e'}}/>
+                        </div>`}
                     </div>
-                    ${isOpen&&html`<div><${ExpandedContent} item=${item} sec=${sec}/></div>`}
+                    <div style=${{padding:'9px 11px 8px',cursor:'pointer'}} onClick=${onCardTap}>
+                      <div style=${{fontSize:'.82rem',fontWeight:700,color:'var(--text)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>${item.title}</div>
+                      <div style=${{fontSize:'.72rem',color:'var(--muted)',marginTop:2,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>${[item.desc,item.duration].filter(Boolean).join(' · ')}</div>
+                    </div>
+                    <div style=${{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0 11px 10px'}}>
+                      <span style=${{fontSize:'.68rem',color:'var(--muted)',opacity:.7}}>${item.uploadedAt||''}</span>
+                      ${!isFoto&&html`
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2.5" stroke-linecap="round" style=${{transform:isOpen?'rotate(180deg)':'rotate(0deg)',transition:'transform .2s',cursor:'pointer'}}
+                          onClick=${e=>{e.stopPropagation();toggle(item.id);markSeen(item.id);}}>
+                          <polyline points="6 9 12 15 18 9"/>
+                        </svg>`}
+                      ${isFoto&&html`
+                        <div onClick=${e=>{e.stopPropagation();markSeen(item.id);openFoto();}} style=${{cursor:'pointer',display:'flex',alignItems:'center'}}>
+                          <${Ic} name="image" size=${13} style=${{color:'var(--muted)'}}/>
+                        </div>`}
+                    </div>
                   </div>`;
               })}
             </div>
