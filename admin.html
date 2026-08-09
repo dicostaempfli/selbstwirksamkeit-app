@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-09 20:49 admin -->
+<!-- Version: 2026-08-09 20:57 admin -->
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -1546,6 +1546,8 @@ const IC = {
   user:    ["M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2","M12 11a4 4 0 100-8 4 4 0 000 8z"],
   chevron: ["M9 18l6-6-6-6"],
   impuls:  ["M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"],
+  link:    ["M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71","M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"],
+  extlink: ["M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6","M15 3h6v6","M10 14L21 3"],
 };
 const Ic = ({name,size=16,style={}}) => {
   const d=IC[name]; if(!d) return null;
@@ -2085,7 +2087,7 @@ function DashboardPage({coachees,library,doodles,setPage,user}) {
         <div>
           <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.3rem",fontWeight:700,color:"var(--text)"}}>${greeting}</div>
           <div style=${{fontSize:".88rem",color:"var(--muted)",marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"calc(100vw - 120px)"}}>Admin-Portal · Raum für Selbstwirksamkeit</div>
-          <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-08-09 20:49 · Doku v3.101 · 2026-08-09 20:49
+          <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-08-09 20:57 · Doku v3.101 · 2026-08-09 20:57
           </div>
         </div>
       </div>
@@ -3178,6 +3180,7 @@ function LibraryPage({library,setLibrary}) {
   const [duration, setDuration]   = useState('');
   const [uploading, setUploading] = useState(false);
   const [drag, setDrag]           = useState(false);
+  const [linkUrl, setLinkUrl]     = useState('');
   const fileRef                   = useRef(null);
 
   const SECTIONS = [
@@ -3185,7 +3188,17 @@ function LibraryPage({library,setLibrary}) {
     {type:'audio', label:'Audio',  icon:'headphones', color:'#156e6e', bg:'#e0eded', border:'#b0d4d4'},
     {type:'foto',  label:'Fotos',  icon:'image',  color:'#156e6e', bg:'#e0eded', border:'#b0d4d4'},
     {type:'dokus', label:'Dokus',  icon:'file',   color:'#156e6e', bg:'#e0eded', border:'#b0d4d4'},
+    {type:'link',  label:'Links',  icon:'link',   color:'#156e6e', bg:'#e0eded', border:'#b0d4d4'},
   ];
+
+  // Domain sauber aus einer URL extrahieren — für Favicon-Vorschau und Anzeige im
+  // aufgeklappten Zustand. Gibt bei ungültiger URL null zurück statt zu crashen.
+  const urlHost = u => { try { return new URL(u).hostname.replace(/^www\./,''); } catch(e) { return null; } };
+  const normalizeUrl = u => {
+    const t = (u||'').trim();
+    if(!t) return '';
+    return /^https?:\/\//i.test(t) ? t : 'https://'+t;
+  };
 
   const fmtDur = s => { const m=Math.floor(s/60),r=Math.round(s%60); return m+':'+(r<10?'0':'')+r; };
   const detectType = f => {
@@ -3276,12 +3289,15 @@ function LibraryPage({library,setLibrary}) {
 
   const save = async () => {
     if(!form.title.trim()){showToast('Bitte Titel eingeben');return;}
+    if(form.type==='link'&&!linkUrl.trim()){showToast('Bitte Link-URL eingeben');return;}
     const storage=window._fb?.storage, firestore=db();
     if(!firestore){showToast('Firebase nicht bereit');return;}
     setUploading(true);
     try {
       let fileUrl=null,storagePath=null;
-      if(fileData&&storage){
+      if(form.type==='link'){
+        fileUrl=normalizeUrl(linkUrl);
+      } else if(fileData&&storage){
         const safeName=fileName.replace(/[^a-zA-Z0-9._-]/g,'_');
         storagePath=`library/${Date.now()}_${safeName}`;
         const ref=storage.ref(storagePath);
@@ -3298,7 +3314,7 @@ function LibraryPage({library,setLibrary}) {
     finally{
       setUploading(false); setShowUpload(false);
       setForm({title:'',desc:'',type:'audio',keywords:''});
-      setFileData(null); setFileName(''); setThumbData(null); setDuration('');
+      setFileData(null); setFileName(''); setThumbData(null); setDuration(''); setLinkUrl('');
     }
   };
 
@@ -3320,6 +3336,18 @@ function LibraryPage({library,setLibrary}) {
     item.keywords?.toLowerCase().includes(searchQ.toLowerCase());
 
   const ThumbSmall = ({item,sec}) => {
+    if(item.type==='link'){
+      const host=urlHost(item.fileUrl);
+      return html`
+        <div style=${{width:'100%',height:'100%',background:sec.bg,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:5}}>
+          ${host
+            ? html`<img src=${'https://www.google.com/s2/favicons?sz=64&domain='+host} width="26" height="26"
+                style=${{borderRadius:6}} onError=${e=>{e.target.style.display='none';e.target.nextSibling.style.display='flex';}}/>`
+            : null}
+          <div style=${{display:host?'none':'flex',width:26,height:26,alignItems:'center',justifyContent:'center'}}><${Ic} name="link" size=${18} style=${{color:sec.color}}/></div>
+          ${host&&html`<div style=${{fontSize:'6.5px',fontWeight:700,color:sec.color,maxWidth:'90%',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>${host}</div>`}
+        </div>`;
+    }
     if((item.type==='video'||item.type==='foto') && item.thumbData) return html`
       <div style=${{width:'100%',height:'100%',position:'relative',overflow:'hidden'}}>
         <img src=${item.thumbData} style=${{width:'100%',height:'100%',objectFit:'cover',display:'block'}}/>
@@ -3361,16 +3389,38 @@ function LibraryPage({library,setLibrary}) {
 
     if(item.type==='foto') return html`
       <div>
-        <div style=${{width:'100%',maxHeight:400,background:'#111',overflow:'hidden',display:'flex',alignItems:'center',justifyContent:'center',position:'relative'}}>
+        <div style=${{width:'100%',maxHeight:320,minHeight:180,background:'var(--surface)',overflow:'hidden',display:'flex',alignItems:'center',justifyContent:'center'}}>
           ${(item.fileUrl||item.thumbData)
-            ? html`<img src=${item.fileUrl||item.thumbData} style=${{maxWidth:'100%',maxHeight:400,objectFit:'contain',display:'block',cursor:'zoom-in'}}
+            ? html`<img src=${item.fileUrl||item.thumbData} style=${{maxWidth:'100%',maxHeight:320,objectFit:'contain',display:'block',cursor:'zoom-in'}}
                 onClick=${()=>setPhotoOverlay(item.fileUrl||item.thumbData)}/>`
-            : html`<div style=${{padding:40,color:'rgba(255,255,255,.3)',fontSize:'.85rem'}}>Kein Vorschaubild</div>`}
-          <button onClick=${()=>setOpenId(null)} style=${{position:'absolute',top:10,right:10,width:32,height:32,borderRadius:'50%',background:'rgba(0,0,0,.55)',color:'white',border:'none',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-          </button>
+            : html`<div style=${{padding:40,color:'var(--muted)',fontSize:'.85rem'}}>Kein Vorschaubild</div>`}
         </div>
+        ${closeBtn}
       </div>`;
+
+    if(item.type==='link'){
+      const host=urlHost(item.fileUrl);
+      return html`
+        <div>
+          <div style=${{width:'100%',minHeight:150,background:'var(--surface)',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:10,padding:'22px 16px'}}>
+            <div style=${{width:52,height:52,borderRadius:12,background:sec.bg,border:'0.5px solid '+sec.border,display:'flex',alignItems:'center',justifyContent:'center'}}>
+              ${host
+                ? html`<img src=${'https://www.google.com/s2/favicons?sz=64&domain='+host} width="30" height="30" style=${{borderRadius:6}}/>`
+                : html`<${Ic} name="link" size=${22} style=${{color:sec.color}}/>`}
+            </div>
+            <div style=${{textAlign:'center'}}>
+              <div style=${{fontSize:'.88rem',fontWeight:700,color:'var(--text)'}}>${item.title}</div>
+              ${host&&html`<div style=${{fontSize:'.75rem',color:'var(--muted)',marginTop:2}}>${host}</div>`}
+            </div>
+            ${item.fileUrl&&html`
+              <a href=${item.fileUrl} target="_blank" rel="noopener"
+                style=${{display:'flex',alignItems:'center',gap:6,padding:'8px 18px',background:'#156e6e',color:'white',borderRadius:8,fontFamily:"'Exo 2',sans-serif",fontWeight:700,fontSize:'.8rem',textDecoration:'none',marginTop:4}}>
+                <${Ic} name="extlink" size=${13} style=${{color:'white'}}/> Öffnen
+              </a>`}
+          </div>
+          ${closeBtn}
+        </div>`;
+    }
 
     if(item.type==='audio') return html`
       <div>
@@ -3490,7 +3540,13 @@ function LibraryPage({library,setLibrary}) {
               <h2 class="modal-title" style=${{marginBottom:0}}>Material hochladen</h2>
               <button style=${{background:'none',border:'none',cursor:'pointer',color:'var(--muted)',padding:4,borderRadius:8,display:'flex'}} onClick=${()=>setShowUpload(false)}><${Ic} name="x" size=${20}/></button>
             </div>
-            <div class=${'drop-zone'+(drag?' drag-over':'')}
+            ${form.type==='link'
+              ? html`<div class="form-row"><label class="label">Link-URL *</label>
+                  <input class="input" value=${linkUrl} onInput=${e=>setLinkUrl(e.target.value)}
+                    placeholder="z.B. podcasts.apple.com/…"/>
+                  <div style=${{fontSize:'.72rem',color:'var(--muted)',marginTop:4}}>Podcast-Folge, Artikel oder sonstiger Link — öffnet extern beim Antippen.</div>
+                </div>`
+              : html`<div class=${'drop-zone'+(drag?' drag-over':'')}
               onDragOver=${e=>{e.preventDefault();setDrag(true);}}
               onDragLeave=${()=>setDrag(false)}
               onDrop=${handleDrop}
@@ -3510,7 +3566,7 @@ function LibraryPage({library,setLibrary}) {
                     <div style=${{fontSize:'.88rem'}}>Datei hierher ziehen oder antippen</div>
                     <div style=${{fontSize:'.75rem',marginTop:4,opacity:.6}}>Audio · Video · Bild · PDF · Dokument</div>
                   </div>`}
-            </div>
+            </div>`}
             <div class="form-row"><label class="label">Titel *</label>
               <input class="input" value=${form.title} onInput=${e=>setForm(f=>({...f,title:e.target.value}))} placeholder="Titel des Materials"/></div>
             <div class="form-row"><label class="label">Beschreibung</label>
@@ -3519,7 +3575,7 @@ function LibraryPage({library,setLibrary}) {
               <input class="input" value=${form.keywords} onInput=${e=>setForm(f=>({...f,keywords:e.target.value}))} placeholder="z.B. atem, körper, entspannung"/></div>
             <div class="form-row"><label class="label">Typ</label>
               <div style=${{display:'flex',gap:8,flexWrap:'wrap'}}>
-                ${[['audio','Audio','headphones'],['video','Video','play'],['foto','Foto','image'],['dokus','Doku','file']].map(([id,label,icon])=>html`
+                ${[['audio','Audio','headphones'],['video','Video','play'],['foto','Foto','image'],['dokus','Doku','file'],['link','Link','link']].map(([id,label,icon])=>html`
                   <div key=${id} class=${'sel-btn'+(form.type===id?' active':'')} style=${{flex:1,minWidth:80,flexDirection:'column',gap:6,padding:'10px 8px'}} onClick=${()=>setForm(f=>({...f,type:id}))}>
                     <div style=${{width:28,height:28,borderRadius:7,background:form.type===id?'var(--teal)':'#e0eded',border:'0.5px solid '+(form.type===id?'var(--teal-dark)':'#b0d4d4'),display:'flex',alignItems:'center',justifyContent:'center'}}><${Ic} name=${icon} size=${14} style=${{color:form.type===id?'#fff':'#156e6e'}}/></div>
                     ${label}
