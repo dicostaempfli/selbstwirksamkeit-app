@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-07 16:57 admin -->
+<!-- Version: 2026-08-09 20:49 admin -->
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -2085,7 +2085,7 @@ function DashboardPage({coachees,library,doodles,setPage,user}) {
         <div>
           <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.3rem",fontWeight:700,color:"var(--text)"}}>${greeting}</div>
           <div style=${{fontSize:".88rem",color:"var(--muted)",marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"calc(100vw - 120px)"}}>Admin-Portal · Raum für Selbstwirksamkeit</div>
-          <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-08-07 16:57 · Doku v3.101 · 2026-08-07 16:38
+          <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-08-09 20:49 · Doku v3.101 · 2026-08-09 20:49
           </div>
         </div>
       </div>
@@ -3444,27 +3444,29 @@ function LibraryPage({library,setLibrary}) {
               <span style=${{fontFamily:"'Manuale',serif",fontWeight:700,fontSize:'.95rem',color:'var(--text)'}}>${sec.label}</span>
               <span style=${{fontSize:'.78rem',color:'var(--muted)'}}>${items.length}</span>
             </div>
-            <div style=${{display:'flex',flexDirection:'column',gap:8}}>
+            <div style=${{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
               ${items.map((item,idx)=>{
                 const isOpen=openId===item.id;
                 return html`
-                  <div key=${item.id} style=${{background:'var(--surface)',border:'1px solid var(--border2)',boxShadow:'var(--shadow)',borderRadius:14,overflow:'hidden'}}>
-                    <div style=${{display:'flex',alignItems:'center',gap:11,padding:'10px 14px',cursor:'pointer'}}
-                      onClick=${()=>toggle(item.id)}>
-                      <div style=${{width:52,height:52,borderRadius:9,flexShrink:0,overflow:'hidden'}}>
+                  <div key=${item.id} style=${{gridColumn:isOpen?'1 / -1':'auto',background:'var(--surface)',border:'1px solid var(--border2)',boxShadow:'var(--shadow)',borderRadius:14,overflow:'hidden'}}>
+                    <div style=${{cursor:'pointer'}} onClick=${()=>toggle(item.id)}>
+                      <div style=${{width:'100%',height:110,borderRadius:'14px 14px 0 0',overflow:'hidden'}}>
                         <${ThumbSmall} item=${item} sec=${sec}/>
                       </div>
-                      <div style=${{flex:1,minWidth:0}}>
-                        <div style=${{fontSize:'.88rem',fontWeight:700,color:'var(--text)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>${item.title}</div>
-                        <div style=${{fontSize:'.75rem',color:'var(--muted)',marginTop:2}}>${[item.desc,item.duration].filter(Boolean).join(' · ')}</div>
-                        <div style=${{fontSize:'.7rem',color:'var(--muted)',marginTop:1,opacity:.7}}>${item.uploadedAt||''}</div>
+                      <div style=${{padding:'9px 11px 8px'}}>
+                        <div style=${{fontSize:'.82rem',fontWeight:700,color:'var(--text)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>${item.title}</div>
+                        <div style=${{fontSize:'.72rem',color:'var(--muted)',marginTop:2,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>${[item.desc,item.duration].filter(Boolean).join(' · ')}</div>
                       </div>
+                    </div>
+                    <div style=${{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0 11px 10px'}}>
+                      <span style=${{fontSize:'.68rem',color:'var(--muted)',opacity:.7}}>${item.uploadedAt||''}</span>
                       <div style=${{display:'flex',alignItems:'center',gap:6,flexShrink:0}}>
                         <div onClick=${e=>{e.stopPropagation();if(confirm('Material löschen?'))del(item.id);}}
-                          style=${{width:28,height:28,borderRadius:7,background:'var(--danger-pale)',border:'0.5px solid var(--danger-border)',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}}>
-                          <${Ic} name="trash" size=${13} style=${{color:'var(--danger-dark)'}}/>
+                          style=${{width:26,height:26,borderRadius:7,background:'var(--danger-pale)',border:'0.5px solid var(--danger-border)',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}}>
+                          <${Ic} name="trash" size=${12} style=${{color:'var(--danger-dark)'}}/>
                         </div>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2.5" stroke-linecap="round" style=${{transform:isOpen?'rotate(180deg)':'rotate(0deg)',transition:'transform .2s'}}>
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2.5" stroke-linecap="round" style=${{transform:isOpen?'rotate(180deg)':'rotate(0deg)',transition:'transform .2s',cursor:'pointer'}}
+                          onClick=${e=>{e.stopPropagation();toggle(item.id);}}>
                           <polyline points="6 9 12 15 18 9"/>
                         </svg>
                       </div>
