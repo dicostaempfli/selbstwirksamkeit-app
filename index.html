@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-10 08:47 coachee -->
+<!-- Version: 2026-08-10 08:55 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -1287,7 +1287,7 @@
 </head>
 <body>
 
-<div id="app"><div style="display:flex;align-items:center;justify-content:center;min-height:100vh;background:#f9f7f3"><div style="width:34px;height:34px;border:3px solid #e3dfda;border-top-color:#156e6e;border-radius:50%;animation:rswspin .8s linear infinite"></div></div></div>
+<div id="app"><div style="display:flex;align-items:center;justify-content:center;min-height:100vh;background:#f9f7f3"><div style="width:34px;height:34px;border:3px solid #e3dfda;border-top-color:#156e6e;border-radius:50%;animation:rswspin .8s linear infinite;will-change:transform"></div></div></div>
 <style>@keyframes rswspin{to{transform:rotate(360deg)}}</style>
 <div id="breath-portal"></div>
 <div id="overlay-portal"></div>
@@ -5075,7 +5075,7 @@ function Root() {
     <div style=${{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",width:"100%",flexDirection:"column",gap:16,background:"var(--bg)"}}>
       <div style=${{fontFamily:"'Exo 2',sans-serif",fontSize:".72rem",fontWeight:600,color:"#B8860B",letterSpacing:"1px"}}>88445719</div>
       <${Wordmark} dark=${true} height=${52}/>
-      <div style=${{width:36,height:36,borderRadius:"50%",border:"3px solid var(--border)",borderTopColor:"var(--teal)",animation:"spin .8s linear infinite"}}/>
+      <div style=${{width:36,height:36,borderRadius:"50%",border:"3px solid var(--border)",borderTopColor:"var(--teal)",animation:"spin .8s linear infinite",willChange:"transform"}}/>
     </div>`;
 
   if(!user) return html`<${LoginPage}/>`;
@@ -5174,7 +5174,7 @@ function AppGate({user}) {
   if(userDoc === undefined) return html`
     <div style=${{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",width:"100%",flexDirection:"column",gap:16,background:"var(--bg)"}}>
       <${Wordmark} dark=${true} height=${52}/>
-      <div style=${{width:36,height:36,borderRadius:"50%",border:"3px solid var(--border)",borderTopColor:"var(--teal)",animation:"spin .8s linear infinite"}}/>
+      <div style=${{width:36,height:36,borderRadius:"50%",border:"3px solid var(--border)",borderTopColor:"var(--teal)",animation:"spin .8s linear infinite",willChange:"transform"}}/>
     </div>`;
 
   if(userDoc === null) return html`<${PendingScreen} user=${user}/>`;
