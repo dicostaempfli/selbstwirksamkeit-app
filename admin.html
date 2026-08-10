@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-09 22:25 admin -->
+<!-- Version: 2026-08-10 08:47 admin -->
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -1363,7 +1363,11 @@ window.onerror = (msg, src, line, col, err) => {
 };
 window.addEventListener('unhandledrejection', e => {
   var r = e.reason;
-  var info = 'Unhandled Promise Rejection: ' + (r&&r.message ? r.message : String(r)) + (r&&r.stack ? '\n' + String(r.stack).split('\n').slice(0,4).join('\n') : '');
+  var msg = (r&&r.message) ? r.message : String(r);
+  // Fix (10.08.2026, Pitfall 70): 1:1 identischer Filter wie in index.html — siehe dortiger
+  // Kommentar. Bekannter, harmloser Safari-IndexedDB-Bug in der Firebase-SDK-Persistenz.
+  if(/in-progress transaction/i.test(msg)) { console.warn('[IDB] transienter Safari-Fehler ignoriert:', msg); return; }
+  var info = 'Unhandled Promise Rejection: ' + msg + (r&&r.stack ? '\n' + String(r.stack).split('\n').slice(0,4).join('\n') : '');
   if(window._showAdminCrashScreen) window._showAdminCrashScreen(info);
 });
 
@@ -2087,7 +2091,7 @@ function DashboardPage({coachees,library,doodles,setPage,user}) {
         <div>
           <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.3rem",fontWeight:700,color:"var(--text)"}}>${greeting}</div>
           <div style=${{fontSize:".88rem",color:"var(--muted)",marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"calc(100vw - 120px)"}}>Admin-Portal · Raum für Selbstwirksamkeit</div>
-          <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-08-09 22:25 · Doku v3.103 · 2026-08-09 22:25
+          <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-08-10 08:47 · Doku v3.103 · 2026-08-10 08:47
           </div>
         </div>
       </div>
