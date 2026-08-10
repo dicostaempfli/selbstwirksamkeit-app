@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-10 10:00 coachee -->
+<!-- Version: 2026-08-10 10:32 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -3260,6 +3260,23 @@ function ImpulsPage({ user, setPage, setActiveImpuls, activeImpuls, pendingImpul
     const fbDb = window._fb?.db;
     if (!fbDb || !user?.uid) return;
     const todayStr = new Date().toISOString().split("T")[0];
+    // Fix (10.08.2026, Pitfall 71): users/{uid}.get() ohne source-Angabe kann beim
+    // Kaltstart über Push-Tap (schwaches Netz, Firestore-Verbindung noch nicht
+    // etabliert) stillschweigend einen veralteten lokalen Cache-Wert statt des
+    // frischen Server-Stands liefern. Das führte dazu, dass activePhase nach einem
+    // Admin-Phasenwechsel kurzzeitig noch die ALTE Phase zeigte, der
+    // phaseWelcomeSeen_-Vergleich dadurch fälschlich KEINEN Mismatch erkannte und
+    // statt des Willkommens-Screens der alte Tagesimpuls der vorherigen Phase
+    // erschien — bis ein späterer Effect-Durchlauf (activeImpuls-Änderung) den
+    // inzwischen korrekten Server-Wert nachlieferte. Gleiches Prinzip wie
+    // Kapitel 34.2: ein echter Push-Tap ist ein autoritatives, aktuelles Signal
+    // und muss einen veralteten Cache-Stand überstimmen — daher hier gezielt
+    // {source:'server'} erzwingen, aber NUR im Push-Fall (pendingImpulsPopup),
+    // mit Fallback auf den normalen (cache-fähigen) .get() falls wirklich offline.
+    const userDocPromise = pendingImpulsPopup
+      ? fbDb.collection("users").doc(user.uid).get({source:"server"})
+          .catch(() => fbDb.collection("users").doc(user.uid).get())
+      : fbDb.collection("users").doc(user.uid).get();
     // Fix: settings/impulse_library und users/{uid} sind voneinander unabhängig —
     // parallel per Promise.all statt verschachtelt sequenziell laden. Spart einen
     // vollen Firestore-Round-Trip, spürbar v.a. bei Kaltstart über Push-Tap auf
@@ -3267,7 +3284,7 @@ function ImpulsPage({ user, setPage, setActiveImpuls, activeImpuls, pendingImpul
     // bleibt daher als dritter, abhängiger Schritt bestehen).
     Promise.all([
       fbDb.collection("settings").doc("impulse_library").get(),
-      fbDb.collection("users").doc(user.uid).get()
+      userDocPromise
     ])
       .then(([doc, uDoc]) => {
         const getData = (data) => {
