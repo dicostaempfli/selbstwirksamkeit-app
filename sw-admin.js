@@ -7,7 +7,7 @@
 // Admin bei Kaltstart noch stärker von externer Netzwerk-Erreichbarkeit abhängig als
 // Coachee (sw.js). Zwei gezielte Cache-Strategien ergänzt, sonst bleibt dieser SW bewusst
 // minimal (kein Network-first für admin.html selbst, kein controllerchange-Mechanismus).
-// Version: 2026-07-05 20:18
+// Version: 2026-08-10 09:42
 
 self.addEventListener('install', e => {
   self.skipWaiting();
@@ -42,6 +42,18 @@ self.addEventListener('fetch', e => {
   // bewusst kein Network-first-Handling hier (Admin bleibt in diesem Punkt minimal).
 });
 
+// ── Homescreen-App-Icon-Badge (Badging API) bei geschlossener App ──
+// Identisches Konzept zu sw.js (Coachee) — siehe dortiger Kommentar für die vollständige
+// Begründung. Näherungswert über offene Notifications, kein eigener Zähler nötig.
+async function updateBadgeFromNotifications() {
+  if(!('setAppBadge' in self.navigator)) return;
+  try {
+    const notifications = await self.registration.getNotifications();
+    if(notifications.length > 0) await self.navigator.setAppBadge(notifications.length);
+    else await self.navigator.clearAppBadge();
+  } catch(err) {}
+}
+
 // Push Notifications — identisches Payload-Format wie sw.js (Coachee), damit die
 // Cloud Function dieselbe sendPushToUid()-Logik für beide Zielgruppen nutzen kann.
 self.addEventListener('push', e => {
@@ -56,7 +68,7 @@ self.addEventListener('push', e => {
       data: { url: data.url },
       vibrate: [100, 50, 100],
       requireInteraction: false
-    })
+    }).then(() => updateBadgeFromNotifications())
   );
 });
 
@@ -93,5 +105,5 @@ self.addEventListener('notificationclick', e => {
       if(clients.openWindow) return clients.openWindow(absoluteUrl);
     });
 
-  e.waitUntil(Promise.all([cacheWrite, openOrFocus]));
+  e.waitUntil(Promise.all([cacheWrite, openOrFocus, updateBadgeFromNotifications()]));
 });

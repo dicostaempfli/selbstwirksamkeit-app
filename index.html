@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-10 08:55 coachee -->
+<!-- Version: 2026-08-10 09:42 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -2155,6 +2155,22 @@ function App({ user }) {
 
   const navTo = (p) => { setPage(p); setMobileChatOpen(false); };
   const totalUnreadVal = chatUnreadCount;
+
+  // ── Homescreen-App-Icon-Badge (Badging API) ──
+  // Native Betriebssystem-Badge auf dem App-Icon (Kreis mit Zahl) — Rico als Coachee-UX-Frage
+  // (Kapitel 62.0/62.4): "Ist ein dezenter Hinweis am Homescreen-App-Icon möglich?" Bewusst
+  // ohne Custom-Farbe (Betriebssystem entscheidet die Darstellung, siehe Vorschau-Vergleich
+  // vom 10.08.2026) — rein additiv zu den vier bereits bestehenden Nav-Badges, summiert sie
+  // hier nur noch für die native App-Icon-Anzeige. iOS Safari (ab 16.4, nur installierte PWA
+  // + erteilte Push-Berechtigung) sowie Desktop-Chrome/Edge unterstützen navigator.setAppBadge;
+  // Chrome für Android exponiert die API bewusst nicht (eigene, nicht steuerbare OS-Badge
+  // stattdessen) — Aufruf ist dort dank Feature-Detection ein harmloses No-Op.
+  useEffect(() => {
+    if(!('setAppBadge' in navigator)) return;
+    const badgeTotal = chatUnreadCount + impulseUnreadCount + libraryUnreadCount + doodleUnreadCount;
+    if(badgeTotal > 0) navigator.setAppBadge(badgeTotal).catch(() => {});
+    else navigator.clearAppBadge().catch(() => {});
+  }, [chatUnreadCount, impulseUnreadCount, libraryUnreadCount, doodleUnreadCount]);
 
   // ── Willkommensnachricht automatisch zeigen beim App-Öffnen ──
   // Bisher musste der Coachee selbst zum Impuls-Tab navigieren, damit ImpulsPage

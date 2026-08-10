@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-10 09:24 admin -->
+<!-- Version: 2026-08-10 09:42 admin -->
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -1947,6 +1947,19 @@ function AdminApp({user}) {
     {id:"doodle",icon:"calendar",label:"Termine",badge:doodleUnread},
   ];
 
+  // ── Homescreen-App-Icon-Badge (Badging API) ──
+  // Analog zu index.html (selbes Konzept, 10.08.2026 auf Ricos Wunsch für beide Apps
+  // umgesetzt): summiert die bereits bestehenden Nav-Badges (Chat-Unread, offene Doodle-
+  // Stimmen, neue/gelöschte Coachees zur Prüfung) für die native App-Icon-Anzeige. Keine
+  // Custom-Farbe möglich (Betriebssystem entscheidet), Chrome für Android exponiert die
+  // API nicht — dank Feature-Detection dort ein harmloses No-Op.
+  useEffect(() => {
+    if(!('setAppBadge' in navigator)) return;
+    const badgeTotal = totalUnread + doodleUnread + pending.length + deleted.length;
+    if(badgeTotal > 0) navigator.setAppBadge(badgeTotal).catch(() => {});
+    else navigator.clearAppBadge().catch(() => {});
+  }, [totalUnread, doodleUnread, pending.length, deleted.length]);
+
   const doLogout = () => { (window._fb?.auth||window.firebase?.auth())?.signOut().catch(()=>{}); };
 
   return html`
@@ -2091,7 +2104,7 @@ function DashboardPage({coachees,library,doodles,setPage,user}) {
         <div>
           <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.3rem",fontWeight:700,color:"var(--text)"}}>${greeting}</div>
           <div style=${{fontSize:".88rem",color:"var(--muted)",marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"calc(100vw - 120px)"}}>Admin-Portal · Raum für Selbstwirksamkeit</div>
-          <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-08-10 09:24 · Doku v3.103 · 2026-08-10 09:24
+          <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-08-10 09:42 · Doku v3.106 · 2026-08-10 09:42
           </div>
         </div>
       </div>

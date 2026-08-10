@@ -1,7 +1,7 @@
 // Service Worker — Raum für Selbstwirksamkeit
-// Version: 2026-07-05 20:18
+// Version: 2026-08-10 09:42
 
-const VERSION = '2026-07-05-2018';
+const VERSION = '2026-08-10-0942';
 
 // Bei Install: sofort aktivieren ohne auf alten SW zu warten
 self.addEventListener('install', e => {
@@ -88,6 +88,24 @@ self.addEventListener('fetch', e => {
   // Alle anderen Requests: normal durchlassen (kein Caching)
 });
 
+// ── Homescreen-App-Icon-Badge (Badging API) bei geschlossener App ──
+// navigator.setAppBadge ist laut Spec auch im Service-Worker-Kontext (WorkerNavigator
+// includes NavigatorBadge) verfügbar, kein Umweg über offene Clients nötig (Recherche
+// 10.08.2026, Rico-Wunsch "einbauen für admin und coachee-app"). Der Service Worker kennt
+// den React-State der laufenden App nicht — als Näherung dient die Zahl der aktuell noch
+// offenen (nicht angetippten) Notifications. Bewusst simpel: keine Cloud-Function-Änderung,
+// kein eigener persistenter Zähler nötig. Sobald die App wieder geöffnet wird, übernimmt
+// der dortige, aus den echten Unread-Zählern gespeiste Badge-Effect (index.html) die
+// Führung und überschreibt diesen Näherungswert.
+async function updateBadgeFromNotifications() {
+  if(!('setAppBadge' in self.navigator)) return;
+  try {
+    const notifications = await self.registration.getNotifications();
+    if(notifications.length > 0) await self.navigator.setAppBadge(notifications.length);
+    else await self.navigator.clearAppBadge();
+  } catch(err) {}
+}
+
 // Push Notifications
 self.addEventListener('push', e => {
   let data = { title: 'Raum für Selbstwirksamkeit', body: 'Du hast eine neue Nachricht.', tag: 'default', url: './' };
@@ -101,7 +119,7 @@ self.addEventListener('push', e => {
       data: { url: data.url },
       vibrate: [100, 50, 100],
       requireInteraction: false
-    })
+    }).then(() => updateBadgeFromNotifications())
   );
 });
 
@@ -148,5 +166,5 @@ self.addEventListener('notificationclick', e => {
       if(clients.openWindow) return clients.openWindow(absoluteUrl);
     });
 
-  e.waitUntil(Promise.all([cacheWrite, openOrFocus]));
+  e.waitUntil(Promise.all([cacheWrite, openOrFocus, updateBadgeFromNotifications()]));
 });
