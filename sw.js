@@ -1,7 +1,7 @@
 // Service Worker — Raum für Selbstwirksamkeit
-// Version: 2026-08-10 09:42
+// Version: 2026-08-10 09:56
 
-const VERSION = '2026-08-10-0942';
+const VERSION = '2026-08-10-0956';
 
 // Bei Install: sofort aktivieren ohne auf alten SW zu warten
 self.addEventListener('install', e => {
@@ -101,7 +101,9 @@ async function updateBadgeFromNotifications() {
   if(!('setAppBadge' in self.navigator)) return;
   try {
     const notifications = await self.registration.getNotifications();
-    if(notifications.length > 0) await self.navigator.setAppBadge(notifications.length);
+    // Gedeckelt auf "1" (Rico-Entscheid 10.08.2026, Kapitel 66) — identisch zur
+    // Foreground-Logik in index.html/admin.html, keine exakte Zahl mehr.
+    if(notifications.length > 0) await self.navigator.setAppBadge(1);
     else await self.navigator.clearAppBadge();
   } catch(err) {}
 }

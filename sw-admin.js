@@ -7,7 +7,7 @@
 // Admin bei Kaltstart noch stärker von externer Netzwerk-Erreichbarkeit abhängig als
 // Coachee (sw.js). Zwei gezielte Cache-Strategien ergänzt, sonst bleibt dieser SW bewusst
 // minimal (kein Network-first für admin.html selbst, kein controllerchange-Mechanismus).
-// Version: 2026-08-10 09:42
+// Version: 2026-08-10 09:56
 
 self.addEventListener('install', e => {
   self.skipWaiting();
@@ -49,7 +49,8 @@ async function updateBadgeFromNotifications() {
   if(!('setAppBadge' in self.navigator)) return;
   try {
     const notifications = await self.registration.getNotifications();
-    if(notifications.length > 0) await self.navigator.setAppBadge(notifications.length);
+    // Gedeckelt auf "1" (Rico-Entscheid 10.08.2026, Kapitel 66) — identisch zu sw.js.
+    if(notifications.length > 0) await self.navigator.setAppBadge(1);
     else await self.navigator.clearAppBadge();
   } catch(err) {}
 }

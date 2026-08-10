@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-10 09:42 coachee -->
+<!-- Version: 2026-08-10 09:56 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -2168,7 +2168,10 @@ function App({ user }) {
   useEffect(() => {
     if(!('setAppBadge' in navigator)) return;
     const badgeTotal = chatUnreadCount + impulseUnreadCount + libraryUnreadCount + doodleUnreadCount;
-    if(badgeTotal > 0) navigator.setAppBadge(badgeTotal).catch(() => {});
+    // Gedeckelt auf "1" (Rico-Entscheid 10.08.2026, Kapitel 66): eine hohe exakte Zahl
+    // (z.B. "22") widerspricht der App-Philosophie (kein unnötiger Stressreiz/Gamification)
+    // — die Badge signalisiert bewusst nur "da wartet etwas", nicht wie viel.
+    if(badgeTotal > 0) navigator.setAppBadge(1).catch(() => {});
     else navigator.clearAppBadge().catch(() => {});
   }, [chatUnreadCount, impulseUnreadCount, libraryUnreadCount, doodleUnreadCount]);
 
