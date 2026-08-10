@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-09 22:16 coachee -->
+<!-- Version: 2026-08-10 08:43 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -3156,6 +3156,17 @@ function ImpulsPage({ user, setPage, setActiveImpuls, activeImpuls, pendingImpul
   const [impuls, setImpuls]       = useState(null);
   const [saving, setSaving]       = useState(false);
   const [activeEntryRef, setActiveEntryRef] = useState(null);
+  // Fix (10.08.2026, Pitfall 69 "Willkommensnachricht verschwindet bei zeitgleichem
+  // eigenem Impuls"): Der untenstehende Mount-Effect hängt auch von activeImpuls ab
+  // (siehe Kommentar dort) und lief bisher bei jeder Änderung dieser Prop komplett neu
+  // durch — inklusive des Willkommens-Checks. Da dieser Check beim ERSTEN Treffer sofort
+  // localStorage (phaseWelcomeSeen_) aktualisiert, wurde bei einem zweiten Durchlauf (z.B.
+  // weil DashboardPage kurz vor dem Wegnavigieren noch einen eigenen, bereits aktiven
+  // Tagesimpuls aus Firestore nachlieferte) die Bedingung nicht mehr erfüllt — der Screen
+  // verschwand kommentarlos und war wegen des bereits gesetzten Flags für diese Phase
+  // endgültig verloren. Dieser Ref hält fest, dass in diesem Mount bereits Willkommen
+  // gezeigt wurde, und blockt jeden weiteren Durchlauf dieses Effects hart ab.
+  const welcomeShownRef = useRef(false);
   const [showPushPopup, setShowPushPopup]   = useState(false);
   const [showReflexionPopup, setShowReflexionPopup] = useState(false);
   // "Später" darf nur beim allerersten Push-Popup erscheinen, nicht mehr bei dessen
@@ -3190,6 +3201,12 @@ function ImpulsPage({ user, setPage, setActiveImpuls, activeImpuls, pendingImpul
   }, [pendingReflexionPopup, impuls, step]);
 
   useEffect(() => {
+    // Fix (10.08.2026, Pitfall 69): Sobald der Willkommens-Screen in diesem Mount einmal
+    // gezeigt wurde, darf dieser Effect bei einem erneuten Durchlauf (ausgelöst durch eine
+    // spätere activeImpuls-Änderung, siehe welcomeShownRef-Deklaration oben) NICHTS mehr
+    // überschreiben — weder den Dismiss-Fall (step 6) noch die normale Impuls-Ladelogik.
+    // Der Screen bleibt bis zum expliziten "Alles klar"-Klick (setPage → Unmount) stabil.
+    if (welcomeShownRef.current) return;
     // Fix: localStorage-Check zuerst — unabhängig von Firestore
     // WICHTIG: Bei Push-Tap (pendingImpulsPopup, Hash #impulse-tages) NICHT auf den
     // lokalen Dismiss-Flag verlassen — der Push selbst ist das autoritative Signal,
@@ -3236,6 +3253,8 @@ function ImpulsPage({ user, setPage, setActiveImpuls, activeImpuls, pendingImpul
             localStorage.setItem(phaseSeenKey, String(activePhase));
             setWelcomePhase(activePhase);
             setStep(7);
+            welcomeShownRef.current = true; // Fix (10.08.2026, Pitfall 69): siehe Deklaration oben —
+              // ab hier ignoriert dieser Effect jeden weiteren Durchlauf in diesem Mount.
             if (setPendingImpulsPopup) setPendingImpulsPopup(false);
             return;
           }
