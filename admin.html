@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-11 14:14 admin -->
+<!-- Version: 2026-08-11 14:47 admin -->
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -2118,7 +2118,7 @@ function DashboardPage({coachees,library,doodles,setPage,user}) {
         <div>
           <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.3rem",fontWeight:700,color:"var(--text)"}}>${greeting}</div>
           <div style=${{fontSize:".88rem",color:"var(--muted)",marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"calc(100vw - 120px)"}}>Admin-Portal · Raum für Selbstwirksamkeit</div>
-          <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-08-11 14:14 · Doku v3.112 · 2026-08-11 14:14
+          <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-08-11 14:47 · Doku v3.112 · 2026-08-11 14:47
           </div>
         </div>
       </div>
@@ -2513,9 +2513,9 @@ function ChatWindow({coachee,onSend,onSendImg,onSendFile,onDeleteMsg,onBack,mobi
       if(f.type.startsWith("video/")) {
         // For video: store blob URL directly (iOS can play blob URLs)
         const blobUrl = URL.createObjectURL(f);
-        onSendImg(blobUrl, true);
+        onSendImg(blobUrl, true, sender);
       } else {
-        onSendImg(await readFile(f), false);
+        onSendImg(await readFile(f), false, sender);
       }
     }
     setTimeout(()=>bottomRef.current?.scrollIntoView({behavior:"smooth"}),50);
@@ -2524,7 +2524,7 @@ function ChatWindow({coachee,onSend,onSendImg,onSendFile,onDeleteMsg,onBack,mobi
   const handleAttach = async e => {
     const f=e.target.files[0]; if(!f)return;
     const r=new FileReader();
-    r.onload=ev=>{ onSendFile({url:ev.target.result,name:f.name,type:f.type,size:f.size,isAudio:false}); };
+    r.onload=ev=>{ onSendFile({url:ev.target.result,name:f.name,type:f.type,size:f.size,isAudio:false},sender); };
     r.readAsDataURL(f); e.target.value="";
   };
 
@@ -2538,7 +2538,7 @@ function ChatWindow({coachee,onSend,onSendImg,onSendFile,onDeleteMsg,onBack,mobi
         const blob = new Blob(chunksRef.current,{type:"audio/webm"});
         const rdr = new FileReader();
         rdr.onload = ev2 => {
-          onSendFile({url:ev2.target.result,name:"Sprachmemo.webm",type:"audio/webm",isAudio:true});
+          onSendFile({url:ev2.target.result,name:"Sprachmemo.webm",type:"audio/webm",isAudio:true},sender);
         };
         rdr.readAsDataURL(blob);
         stream.getTracks().forEach(t=>t.stop());
@@ -2690,6 +2690,13 @@ function ChatWindow({coachee,onSend,onSendImg,onSendFile,onDeleteMsg,onBack,mobi
           ${recording&&html`<span style=${{position:"absolute",top:1,right:1,width:7,height:7,
             borderRadius:"50%",background:"var(--danger)",border:"2px solid var(--surface)"}}/>`}
         </button>
+        <button class="attach-btn"
+          onClick=${()=>setSender(s=>s==="Rico"?"Diana":"Rico")}
+          title=${"Antworte als "+sender+" — tippen zum Wechseln"}
+          style=${{width:26,height:26,borderRadius:"50%",flexShrink:0,padding:0,
+            background:sender==="Rico"?"#62ba7a":"#0e4e4e",color:"#fff",
+            fontSize:".68rem",fontWeight:700,display:"flex",alignItems:"center",
+            justifyContent:"center",border:"none"}}>${sender[0]}</button>
         <textarea ref=${textRef} class="input-box" rows=${1} value=${input}
           onInput=${e=>setInput(e.target.value)} onKeyDown=${handleKey}
           onFocus=${()=>{
