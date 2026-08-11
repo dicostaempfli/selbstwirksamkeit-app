@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-11 14:56 admin -->
+<!-- Version: 2026-08-11 15:48 admin -->
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -391,9 +391,6 @@ window.addEventListener('orientationchange', ()=>setTimeout(setVH,150));
   }
   .msg-row.in  .msg-bubble { background:var(--teal); color:#fff; border:none; }
   .msg-row.out .msg-bubble { background:#fff; color:var(--text); border:1.3px solid var(--border2); }
-  .chat-context-bar { border-radius:8px; padding:6px 12px; display:flex; justify-content:space-between; align-items:center; font-size:.72rem; }
-  .chat-context-bar span:first-child { font-weight:700; }
-  .chat-context-bar span:last-child { opacity:.75; }
   .msg-meta { display:flex; align-items:center; gap:4px; margin-top:3px; justify-content:flex-end; }
   .msg-time-small { font-size:.68rem; color:var(--muted); }
   .msg-row.out .msg-time-small { color:rgba(255,255,255,.55); }
@@ -2118,7 +2115,7 @@ function DashboardPage({coachees,library,doodles,setPage,user}) {
         <div>
           <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.3rem",fontWeight:700,color:"var(--text)"}}>${greeting}</div>
           <div style=${{fontSize:".88rem",color:"var(--muted)",marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"calc(100vw - 120px)"}}>Admin-Portal · Raum für Selbstwirksamkeit</div>
-          <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-08-11 14:56 · Doku v3.112 · 2026-08-11 14:56
+          <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-08-11 15:48 · Doku v3.112 · 2026-08-11 15:48
           </div>
         </div>
       </div>
@@ -2495,7 +2492,12 @@ function ChatWindow({coachee,onSend,onSendImg,onSendFile,onDeleteMsg,onBack,mobi
     lastCoacheeIdRef.current = coachee.id;
   },[coachee.messages.length, coachee.id]);
 
-  const groups = coachee.messages.reduce((acc,msg)=>{
+  const filteredMessages = coachee.messages.filter(msg => {
+    const ctx = msg.from==="admin" ? (msg.sender||"Diana") : (msg.recipient||"Diana");
+    return ctx===sender;
+  });
+
+  const groups = filteredMessages.reduce((acc,msg)=>{
     const key = msg.ts ? dateKeyFromTs(msg.ts) : dateKeyFromTs(Date.now());
     if(!acc[key])acc[key]=[];
     acc[key].push(msg);
@@ -2601,17 +2603,6 @@ function ChatWindow({coachee,onSend,onSendImg,onSendFile,onDeleteMsg,onBack,mobi
               const rawSender = msg.sender||(isOut?"Diana":"");
               const prevSame = i>0&&msgs[i-1].from===msg.from&&((msgs[i-1].sender||(msgs[i-1].from==="admin"?"Diana":"")))===(msg.sender||(isOut?"Diana":""));
               const avatarColor = isOut ? (rawSender==="Rico" ? "#62ba7a" : "#0e4e4e") : "var(--teal)";
-              // Kontext (an wen adressiert / von wem beantwortet) für die Segment-Leiste
-              const context = isOut ? (rawSender||"Diana") : (msg.recipient||"Diana");
-              const prevMsg = i>0?msgs[i-1]:null;
-              const prevContext = prevMsg ? (prevMsg.from==="admin" ? (prevMsg.sender||"Diana") : (prevMsg.recipient||"Diana")) : null;
-              const newSegment = i===0 || context!==prevContext;
-              const barBg = context==="Rico" ? "#EAF3DE" : "#E1F5EE";
-              const barText = context==="Rico" ? "#3b6d11" : "#0e4e4e";
-              const barEl = newSegment ? html`<div class="chat-context-bar" style=${{background:barBg,color:barText,margin:i===0?"0 0 8px":"12px 0 8px"}}>
-                <span>Nachricht an ${context}</span>
-                <span>${formatDateKey(date)} · ${msg.time}</span>
-              </div>` : null;
               const row = html`
                 <div key=${msg.id} class=${"msg-row "+(isOut?"out":"in")}
                   style=${{marginBottom:prevSame?1:8,alignItems:"flex-end",userSelect:"none"}}
@@ -2678,7 +2669,7 @@ function ChatWindow({coachee,onSend,onSendImg,onSendFile,onDeleteMsg,onBack,mobi
                     marginLeft:6,marginBottom:2,fontSize:".66rem",fontWeight:700,
                     color:"white"}}>${prevSame?"":rawSender[0]}</div>`}
                 </div>`;
-              return h(Fragment,{key:msg.id},barEl,row);
+              return row;
             })}
           </div>`)}
         <div ref=${bottomRef}/>

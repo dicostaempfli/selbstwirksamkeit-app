@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-11 15:23 coachee -->
+<!-- Version: 2026-08-11 15:48 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -2355,21 +2355,14 @@ function ChatPage({user,coachees,setCoachees,mobileChatOpen,setMobileChatOpen}) 
     return () => unsub();
   }, [uid]);
 
-  // Empfänger-Toggle automatisch auf den Absender der letzten eingehenden Nachricht setzen —
-  // sonst antwortet der Coachee unbemerkt an die falsche Person, wenn er nicht selbst umschaltet.
-  // lastAutoSyncedIdRef verhindert, dass ein zwischenzeitlich manuell gewählter Empfänger durch
-  // erneute Snapshot-Updates (z.B. seen-Status) wieder überschrieben wird.
-  const lastAutoSyncedIdRef = useRef(null);
-  useEffect(() => {
-    if(!messages.length) return;
-    const last = messages[messages.length-1];
-    if(last.from==="admin" && (last.sender==="Diana"||last.sender==="Rico") && last.id!==lastAutoSyncedIdRef.current){
-      lastAutoSyncedIdRef.current = last.id;
-      setRecipient(last.sender);
-    }
-  }, [messages]);
+  // Verlauf auf den aktiven Strang filtern — Umschalten entspricht einem echten Kontaktwechsel,
+  // nicht nur der Adressierung neuer Nachrichten. Alte Nachrichten ohne recipient-Feld gelten als "Diana".
+  const filteredMessages = messages.filter(m => {
+    const ctx = m.from==="admin" ? (m.sender||"Diana") : (m.recipient||"Diana");
+    return ctx===recipient;
+  });
 
-  const coacheeWithMsgs = {...coachee, messages};
+  const coacheeWithMsgs = {...coachee, messages:filteredMessages};
 
   const sendMsg = text => {
     if(!text.trim()||!uid||!fbDb) return;
