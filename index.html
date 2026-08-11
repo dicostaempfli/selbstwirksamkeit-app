@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-11 10:43 coachee -->
+<!-- Version: 2026-08-11 10:54 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -4408,20 +4408,12 @@ function RemindersPage({reminders,setReminders,pendingReminderId,setPendingRemin
               <label class="label">Uhrzeit</label>
               <input class="input" type="time" value=${form.time} onInput=${e=>setForm(f=>({...f,time:e.target.value}))} style=${{width:"110px",maxWidth:"110px",fontSize:".82rem",padding:"6px 8px"}}/>
             </div>
-            <div class="form-row" style=${{marginTop:12}}>
-              <label class="label">Bereich</label>
-              <div style=${{display:"flex",gap:6,flexWrap:"wrap",marginTop:4}}>
-                ${REM_AREAS.map(a=>html`
-                  <button key=${a} onClick=${()=>setForm(f=>({...f,area:a}))}
-                    class="rem-area-btn" style=${{padding:"7px 14px",borderRadius:99,border:"1.5px solid",fontFamily:"'Exo 2',sans-serif",fontWeight:700,fontSize:".82rem",cursor:"pointer",
-                      borderColor:form.area===a?"var(--teal)":"var(--border)",
-                      background:form.area===a?(REM_AREA_COLOR[a]?.tag||"var(--sage)"):"var(--surface)",
-                      color:form.area===a?(REM_AREA_COLOR[a]?.text||"var(--text)"):"var(--muted)"}}>
-                    ${a}
-                  </button>`)}
-              </div>
-            </div>
 
+            <!-- Reihenfolge (11.08.2026): "Weitere Uhrzeiten" gehört inhaltlich direkt zu
+                 "Uhrzeit" (mehrfache tägliche Impulse derselben Uhrzeit-Logik) — bisher stand
+                 "Bereich" dazwischen. Button "+ Uhrzeit hinzufügen" jetzt im selben Layout wie
+                 SymbolButton ("Symbol wählen →", Zeile ~4192): flex/gap/padding identisch,
+                 Text in gedämpfter --muted-Farbe statt Icon+Fettdruck. -->
             <div class="form-row" style=${{marginTop:12}}>
               <label class="label">Weitere Uhrzeiten</label>
               <p style=${{fontSize:".76rem",color:"var(--muted)",marginBottom:8,marginTop:2}}>Für mehrfache tägliche Impulse — z.B. Atemübung 3× täglich.</p>
@@ -4434,9 +4426,23 @@ function RemindersPage({reminders,setReminders,pendingReminderId,setPendingRemin
                       onClick=${()=>setForm(f=>({...f,additionalTimes:f.additionalTimes.filter((_,j)=>j!==i)}))}>✕</button>
                   </div>`)}
               </div>
-              <button class="btn btn-ghost btn-sm" onClick=${()=>setForm(f=>({...f,additionalTimes:[...(f.additionalTimes||[]),"12:00"]}))}>
-                <${Ic} name="plus" size=${13}/> Uhrzeit hinzufügen
+              <button class="btn btn-ghost btn-sm" onClick=${()=>setForm(f=>({...f,additionalTimes:[...(f.additionalTimes||[]),"12:00"]}))} style=${{display:"flex",alignItems:"center",gap:8,padding:"8px 14px"}}>
+                <span style=${{color:"var(--muted)"}}>+ Uhrzeit hinzufügen</span>
               </button>
+            </div>
+
+            <div class="form-row" style=${{marginTop:12}}>
+              <label class="label">Bereich</label>
+              <div style=${{display:"flex",gap:6,flexWrap:"wrap",marginTop:4}}>
+                ${REM_AREAS.map(a=>html`
+                  <button key=${a} onClick=${()=>setForm(f=>({...f,area:a}))}
+                    class="rem-area-btn" style=${{padding:"7px 14px",borderRadius:99,border:"1.5px solid",fontFamily:"'Exo 2',sans-serif",fontWeight:700,fontSize:".82rem",cursor:"pointer",
+                      borderColor:form.area===a?"var(--teal)":"var(--border)",
+                      background:form.area===a?(REM_AREA_COLOR[a]?.tag||"var(--sage)"):"var(--surface)",
+                      color:form.area===a?(REM_AREA_COLOR[a]?.text||"var(--text)"):"var(--muted)"}}>
+                    ${a}
+                  </button>`)}
+              </div>
             </div>
 
             <div class="form-row" style=${{marginTop:14}}><label class="label">Wiederholung</label>
