@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-11 21:16 admin -->
+<!-- Version: 2026-08-11 21:50 admin -->
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -2182,7 +2182,7 @@ function DashboardPage({coachees,library,doodles,setPage,user,openSenderFilter})
         <div>
           <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.3rem",fontWeight:700,color:"var(--text)"}}>${greeting}</div>
           <div style=${{fontSize:".88rem",color:"var(--muted)",marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"calc(100vw - 120px)"}}>Admin-Portal · Raum für Selbstwirksamkeit</div>
-          <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-08-11 21:16 · Doku v3.112 · 2026-08-11 21:16
+          <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-08-11 21:50 · Doku v3.113 · 2026-08-11 21:50
           </div>
         </div>
       </div>
@@ -2383,13 +2383,14 @@ function ChatPage({coachees,setCoachees,openId,clearOpenId,presetSender,clearPre
     showToast("✓ Nachricht gesendet an "+broadcastRecipients.length+" Coachee"+(broadcastRecipients.length!==1?"s":""));
   };
 
-    const selectCoachee = id => {
+    const selectCoachee = (id, who) => {
+    const activeWho = who || sender;
     setActiveId(id);
     setChatMessages([]);
     setMobileOpen(true);
     // lastRead nur für den aktuell aktiven Strang (Diana/Rico) setzen — der jeweils andere
     // Strang desselben Coachees bleibt unberührt, siehe Kapitel zu getrennten Unread-Zählern.
-    localStorage.setItem('lastRead_'+id+'_'+sender, Date.now());
+    localStorage.setItem('lastRead_'+id+'_'+activeWho, Date.now());
     if(chatUnsubRef.current) { chatUnsubRef.current(); chatUnsubRef.current=null; }
     const firestore = db();
     if(firestore && id) {
@@ -2398,13 +2399,13 @@ function ChatPage({coachees,setCoachees,openId,clearOpenId,presetSender,clearPre
         const msgs = snap.docs.map(d=>({id:d.id,...d.data()}));
         setChatMessages(msgs);
         // lastRead des aktiven Strangs auf dessen jüngste Nachricht setzen → nur dieser Strang wird 0
-        const threadMsgs = msgs.filter(m=>(m.from==="admin"?(m.sender||"Diana"):(m.recipient||"Diana"))===sender);
+        const threadMsgs = msgs.filter(m=>(m.from==="admin"?(m.sender||"Diana"):(m.recipient||"Diana"))===activeWho);
         if(threadMsgs.length) {
           const maxTs = Math.max(...threadMsgs.map(m=>m.ts||0));
-          localStorage.setItem('lastRead_'+id+'_'+sender, maxTs);
+          localStorage.setItem('lastRead_'+id+'_'+activeWho, maxTs);
         }
-        const field = sender==="Rico" ? "unreadRico" : "unreadDiana";
-        const oldestField = sender==="Rico" ? "unreadRicoOldestTs" : "unreadDianaOldestTs";
+        const field = activeWho==="Rico" ? "unreadRico" : "unreadDiana";
+        const oldestField = activeWho==="Rico" ? "unreadRicoOldestTs" : "unreadDianaOldestTs";
         setCoachees(cs=>cs.map(c=>{
           if(c.id!==id) return c;
           const updated = {...c,[field]:0,[oldestField]:null};
@@ -2555,7 +2556,7 @@ function ChatPage({coachees,setCoachees,openId,clearOpenId,presetSender,clearPre
                     ${dianaWaiting.map(c=>html`<div key=${"d-"+c.id}
                       style=${{background:"#e0f5ee",borderRadius:9,padding:"12px 14px",display:"flex",
                         justifyContent:"space-between",alignItems:"center",cursor:"pointer"}}
-                      onClick=${()=>{setSender("Diana");selectCoachee(c.id);}}>
+                      onClick=${()=>{setSender("Diana");selectCoachee(c.id,"Diana");}}>
                       <span style=${{fontWeight:700,fontSize:".92rem"}}>${c.name}</span>
                       <span style=${{fontSize:".8rem",color:"#1d5a8f",fontWeight:700}}>${new Date(c.unreadDianaOldestTs).toLocaleTimeString('de-CH',{hour:'2-digit',minute:'2-digit'})}</span>
                     </div>`)}
@@ -2567,7 +2568,7 @@ function ChatPage({coachees,setCoachees,openId,clearOpenId,presetSender,clearPre
                     ${ricoWaiting.map(c=>html`<div key=${"r-"+c.id}
                       style=${{background:"#e9f3dd",borderRadius:9,padding:"12px 14px",display:"flex",
                         justifyContent:"space-between",alignItems:"center",cursor:"pointer"}}
-                      onClick=${()=>{setSender("Rico");selectCoachee(c.id);}}>
+                      onClick=${()=>{setSender("Rico");selectCoachee(c.id,"Rico");}}>
                       <span style=${{fontWeight:700,fontSize:".92rem"}}>${c.name}</span>
                       <span style=${{fontSize:".8rem",color:"#3b6d11",fontWeight:700}}>${new Date(c.unreadRicoOldestTs).toLocaleTimeString('de-CH',{hour:'2-digit',minute:'2-digit'})}</span>
                     </div>`)}
