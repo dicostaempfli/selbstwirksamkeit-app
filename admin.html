@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-11 20:32 admin -->
+<!-- Version: 2026-08-11 20:44 admin -->
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -306,8 +306,8 @@ window.addEventListener('orientationchange', ()=>setTimeout(setVH,150));
     border:1px solid var(--border2); box-shadow:var(--shadow); border-radius:14px; margin-bottom:8px;
     transition:background .15s;
   }
-  .conv-row:hover { background:var(--surface2); }
   .conv-row.active { background:var(--sage-pale); }
+  @media (hover:hover) { .conv-row:hover { background:var(--surface2); } }
   .conv-avatar {
     width:44px; height:44px; border-radius:50%;
     display:flex; align-items:center; justify-content:center;
@@ -1012,8 +1012,8 @@ window.addEventListener('orientationchange', ()=>setTimeout(setVH,150));
 .chat-list-title { font-family:'Manuale',serif; font-weight:700; font-size:1.05rem; color:var(--text); }
 .conv-list { flex:1; overflow-y:auto; padding:10px 14px; }
 .conv-row { display:flex; align-items:center; gap:10px; padding:12px 14px; cursor:pointer; background:var(--surface); border:1px solid var(--border2); box-shadow:var(--shadow); border-radius:14px; margin-bottom:8px; transition:background .1s; }
-.conv-row:hover { background:var(--teal-pale); }
 .conv-row.active { background:var(--sage-pale); }
+@media (hover:hover) { .conv-row:hover { background:var(--surface2); } }
 .conv-avatar { width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:.82rem; font-weight:700; flex-shrink:0; position:relative; color:white; overflow:hidden; }
 .conv-avatar img { width:100%; height:100%; object-fit:cover; }
 .conv-info { flex:1; min-width:0; }
@@ -2155,7 +2155,7 @@ function DashboardPage({coachees,library,doodles,setPage,user,openSenderFilter})
         <div>
           <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.3rem",fontWeight:700,color:"var(--text)"}}>${greeting}</div>
           <div style=${{fontSize:".88rem",color:"var(--muted)",marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"calc(100vw - 120px)"}}>Admin-Portal · Raum für Selbstwirksamkeit</div>
-          <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-08-11 20:32 · Doku v3.112 · 2026-08-11 20:32
+          <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-08-11 20:44 · Doku v3.112 · 2026-08-11 20:44
           </div>
         </div>
       </div>
