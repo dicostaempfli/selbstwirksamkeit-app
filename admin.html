@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-11 16:05 admin -->
+<!-- Version: 2026-08-11 16:12 admin -->
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -1517,6 +1517,7 @@ const Wordmark = ({ dark=true, height=48 }) => html`
 // ── ICONS ──
 const IC = {
   home:["M3 9.5L12 3l9 6.5V21a1 1 0 01-1 1H4a1 1 0 01-1-1V9.5z","M9 22V12h6v10"],
+  user:["M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2","M12 11A4 4 0 1012 3a4 4 0 000 8z"],
   chat:["M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"],
   users:["M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2","M9 11A4 4 0 109 3a4 4 0 000 8z","M23 21v-2a4 4 0 00-3-3.87","M16 3.13a4 4 0 010 7.75"],
   library:["M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z","M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"],
@@ -2130,7 +2131,7 @@ function DashboardPage({coachees,library,doodles,setPage,user}) {
         <div>
           <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.3rem",fontWeight:700,color:"var(--text)"}}>${greeting}</div>
           <div style=${{fontSize:".88rem",color:"var(--muted)",marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"calc(100vw - 120px)"}}>Admin-Portal · Raum für Selbstwirksamkeit</div>
-          <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-08-11 16:05 · Doku v3.112 · 2026-08-11 16:05
+          <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-08-11 16:12 · Doku v3.112 · 2026-08-11 16:12
           </div>
         </div>
       </div>
@@ -2632,14 +2633,19 @@ function ChatWindow({coachee,sender,setSender,onSend,onSendImg,onSendFile,onDele
             </div>
           </div>
         </div>
-        <div style=${{display:"flex",gap:8}}>
-          ${["Diana","Rico"].map(name=>html`
-            <button key=${name} onClick=${()=>setSender(name)}
-              style=${{flex:"1 1 0",padding:"9px",borderRadius:10,cursor:"pointer",
-                fontFamily:"'Exo 2',sans-serif",fontSize:".83rem",fontWeight:700,
-                border:sender===name?"none":"1.5px solid var(--border2)",
-                background:sender===name?(name==="Rico"?"#62ba7a":"#0e4e4e"):"transparent",
-                color:sender===name?(name==="Rico"?"#173404":"#fff"):"var(--muted)"}}>${name}</button>`)}
+        <div style=${{display:"flex",gap:8,width:"100%"}}>
+          ${["Diana","Rico"].map(name=>h("button",{
+            key:name,
+            onClick:()=>setSender(name),
+            style:{flex:"1 1 0",height:"40px",maxHeight:"40px",display:"flex",alignItems:"center",
+              justifyContent:"center",gap:"7px",padding:"8px 18px",
+              border:"1.5px solid "+(sender===name?"var(--teal)":"var(--border2)"),
+              borderRadius:"10px",
+              background:sender===name?"var(--teal)":"transparent",
+              color:sender===name?"#fff":"var(--muted)",
+              fontFamily:"'Exo 2',sans-serif",fontSize:".83rem",fontWeight:700,
+              cursor:"pointer",transition:"all .18s"}
+          }, h(Ic,{name:"user",size:15}), " "+name))}
         </div>
       </div>
 
