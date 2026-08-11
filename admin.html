@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-11 18:04 admin -->
+<!-- Version: 2026-08-11 19:38 admin -->
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -2155,7 +2155,7 @@ function DashboardPage({coachees,library,doodles,setPage,user,openSenderFilter})
         <div>
           <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.3rem",fontWeight:700,color:"var(--text)"}}>${greeting}</div>
           <div style=${{fontSize:".88rem",color:"var(--muted)",marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"calc(100vw - 120px)"}}>Admin-Portal · Raum für Selbstwirksamkeit</div>
-          <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-08-11 18:04 · Doku v3.112 · 2026-08-11 18:04
+          <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-08-11 19:38 · Doku v3.112 · 2026-08-11 19:38
           </div>
         </div>
       </div>
@@ -2334,17 +2334,11 @@ function ChatPage({coachees,setCoachees,openId,clearOpenId,presetSender,clearPre
     const cats = [...(Array.isArray(c.coaching)?c.coaching:(c.coaching?[c.coaching]:[])), ...(Array.isArray(c.gender)?c.gender:(c.gender?[c.gender]:[])), ...(c.categories||[])];
     return nameMatch && catMatches(cats, filterCat);
   });
-  // Coachees mit offenen Nachrichten für den aktiven Strang (Diana/Rico) stehen oben,
-  // sortiert nach Wartezeit (älteste zuerst) — Rest bleibt in der bisherigen Reihenfolge,
-  // wird nicht abgedunkelt oder ausgeblendet.
-  const oldestField = sender==="Rico" ? "unreadRicoOldestTs" : "unreadDianaOldestTs";
-  const filteredSorted = [...filtered].sort((a,b)=>{
-    const aTs = a[oldestField], bTs = b[oldestField];
-    if(aTs && bTs) return aTs-bTs;
-    if(aTs && !bTs) return -1;
-    if(!aTs && bTs) return 1;
-    return 0;
-  });
+  // Zwei getrennte Blöcke statt einer einzigen, sender-abhängigen Liste — sonst verschwindet
+  // beim Öffnen über einen Diana- oder Rico-Push die jeweils andere wartende Nachricht
+  // komplett aus dem Blick (Rico-Meldung 11.08.2026).
+  const dianaWaiting = filtered.filter(c=>c.unreadDianaOldestTs).sort((a,b)=>a.unreadDianaOldestTs-b.unreadDianaOldestTs);
+  const ricoWaiting = filtered.filter(c=>c.unreadRicoOldestTs).sort((a,b)=>a.unreadRicoOldestTs-b.unreadRicoOldestTs);
   const active = coachees.find(c=>c.id===activeId);
   const filterCount = filterCat&&filterCat!=="Alle" ? coachees.filter(c=>{const cats=[...(Array.isArray(c.coaching)?c.coaching:(c.coaching?[c.coaching]:[])), ...(Array.isArray(c.gender)?c.gender:(c.gender?[c.gender]:[])), ...(c.categories||[])]; return catMatches(cats, filterCat);}).length : coachees.length;
   const getCatCoachees = cat => !cat ? coachees : coachees.filter(c=>{const cats=[...(Array.isArray(c.coaching)?c.coaching:(c.coaching?[c.coaching]:[])), ...(Array.isArray(c.gender)?c.gender:(c.gender?[c.gender]:[])), ...(c.categories||[])]; return catMatches(cats, cat);});
@@ -2531,15 +2525,36 @@ function ChatPage({coachees,setCoachees,openId,clearOpenId,presetSender,clearPre
               )
             )}
             <div class="conv-list" style=${{flex:1,overflowY:"auto"}}>
-              ${filteredSorted.map(c=>{
-                const hasWaiting = !!c[oldestField];
-                const rowTint = sender==="Rico" ? "#e9f3dd" : "#e0f5ee";
-                const previewEl = hasWaiting
-                  ? html`<div class="conv-preview" style=${{color:sender==="Rico"?"#3b6d11":"#1d5a8f",fontWeight:700}}>${waitLabel(c[oldestField])}</div>`
-                  : html`<div class="conv-preview">${c.messages?.length?c.messages.at(-1).from==="admin"?"Du: "+c.messages.at(-1).text:c.messages.at(-1).text:c.topic}</div>`;
+              ${(dianaWaiting.length>0||ricoWaiting.length>0)&&html`<div style=${{marginBottom:14}}>
+                ${dianaWaiting.length>0&&html`<div style=${{marginBottom:ricoWaiting.length>0?12:0}}>
+                  <div style=${{fontSize:".72rem",fontWeight:700,color:"#1d5a8f",textTransform:"uppercase",letterSpacing:".04em",marginBottom:6}}>An Diana</div>
+                  <div style=${{display:"flex",flexDirection:"column",gap:6}}>
+                    ${dianaWaiting.map(c=>html`<div key=${"d-"+c.id}
+                      style=${{background:"#e0f5ee",borderRadius:9,padding:"12px 14px",display:"flex",
+                        justifyContent:"space-between",alignItems:"center",cursor:"pointer"}}
+                      onClick=${()=>{setSender("Diana");selectCoachee(c.id);}}>
+                      <span style=${{fontWeight:700,fontSize:".92rem"}}>${c.name}</span>
+                      <span style=${{fontSize:".8rem",color:"#1d5a8f",fontWeight:700}}>${new Date(c.unreadDianaOldestTs).toLocaleTimeString('de-CH',{hour:'2-digit',minute:'2-digit'})}</span>
+                    </div>`)}
+                  </div>
+                </div>`}
+                ${ricoWaiting.length>0&&html`<div>
+                  <div style=${{fontSize:".72rem",fontWeight:700,color:"#3b6d11",textTransform:"uppercase",letterSpacing:".04em",marginBottom:6}}>An Rico</div>
+                  <div style=${{display:"flex",flexDirection:"column",gap:6}}>
+                    ${ricoWaiting.map(c=>html`<div key=${"r-"+c.id}
+                      style=${{background:"#e9f3dd",borderRadius:9,padding:"12px 14px",display:"flex",
+                        justifyContent:"space-between",alignItems:"center",cursor:"pointer"}}
+                      onClick=${()=>{setSender("Rico");selectCoachee(c.id);}}>
+                      <span style=${{fontWeight:700,fontSize:".92rem"}}>${c.name}</span>
+                      <span style=${{fontSize:".8rem",color:"#3b6d11",fontWeight:700}}>${new Date(c.unreadRicoOldestTs).toLocaleTimeString('de-CH',{hour:'2-digit',minute:'2-digit'})}</span>
+                    </div>`)}
+                  </div>
+                </div>`}
+              </div>`}
+              ${filtered.map(c=>{
+                const previewEl = html`<div class="conv-preview">${c.messages?.length?c.messages.at(-1).from==="admin"?"Du: "+c.messages.at(-1).text:c.messages.at(-1).text:c.topic}</div>`;
                 return html`
                 <div key=${c.id} class=${"conv-row"+(activeId===c.id?" active":"")}
-                  style=${hasWaiting&&activeId!==c.id?{background:rowTint}:{}}
                   onClick=${()=>selectCoachee(c.id)}>
                   <div class="conv-info">
                     <div class="conv-name">${c.name}</div>
