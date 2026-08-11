@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-11 20:44 admin -->
+<!-- Version: 2026-08-11 20:59 admin -->
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -1896,6 +1896,20 @@ function AdminApp({user}) {
   // gelöscht, wodurch die Baseline fälschlich auf "alles gilt als gelesen" zurückgesetzt wurde,
   // sobald Diana/Rico die Admin-App neu öffneten — unabhängig davon, ob sie den jeweiligen
   // Chat tatsächlich angeschaut hatten.
+  // Fix (11.08.2026, Rico-Meldung "Push zeigt keine Liste mit offenen Nachrichten"): die bisherige
+  // Baseline hing an "der gerade neuesten Nachricht" beim ersten Kontakt mit einem Strang — ist
+  // diese neueste Nachricht ausgerechnet die Push-auslösende (z.B. nach frischem Reset/Neuinstall,
+  // kein lastRead vorhanden), wurde sie fälschlich sofort als gelesen markiert statt als ungelesen
+  // gezählt. Fix: Baseline an einen festen, EINMALIGEN Erstöffnungs-Zeitpunkt dieses Geräts koppeln
+  // (adminFirstOpenTs) statt an den Inhalt des jeweils ersten Snapshots — Nachrichten, die NACH
+  // diesem Zeitpunkt eintreffen, zählen immer als ungelesen, unabhängig davon, ob sie zufällig die
+  // erste sind, die dieser Listener zu Gesicht bekommt.
+  const adminFirstOpenTsRef = useRef(null);
+  if(adminFirstOpenTsRef.current===null) {
+    let stored = parseInt(localStorage.getItem('adminFirstOpenTs')||'0');
+    if(!stored) { stored = Date.now(); localStorage.setItem('adminFirstOpenTs', stored); }
+    adminFirstOpenTsRef.current = stored;
+  }
   const unreadUnsubsRef = useRef({});
   useEffect(() => {
     const firestore = db();
@@ -1910,9 +1924,9 @@ function AdminApp({user}) {
       // aus einem früheren Besuch existierte — dadurch wurde die tatsächliche Unread-Zahl
       // bei jedem Neuladen der Admin-App einmalig verschluckt und blieb bei 0 hängen, bis
       // zufällig eine weitere neue Nachricht eintraf. Fix: nur beim allerersten Kontakt mit
-      // einem Coachee (noch KEIN lastRead gespeichert) wird die neueste Nachricht als
-      // Baseline gesetzt statt rückwirkend die ganze Historie als ungelesen zu zählen — in
-      // allen anderen Fällen (auch beim allerersten Snapshot nach einem Reload) wird sofort
+      // einem Coachee (noch KEIN lastRead gespeichert) wird adminFirstOpenTs als Baseline
+      // gesetzt statt rückwirkend die ganze Historie als ungelesen zu zählen — in allen
+      // anderen Fällen (auch beim allerersten Snapshot nach einem Reload) wird sofort
       // regulär anhand des vorhandenen lastRead-Werts gezählt.
       let baselineSetDiana = false;
       let baselineSetRico = false;
@@ -1926,11 +1940,13 @@ function AdminApp({user}) {
             const baselineFlag = who==="Diana" ? baselineSetDiana : baselineSetRico;
             if(!storedRead && !baselineFlag) {
               if(who==="Diana") baselineSetDiana=true; else baselineSetRico=true;
-              if(snap.docs.length) {
-                const maxTs = Math.max(...snap.docs.map(d=>d.data().ts||0));
-                localStorage.setItem(key, maxTs);
-              }
-              result[field] = 0;
+              localStorage.setItem(key, adminFirstOpenTsRef.current);
+              const unreadDocs = snap.docs.filter(d=>{
+                const m=d.data();
+                return m.from==='coachee' && (m.recipient||"Diana")===who && (m.ts||0) > adminFirstOpenTsRef.current;
+              });
+              result[field] = unreadDocs.length;
+              result[field+"OldestTs"] = unreadDocs.length ? Math.min(...unreadDocs.map(d=>d.data().ts||0)) : null;
               return;
             }
             const lastRead = parseInt(localStorage.getItem(key)||'0');
@@ -2155,7 +2171,7 @@ function DashboardPage({coachees,library,doodles,setPage,user,openSenderFilter})
         <div>
           <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.3rem",fontWeight:700,color:"var(--text)"}}>${greeting}</div>
           <div style=${{fontSize:".88rem",color:"var(--muted)",marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"calc(100vw - 120px)"}}>Admin-Portal · Raum für Selbstwirksamkeit</div>
-          <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-08-11 20:44 · Doku v3.112 · 2026-08-11 20:44
+          <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-08-11 20:59 · Doku v3.112 · 2026-08-11 20:59
           </div>
         </div>
       </div>
