@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-11 17:17 admin -->
+<!-- Version: 2026-08-11 17:34 admin -->
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -2155,7 +2155,7 @@ function DashboardPage({coachees,library,doodles,setPage,user,openSenderFilter})
         <div>
           <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.3rem",fontWeight:700,color:"var(--text)"}}>${greeting}</div>
           <div style=${{fontSize:".88rem",color:"var(--muted)",marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"calc(100vw - 120px)"}}>Admin-Portal · Raum für Selbstwirksamkeit</div>
-          <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-08-11 17:17 · Doku v3.112 · 2026-08-11 17:17
+          <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-08-11 17:34 · Doku v3.112 · 2026-08-11 17:34
           </div>
         </div>
       </div>
@@ -2293,6 +2293,23 @@ function ChatPage({coachees,setCoachees,openId,clearOpenId,presetSender,clearPre
       if(clearPresetSender) clearPresetSender();
     }
   }, [presetSender]);
+
+  // Ohne Preset (z.B. normaler Tap auf das Chat-Icon im Nav statt auf eine Home-Kachel):
+  // auf den Strang mit der am längsten wartenden Nachricht springen, statt immer bei "Diana"
+  // zu starten. Nur einmalig beim ersten Laden der Coachee-Liste in dieser Sitzung.
+  const initialSenderSetRef = useRef(false);
+  const unreadSignature = coachees.map(c=>(c.unreadDianaOldestTs||0)+'_'+(c.unreadRicoOldestTs||0)).join(',');
+  useEffect(() => {
+    if(initialSenderSetRef.current || presetSender || !coachees.length) return;
+    let best = null, bestTs = null;
+    coachees.forEach(c => {
+      [["Diana","unreadDianaOldestTs"],["Rico","unreadRicoOldestTs"]].forEach(([who,field])=>{
+        const ts = c[field];
+        if(ts && (bestTs===null || ts<bestTs)) { bestTs=ts; best=who; }
+      });
+    });
+    if(best) { initialSenderSetRef.current = true; setSender(best); }
+  }, [unreadSignature]);
 
   // Pitfall (Kapitel 64): ChatPage wird beim Seitenwechsel komplett ausgehängt
   // (${page==="chat"&&html`...`}), der Message-Listener aus selectCoachee() wurde
@@ -2688,7 +2705,7 @@ function ChatWindow({coachee,sender,setSender,onSend,onSendImg,onSendFile,onDele
             onClick:()=>setSender(name),
             style:{flex:"1 1 0",height:"40px",maxHeight:"40px",display:"flex",alignItems:"center",
               justifyContent:"center",gap:"7px",padding:"8px 18px",
-              border:"1.5px solid "+(sender===name?(name==="Rico"?"#3b6d11":"#1d5a8f"):"var(--border2)"),
+              border:"1.5px solid "+(sender===name?(name==="Rico"?"#e9f3dd":"#e0f5ee"):"var(--border2)"),
               borderRadius:"10px",
               background:sender===name?(name==="Rico"?"#e9f3dd":"#e0f5ee"):"transparent",
               color:sender===name?(name==="Rico"?"#3b6d11":"#1d5a8f"):"var(--muted)",
@@ -2708,6 +2725,7 @@ function ChatWindow({coachee,sender,setSender,onSend,onSendImg,onSendFile,onDele
               const rawSender = msg.sender||(isOut?"Diana":"");
               const prevSame = i>0&&msgs[i-1].from===msg.from&&((msgs[i-1].sender||(msgs[i-1].from==="admin"?"Diana":"")))===(msg.sender||(isOut?"Diana":""));
               const avatarColor = isOut ? (rawSender==="Rico" ? "#3b6d11" : "#1d5a8f") : "var(--teal)";
+              const bubbleBg = rawSender==="Rico" ? "#e9f3dd" : "#e0f5ee";
               const row = html`
                 <div key=${msg.id} class=${"msg-row "+(isOut?"out":"in")}
                   style=${{marginBottom:prevSame?1:8,alignItems:"flex-end",userSelect:"none"}}
@@ -2718,7 +2736,7 @@ function ChatWindow({coachee,sender,setSender,onSend,onSendImg,onSendFile,onDele
                   onMouseUp=${cancelLongPress}
                   onMouseLeave=${cancelLongPress}>
                   <div class="msg-bubble-wrap">
-                    <div class="msg-bubble" style=${isOut?{borderColor:avatarColor}:{}}>
+                    <div class="msg-bubble" style=${isOut?{background:bubbleBg,color:avatarColor,border:"none"}:{}}>
                       ${msg.imgSrc&&!msg.isVideo&&html`<div class="msg-img-wrap"><img src=${msg.imgSrc} class="msg-img" alt="Foto" onClick=${()=>setLightbox(msg.imgSrc)}/></div>`}
                       ${msg.imgSrc&&msg.isVideo&&html`<div class="msg-img-wrap">
                         <div onClick=${()=>setVideoLightbox(msg.imgSrc)}

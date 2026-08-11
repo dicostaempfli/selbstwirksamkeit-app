@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-11 17:17 coachee -->
+<!-- Version: 2026-08-11 17:34 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -417,11 +417,8 @@
   }
   .msg-row.in  .msg-bubble { background:#ffffff; color:var(--text); border:1px solid rgba(0,0,0,.08); box-shadow:0 1px 4px rgba(0,0,0,.08); }
   .msg-row.out .msg-bubble { background:var(--teal); color:#fff; }
-  .msg-row.out.sender-diana .msg-bubble { border-left:2.5px solid #1d5a8f; }
-  .msg-row.out.sender-rico  .msg-bubble { border-left:2.5px solid #3b6d11; }
   .msg-meta { display:flex; align-items:center; gap:4px; margin-top:3px; justify-content:flex-end; }
   .msg-time-small { font-size:.68rem; color:var(--muted); }
-  .msg-row.out .msg-time-small { color:rgba(255,255,255,.55); }
 
     /* image in message */
   .msg-img { width:220px; height:155px; object-fit:cover; border-radius:11px; display:block; cursor:pointer; }
@@ -2355,6 +2352,20 @@ function ChatPage({user,coachees,setCoachees,mobileChatOpen,setMobileChatOpen}) 
     return () => unsub();
   }, [uid]);
 
+  // Beim Öffnen des Chat-Tabs (Nav-Icon) direkt den Strang des zuletzt schreibenden Absenders
+  // zeigen, statt immer auf "Diana" zu starten — sonst landet man nach einer Rico-Nachricht
+  // erst im falschen (Diana-)Strang. Nur beim ersten Laden nach dem Mount, damit ein manueller
+  // Tab-Wechsel danach nicht wieder überschrieben wird.
+  const initialRecipientSetRef = useRef(false);
+  useEffect(() => {
+    if(initialRecipientSetRef.current || !messages.length) return;
+    initialRecipientSetRef.current = true;
+    const lastAdminMsg = [...messages].reverse().find(m=>m.from==="admin");
+    if(lastAdminMsg && (lastAdminMsg.sender==="Diana"||lastAdminMsg.sender==="Rico")) {
+      setRecipient(lastAdminMsg.sender);
+    }
+  }, [messages]);
+
   // Verlauf auf den aktiven Strang filtern — Umschalten entspricht einem echten Kontaktwechsel,
   // nicht nur der Adressierung neuer Nachrichten. Alte Nachrichten ohne recipient-Feld gelten als "Diana".
   const filteredMessages = messages.filter(m => {
@@ -2601,7 +2612,7 @@ function ChatWindow({coachee,recipient,setRecipient,onSend,onSendImg,onSendFile,
             onClick:()=>setRecipient(name),
             style:{flex:"1 1 0",height:"40px",maxHeight:"40px",display:"flex",alignItems:"center",
               justifyContent:"center",gap:"7px",padding:"8px 18px",
-              border:"1.5px solid "+(recipient===name?(name==="Rico"?"#3b6d11":"#1d5a8f"):"var(--border2)"),
+              border:"1.5px solid "+(recipient===name?(name==="Rico"?"#e9f3dd":"#e0f5ee"):"var(--border2)"),
               borderRadius:"10px",
               background:recipient===name?(name==="Rico"?"#e9f3dd":"#e0f5ee"):"transparent",
               color:recipient===name?(name==="Rico"?"#3b6d11":"#1d5a8f"):"var(--muted)",
@@ -2620,6 +2631,7 @@ function ChatWindow({coachee,recipient,setRecipient,onSend,onSendImg,onSendFile,
               const sender = msg.sender||"Diana";
               const prevSame = i>0&&msgs[i-1].from===msg.from&&(msgs[i-1].sender||"Diana")===sender;
               const avatarColor = sender==="Rico" ? "#3b6d11" : "#1d5a8f";
+              const bubbleBg = sender==="Rico" ? "#e9f3dd" : "#e0f5ee";
               const senderClass = isOut ? (sender==="Rico"?" sender-rico":" sender-diana") : "";
               return html`
                 <div key=${msg.id} class=${"msg-row "+(isOut?"out":"in")+senderClass}
@@ -2633,7 +2645,7 @@ function ChatWindow({coachee,recipient,setRecipient,onSend,onSendImg,onSendFile,
                   <div class="msg-bubble-wrap">
                     ${isOut&&!prevSame&&html`<div style=${{fontSize:".67rem",fontWeight:700,
                       color:avatarColor,marginBottom:2,marginLeft:2}}>${sender}</div>`}
-                    <div class="msg-bubble">
+                    <div class="msg-bubble" style=${isOut?{background:bubbleBg,color:avatarColor}:{}}>
                       ${msg.imgSrc&&!msg.isVideo&&html`<div class="msg-img-wrap"><img src=${msg.imgSrc} class="msg-img" alt="Foto" onClick=${()=>setLightbox(msg.imgSrc)}/></div>`}
                       ${msg.imgSrc&&msg.isVideo&&html`<div class="msg-img-wrap">
                         <div onClick=${()=>setVideoLightbox(msg.imgSrc)}
