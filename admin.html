@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-10 10:20 admin -->
+<!-- Version: 2026-08-11 14:04 admin -->
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -389,8 +389,11 @@ window.addEventListener('orientationchange', ()=>setTimeout(setVH,150));
     user-select: none;
     -webkit-touch-callout: none;
   }
-  .msg-row.in  .msg-bubble { background:var(--bubble-in); color:var(--text); border:1px solid var(--border); }
-  .msg-row.out .msg-bubble { background:var(--bubble-out); color:#fff; }
+  .msg-row.in  .msg-bubble { background:var(--teal); color:#fff; border:none; }
+  .msg-row.out .msg-bubble { background:#fff; color:var(--text); border:1.3px solid var(--border2); }
+  .chat-context-bar { border-radius:8px; padding:6px 12px; display:flex; justify-content:space-between; align-items:center; font-size:.72rem; }
+  .chat-context-bar span:first-child { font-weight:700; }
+  .chat-context-bar span:last-child { opacity:.75; }
   .msg-meta { display:flex; align-items:center; gap:4px; margin-top:3px; justify-content:flex-end; }
   .msg-time-small { font-size:.68rem; color:var(--muted); }
   .msg-row.out .msg-time-small { color:rgba(255,255,255,.55); }
@@ -2115,7 +2118,7 @@ function DashboardPage({coachees,library,doodles,setPage,user}) {
         <div>
           <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.3rem",fontWeight:700,color:"var(--text)"}}>${greeting}</div>
           <div style=${{fontSize:".88rem",color:"var(--muted)",marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"calc(100vw - 120px)"}}>Admin-Portal · Raum für Selbstwirksamkeit</div>
-          <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-08-10 10:20 · Doku v3.110 · 2026-08-10 10:20
+          <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-08-11 14:04 · Doku v3.112 · 2026-08-11 14:04
           </div>
         </div>
       </div>
@@ -2587,9 +2590,20 @@ function ChatWindow({coachee,onSend,onSendImg,onSendFile,onDeleteMsg,onBack,mobi
               const rawSender = msg.sender||(isOut?"Diana":"");
               const sender = isOut ? (rawSender||"Diana") : (coachee.name?.split(" ")[0]||"Coachee");
               const prevSame = i>0&&msgs[i-1].from===msg.from&&((msgs[i-1].sender||(msgs[i-1].from==="admin"?"Diana":"")))===(msg.sender||(isOut?"Diana":""));
-              const avatarColor = isOut ? (rawSender==="Rico" ? "#a0cb7b" : "#68b87d") : "var(--teal)";
+              const avatarColor = isOut ? (rawSender==="Rico" ? "#62ba7a" : "#0e4e4e") : "var(--teal)";
               const initial = sender[0];
-              return html`
+              // Kontext (an wen adressiert / von wem beantwortet) für die Segment-Leiste
+              const context = isOut ? (rawSender||"Diana") : (msg.recipient||"Diana");
+              const prevMsg = i>0?msgs[i-1]:null;
+              const prevContext = prevMsg ? (prevMsg.from==="admin" ? (prevMsg.sender||"Diana") : (prevMsg.recipient||"Diana")) : null;
+              const newSegment = i===0 || context!==prevContext;
+              const barBg = context==="Rico" ? "#EAF3DE" : "#E1F5EE";
+              const barText = context==="Rico" ? "#3b6d11" : "#0e4e4e";
+              const barEl = newSegment ? html`<div class="chat-context-bar" style=${{background:barBg,color:barText,margin:i===0?"0 0 8px":"12px 0 8px"}}>
+                <span>Nachricht an ${context}</span>
+                <span>${formatDateKey(date)} · ${msg.time}</span>
+              </div>` : null;
+              const row = html`
                 <div key=${msg.id} class=${"msg-row "+(isOut?"out":"in")}
                   style=${{marginBottom:prevSame?1:8,alignItems:"flex-end",userSelect:"none"}}
                   onTouchStart=${e=>startLongPress(msg,e)}
@@ -2606,7 +2620,7 @@ function ChatWindow({coachee,onSend,onSendImg,onSendFile,onDeleteMsg,onBack,mobi
                   <div class="msg-bubble-wrap">
                     ${!isOut&&!prevSame&&html`<div style=${{fontSize:".67rem",fontWeight:700,
                       color:avatarColor,marginBottom:2,marginLeft:2}}>${sender}</div>`}
-                    <div class="msg-bubble">
+                    <div class="msg-bubble" style=${isOut?{borderColor:avatarColor}:{}}>
                       ${msg.imgSrc&&!msg.isVideo&&html`<div class="msg-img-wrap"><img src=${msg.imgSrc} class="msg-img" alt="Foto" onClick=${()=>setLightbox(msg.imgSrc)}/></div>`}
                       ${msg.imgSrc&&msg.isVideo&&html`<div class="msg-img-wrap">
                         <div onClick=${()=>setVideoLightbox(msg.imgSrc)}
@@ -2656,7 +2670,13 @@ function ChatWindow({coachee,onSend,onSendImg,onSendFile,onDeleteMsg,onBack,mobi
                       ${isOut&&msg.seen&&html`<span style=${{color:"var(--teal)",fontSize:".65rem"}}>✓✓</span>`}
                     </div>
                   </div>
+                  ${isOut&&html`<div style=${{width:20,height:20,borderRadius:"50%",flexShrink:0,
+                    background:prevSame?"transparent":avatarColor,
+                    display:"flex",alignItems:"center",justifyContent:"center",
+                    marginLeft:6,marginBottom:2,fontSize:".62rem",fontWeight:700,
+                    color:"white"}}>${prevSame?"":rawSender[0]}</div>`}
                 </div>`;
+              return h(Fragment,{key:msg.id},barEl,row);
             })}
           </div>`)}
         <div ref=${bottomRef}/>
