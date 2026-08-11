@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-11 15:16 coachee -->
+<!-- Version: 2026-08-11 15:23 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -416,9 +416,9 @@
     -webkit-touch-callout: none;
   }
   .msg-row.in  .msg-bubble { background:#ffffff; color:var(--text); border:1px solid rgba(0,0,0,.08); box-shadow:0 1px 4px rgba(0,0,0,.08); }
-  .msg-row.in.sender-diana .msg-bubble { border-left:2.5px solid var(--teal); }
-  .msg-row.in.sender-rico  .msg-bubble { border-left:2.5px solid #7aad5a; }
-  .msg-row.out .msg-bubble { background:var(--bubble-out); color:#fff; }
+  .msg-row.out .msg-bubble { background:var(--teal); color:#fff; }
+  .msg-row.out.sender-diana .msg-bubble { border-left:2.5px solid var(--forest-dark); }
+  .msg-row.out.sender-rico  .msg-bubble { border-left:2.5px solid #7aad5a; }
   .msg-meta { display:flex; align-items:center; gap:4px; margin-top:3px; justify-content:flex-end; }
   .msg-time-small { font-size:.68rem; color:var(--muted); }
   .msg-row.out .msg-time-small { color:rgba(255,255,255,.55); }
@@ -2623,12 +2623,12 @@ function ChatWindow({coachee,recipient,setRecipient,onSend,onSendImg,onSendFile,
           <div key=${date}>
             <div class="date-divider">${formatDateKey(date)}</div>
             ${msgs.map((msg,i)=>{
-              const isOut = msg.from==="coachee";
+              const isOut = msg.from==="admin";
               const sender = msg.sender||"Diana";
               const prevSame = i>0&&msgs[i-1].from===msg.from&&(msgs[i-1].sender||"Diana")===sender;
               const avatarColor = sender==="Rico" ? "#7aad5a" : "var(--teal)";
               const initial = sender[0];
-              const senderClass = !isOut ? (sender==="Rico"?" sender-rico":" sender-diana") : "";
+              const senderClass = isOut ? (sender==="Rico"?" sender-rico":" sender-diana") : "";
               return html`
                 <div key=${msg.id} class=${"msg-row "+(isOut?"out":"in")+senderClass}
                   style=${{marginBottom:prevSame?1:8,alignItems:"flex-end",userSelect:"none"}}
@@ -2638,13 +2638,13 @@ function ChatWindow({coachee,recipient,setRecipient,onSend,onSendImg,onSendFile,
                   onMouseDown=${e=>startLongPress(msg,e)}
                   onMouseUp=${cancelLongPress}
                   onMouseLeave=${cancelLongPress}>
-                  ${!isOut&&html`<div style=${{width:28,height:28,borderRadius:"50%",flexShrink:0,
+                  ${isOut&&html`<div style=${{width:28,height:28,borderRadius:"50%",flexShrink:0,
                     background:prevSame?"transparent":avatarColor,
                     display:"flex",alignItems:"center",justifyContent:"center",
                     marginRight:6,marginBottom:2,fontSize:".72rem",fontWeight:700,
                     color:"white"}}>${prevSame?"":initial}</div>`}
                   <div class="msg-bubble-wrap">
-                    ${!isOut&&!prevSame&&html`<div style=${{fontSize:".67rem",fontWeight:700,
+                    ${isOut&&!prevSame&&html`<div style=${{fontSize:".67rem",fontWeight:700,
                       color:avatarColor,marginBottom:2,marginLeft:2}}>${sender}</div>`}
                     <div class="msg-bubble">
                       ${msg.imgSrc&&!msg.isVideo&&html`<div class="msg-img-wrap"><img src=${msg.imgSrc} class="msg-img" alt="Foto" onClick=${()=>setLightbox(msg.imgSrc)}/></div>`}
@@ -2693,7 +2693,7 @@ function ChatWindow({coachee,recipient,setRecipient,onSend,onSendImg,onSendFile,
                     </div>
                     <div class="msg-meta" style=${{justifyContent:isOut?"flex-end":"flex-start"}}>
                       <span class="msg-time-small">${msg.time}</span>
-                      ${isOut&&msg.seen&&html`<span style=${{color:"var(--teal)",fontSize:".65rem"}}>✓✓</span>`}
+                      ${!isOut&&msg.seen&&html`<span style=${{color:"var(--teal)",fontSize:".65rem"}}>✓✓</span>`}
                     </div>
                   </div>
                 </div>`;
