@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-11 19:38 admin -->
+<!-- Version: 2026-08-11 20:32 admin -->
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -2155,7 +2155,7 @@ function DashboardPage({coachees,library,doodles,setPage,user,openSenderFilter})
         <div>
           <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.3rem",fontWeight:700,color:"var(--text)"}}>${greeting}</div>
           <div style=${{fontSize:".88rem",color:"var(--muted)",marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"calc(100vw - 120px)"}}>Admin-Portal · Raum für Selbstwirksamkeit</div>
-          <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-08-11 19:38 · Doku v3.112 · 2026-08-11 19:38
+          <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-08-11 20:32 · Doku v3.112 · 2026-08-11 20:32
           </div>
         </div>
       </div>
@@ -2339,6 +2339,7 @@ function ChatPage({coachees,setCoachees,openId,clearOpenId,presetSender,clearPre
   // komplett aus dem Blick (Rico-Meldung 11.08.2026).
   const dianaWaiting = filtered.filter(c=>c.unreadDianaOldestTs).sort((a,b)=>a.unreadDianaOldestTs-b.unreadDianaOldestTs);
   const ricoWaiting = filtered.filter(c=>c.unreadRicoOldestTs).sort((a,b)=>a.unreadRicoOldestTs-b.unreadRicoOldestTs);
+  const restCoachees = filtered.filter(c=>!c.unreadDianaOldestTs && !c.unreadRicoOldestTs);
   const active = coachees.find(c=>c.id===activeId);
   const filterCount = filterCat&&filterCat!=="Alle" ? coachees.filter(c=>{const cats=[...(Array.isArray(c.coaching)?c.coaching:(c.coaching?[c.coaching]:[])), ...(Array.isArray(c.gender)?c.gender:(c.gender?[c.gender]:[])), ...(c.categories||[])]; return catMatches(cats, filterCat);}).length : coachees.length;
   const getCatCoachees = cat => !cat ? coachees : coachees.filter(c=>{const cats=[...(Array.isArray(c.coaching)?c.coaching:(c.coaching?[c.coaching]:[])), ...(Array.isArray(c.gender)?c.gender:(c.gender?[c.gender]:[])), ...(c.categories||[])]; return catMatches(cats, cat);});
@@ -2383,9 +2384,10 @@ function ChatPage({coachees,setCoachees,openId,clearOpenId,presetSender,clearPre
           localStorage.setItem('lastRead_'+id+'_'+sender, maxTs);
         }
         const field = sender==="Rico" ? "unreadRico" : "unreadDiana";
+        const oldestField = sender==="Rico" ? "unreadRicoOldestTs" : "unreadDianaOldestTs";
         setCoachees(cs=>cs.map(c=>{
           if(c.id!==id) return c;
-          const updated = {...c,[field]:0};
+          const updated = {...c,[field]:0,[oldestField]:null};
           updated.unread = (updated.unreadDiana||0)+(updated.unreadRico||0);
           return updated;
         }));
@@ -2406,9 +2408,10 @@ function ChatPage({coachees,setCoachees,openId,clearOpenId,presetSender,clearPre
       localStorage.setItem('lastRead_'+activeId+'_'+sender, Date.now());
     }
     const field = sender==="Rico" ? "unreadRico" : "unreadDiana";
+    const oldestField = sender==="Rico" ? "unreadRicoOldestTs" : "unreadDianaOldestTs";
     setCoachees(cs=>cs.map(c=>{
       if(c.id!==activeId) return c;
-      const updated = {...c,[field]:0};
+      const updated = {...c,[field]:0,[oldestField]:null};
       updated.unread = (updated.unreadDiana||0)+(updated.unreadRico||0);
       return updated;
     }));
@@ -2525,7 +2528,7 @@ function ChatPage({coachees,setCoachees,openId,clearOpenId,presetSender,clearPre
               )
             )}
             <div class="conv-list" style=${{flex:1,overflowY:"auto"}}>
-              ${(dianaWaiting.length>0||ricoWaiting.length>0)&&html`<div style=${{marginBottom:14}}>
+              ${(dianaWaiting.length>0||ricoWaiting.length>0)&&html`<div style=${{marginBottom:26}}>
                 ${dianaWaiting.length>0&&html`<div style=${{marginBottom:ricoWaiting.length>0?12:0}}>
                   <div style=${{fontSize:".72rem",fontWeight:700,color:"#1d5a8f",textTransform:"uppercase",letterSpacing:".04em",marginBottom:6}}>An Diana</div>
                   <div style=${{display:"flex",flexDirection:"column",gap:6}}>
@@ -2551,17 +2554,18 @@ function ChatPage({coachees,setCoachees,openId,clearOpenId,presetSender,clearPre
                   </div>
                 </div>`}
               </div>`}
-              ${filtered.map(c=>{
-                const previewEl = html`<div class="conv-preview">${c.messages?.length?c.messages.at(-1).from==="admin"?"Du: "+c.messages.at(-1).text:c.messages.at(-1).text:c.topic}</div>`;
+              <div style=${{borderTop:(dianaWaiting.length>0||ricoWaiting.length>0)?"1px solid var(--border)":"none",
+                paddingTop:(dianaWaiting.length>0||ricoWaiting.length>0)?8:0,marginBottom:8}}>
+                <div style=${{fontSize:".72rem",fontWeight:700,color:"var(--muted)",textTransform:"uppercase",letterSpacing:".04em"}}>Kontakte</div>
+              </div>
+              ${restCoachees.map(c=>{
                 return html`
                 <div key=${c.id} class=${"conv-row"+(activeId===c.id?" active":"")}
+                  style=${activeId===c.id?{background:"var(--surface2)"}:{}}
                   onClick=${()=>selectCoachee(c.id)}>
                   <div class="conv-info">
                     <div class="conv-name">${c.name}</div>
-                    ${previewEl}
-                  </div>
-                  <div class="conv-meta">
-                    <span class="conv-time">${c.lastTime}</span>
+                    <div class="conv-preview">${c.topic}</div>
                   </div>
                 </div>`;
               })}
