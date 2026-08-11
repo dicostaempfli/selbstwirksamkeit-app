@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-11 16:23 admin -->
+<!-- Version: 2026-08-11 16:36 admin -->
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -1379,6 +1379,14 @@ import { html } from 'htm/preact';
 // ── HELPERS ──
 const nowTime = () => new Date().toLocaleTimeString('de-CH',{hour:'2-digit',minute:'2-digit'});
 const fmtDate = d => { if(!d) return ''; try { return new Date(d).toLocaleDateString('de-CH',{day:'2-digit',month:'long',year:'numeric'}); } catch(e){ return d; }};
+const waitLabel = ts => {
+  if(!ts) return '';
+  const diffMin = Math.max(0, Math.round((Date.now()-ts)/60000));
+  if(diffMin < 60) return 'wartet seit '+diffMin+' Min';
+  const diffH = Math.round(diffMin/60);
+  if(diffH < 24) return 'wartet seit '+diffH+' Std';
+  return 'wartet seit '+Math.round(diffH/24)+' Tg';
+};
 // Normalisiert das Doodle-Feld 'slots' zu einem echten JS-Array, unabhängig davon, ob Firestore es
 // als Array oder (fälschlich, durch Dot-Notation-Updates auf nicht-existente Indizes) als Map mit
 // numerischen String-Keys gespeichert hat. Siehe Pitfall 40.
@@ -1692,6 +1700,9 @@ function AdminApp({user}) {
   // pendingChatId: aus einem Push-Deep-Link (#chat-<uid>) übernommene Coachee-UID, die
   // ChatPage beim Öffnen direkt anwählen soll (siehe applyHash unten + ChatPage-Prop openId).
   const [pendingChatId,setPendingChatId] = useState(null);
+  // pendingSenderFilter: von der Home-Karte übernommene Diana/Rico-Auswahl — ChatPage
+  // übernimmt diesen Wert als aktiven Toggle beim Öffnen, siehe DashboardPage-Kacheln.
+  const [pendingSenderFilter,setPendingSenderFilter] = useState(null);
   // Gemeinsame Routing-Logik, sowohl für den normalen Hash-Weg (hashchange/Erst-Laden)
   // als auch für den Kaltstart-Fallback über Cache Storage (applyPendingDeepLink unten).
   const routeHash = (hash) => {
@@ -1923,12 +1934,14 @@ function AdminApp({user}) {
               return;
             }
             const lastRead = parseInt(localStorage.getItem(key)||'0');
-            result[field] = snap.docs.filter(d=>{
+            const unreadDocs = snap.docs.filter(d=>{
               const m=d.data();
               return m.from==='coachee' && (m.recipient||"Diana")===who && (m.ts||0) > lastRead;
-            }).length;
+            });
+            result[field] = unreadDocs.length;
+            result[field+"OldestTs"] = unreadDocs.length ? Math.min(...unreadDocs.map(d=>d.data().ts||0)) : null;
           });
-          setCoachees(cs=>cs.map(x=>x.id===c.id?{...x,unreadDiana:result.unreadDiana,unreadRico:result.unreadRico,unread:result.unreadDiana+result.unreadRico}:x));
+          setCoachees(cs=>cs.map(x=>x.id===c.id?{...x,unreadDiana:result.unreadDiana,unreadRico:result.unreadRico,unreadDianaOldestTs:result.unreadDianaOldestTs,unreadRicoOldestTs:result.unreadRicoOldestTs,unread:result.unreadDiana+result.unreadRico}:x));
         }, ()=>{});
       unreadUnsubsRef.current[c.id] = unsub;
     });
@@ -2081,8 +2094,8 @@ function AdminApp({user}) {
 
       <!-- Main content -->
       <div class="main-content">
-        ${page==="dashboard"&&html`<${DashboardPage} coachees=${coachees} library=${library} doodles=${doodles} setPage=${setPage} user=${user}/>`}
-        ${page==="chat"&&html`<${ChatPage} coachees=${coachees} setCoachees=${setCoachees} openId=${pendingChatId} clearOpenId=${()=>setPendingChatId(null)}/>`}
+        ${page==="dashboard"&&html`<${DashboardPage} coachees=${coachees} library=${library} doodles=${doodles} setPage=${setPage} user=${user} openSenderFilter=${name=>{setPendingSenderFilter(name);setPage("chat");}}/>`}
+        ${page==="chat"&&html`<${ChatPage} coachees=${coachees} setCoachees=${setCoachees} openId=${pendingChatId} clearOpenId=${()=>setPendingChatId(null)} presetSender=${pendingSenderFilter} clearPresetSender=${()=>setPendingSenderFilter(null)}/>`}
         ${page==="coachees"&&html`<${CoacheesPage} coachees=${coachees} setCoachees=${setCoachees} setPage=${setPage} pending=${pending} setPending=${setPending} deleted=${deleted} setDeleted=${setDeleted}/>`}
         ${page==="library"&&html`<${LibraryPage} library=${library} setLibrary=${setLibrary}/>`}
         ${page==="impuls"&&html`<${ImpulsAdminPage}/>`}
@@ -2107,7 +2120,7 @@ function AdminApp({user}) {
 
 
 
-function DashboardPage({coachees,library,doodles,setPage,user}) {
+function DashboardPage({coachees,library,doodles,setPage,user,openSenderFilter}) {
   const hour = new Date().getHours();
   const greetWord = hour<12?"Guten Morgen":hour<18?"Guten Tag":"Guten Abend";
   const userName = user?.displayName?.split(" ")[0] || user?.email?.split("@")[0] || "Diana";
@@ -2118,10 +2131,21 @@ function DashboardPage({coachees,library,doodles,setPage,user}) {
   const totalUnread = unreadDianaTotal + unreadRicoTotal;
   const msgHint = totalUnread===0
     ? html`<div class="stat-hint">ungelesen</div>`
-    : html`<div class="stat-hint" style=${{display:"flex",gap:6}}>
-        ${unreadDianaTotal>0&&html`<span style=${{color:"#1d5a8f",fontWeight:700}}>${unreadDianaTotal} an Diana</span>`}
-        ${unreadDianaTotal>0&&unreadRicoTotal>0&&html`<span>·</span>`}
-        ${unreadRicoTotal>0&&html`<span style=${{color:"#3b6d11",fontWeight:700}}>${unreadRicoTotal} an Rico</span>`}
+    : html`<div style=${{display:"flex",gap:6,marginTop:2}}>
+        ${unreadDianaTotal>0&&html`<div onClick=${e=>{e.stopPropagation();openSenderFilter("Diana");}}
+            style=${{flex:"1 1 0",display:"flex",alignItems:"center",justifyContent:"space-between",
+              background:"#E6F1FB",color:"#1d5a8f",borderRadius:8,padding:"6px 10px",
+              fontSize:".78rem",fontWeight:700,cursor:"pointer"}}>
+            <span>${unreadDianaTotal} an Diana</span>
+            <${Ic} name="chevron" size=${13} style=${{color:"#1d5a8f"}}/>
+          </div>`}
+        ${unreadRicoTotal>0&&html`<div onClick=${e=>{e.stopPropagation();openSenderFilter("Rico");}}
+            style=${{flex:"1 1 0",display:"flex",alignItems:"center",justifyContent:"space-between",
+              background:"#EAF3DE",color:"#3b6d11",borderRadius:8,padding:"6px 10px",
+              fontSize:".78rem",fontWeight:700,cursor:"pointer"}}>
+            <span>${unreadRicoTotal} an Rico</span>
+            <${Ic} name="chevron" size=${13} style=${{color:"#3b6d11"}}/>
+          </div>`}
       </div>`;
 
   return html`
@@ -2131,7 +2155,7 @@ function DashboardPage({coachees,library,doodles,setPage,user}) {
         <div>
           <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.3rem",fontWeight:700,color:"var(--text)"}}>${greeting}</div>
           <div style=${{fontSize:".88rem",color:"var(--muted)",marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"calc(100vw - 120px)"}}>Admin-Portal · Raum für Selbstwirksamkeit</div>
-          <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-08-11 16:23 · Doku v3.112 · 2026-08-11 16:23
+          <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-08-11 16:36 · Doku v3.112 · 2026-08-11 16:36
           </div>
         </div>
       </div>
@@ -2252,7 +2276,7 @@ function QuoteEditor() {
 }
 
 // ── CHAT PAGE ──
-function ChatPage({coachees,setCoachees,openId,clearOpenId}) {
+function ChatPage({coachees,setCoachees,openId,clearOpenId,presetSender,clearPresetSender}) {
   const [activeId,setActiveId] = useState(null);
   const [search,setSearch] = useState("");
   const [mobileView,setMobileView] = useState("list");
@@ -2260,6 +2284,15 @@ function ChatPage({coachees,setCoachees,openId,clearOpenId}) {
   const [chatMessages,setChatMessages] = useState([]);
   const [sender,setSender] = useState("Diana");
   const chatUnsubRef = useRef(null);
+
+  // Von der Home-Karte übernommener Diana/Rico-Filter (Kachel "X an Diana/Rico" angetippt) —
+  // übernimmt den Toggle-Wert direkt beim Öffnen des Chat-Tabs.
+  useEffect(() => {
+    if(presetSender && (presetSender==="Diana"||presetSender==="Rico")) {
+      setSender(presetSender);
+      if(clearPresetSender) clearPresetSender();
+    }
+  }, [presetSender]);
 
   // Pitfall (Kapitel 64): ChatPage wird beim Seitenwechsel komplett ausgehängt
   // (${page==="chat"&&html`...`}), der Message-Listener aus selectCoachee() wurde
@@ -2283,6 +2316,17 @@ function ChatPage({coachees,setCoachees,openId,clearOpenId}) {
     if(!filterCat||filterCat==="Alle") return nameMatch;
     const cats = [...(Array.isArray(c.coaching)?c.coaching:(c.coaching?[c.coaching]:[])), ...(Array.isArray(c.gender)?c.gender:(c.gender?[c.gender]:[])), ...(c.categories||[])];
     return nameMatch && catMatches(cats, filterCat);
+  });
+  // Coachees mit offenen Nachrichten für den aktiven Strang (Diana/Rico) stehen oben,
+  // sortiert nach Wartezeit (älteste zuerst) — Rest bleibt in der bisherigen Reihenfolge,
+  // wird nicht abgedunkelt oder ausgeblendet.
+  const oldestField = sender==="Rico" ? "unreadRicoOldestTs" : "unreadDianaOldestTs";
+  const filteredSorted = [...filtered].sort((a,b)=>{
+    const aTs = a[oldestField], bTs = b[oldestField];
+    if(aTs && bTs) return aTs-bTs;
+    if(aTs && !bTs) return -1;
+    if(!aTs && bTs) return 1;
+    return 0;
   });
   const active = coachees.find(c=>c.id===activeId);
   const filterCount = filterCat&&filterCat!=="Alle" ? coachees.filter(c=>{const cats=[...(Array.isArray(c.coaching)?c.coaching:(c.coaching?[c.coaching]:[])), ...(Array.isArray(c.gender)?c.gender:(c.gender?[c.gender]:[])), ...(c.categories||[])]; return catMatches(cats, filterCat);}).length : coachees.length;
@@ -2470,11 +2514,15 @@ function ChatPage({coachees,setCoachees,openId,clearOpenId}) {
               )
             )}
             <div class="conv-list" style=${{flex:1,overflowY:"auto"}}>
-              ${filtered.map(c=>html`
+              ${filteredSorted.map(c=>{
+                const previewEl = c[oldestField]
+                  ? html`<div class="conv-preview" style=${{color:sender==="Rico"?"#3b6d11":"#1d5a8f",fontWeight:700}}>${waitLabel(c[oldestField])}</div>`
+                  : html`<div class="conv-preview">${c.messages?.length?c.messages.at(-1).from==="admin"?"Du: "+c.messages.at(-1).text:c.messages.at(-1).text:c.topic}</div>`;
+                return html`
                 <div key=${c.id} class=${"conv-row"+(activeId===c.id?" active":"")} onClick=${()=>selectCoachee(c.id)}>
                   <div class="conv-info">
                     <div class="conv-name">${c.name}</div>
-                    <div class="conv-preview">${c.messages?.length?c.messages.at(-1).from==="admin"?"Du: "+c.messages.at(-1).text:c.messages.at(-1).text:c.topic}</div>
+                    ${previewEl}
                   </div>
                   <div class="conv-meta">
                     <span class="conv-time">${c.lastTime}</span>
@@ -2483,7 +2531,8 @@ function ChatPage({coachees,setCoachees,openId,clearOpenId}) {
                       ${(c.unreadRico||0)>0&&html`<span class="conv-unread" style=${{background:"#62ba7a",color:"#173404"}}>${c.unreadRico}</span>`}
                     </div>
                   </div>
-                </div>`)}
+                </div>`;
+              })}
             </div>
           </div>`
         : html`
