@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-11 20:59 admin -->
+<!-- Version: 2026-08-11 21:11 admin -->
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -1703,6 +1703,14 @@ function AdminApp({user}) {
   // pendingSenderFilter: von der Home-Karte übernommene Diana/Rico-Auswahl — ChatPage
   // übernimmt diesen Wert als aktiven Toggle beim Öffnen, siehe DashboardPage-Kacheln.
   const [pendingSenderFilter,setPendingSenderFilter] = useState(null);
+  // forceListToken (NEU, 11.08.2026, Rico-Meldung "Push öffnet manchmal direkt eine
+  // Einzelkonversation statt der Liste"): setPage("chat") ist ein No-Op, wenn man beim
+  // Push-Empfang bereits auf der Chat-Seite steht — ChatPage bleibt dann unverändert
+  // gemountet und zeigt weiterhin die zuletzt geöffnete Einzelkonversation, statt zur
+  // Liste zurückzuspringen. Ein simpler Zähler als zusätzliches Signal (statt Boolean,
+  // damit auch zwei Pushes mit identischem Ziel hintereinander zuverlässig je einmal
+  // zurücksetzen) löst das unabhängig vom aktuellen page-Wert aus.
+  const [forceListToken,setForceListToken] = useState(0);
   // Gemeinsame Routing-Logik, sowohl für den normalen Hash-Weg (hashchange/Erst-Laden)
   // als auch für den Kaltstart-Fallback über Cache Storage (applyPendingDeepLink unten).
   const routeHash = (hash) => {
@@ -1715,6 +1723,9 @@ function AdminApp({user}) {
     if(hash.startsWith("chat-")) {
       setPage("chat");
       setPendingChatId(hash.slice(5));
+    } else if(hash === "chat") {
+      setPage("chat");
+      setForceListToken(t=>t+1);
     } else if(ADMIN_HASH_TO_PAGE[hash]) {
       setPage(ADMIN_HASH_TO_PAGE[hash]);
     }
@@ -2111,7 +2122,7 @@ function AdminApp({user}) {
       <!-- Main content -->
       <div class="main-content">
         ${page==="dashboard"&&html`<${DashboardPage} coachees=${coachees} library=${library} doodles=${doodles} setPage=${setPage} user=${user} openSenderFilter=${name=>{setPendingSenderFilter(name);setPage("chat");}}/>`}
-        ${page==="chat"&&html`<${ChatPage} coachees=${coachees} setCoachees=${setCoachees} openId=${pendingChatId} clearOpenId=${()=>setPendingChatId(null)} presetSender=${pendingSenderFilter} clearPresetSender=${()=>setPendingSenderFilter(null)}/>`}
+        ${page==="chat"&&html`<${ChatPage} coachees=${coachees} setCoachees=${setCoachees} openId=${pendingChatId} clearOpenId=${()=>setPendingChatId(null)} presetSender=${pendingSenderFilter} clearPresetSender=${()=>setPendingSenderFilter(null)} forceListToken=${forceListToken}/>`}
         ${page==="coachees"&&html`<${CoacheesPage} coachees=${coachees} setCoachees=${setCoachees} setPage=${setPage} pending=${pending} setPending=${setPending} deleted=${deleted} setDeleted=${setDeleted}/>`}
         ${page==="library"&&html`<${LibraryPage} library=${library} setLibrary=${setLibrary}/>`}
         ${page==="impuls"&&html`<${ImpulsAdminPage}/>`}
@@ -2171,7 +2182,7 @@ function DashboardPage({coachees,library,doodles,setPage,user,openSenderFilter})
         <div>
           <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.3rem",fontWeight:700,color:"var(--text)"}}>${greeting}</div>
           <div style=${{fontSize:".88rem",color:"var(--muted)",marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"calc(100vw - 120px)"}}>Admin-Portal · Raum für Selbstwirksamkeit</div>
-          <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-08-11 20:59 · Doku v3.112 · 2026-08-11 20:59
+          <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-08-11 21:11 · Doku v3.112 · 2026-08-11 21:11
           </div>
         </div>
       </div>
@@ -2292,7 +2303,7 @@ function QuoteEditor() {
 }
 
 // ── CHAT PAGE ──
-function ChatPage({coachees,setCoachees,openId,clearOpenId,presetSender,clearPresetSender}) {
+function ChatPage({coachees,setCoachees,openId,clearOpenId,presetSender,clearPresetSender,forceListToken}) {
   const [activeId,setActiveId] = useState(null);
   const [search,setSearch] = useState("");
   const [mobileView,setMobileView] = useState("list");
@@ -2300,6 +2311,20 @@ function ChatPage({coachees,setCoachees,openId,clearOpenId,presetSender,clearPre
   const [chatMessages,setChatMessages] = useState([]);
   const [sender,setSender] = useState("Diana");
   const chatUnsubRef = useRef(null);
+
+  // forceListToken (NEU, 11.08.2026): erzwingt Rücksprung zur Liste, auch wenn ChatPage
+  // wegen page==="chat" bereits gemountet war und eine Einzelkonversation offen stand —
+  // ein reiner setPage("chat")-Aufruf beim Push-Empfang wäre sonst ein No-Op gewesen und
+  // die alte Einzelkonversation wäre fälschlich sichtbar geblieben (Rico-Meldung "Push
+  // öffnet manchmal direkt einen Chat statt der Liste"). 0 = Initialwert, wird ignoriert.
+  const skipFirstForceListRef = useRef(true);
+  useEffect(() => {
+    if(skipFirstForceListRef.current) { skipFirstForceListRef.current = false; return; }
+    if(!forceListToken) return;
+    if(chatUnsubRef.current) { chatUnsubRef.current(); chatUnsubRef.current = null; }
+    setActiveId(null);
+    setMobileOpen(false);
+  }, [forceListToken]);
 
   // Von der Home-Karte übernommener Diana/Rico-Filter (Kachel "X an Diana/Rico" angetippt) —
   // übernimmt den Toggle-Wert direkt beim Öffnen des Chat-Tabs.
