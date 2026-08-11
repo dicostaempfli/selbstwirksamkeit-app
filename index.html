@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-11 16:23 coachee -->
+<!-- Version: 2026-08-11 17:17 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -417,8 +417,8 @@
   }
   .msg-row.in  .msg-bubble { background:#ffffff; color:var(--text); border:1px solid rgba(0,0,0,.08); box-shadow:0 1px 4px rgba(0,0,0,.08); }
   .msg-row.out .msg-bubble { background:var(--teal); color:#fff; }
-  .msg-row.out.sender-diana .msg-bubble { border-left:2.5px solid #3b82c4; }
-  .msg-row.out.sender-rico  .msg-bubble { border-left:2.5px solid #62ba7a; }
+  .msg-row.out.sender-diana .msg-bubble { border-left:2.5px solid #1d5a8f; }
+  .msg-row.out.sender-rico  .msg-bubble { border-left:2.5px solid #3b6d11; }
   .msg-meta { display:flex; align-items:center; gap:4px; margin-top:3px; justify-content:flex-end; }
   .msg-time-small { font-size:.68rem; color:var(--muted); }
   .msg-row.out .msg-time-small { color:rgba(255,255,255,.55); }
@@ -2601,10 +2601,10 @@ function ChatWindow({coachee,recipient,setRecipient,onSend,onSendImg,onSendFile,
             onClick:()=>setRecipient(name),
             style:{flex:"1 1 0",height:"40px",maxHeight:"40px",display:"flex",alignItems:"center",
               justifyContent:"center",gap:"7px",padding:"8px 18px",
-              border:"1.5px solid "+(recipient===name?(name==="Rico"?"#62ba7a":"#3b82c4"):"var(--border2)"),
+              border:"1.5px solid "+(recipient===name?(name==="Rico"?"#3b6d11":"#1d5a8f"):"var(--border2)"),
               borderRadius:"10px",
-              background:recipient===name?(name==="Rico"?"#62ba7a":"#3b82c4"):"transparent",
-              color:recipient===name?(name==="Rico"?"#173404":"#fff"):"var(--muted)",
+              background:recipient===name?(name==="Rico"?"#e9f3dd":"#e0f5ee"):"transparent",
+              color:recipient===name?(name==="Rico"?"#3b6d11":"#1d5a8f"):"var(--muted)",
               fontFamily:"'Exo 2',sans-serif",fontSize:".83rem",fontWeight:700,
               cursor:"pointer",transition:"all .18s"}
           }, h(Ic,{name:"user",size:15}), " "+name))}
@@ -2619,7 +2619,7 @@ function ChatWindow({coachee,recipient,setRecipient,onSend,onSendImg,onSendFile,
               const isOut = msg.from==="admin";
               const sender = msg.sender||"Diana";
               const prevSame = i>0&&msgs[i-1].from===msg.from&&(msgs[i-1].sender||"Diana")===sender;
-              const avatarColor = sender==="Rico" ? "#62ba7a" : "#3b82c4";
+              const avatarColor = sender==="Rico" ? "#3b6d11" : "#1d5a8f";
               const senderClass = isOut ? (sender==="Rico"?" sender-rico":" sender-diana") : "";
               return html`
                 <div key=${msg.id} class=${"msg-row "+(isOut?"out":"in")+senderClass}
