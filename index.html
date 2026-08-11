@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-11 17:47 coachee -->
+<!-- Version: 2026-08-11 18:04 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -2504,14 +2504,22 @@ function ChatWindow({coachee,recipient,setRecipient,onSend,onSendImg,onSendFile,
   // direkt im Effect racet gegen das beim Mount noch nicht final berechnete Layout (variable
   // Bubble-Höhen, Sender-Avatare, Bilder) — identisches Pitfall-Muster wie beim Mediathek-Deep-
   // Link-Scroll (Fix 01.08.2026). Kurze Verzögerung lässt das Layout zuerst fertig berechnen.
+  // Fix (11.08.2026, Rico-Meldung "scrollt nicht runter wenn Chat gewechselt wird"): nur auf
+  // coachee.messages.length zu reagieren reicht nicht — beim Umschalten zwischen Diana/Rico
+  // kann die gefilterte Nachrichtenanzahl zufällig gleich bleiben, dann feuerte der Effekt gar
+  // nicht. recipient zusätzlich als Trigger, plus lastRecipientRef statt globalem Einmal-Flag,
+  // damit jeder Tab-Wechsel wieder wie ein "erstes Öffnen" (sofortiger Sprung) behandelt wird.
   const isFirstScrollRef = useRef(true);
+  const lastRecipientRef = useRef(recipient);
   useEffect(()=>{
+    const isNewContext = isFirstScrollRef.current || lastRecipientRef.current !== recipient;
     const t = setTimeout(() => {
-      bottomRef.current?.scrollIntoView({behavior: isFirstScrollRef.current ? "auto" : "smooth", block:"end"});
+      bottomRef.current?.scrollIntoView({behavior: isNewContext ? "auto" : "smooth", block:"end"});
       isFirstScrollRef.current = false;
+      lastRecipientRef.current = recipient;
     }, 60);
     return () => clearTimeout(t);
-  },[coachee.messages.length]);
+  },[coachee.messages.length, recipient]);
 
   const groups = coachee.messages.reduce((acc,msg)=>{
     const key = msg.ts ? dateKeyFromTs(msg.ts) : dateKeyFromTs(Date.now());

@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-11 17:47 admin -->
+<!-- Version: 2026-08-11 18:04 admin -->
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -2155,7 +2155,7 @@ function DashboardPage({coachees,library,doodles,setPage,user,openSenderFilter})
         <div>
           <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.3rem",fontWeight:700,color:"var(--text)"}}>${greeting}</div>
           <div style=${{fontSize:".88rem",color:"var(--muted)",marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"calc(100vw - 120px)"}}>Admin-Portal · Raum für Selbstwirksamkeit</div>
-          <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-08-11 17:47 · Doku v3.112 · 2026-08-11 17:47
+          <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-08-11 18:04 · Doku v3.112 · 2026-08-11 18:04
           </div>
         </div>
       </div>
@@ -2601,13 +2601,18 @@ function ChatWindow({coachee,sender,setSender,onSend,onSendImg,onSendFile,onDele
   // Beim Öffnen eines Coachee-Chats (auch beim Wechsel zwischen Coachees) sofort ohne
   // Animation ans Ende springen — "smooth" allein liess Diana/Rico manchmal mitten in der
   // Historie landen statt bei der neuesten Nachricht, besonders bei langen Verläufen.
-  // coachee.id als Trigger: wechselt der Coachee, gilt das als "neu öffnen" → kein Smooth-Scroll.
+  // coachee.id UND sender als Trigger: sowohl Coachee-Wechsel als auch Diana/Rico-Tab-Wechsel
+  // gelten als "neu öffnen" → kein Smooth-Scroll, sondern sofortiger Sprung ans Ende. Vorher
+  // fehlte sender in den Dependencies — beim reinen Tab-Wechsel (gleicher Coachee, gleiche
+  // Gesamt-Nachrichtenzahl) feuerte der Effekt dadurch gar nicht.
   const lastCoacheeIdRef = useRef(null);
+  const lastSenderRef = useRef(sender);
   useEffect(()=>{
-    const isNewChat = lastCoacheeIdRef.current !== coachee.id;
+    const isNewChat = lastCoacheeIdRef.current !== coachee.id || lastSenderRef.current !== sender;
     bottomRef.current?.scrollIntoView({behavior: isNewChat ? "auto" : "smooth"});
     lastCoacheeIdRef.current = coachee.id;
-  },[coachee.messages.length, coachee.id]);
+    lastSenderRef.current = sender;
+  },[coachee.messages.length, coachee.id, sender]);
 
   const filteredMessages = coachee.messages.filter(msg => {
     const ctx = msg.from==="admin" ? (msg.sender||"Diana") : (msg.recipient||"Diana");
