@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-11 10:54 coachee -->
+<!-- Version: 2026-08-11 15:16 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -1744,32 +1744,6 @@ function App({ user }) {
   const [pushGranted,setPushGranted]             = useState(false);
   const tapTimer                           = useRef(null);
 
-  // ── Atemball-Reihenfolge für die automatische Willkommensnachricht (Kapitel 74) ──
-  // BreathPortal (Atemball) und App werden als zwei getrennte Preact-Bäume gerendert
-  // (siehe MOUNT-Kommentar unten, Pitfall: position:fixed innerhalb #app bricht auf iOS) —
-  // sie teilen keinen React-State. Die automatische Navigation zur Willkommensnachricht
-  // (weiter unten, autoWelcomeNavDone) lief bisher komplett unabhängig vom Atemball und
-  // konnte parallel dazu im Hintergrund feuern statt sauber danach zu folgen — dem
-  // zentralen Ebenenwechsel-Ritual (Denken → Erleben/Fühlen) beim App-Start. Fix: eigenes
-  // CustomEvent 'rsw-breath-done', das BreathPortal auslöst (Atemball fertig ODER wird
-  // laut dessen eigener Logik heute gar nicht gezeigt) — App wartet mit der
-  // Willkommensnachricht-Navigation darauf, statt gleichzeitig zu navigieren.
-  const [breathReady, setBreathReady] = useState(() => {
-    try {
-      const todayKey = 'bh_shown_' + new Date().toISOString().slice(0,10);
-      const alreadyShown = localStorage.getItem(todayKey) === '1';
-      // Deckt exakt dieselben zwei Fälle ab wie BreathPortal selbst: heute schon gezeigt,
-      // oder iOS ohne installierte PWA (dort erscheint der Atemball ohnehin nie).
-      return alreadyShown || (isIOS() && !isPWA());
-    } catch(e) { return true; }
-  });
-  useEffect(() => {
-    if(breathReady) return;
-    const onBreathDone = () => setBreathReady(true);
-    window.addEventListener('rsw-breath-done', onBreathDone);
-    return () => window.removeEventListener('rsw-breath-done', onBreathDone);
-  }, [breathReady]);
-
   // ── Deep-Link aus Push-Notification: URL-Hash beim Start auslesen ──
   // Die Cloud Functions (Kapitel 24) übergeben z.B. #chat als url in der Notification-Payload.
   // Der Service Worker navigiert beim Notification-Klick zu dieser URL — ohne dieses Mapping
@@ -2214,8 +2188,6 @@ function App({ user }) {
       // ersten echten Firestore-Snapshot löste hier fälschlich "welcomePending" aus und
       // navigierte JEDEN App-Start (ausser für Coachees in Phase 1) sofort zu Impulse
       // statt Home, noch bevor die echte Phase bekannt war (siehe Kapitel 63b/Pitfall 68).
-    if(!breathReady) return; // NEU (Kapitel 74): erst NACH dem Atemball (oder wenn er laut
-      // eigener Logik heute gar nicht erscheint) — siehe Kommentar bei breathReady oben.
     if(pendingImpulsPopup || pendingReminderId || pendingLibraryId) return;
     let welcomePending = false;
     try {
@@ -2227,7 +2199,7 @@ function App({ user }) {
       setImpulseDefaultTab("tagesimpuls");
       setPage("impulse");
     }
-  }, [impulseFlagData, impulseFlagLoaded, user?.uid, pendingImpulsPopup, pendingReminderId, pendingLibraryId, breathReady]);
+  }, [impulseFlagData, impulseFlagLoaded, user?.uid, pendingImpulsPopup, pendingReminderId, pendingLibraryId]);
 
 
   const NAV_ITEMS = [
@@ -2382,6 +2354,20 @@ function ChatPage({user,coachees,setCoachees,mobileChatOpen,setMobileChatOpen}) 
     }, ()=>{});
     return () => unsub();
   }, [uid]);
+
+  // Empfänger-Toggle automatisch auf den Absender der letzten eingehenden Nachricht setzen —
+  // sonst antwortet der Coachee unbemerkt an die falsche Person, wenn er nicht selbst umschaltet.
+  // lastAutoSyncedIdRef verhindert, dass ein zwischenzeitlich manuell gewählter Empfänger durch
+  // erneute Snapshot-Updates (z.B. seen-Status) wieder überschrieben wird.
+  const lastAutoSyncedIdRef = useRef(null);
+  useEffect(() => {
+    if(!messages.length) return;
+    const last = messages[messages.length-1];
+    if(last.from==="admin" && (last.sender==="Diana"||last.sender==="Rico") && last.id!==lastAutoSyncedIdRef.current){
+      lastAutoSyncedIdRef.current = last.id;
+      setRecipient(last.sender);
+    }
+  }, [messages]);
 
   const coacheeWithMsgs = {...coachee, messages};
 
@@ -4408,29 +4394,6 @@ function RemindersPage({reminders,setReminders,pendingReminderId,setPendingRemin
               <label class="label">Uhrzeit</label>
               <input class="input" type="time" value=${form.time} onInput=${e=>setForm(f=>({...f,time:e.target.value}))} style=${{width:"110px",maxWidth:"110px",fontSize:".82rem",padding:"6px 8px"}}/>
             </div>
-
-            <!-- Reihenfolge (11.08.2026): "Weitere Uhrzeiten" gehört inhaltlich direkt zu
-                 "Uhrzeit" (mehrfache tägliche Impulse derselben Uhrzeit-Logik) — bisher stand
-                 "Bereich" dazwischen. Button "+ Uhrzeit hinzufügen" jetzt im selben Layout wie
-                 SymbolButton ("Symbol wählen →", Zeile ~4192): flex/gap/padding identisch,
-                 Text in gedämpfter --muted-Farbe statt Icon+Fettdruck. -->
-            <div class="form-row" style=${{marginTop:12}}>
-              <label class="label">Weitere Uhrzeiten</label>
-              <p style=${{fontSize:".76rem",color:"var(--muted)",marginBottom:8,marginTop:2}}>Für mehrfache tägliche Impulse — z.B. Atemübung 3× täglich.</p>
-              <div style=${{display:"flex",flexDirection:"column",gap:5,marginBottom:8}}>
-                ${(form.additionalTimes||[]).map((t,i)=>html`
-                  <div key=${i} style=${{display:"flex",alignItems:"center",gap:8,background:"var(--sage-pale)",borderRadius:8,padding:"6px 10px"}}>
-                    <input type="time" value=${t} class="input" style=${{flex:1,padding:"5px 10px"}}
-                      onInput=${e=>setForm(f=>({...f,additionalTimes:f.additionalTimes.map((x,j)=>j===i?e.target.value:x)}))}/>
-                    <button style=${{background:"none",border:"none",cursor:"pointer",color:"var(--danger)",fontSize:"1.2rem",lineHeight:1,padding:"0 4px"}}
-                      onClick=${()=>setForm(f=>({...f,additionalTimes:f.additionalTimes.filter((_,j)=>j!==i)}))}>✕</button>
-                  </div>`)}
-              </div>
-              <button class="btn btn-ghost btn-sm" onClick=${()=>setForm(f=>({...f,additionalTimes:[...(f.additionalTimes||[]),"12:00"]}))} style=${{display:"flex",alignItems:"center",gap:8,padding:"8px 14px"}}>
-                <span style=${{color:"var(--muted)"}}>+ Uhrzeit hinzufügen</span>
-              </button>
-            </div>
-
             <div class="form-row" style=${{marginTop:12}}>
               <label class="label">Bereich</label>
               <div style=${{display:"flex",gap:6,flexWrap:"wrap",marginTop:4}}>
@@ -4443,6 +4406,23 @@ function RemindersPage({reminders,setReminders,pendingReminderId,setPendingRemin
                     ${a}
                   </button>`)}
               </div>
+            </div>
+
+            <div class="form-row" style=${{marginTop:12}}>
+              <label class="label">Weitere Uhrzeiten</label>
+              <p style=${{fontSize:".76rem",color:"var(--muted)",marginBottom:8,marginTop:2}}>Für mehrfache tägliche Impulse — z.B. Atemübung 3× täglich.</p>
+              <div style=${{display:"flex",flexDirection:"column",gap:5,marginBottom:8}}>
+                ${(form.additionalTimes||[]).map((t,i)=>html`
+                  <div key=${i} style=${{display:"flex",alignItems:"center",gap:8,background:"var(--sage-pale)",borderRadius:8,padding:"6px 10px"}}>
+                    <input type="time" value=${t} class="input" style=${{flex:1,padding:"5px 10px"}}
+                      onInput=${e=>setForm(f=>({...f,additionalTimes:f.additionalTimes.map((x,j)=>j===i?e.target.value:x)}))}/>
+                    <button style=${{background:"none",border:"none",cursor:"pointer",color:"var(--danger)",fontSize:"1.2rem",lineHeight:1,padding:"0 4px"}}
+                      onClick=${()=>setForm(f=>({...f,additionalTimes:f.additionalTimes.filter((_,j)=>j!==i)}))}>✕</button>
+                  </div>`)}
+              </div>
+              <button class="btn btn-ghost btn-sm" onClick=${()=>setForm(f=>({...f,additionalTimes:[...(f.additionalTimes||[]),"12:00"]}))}>
+                <${Ic} name="plus" size=${13}/> Uhrzeit hinzufügen
+              </button>
             </div>
 
             <div class="form-row" style=${{marginTop:14}}><label class="label">Wiederholung</label>
@@ -5273,21 +5253,11 @@ function BreathPortal() {
   const alreadyShown = localStorage.getItem(todayKey) === '1';
   const [show, setShow] = useState(!alreadyShown);
   // Atemball nicht zeigen wenn Install-Banner aktiv (iOS + nicht als PWA)
-  const skipBreath = isIOS() && !isPWA();
-  // NEU (Kapitel 74): App (separater Preact-Baum, siehe MOUNT-Kommentar) muss wissen,
-  // wann der Atemball fertig ist ODER laut obigen Bedingungen gar nicht erscheint —
-  // sonst könnte die automatische Willkommensnachricht-Navigation gleichzeitig statt
-  // sauber danach passieren. Eigenes CustomEvent statt gemeinsamem State, da beide
-  // Bäume unabhängig gerendert werden.
-  useEffect(() => {
-    if(skipBreath || alreadyShown) window.dispatchEvent(new Event('rsw-breath-done'));
-  }, []);
-  if(skipBreath) return null;
+  if(isIOS() && !isPWA()) return null;
   if(!show) return null;
   return html`<${BreathOverlay} onDone=${()=>{
     localStorage.setItem(todayKey, '1');
     setShow(false);
-    window.dispatchEvent(new Event('rsw-breath-done'));
   }}/>`;
 }
 
