@@ -1,6 +1,6 @@
 <!-- Version: 2026-08-12 14:13 admin -->
 <!DOCTYPE html>
-<!-- Version: 2026-08-12 17:35 admin -->
+<!-- Version: 2026-08-12 17:47 admin -->
 <head>
   <!-- Fix (07.08.2026): Cache-Bust-Redirect-Skript wieder entfernt — existiert in index.html
   nicht, war eine eigene Abweichung von der bewährten Logik statt einer Übernahme davon, und
@@ -2189,7 +2189,7 @@ function DashboardPage({coachees,library,doodles,setPage,user,openSenderFilter})
           <div style=${{minWidth:0}}>
             <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.3rem",fontWeight:700,color:"var(--text)"}}>${greeting}</div>
             <div style=${{fontSize:".88rem",color:"var(--muted)",marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"calc(100vw - 160px)"}}>Admin-Portal · Raum für Selbstwirksamkeit</div>
-            <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-08-12 17:35 · Doku v3.123 · 2026-08-12 17:35
+            <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-08-12 17:47 · Doku v3.124 · 2026-08-12 17:47
             </div>
           </div>
         </div>
@@ -3135,6 +3135,21 @@ function CoacheesPage({coachees,setCoachees,setPage,pending,setPending,deleted,s
       kids: !!editForm.kids, gender: editForm.gender||[], notes: editForm.notes||"",
       categories: [...(editForm.coaching||[]), ...(editForm.gender||[])]
     };
+    // NEU (12.08.2026, Fund Rico "Rhythmus/Anzeige stimmt nach Coaching-Art-Änderung nicht
+    // mehr"): packageType wurde bisher NUR bei Neuanlage aus coaching abgeleitet (Zeile
+    // ~3095), beim Bearbeiten aber nie nachgezogen — der Impulse-Phasen-Tab und der
+    // tatsächliche Tagesimpuls-Rhythmus (index.html, calcNextImpulseAt) lasen dadurch nach
+    // einer Änderung (z.B. Paar → Einzel) weiterhin den alten packageType-Wert. Fix: hier
+    // dieselbe Ableitung wie bei Neuanlage nachgezogen — "eltern" fällt auf "paar" (siehe
+    // INTERVALS.paar-Label "Paar- / Elterncoaching"), sonst 1:1. Bewusst NUR ausserhalb der
+    // Integrationsphase syncen — dort ist packageType fest auf "integration" gesetzt,
+    // unabhängig von der Coaching-Art (siehe Kapitel 45.5), eine Coaching-Art-Änderung soll
+    // eine laufende Integrationsphase nicht versehentlich zurück auf Transformation kippen.
+    const existingCoachee = coachees.find(c => c.id === editId);
+    if ((existingCoachee?.packageType || "") !== "integration") {
+      const k = (editForm.coaching||[])[0]?.toLowerCase();
+      updateData.packageType = k === "eltern" ? "paar" : (k || "einzel");
+    }
     setSavingEdit(true);
     firestore.collection("users").doc(editId).set(updateData, { merge:true })
       .then(() => {
@@ -4011,27 +4026,31 @@ function ImpulsPhasenTab() {
   useEffect(() => {
     const firestore = db();
     if (!firestore) { setLoading(false); return; }
-    firestore.collection("users").get()
-      .then(snap => {
-        const list = snap.docs.map(d => {
-          const data = d.data();
-          const raw = data.activePhase;
-          let phase = null;
-          if (raw != null) {
-            if (typeof raw === 'number') phase = raw;
-            else if (typeof raw === 'string') phase = parseInt(raw, 10) || null;
-            else if (typeof raw.toNumber === 'function') phase = raw.toNumber();
-            else if (typeof raw.valueOf === 'function') phase = parseInt(raw.valueOf(), 10) || null;
-          }
-          const n = data.name||"";
-          const parts = n.trim().split(/\s+/);
-          const initials = parts.length>=2 ? (parts[0][0]+(parts[parts.length-1][0])).toUpperCase() : n.slice(0,2).toUpperCase();
-          return { uid: d.id, ...data, activePhase: phase, initials };
-        });
-        setCoachees(list);
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
+    // GEÄNDERT (12.08.2026, Fund Rico "Anzeige nach Coaching-Art-Änderung veraltet"): von
+    // einmaligem .get() auf einen echten Live-Listener (onSnapshot) umgestellt, analog zum
+    // bereits bestehenden Muster in CoacheesPage (Zeile ~1880) — vorher musste der Phasen-Tab
+    // neu geöffnet werden, um z.B. eine gerade in saveEdit() korrigierte packageType-Änderung
+    // zu sehen. Läuft weiterhin auf die gesamte users-Collection, wie bisher.
+    const unsub = firestore.collection("users").onSnapshot(snap => {
+      const list = snap.docs.map(d => {
+        const data = d.data();
+        const raw = data.activePhase;
+        let phase = null;
+        if (raw != null) {
+          if (typeof raw === 'number') phase = raw;
+          else if (typeof raw === 'string') phase = parseInt(raw, 10) || null;
+          else if (typeof raw.toNumber === 'function') phase = raw.toNumber();
+          else if (typeof raw.valueOf === 'function') phase = parseInt(raw.valueOf(), 10) || null;
+        }
+        const n = data.name||"";
+        const parts = n.trim().split(/\s+/);
+        const initials = parts.length>=2 ? (parts[0][0]+(parts[parts.length-1][0])).toUpperCase() : n.slice(0,2).toUpperCase();
+        return { uid: d.id, ...data, activePhase: phase, initials };
+      });
+      setCoachees(list);
+      setLoading(false);
+    }, () => setLoading(false));
+    return () => unsub();
   }, []);
 
   // GEÄNDERT (06.08.2026, Kapitel 51): Bug gefunden — impulsPlanStartedAt blieb bei einem
