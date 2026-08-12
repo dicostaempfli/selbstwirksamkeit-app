@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-12 13:10 coachee -->
+<!-- Version: 2026-08-12 17:35 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -3231,6 +3231,11 @@ function ImpulsPage({ user, setPage, setActiveImpuls, activeImpuls, pendingImpul
   // benötigt — Fallback auf die Phasen-Seitenspanne (PHASE_INFO), falls ein einzelner
   // Impuls keine eigene "page"-Angabe in der Bibliothek hat.
   const [activePhaseNum, setActivePhaseNum] = useState(1);
+  // NEU (12.08.2026): zählt abgeschlossene vs. gesamte Impulse der aktuell aktiven Phase
+  // (aus settings/impulse_library) — Grundlage für die Pause-Logik in saveAndFinish():
+  // nach dem letzten Impuls der Phase wird kein neuer nextImpulseAt mehr gesetzt, die Phase
+  // pausiert bis Diana/Rico manuell die nächste Phase setzen (onActivePhaseChanged).
+  const [phaseImpulseCount, setPhaseImpulseCount] = useState({done:0, total:0});
   const [reflexion, setReflexion] = useState("");
   // Fix (02.07.2026, Kapitel 32): Multi-Select statt Single-Select — koerper ist jetzt ein
   // Array statt ein einzelner String, damit mehrere Körperregionen gleichzeitig gewählt
@@ -3368,6 +3373,10 @@ function ImpulsPage({ user, setPage, setActiveImpuls, activeImpuls, pendingImpul
             .orderBy("createdAt","desc").limit(30).get()
             .then(snap => {
               const done = snap.docs.map(d => d.data().impulsId).filter(Boolean);
+              // NEU (12.08.2026): done nur auf die Impuls-IDs der AKTUELLEN Phase eingrenzen —
+              // Grundlage für die Pause-Logik in saveAndFinish(), siehe phaseImpulseCount-State.
+              const doneInPhase = done.filter(id => impulse.some(imp => imp.id === id)).length;
+              setPhaseImpulseCount({ done: doneInPhase, total: impulse.length });
               const next = impulse.find(imp => !done.includes(imp.id)) || impulse[0];
               setImpuls(next || null);
               const todayEntry = snap.docs.find(d => d.data().date === todayStr);
@@ -3577,7 +3586,11 @@ function ImpulsPage({ user, setPage, setActiveImpuls, activeImpuls, pendingImpul
 
   const calcNextImpulseAt = (packageType) => {
     const rand = (min, max) => Math.floor(Math.random() * (max - min + 1) + min);
-    const days = packageType === "paar" ? rand(4,7) : packageType === "integration" ? rand(5,9) : rand(2,3);
+    // GEÄNDERT (12.08.2026, neue Phasen-Struktur): Einzel neu 2 Impulse/Woche im Schnitt
+    // (rand(2,5), Ø 3.5 Tage statt bisher rand(2,3), Ø 2.5 Tage). Paar neu 1 Impuls/Woche im
+    // Schnitt (rand(4,10), Ø 7 Tage statt bisher rand(4,7), Ø 5.5 Tage). Integration bewusst
+    // unverändert (rand(5,9)) — Rico-Vorgabe "alle anderen Parameter nicht verändern".
+    const days = packageType === "paar" ? rand(4,10) : packageType === "integration" ? rand(5,9) : rand(2,5);
     return Date.now() + days * 24 * 60 * 60 * 1000;
   };
 
@@ -3586,6 +3599,15 @@ function ImpulsPage({ user, setPage, setActiveImpuls, activeImpuls, pendingImpul
     const fbDb = window._fb?.db;
     if (fbDb && user?.uid) {
       const update = { status:"done", reflexion: reflexion.trim(), koerper: koerper, closedAt: Date.now() };
+      // NEU (12.08.2026, neue Phasen-Struktur): War dies der letzte Impuls der aktuellen Phase
+      // (phaseImpulseCount.total aus der Bibliothek, z.B. 4), wird KEIN neuer nextImpulseAt mehr
+      // berechnet — die Phase pausiert bis Diana/Rico manuell die nächste Phase setzen
+      // (onActivePhaseChanged in functions/index.js setzt dann wieder einen aktiven Wert).
+      // Gleicher "pausiert"-Sentinel-Wert (+100 Jahre) wie dort, damit checkDailyImpulse in der
+      // Zwischenzeit sicher nichts auslöst.
+      const PAUSED_UNTIL_PHASE_CHANGE = Date.now() + 100 * 365 * 24 * 60 * 60 * 1000;
+      const doneAfterThis = phaseImpulseCount.done + 1;
+      const phaseFinished = phaseImpulseCount.total > 0 && doneAfterThis >= phaseImpulseCount.total;
       fbDb.collection("impulse_entries")
         .where("uid","==",user.uid).where("date","==",todayStr).where("status","==","active").limit(1).get()
         .then(snap => {
@@ -3593,7 +3615,8 @@ function ImpulsPage({ user, setPage, setActiveImpuls, activeImpuls, pendingImpul
           else if (impuls) fbDb.collection("impulse_entries").add({ uid:user.uid, date:todayStr, impulsId:impuls.id, impulsText:impuls.text, ...update, createdAt: Date.now() }).catch(() => {});
           fbDb.collection("users").doc(user.uid).get().then(uDoc => {
             const pkg = uDoc.exists ? (uDoc.data().packageType || "einzel") : "einzel";
-            fbDb.collection("users").doc(user.uid).update({ nextImpulseAt: calcNextImpulseAt(pkg) }).catch(() => {});
+            const nextImpulseAt = phaseFinished ? PAUSED_UNTIL_PHASE_CHANGE : calcNextImpulseAt(pkg);
+            fbDb.collection("users").doc(user.uid).update({ nextImpulseAt }).catch(() => {});
           }).catch(() => {});
         }).catch(() => {}).finally(() => { setSaving(false); setStep(4); });
     } else { setSaving(false); setStep(4); }
