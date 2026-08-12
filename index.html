@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-11 18:04 coachee -->
+<!-- Version: 2026-08-12 13:10 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -1729,6 +1729,11 @@ function App({ user }) {
   const [doodles,setDoodles]     = useState(INIT_DOODLES);
   const [events]                 = useState(INIT_EVENTS);
   const [mobileChatOpen,setMobileChatOpen] = useState(false);
+  // chatRecipient (NEU 12.08.2026, Bugfix "2 ungelesen → eine gelesen → Zahl erlischt
+  // komplett"): auf App-Ebene gehoben statt lokal in ChatPage, damit der Unread-Zähler
+  // weiss, welcher der beiden Stränge (Diana/Rico) gerade tatsächlich sichtbar ist —
+  // siehe Kommentar bei chatUnreadDiana/chatUnreadRico unten.
+  const [chatRecipient,setChatRecipient] = useState("Diana");
   const [impulseDefaultTab,setImpulseDefaultTab] = useState('meine');
   const [activeImpuls,setActiveImpuls]           = useState(null);
   const [pendingReminderId,setPendingReminderId] = useState(null);
@@ -2053,28 +2058,48 @@ function App({ user }) {
   // verknüpft oder aktualisiert. Ersetzt durch einen eigenen Listener: zählt Admin-Nachrichten,
   // deren ts neuer ist als die zuletzt besuchte Chat-Zeit (persistiert in localStorage,
   // damit der Badge auch nach App-Neustart korrekt bleibt, nicht nur pro Session).
-  const [chatUnreadCount, setChatUnreadCount] = useState(0);
+  //
+  // Bugfix 12.08.2026 (Rico-Meldung "1x Diana + 1x Rico ungelesen, eine gelesen → Zahl
+  // erlischt komplett statt 2→1"): lastRead war bisher EIN einziger, sender-unabhängiger
+  // Wert, der beim blossen Öffnen des Chat-Tabs sofort auf "jetzt" gesetzt wurde — das
+  // markierte immer BEIDE Stränge gleichzeitig als gelesen, egal welcher der beiden Tabs
+  // (Diana/Rico) gerade tatsächlich sichtbar war. Fix: zwei getrennte lastRead-Werte und
+  // zwei getrennte Zähler (analog admin.html) — nur der gerade sichtbare Strang
+  // (chatRecipient) wird als gelesen markiert, der andere bleibt unberührt stehen.
+  const [chatUnreadDiana, setChatUnreadDiana] = useState(0);
+  const [chatUnreadRico, setChatUnreadRico]   = useState(0);
+  const chatUnreadCount = chatUnreadDiana + chatUnreadRico;
   useEffect(() => {
     const fbDb = window._fb?.db;
     if(!fbDb || !user?.uid) return;
     const unsub = fbDb.collection("chats").doc(user.uid).collection("messages")
       .where("from","==","admin")
       .onSnapshot(snap => {
-        const lastRead = Number(localStorage.getItem("chatLastRead_"+user.uid) || 0);
-        const count = snap.docs.filter(d => (d.data().ts || 0) > lastRead).length;
-        setChatUnreadCount(count);
+        const lastReadDiana = Number(localStorage.getItem("chatLastRead_"+user.uid+"_Diana") || 0);
+        const lastReadRico  = Number(localStorage.getItem("chatLastRead_"+user.uid+"_Rico") || 0);
+        let diana = 0, rico = 0;
+        snap.docs.forEach(d => {
+          const data = d.data();
+          const ts = data.ts || 0;
+          if((data.sender||"Diana") === "Rico") { if(ts > lastReadRico) rico++; }
+          else { if(ts > lastReadDiana) diana++; }
+        });
+        setChatUnreadDiana(diana);
+        setChatUnreadRico(rico);
       }, () => {});
     return () => unsub();
   }, [user?.uid]);
 
-  // Baseline aktualisieren, sobald der Coachee den Chat tatsächlich öffnet — danach
-  // zählen nur noch Nachrichten, die NACH diesem Zeitpunkt eintreffen, als ungelesen.
+  // Baseline aktualisieren, sobald der Coachee den Chat-Tab öffnet UND sobald er innerhalb
+  // des Chats zwischen Diana/Rico wechselt (chatRecipient) — jeweils nur für den gerade
+  // sichtbaren Strang, der jeweils andere bleibt unverändert (siehe Bugfix-Kommentar oben).
   useEffect(() => {
     if(page === "chat" && user?.uid) {
-      localStorage.setItem("chatLastRead_"+user.uid, String(Date.now()));
-      setChatUnreadCount(0);
+      localStorage.setItem("chatLastRead_"+user.uid+"_"+chatRecipient, String(Date.now()));
+      if(chatRecipient === "Rico") setChatUnreadRico(0);
+      else setChatUnreadDiana(0);
     }
-  }, [page, user?.uid]);
+  }, [page, chatRecipient, user?.uid]);
 
   // ── Mediathek-Badge: neue Elemente seit letztem Besuch ──
   // Einheitliche Quelle mit den Pro-Item-"Neu"-Badges in der Mediathek (Option B):
@@ -2311,7 +2336,7 @@ function App({ user }) {
     <${Sidebar} page=${page} setPage=${navTo} totalUnread=${totalUnreadVal} impulseUnread=${impulseUnreadCount} libraryUnread=${libraryUnreadCount} doodleUnread=${doodleUnreadCount} user=${user} onLogoTap=${handleLogoTap}/>
     <div style=${{flex:1,display:'flex',overflow:'hidden',minWidth:0}}>
       ${page==="dashboard" && html`<${DashboardPage} coachees=${coachees} library=${library} reminders=${reminders} remindersReady=${remindersReady} libraryReady=${libraryReady} libraryUnreadCount=${libraryUnreadCount} doodles=${doodles} setPage=${navTo} user=${user} onLogoTap=${handleLogoTap} setImpulseDefaultTab=${setImpulseDefaultTab} activeImpuls=${activeImpuls} setActiveImpuls=${setActiveImpuls}/>`}
-      ${page==="chat"      && html`<${ChatPage} user=${user} coachees=${coachees} setCoachees=${setCoachees} mobileChatOpen=${mobileChatOpen} setMobileChatOpen=${setMobileChatOpen}/>`}
+      ${page==="chat"      && html`<${ChatPage} user=${user} coachees=${coachees} setCoachees=${setCoachees} mobileChatOpen=${mobileChatOpen} setMobileChatOpen=${setMobileChatOpen} recipient=${chatRecipient} setRecipient=${setChatRecipient}/>`}
       ${page==="impulse"   && html`<${ImpulseTab} user=${user} reminders=${reminders} setReminders=${saveReminders} setPage=${navTo} defaultSubTab=${impulseDefaultTab} setDefaultSubTab=${setImpulseDefaultTab} setActiveImpuls=${setActiveImpuls} activeImpuls=${activeImpuls} pendingReminderId=${pendingReminderId} setPendingReminderId=${setPendingReminderId} pendingImpulsPopup=${pendingImpulsPopup} setPendingImpulsPopup=${setPendingImpulsPopup} pendingReflexionPopup=${pendingReflexionPopup} setPendingReflexionPopup=${setPendingReflexionPopup}/>`}
       ${page==="library"   && html`<${LibraryPage} library=${library} setLibrary=${saveLibrary} pendingLibraryId=${pendingLibraryId} clearPendingLibraryId=${()=>setPendingLibraryId(null)} uid=${user?.uid}/>`}
       ${page==="doodle"    && html`<${DoodlePage} user=${user} doodles=${doodles} setDoodles=${saveDoodles} coachees=${coachees} events=${events}/>`}
@@ -2336,12 +2361,14 @@ function App({ user }) {
 }
 
 // ── SIDEBAR ──
-function ChatPage({user,coachees,setCoachees,mobileChatOpen,setMobileChatOpen}) {
+function ChatPage({user,coachees,setCoachees,mobileChatOpen,setMobileChatOpen,recipient,setRecipient}) {
   const uid = user?.uid || null;
   const fbDb = window._fb?.db;
   const coachee = {id:"coach",name:"Diana & Rico",initials:"DR",color:"var(--accent)",photo:null,online:true,topic:"Dein Coaching",messages:[]};
   const [messages,setMessages] = useState([]);
-  const [recipient,setRecipient] = useState("Diana");
+  // recipient/setRecipient kommen seit dem Bugfix 12.08.2026 als Props von App (gehobener
+  // State) — der Unread-Zähler in App muss wissen, welcher Strang gerade sichtbar ist,
+  // um nur diesen als gelesen zu markieren (siehe chatUnreadDiana/chatUnreadRico in App).
 
   useEffect(() => {
     if(!uid||!fbDb) return;
