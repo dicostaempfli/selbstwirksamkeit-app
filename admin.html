@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-12 12:15 admin -->
+<!-- Version: 2026-08-12 13:24 admin -->
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -2182,7 +2182,7 @@ function DashboardPage({coachees,library,doodles,setPage,user,openSenderFilter})
         <div>
           <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.3rem",fontWeight:700,color:"var(--text)"}}>${greeting}</div>
           <div style=${{fontSize:".88rem",color:"var(--muted)",marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"calc(100vw - 120px)"}}>Admin-Portal · Raum für Selbstwirksamkeit</div>
-          <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-08-12 12:15 · Doku v3.113 · 2026-08-12 12:15
+          <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-08-12 13:24 · Doku v3.115 · 2026-08-12 13:24
           </div>
         </div>
       </div>
@@ -4134,15 +4134,20 @@ function ImpulsPhasenTab() {
 
   if (loading) return html`<div style=${{color:"var(--muted)",padding:"40px 0",textAlign:"center"}}>Lade Coachees…</div>`;
 
-  if (!coachees.length) return html`
+  // NEU (12.08.2026): Tagesimpulse/Phasenwechsel sind konzeptionell nur für Package-Coachees
+  // gedacht (Stunden-Coachees haben keinen Phasenwechsel-Bedarf) — daher hier gefiltert auf
+  // Coachees, die beim Erfassen mit Modell "Package" angelegt wurden.
+  const packageCoachees = coachees.filter(c => (c.modell || "").toLowerCase() === "package");
+
+  if (!packageCoachees.length) return html`
     <div class="card" style=${{marginTop:16}}>
-      <div style=${{color:"var(--muted)",fontSize:".9rem"}}>Keine Coachees in der <code>users</code>-Collection gefunden. Stelle sicher dass die Firestore Rules deployed sind und Coachees sich mindestens einmal eingeloggt haben.</div>
+      <div style=${{color:"var(--muted)",fontSize:".9rem"}}>Keine Package-Coachees gefunden. Dieser Tab zeigt nur Coachees mit Modell "Package" (Stunden-Coachees benötigen keinen Phasenwechsel). Stelle sicher dass die Firestore Rules deployed sind und Coachees sich mindestens einmal eingeloggt haben.</div>
     </div>`;
 
   return html`
     <div>
-      <p style=${{color:"var(--muted)",fontSize:".9rem",marginBottom:24}}>Wähle Package-Typ und aktive Phase pro Coachee.</p>
-      ${coachees.map(c => {
+      <p style=${{color:"var(--muted)",fontSize:".9rem",marginBottom:24}}>Wähle Package-Typ und aktive Phase pro Coachee. Nur Package-Coachees werden hier angezeigt.</p>
+      ${packageCoachees.map(c => {
         const phase = c.activePhase || null;
         const baseType = deriveBaseType(c);
         const pkg = c.packageType || baseType;
