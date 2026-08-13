@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-13 16:50 coachee -->
+<!-- Version: 2026-08-13 16:56 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -4095,6 +4095,8 @@ function LibraryPage({library, pendingLibraryId, clearPendingLibraryId, uid}) {
   };
 
 
+  const visibleSecTypes = SECTIONS.filter(sec => library.some(i=>i.type===sec.type && matches(i))).map(sec=>sec.type);
+
   return html`
     <div class="content-main">
       <div><h1 class="page-heading">Mediathek</h1>
@@ -4109,7 +4111,9 @@ function LibraryPage({library, pendingLibraryId, clearPendingLibraryId, uid}) {
       ${SECTIONS.map(sec => {
         const items = library.filter(i=>i.type===sec.type && matches(i));
         if(items.length===0) return null;
+        const showDivider = visibleSecTypes.indexOf(sec.type) > 0;
         return html`
+          ${showDivider && html`<div style=${{height:1,background:'var(--border)',margin:'22px 0'}}/>`}
           <div key=${sec.type} style=${{marginBottom:32}}>
             <div style=${{display:'flex',alignItems:'center',gap:8,marginBottom:8}}>
               <div style=${{width:28,height:28,borderRadius:7,background:sec.bg,border:'0.5px solid '+sec.border,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
