@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-13 17:00 coachee -->
+<!-- Version: 2026-08-13 18:02 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -4650,6 +4650,7 @@ function DoodlePage({user,doodles,setDoodles,coachees,events}) {
   const [newSlotDt,setNewSlotDt] = useState("");
   const [selRecip,setSelRecip]   = useState([]);
   const [coacheeVotes,setCoacheeVotes] = useState({});
+  const [coacheeNotes,setCoacheeNotes] = useState({});
   const [showConfirmed,setShowConfirmed] = useState(false);
 
   // ── helpers ──
@@ -4681,13 +4682,23 @@ function DoodlePage({user,doodles,setDoodles,coachees,events}) {
     });
   };
 
+  const setCoacheeNote = (did,sidx,text) => {
+    setCoacheeNotes(cn=>({...cn,[did]:{...(cn[did]||{}),[sidx]:text}}));
+  };
+
   const submitVotes = (did) => {
     const votes=coacheeVotes[did]||{};
+    const notes=coacheeNotes[did]||{};
     // Lokalen State aktualisieren (sofortiges UI-Feedback) — unverändert wie zuvor
     let updatedSlots;
     setDoodles(ds=>ds.map(x=>{
       if(x.id!==did) return x;
-      updatedSlots = toSlotsArray(x.slots).map((s,i)=>votes[i]&&uid?{...s,votes:{...s.votes,[uid]:votes[i]}}:s);
+      updatedSlots = toSlotsArray(x.slots).map((s,i)=>{
+        let ns=s;
+        if(votes[i]&&uid) ns={...ns,votes:{...ns.votes,[uid]:votes[i]}};
+        if(notes[i]!==undefined) ns={...ns,note:notes[i]};
+        return ns;
+      });
       return {...x, slots:updatedSlots};
     }));
     // Firestore: Schreibt das KOMPLETTE slots-Array neu (nicht per Dot-Notation auf einzelne Indizes) —
@@ -4786,15 +4797,19 @@ function DoodlePage({user,doodles,setDoodles,coachees,events}) {
                 ${toSlotsArray(d.slots).map((s,i)=>{
                   if(!s) return null;
                   const v=(coacheeVotes[d.id]||{})[i];
+                  const noteVal = (coacheeNotes[d.id]||{})[i] ?? (s.note||"");
                   return html`
-                    <div key=${i} class=${"vote-row-c"+(v==="yes"?" sel-yes":v==="no"?" sel-no":"")}>
-                      <div style=${{flex:1}}>
-                        <div style=${{fontWeight:700,fontSize:".88rem",color:"var(--text)"}}>${fmtDt(s.dt).split("·")[0].trim()}</div>
-                        <div style=${{fontSize:".74rem",color:"var(--muted)"}}>${fmtDt(s.dt).split("·")[1]?.trim()}</div>
+                    <div key=${i} class=${"vote-row-c"+(v==="yes"?" sel-yes":v==="no"?" sel-no":"")} style=${{display:"block",cursor:"default"}}>
+                      <div style=${{display:"flex",alignItems:"center",gap:10}}>
+                        <div style=${{flex:1}}>
+                          <div style=${{fontWeight:700,fontSize:".88rem",color:"var(--text)"}}>${fmtDt(s.dt).split("·")[0].trim()}</div>
+                          <div style=${{fontSize:".74rem",color:"var(--muted)"}}>${fmtDt(s.dt).split("·")[1]?.trim()}</div>
+                        </div>
+                        <div>
+                          <button class=${"vbtn yes"+(v==="yes"?" on":"")} onClick=${()=>castVote(d.id,i,v==="yes"?"":"yes")}>✓</button>
+                        </div>
                       </div>
-                      <div>
-                        <button class=${"vbtn yes"+(v==="yes"?" on":"")} onClick=${()=>castVote(d.id,i,v==="yes"?"":"yes")}>✓</button>
-                      </div>
+                      <textarea class="textarea" rows=${2} value=${noteVal} onInput=${e=>setCoacheeNote(d.id,i,e.target.value)} placeholder="Bemerkung zu diesem Termin…" style=${{marginTop:9,width:"100%",boxSizing:"border-box",fontSize:".82rem",minHeight:44}}/>
                     </div>`;
                 })}
                 <button class="btn btn-primary" style=${{marginTop:12,opacity:Object.values(coacheeVotes[d.id]||{}).some(v=>v==="yes")?1:0.4,cursor:Object.values(coacheeVotes[d.id]||{}).some(v=>v==="yes")?"pointer":"not-allowed"}} onClick=${()=>{if(Object.values(coacheeVotes[d.id]||{}).some(v=>v==="yes"))submitVotes(d.id);}}>Abstimmung senden</button>
