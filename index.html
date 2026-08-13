@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-12 17:35 coachee -->
+<!-- Version: 2026-08-13 11:11 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -3377,6 +3377,12 @@ function ImpulsPage({ user, setPage, setActiveImpuls, activeImpuls, pendingImpul
               // Grundlage für die Pause-Logik in saveAndFinish(), siehe phaseImpulseCount-State.
               const doneInPhase = done.filter(id => impulse.some(imp => imp.id === id)).length;
               setPhaseImpulseCount({ done: doneInPhase, total: impulse.length });
+              // NEU (13.08.2026, Kapitel 88): Phase fertig = alle Impulse der aktuellen Phase
+              // bereits absolviert. Direkt aus done/impulse berechnet statt aus dem
+              // nextImpulseAt-Pausierungs-Sentinel (der nur den Push-Rhythmus steuert, siehe
+              // Kapitel 87) — bleibt so robust, auch wenn pendingImpulsPopup gerade true ist
+              // oder nextImpulseAt aus älteren Daten vor diesem Fix stammt.
+              const phaseFinished = impulse.length > 0 && doneInPhase >= impulse.length;
               const next = impulse.find(imp => !done.includes(imp.id)) || impulse[0];
               setImpuls(next || null);
               const todayEntry = snap.docs.find(d => d.data().date === todayStr);
@@ -3414,6 +3420,15 @@ function ImpulsPage({ user, setPage, setActiveImpuls, activeImpuls, pendingImpul
                 else if (s === "done") setStep(4);
                 else if (s === "skipped") setStep(6);
                 else setStep(5);
+              } else if (phaseFinished) {
+                // NEU (13.08.2026, Kapitel 88): Statt auf den (dann bereits erneut angebotenen)
+                // ersten Impuls der Phase zurückzufallen, wird der bestehende neutrale
+                // Warte-Zustand gezeigt (Step 5, "Alles klar. Der nächste Impuls kommt.") — exakt
+                // derselbe Zustand wie im regulären Zwischen-Impuls-Rhythmus, bewusst OHNE eigenen
+                // "Phase abgeschlossen"-Hinweis (Rico-Entscheid: das muss der Coachee nicht sehen).
+                // Bewusst vor der nextImpulseAt-Prüfung und ohne deren pendingImpulsPopup-
+                // Ausnahme, damit der Zustand unabhängig vom Pausierungs-Sentinel greift.
+                setStep(5);
               } else if (nextImpulseAt > Date.now() && !pendingImpulsPopup) {
                 // Fix (02.07.2026, Kapitel 34, Fund "Admin löst Tages-Impuls per Phasenwechsel
                 // aus, Push kommt an, aber App zeigt 'Alles klar. Der nächste Impuls kommt.'
