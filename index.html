@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-14 14:20 coachee -->
+<!-- Version: 2026-08-14 14:31 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -4845,7 +4845,7 @@ function DoodlePage({user,doodles,setDoodles,coachees,events}) {
                                   <${Ic} name="notes" size=${14} style=${{color:"var(--teal)",marginTop:2,flexShrink:0}}/>
                                   <div style=${{fontSize:".85rem",fontWeight:600,color:"var(--text)",lineHeight:1.4,overflowWrap:"break-word",wordBreak:"break-word",minWidth:0,flex:1}}>${s.note}</div>
                                 </div>`}
-                                <textarea class="textarea" rows=${1} ref=${autoGrowTextarea} value=${ownNoteVal} onInput=${e=>{setCoacheeNote(d.id,i,e.target.value);autoGrowTextarea(e.target);}} placeholder="Bemerkung zu diesem Termin" style=${{width:"100%",boxSizing:"border-box",fontSize:".82rem",minHeight:38}}/>
+                                <textarea class="textarea" rows=${1} ref=${autoGrowTextarea} value=${ownNoteVal} onInput=${e=>{setCoacheeNote(d.id,i,e.target.value);autoGrowTextarea(e.target);}} placeholder="Bemerkung zu diesem Termin" style=${{width:"100%",boxSizing:"border-box",fontSize:".82rem",minHeight:38,marginTop:26}}/>
                               </div>`;
                           })}
                       </div>`;
@@ -4923,7 +4923,7 @@ function DoodlePage({user,doodles,setDoodles,coachees,events}) {
                             <${Ic} name="notes" size=${14} style=${{color:"var(--teal)",marginTop:2,flexShrink:0}}/>
                             <div style=${{fontSize:".85rem",fontWeight:600,color:"var(--text)",lineHeight:1.4,overflowWrap:"break-word",wordBreak:"break-word",minWidth:0,flex:1}}>${s.note}</div>
                           </div>`}
-                          <textarea class="textarea" rows=${1} ref=${autoGrowTextarea} value=${ownNoteVal} onInput=${e=>{setCoacheeNote(d.id,i,e.target.value);autoGrowTextarea(e.target);}} placeholder="Bemerkung zu diesem Termin" style=${{width:"100%",boxSizing:"border-box",fontSize:".82rem",minHeight:38}}/>
+                          <textarea class="textarea" rows=${1} ref=${autoGrowTextarea} value=${ownNoteVal} onInput=${e=>{setCoacheeNote(d.id,i,e.target.value);autoGrowTextarea(e.target);}} placeholder="Bemerkung zu diesem Termin" style=${{width:"100%",boxSizing:"border-box",fontSize:".82rem",minHeight:38,marginTop:26}}/>
                         </div>`;
                     })}
                     <button class="btn btn-primary" style=${{marginTop:12,opacity:Object.values(coacheeVotes[d.id]||{}).some(v=>v==="yes")?1:0.4,cursor:Object.values(coacheeVotes[d.id]||{}).some(v=>v==="yes")?"pointer":"not-allowed"}} onClick=${()=>{if(Object.values(coacheeVotes[d.id]||{}).some(v=>v==="yes"))submitVotes(d.id);}}>Abstimmung senden</button>
