@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-14 12:03 coachee -->
+<!-- Version: 2026-08-14 14:02 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -4807,20 +4807,17 @@ function DoodlePage({user,doodles,setDoodles,coachees,events}) {
                           <${Ic} name=${g.icon} size=${14} style=${{color:g.key==="gemeinsam"?"var(--teal)":"var(--muted)"}}/>
                           <span style=${{fontSize:".84rem",fontWeight:700,color:g.key==="gemeinsam"?"var(--teal)":"var(--text)"}}>${g.label}</span>
                         </div>
-                        ${confirmedInGroup.length>0 ? html`<div style=${{textAlign:"center",padding:"6px 0"}}>
-                              <div style=${{fontSize:"1.4rem",marginBottom:6}}>🎉</div>
+                        ${confirmedInGroup.length>0 ? html`<div style=${{padding:"6px 0"}}>
                               ${confirmedInGroup.map(ci=>{
                                 const best = slots[ci];
                                 if(!best) return null;
-                                return html`<div key=${ci} style=${{marginBottom:20}}>
-                                  ${best.title&&best.title.trim()&&html`<div style=${{fontSize:".78rem",fontWeight:700,color:"var(--text)",marginBottom:5}}>${best.title}</div>`}
-                                  <div style=${{background:"var(--teal)",color:"#fff",borderRadius:10,padding:"8px 14px",display:"inline-block",fontWeight:700,fontSize:".88rem",marginBottom:6}}>${fmtDt(best.dt)}</div>
-                                  <div>
-                                    <a href=${icsDataUrl(best.dt, (best.title||d.title+" — "+g.label), d.desc, 120)} download=${"Termin_"+d.title.replace(/[^a-zA-Z0-9]/g,"_")+"_"+g.key.replace(/[^a-zA-Z0-9]/g,"_")+"_"+ci+".ics"}
-                                      style=${{display:"inline-flex",alignItems:"center",gap:6,background:"var(--sage-pale)",color:"var(--forest)",fontWeight:700,fontSize:".8rem",padding:"8px 14px",borderRadius:9,textDecoration:"none"}}>
-                                      <${Ic} name="calendar" size=${13}/> Zum Kalender hinzufügen
-                                    </a>
-                                  </div>
+                                return html`<div key=${ci} style=${{background:"#fff",border:"1px solid var(--border2)",borderRadius:10,padding:12,marginBottom:10,textAlign:"left"}}>
+                                  ${best.title&&best.title.trim()&&html`<div style=${{fontFamily:"'Manuale',serif",fontSize:".92rem",fontWeight:700,color:"var(--text)",marginBottom:5}}>${best.title}</div>`}
+                                  <div style=${{fontSize:".85rem",fontWeight:600,color:"var(--text)",marginBottom:10}}>${fmtDt(best.dt)}</div>
+                                  <a href=${icsDataUrl(best.dt, (best.title||d.title+" — "+g.label), d.desc, 120)} download=${"Termin_"+d.title.replace(/[^a-zA-Z0-9]/g,"_")+"_"+g.key.replace(/[^a-zA-Z0-9]/g,"_")+"_"+ci+".ics"}
+                                    style=${{display:"inline-flex",alignItems:"center",gap:6,color:"var(--teal)",fontWeight:700,fontSize:".76rem",textDecoration:"none"}}>
+                                    <${Ic} name="calendar" size=${13}/> Zum Kalender hinzufügen
+                                  </a>
                                 </div>`;
                               })}
                             </div>`
@@ -4867,25 +4864,25 @@ function DoodlePage({user,doodles,setDoodles,coachees,events}) {
                     setDoodles(ds=>ds.map(x=>x.id===did?{...x,dismissed:[...(x.dismissed||[]),uid]}:x));
                   };
                   if(confirmed.length>0) {
-                    return html`<div style=${{textAlign:"center",padding:"24px 0"}}>
-                      <div style=${{fontSize:"2rem",marginBottom:8}}>🎉</div>
-                      <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.1rem",fontWeight:700,color:"var(--forest)",marginBottom:6}}>${confirmed.length>1?"Termine bestätigt!":"Termin bestätigt!"}</div>
-                      <p style=${{color:"var(--muted)",fontSize:".85rem",marginBottom:8}}>${d.title}</p>
+                    return html`<div style=${{textAlign:"center",padding:"20px 4px"}}>
+                      <div style=${{width:52,height:52,borderRadius:"50%",background:"var(--teal-pale)",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 12px"}}>
+                        <${Ic} name="calendar" size=${24} style=${{color:"var(--teal)"}}/>
+                      </div>
+                      <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.1rem",fontWeight:700,color:"var(--forest)",marginBottom:4}}>${confirmed.length>1?"Termine bestätigt":"Termin bestätigt"}</div>
+                      <p style=${{color:"var(--muted)",fontSize:".8rem",marginBottom:20}}>${d.title}</p>
                       ${confirmed.map(ci=>{
                         const best = slots[ci];
                         if(!best) return null;
-                        return html`<div key=${ci} style=${{marginBottom:26}}>
-                          ${best.title&&best.title.trim()&&html`<div style=${{fontSize:".78rem",fontWeight:700,color:"var(--text)",marginBottom:5}}>${best.title}</div>`}
-                          <div style=${{background:"var(--teal)",color:"#fff",borderRadius:10,padding:"10px 18px",display:"inline-block",fontWeight:700,fontSize:".95rem",marginBottom:8}}>${fmtDt(best.dt)}</div>
-                          <div>
-                            <a href=${icsDataUrl(best.dt, (best.title||d.title), d.desc, 120)} download=${"Termin_"+d.title.replace(/[^a-zA-Z0-9]/g,"_")+"_"+ci+".ics"}
-                              style=${{display:"inline-flex",alignItems:"center",gap:7,background:"var(--sage-pale)",color:"var(--forest)",fontWeight:700,fontSize:".85rem",padding:"10px 18px",borderRadius:10,textDecoration:"none"}}>
-                              <${Ic} name="calendar" size=${15}/> Zum Kalender hinzufügen
-                            </a>
-                          </div>
+                        return html`<div key=${ci} style=${{background:"#fff",border:"1px solid var(--border2)",borderRadius:10,padding:14,marginBottom:12,textAlign:"left"}}>
+                          ${best.title&&best.title.trim()&&html`<div style=${{fontFamily:"'Manuale',serif",fontSize:"1rem",fontWeight:700,color:"var(--text)",marginBottom:6}}>${best.title}</div>`}
+                          <div style=${{fontSize:".9rem",fontWeight:600,color:"var(--text)",marginBottom:14}}>${fmtDt(best.dt)}</div>
+                          <a href=${icsDataUrl(best.dt, (best.title||d.title), d.desc, 120)} download=${"Termin_"+d.title.replace(/[^a-zA-Z0-9]/g,"_")+"_"+ci+".ics"}
+                            style=${{display:"inline-flex",alignItems:"center",gap:6,color:"var(--teal)",fontWeight:700,fontSize:".8rem",textDecoration:"none"}}>
+                            <${Ic} name="calendar" size=${14}/> Zum Kalender hinzufügen
+                          </a>
                         </div>`;
                       })}
-                      <div style=${{marginTop:14,textAlign:"center"}}>
+                      <div style=${{marginTop:6,textAlign:"center"}}>
                       <p style=${{fontSize:".78rem",color:"var(--muted)",marginBottom:8}}>Tippe «Erledigt» an, sobald du ${confirmed.length>1?"die Termine":"den Termin"} in deinen Kalender eingetragen hast.</p>
                       <button style=${{padding:"9px 20px",borderRadius:8,background:"none",border:"1px solid var(--border2)",color:"var(--muted)",fontSize:".83rem",cursor:"pointer"}} onClick=${()=>dismissDoodle(d.id)}>✓ Erledigt</button>
                     </div>
