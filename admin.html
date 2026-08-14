@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-14 14:25 admin -->
+<!-- Version: 2026-08-14 15:03 admin -->
 <!DOCTYPE html>
 <!-- Version: 2026-08-12 17:47 admin -->
 <head>
@@ -2227,7 +2227,7 @@ function DashboardPage({coachees,library,doodles,setPage,user,openSenderFilter})
           <div style=${{minWidth:0}}>
             <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.3rem",fontWeight:700,color:"var(--text)"}}>${greeting}</div>
             <div style=${{fontSize:".88rem",color:"var(--muted)",marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"calc(100vw - 160px)"}}>Admin-Portal · Raum für Selbstwirksamkeit</div>
-            <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-08-14 14:25 · Doku v3.132 · 2026-08-14 14:07
+            <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-08-14 15:03 · Doku v3.132 · 2026-08-14 14:07
             </div>
           </div>
         </div>
@@ -2404,6 +2404,9 @@ function ChatPage({coachees,setCoachees,openId,clearOpenId,presetSender,clearPre
   const [showBroadcast,setShowBroadcast] = useState(false);
   const [broadcastCat,setBroadcastCat]   = useState([]);
   const [broadcastMsg,setBroadcastMsg]   = useState("");
+  const [broadcastRecip,setBroadcastRecip]           = useState([]);
+  const [broadcastCatModeActive,setBroadcastCatModeActive] = useState(false);
+  const [broadcastSearch,setBroadcastSearch]         = useState("");
   const filtered = coachees.filter(c=>{
     const nameMatch = c.name.toLowerCase().includes(search.toLowerCase())||c.topic.toLowerCase().includes(search.toLowerCase());
     if(!filterCat||filterCat==="Alle") return nameMatch;
@@ -2419,12 +2422,25 @@ function ChatPage({coachees,setCoachees,openId,clearOpenId,presetSender,clearPre
   const active = coachees.find(c=>c.id===activeId);
   const filterCount = filterCat&&filterCat!=="Alle" ? coachees.filter(c=>{const cats=[...(Array.isArray(c.coaching)?c.coaching:(c.coaching?[c.coaching]:[])), ...(Array.isArray(c.gender)?c.gender:(c.gender?[c.gender]:[])), ...(c.categories||[])]; return catMatches(cats, filterCat);}).length : coachees.length;
   const getCatCoachees = cat => !cat ? coachees : coachees.filter(c=>{const cats=[...(Array.isArray(c.coaching)?c.coaching:(c.coaching?[c.coaching]:[])), ...(Array.isArray(c.gender)?c.gender:(c.gender?[c.gender]:[])), ...(c.categories||[])]; return catMatches(cats, cat);});
-  const broadcastRecipients = broadcastCat.length===0
-    ? coachees
-    : coachees.filter(c=>{
+  // Empfänger sind seit Kapitel 101 einzeln an-/abwählbar (Checkbox-Liste, analog Termin-Set
+  // Kapitel 98) — broadcastRecip ist die Quelle der Wahrheit, Zielgruppen-Buttons setzen sie nur vor.
+  const broadcastRecipients = coachees.filter(c=>broadcastRecip.includes(c.id));
+  const toggleBroadcastCat = cat => {
+    setBroadcastCatModeActive(true);
+    setBroadcastCat(prev=>{
+      const next = cat===null ? [] : (prev.includes(cat)?prev.filter(x=>x!==cat):[...prev,cat]);
+      const matching = next.length===0 ? coachees : coachees.filter(c=>{
         const cats=[...(Array.isArray(c.coaching)?c.coaching:(c.coaching?[c.coaching]:[])), ...(Array.isArray(c.gender)?c.gender:(c.gender?[c.gender]:[])), ...(c.categories||[])];
-        return broadcastCat.some(sel=>catMatches(cats, sel));
+        return next.some(sel=>catMatches(cats, sel));
       });
+      setBroadcastRecip(matching.map(c=>c.id));
+      return next;
+    });
+  };
+  const toggleManualBroadcastRecip = id => {
+    setBroadcastCatModeActive(false);
+    setBroadcastRecip(r=>r.includes(id)?r.filter(x=>x!==id):[...r,id]);
+  };
   const sendBroadcast = () => {
     if(!broadcastMsg.trim()||!broadcastRecipients.length) return;
     const firestore = db();
@@ -2435,7 +2451,7 @@ function ChatPage({coachees,setCoachees,openId,clearOpenId,presetSender,clearPre
       const msg={from:"admin",sender:"Diana",recipient:c.id,text:broadcastMsg.trim(),time:t,date:d,ts:Date.now(),seen:false};
       if(firestore) firestore.collection("chats").doc(c.id).collection("messages").add(msg).catch(()=>{});
     });
-    setBroadcastMsg(""); setBroadcastCat([]); setShowBroadcast(false);
+    setBroadcastMsg(""); setBroadcastCat([]); setBroadcastRecip([]); setBroadcastCatModeActive(false); setBroadcastSearch(""); setShowBroadcast(false);
     showToast("✓ Nachricht gesendet an "+broadcastRecipients.length+" Coachee"+(broadcastRecipients.length!==1?"s":""));
   };
 
@@ -2555,7 +2571,7 @@ function ChatPage({coachees,setCoachees,openId,clearOpenId,presetSender,clearPre
                 <span class="search-icon"><${Ic} name="search" size=${14}/></span>
                 <input class="search-input" value=${search} onInput=${e=>setSearch(e.target.value)} placeholder="Coachee suchen…"/>
               </div>
-              <div onClick=${()=>setShowBroadcast(true)} style=${{display:"flex",alignItems:"center",gap:10,marginTop:8,background:"var(--sage-pale)",border:"1px solid var(--border)",borderRadius:10,padding:"9px 12px",cursor:"pointer"}}>
+              <div onClick=${()=>{setShowBroadcast(true);setBroadcastRecip(coachees.map(c=>c.id));}} style=${{display:"flex",alignItems:"center",gap:10,marginTop:8,background:"var(--sage-pale)",border:"1px solid var(--border)",borderRadius:10,padding:"9px 12px",cursor:"pointer"}}>
                 <div style=${{width:30,height:30,borderRadius:8,background:"var(--teal)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
                   <${Ic} name="send" size=${14} style=${{color:"#fff"}}/>
                 </div>
@@ -2566,36 +2582,45 @@ function ChatPage({coachees,setCoachees,openId,clearOpenId,presetSender,clearPre
                 <${Ic} name="chevron" size=${14} style=${{color:"var(--muted)",transform:"rotate(-90deg)",flexShrink:0}}/>
               </div>
             </div>
-            ${showBroadcast&&h("div",{style:{position:"fixed",inset:0,background:"rgba(0,0,0,0.35)",zIndex:200,display:"flex",alignItems:"flex-end",justifyContent:"center"},onClick:e=>{if(e.target===e.currentTarget){setShowBroadcast(false);setBroadcastCat([]);setBroadcastMsg("");}}},
+            ${showBroadcast&&h("div",{style:{position:"fixed",inset:0,background:"rgba(0,0,0,0.35)",zIndex:200,display:"flex",alignItems:"flex-end",justifyContent:"center"},onClick:e=>{if(e.target===e.currentTarget){setShowBroadcast(false);setBroadcastCat([]);setBroadcastMsg("");setBroadcastRecip([]);setBroadcastCatModeActive(false);setBroadcastSearch("");}}},
               h("div",{style:{background:"var(--surface)",borderRadius:"20px 20px 0 0",padding:"20px 18px 24px",width:"100%",maxWidth:480,maxHeight:"85vh",overflowY:"auto"}},
                 h("div",{style:{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4}},
                   h("span",{style:{fontFamily:"'Manuale',serif",fontSize:"1.1rem",fontWeight:700,color:"var(--text)"}},"Neue Nachricht"),
-                  h("button",{onClick:()=>{setShowBroadcast(false);setBroadcastCat([]);setBroadcastMsg("");},style:{background:"none",border:"none",cursor:"pointer",color:"var(--muted)",fontSize:"1.2rem"}},"✕")
+                  h("button",{onClick:()=>{setShowBroadcast(false);setBroadcastCat([]);setBroadcastMsg("");setBroadcastRecip([]);setBroadcastCatModeActive(false);setBroadcastSearch("");},style:{background:"none",border:"none",cursor:"pointer",color:"var(--muted)",fontSize:"1.2rem"}},"✕")
                 ),
                 h("p",{style:{fontSize:".8rem",color:"var(--muted)",marginBottom:14,marginTop:2}},"Wähle eine Zielgruppe — die App selektiert automatisch."),
                 h("p",{style:{fontSize:".72rem",fontWeight:700,color:"var(--muted)",textTransform:"uppercase",letterSpacing:".06em",marginBottom:8}},"1 — Zielgruppe"),
                 h("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:14}},
                   ...["Paare","Einzel","Eltern","Männer","Frauen"].map(cat=>
                     h("div",{key:cat,
-                      onClick:()=>setBroadcastCat(prev=>prev.includes(cat)?prev.filter(x=>x!==cat):[...prev,cat]),
-                      style:{height:40,borderRadius:9,border:"1.5px solid "+(broadcastCat.includes(cat)?"var(--teal)":"var(--border2)"),background:broadcastCat.includes(cat)?"var(--teal)":"var(--surface)",color:broadcastCat.includes(cat)?"#fff":"var(--text)",fontSize:".82rem",fontWeight:700,fontFamily:"'Exo 2',sans-serif",display:"flex",alignItems:"center",justifyContent:"center",gap:6,cursor:"pointer",position:"relative"}},
+                      onClick:()=>toggleBroadcastCat(cat),
+                      style:{height:40,borderRadius:9,border:"1.5px solid "+(broadcastCatModeActive&&broadcastCat.includes(cat)?"var(--teal)":"var(--border2)"),background:broadcastCatModeActive&&broadcastCat.includes(cat)?"var(--teal)":"var(--surface)",color:broadcastCatModeActive&&broadcastCat.includes(cat)?"#fff":"var(--text)",fontSize:".82rem",fontWeight:700,fontFamily:"'Exo 2',sans-serif",display:"flex",alignItems:"center",justifyContent:"center",gap:6,cursor:"pointer",position:"relative"}},
                       cat,
-                      broadcastCat.includes(cat)&&h("span",{style:{position:"absolute",top:3,right:6,fontSize:10,color:"var(--teal)"}},"✓")
+                      broadcastCatModeActive&&broadcastCat.includes(cat)&&h("span",{style:{position:"absolute",top:3,right:6,fontSize:10,color:"var(--teal)"}},"✓")
                     )
                   ),
                   h("div",{key:"Alle",
-                    onClick:()=>setBroadcastCat([]),
-                    style:{height:40,borderRadius:9,border:"1.5px solid "+(broadcastCat.length===0?"var(--teal)":"var(--border2)"),background:broadcastCat.length===0?"var(--teal)":"var(--surface)",color:broadcastCat.length===0?"#fff":"var(--text)",fontSize:".82rem",fontWeight:700,fontFamily:"'Exo 2',sans-serif",display:"flex",alignItems:"center",justifyContent:"center",gap:6,cursor:"pointer",gridColumn:"1 / -1"}},
+                    onClick:()=>toggleBroadcastCat(null),
+                    style:{height:40,borderRadius:9,border:"1.5px solid "+(broadcastCatModeActive&&broadcastCat.length===0?"var(--teal)":"var(--border2)"),background:broadcastCatModeActive&&broadcastCat.length===0?"var(--teal)":"var(--surface)",color:broadcastCatModeActive&&broadcastCat.length===0?"#fff":"var(--text)",fontSize:".82rem",fontWeight:700,fontFamily:"'Exo 2',sans-serif",display:"flex",alignItems:"center",justifyContent:"center",gap:6,cursor:"pointer",gridColumn:"1 / -1"}},
                     "Alle"
                   )
                 ),
-                h("p",{style:{fontSize:".72rem",fontWeight:700,color:"var(--muted)",textTransform:"uppercase",letterSpacing:".06em",marginBottom:6}},"2 — Empfänger"),
-                h("div",{style:{background:"var(--sage-pale)",borderRadius:9,padding:"8px 12px",marginBottom:12,display:"flex",alignItems:"center",gap:10}},
-                  h("span",{style:{fontSize:"1.3rem",fontWeight:700,color:"var(--teal)",minWidth:24}},""+broadcastRecipients.length),
-                  h("div",{},
-                    h("div",{style:{fontSize:".82rem",fontWeight:700,color:"var(--forest)"}},"Coachee"+(broadcastRecipients.length!==1?"s":"")+" ausgewählt"),
-                    h("div",{style:{fontSize:".74rem",color:"var(--muted)"}},broadcastRecipients.length?broadcastRecipients.map(c=>c.name.split(" ")[0]).join(", "):"Keine Coachees in dieser Kategorie")
-                  )
+                h("p",{style:{fontSize:".72rem",fontWeight:700,color:"var(--muted)",textTransform:"uppercase",letterSpacing:".06em",marginBottom:2}},"2 — Empfänger"),
+                h("p",{style:{fontSize:".74rem",color:"var(--muted)",marginTop:0,marginBottom:8}},broadcastRecipients.length+" Coachee"+(broadcastRecipients.length!==1?"s":"")+" ausgewählt"),
+                h("div",{style:{position:"relative",marginBottom:8}},
+                  h("div",{style:{position:"absolute",left:11,top:0,bottom:0,display:"flex",alignItems:"center",color:"var(--muted)",pointerEvents:"none"}},h(Ic,{name:"search",size:15})),
+                  h("input",{class:"input",type:"text",value:broadcastSearch,onInput:e=>setBroadcastSearch(e.target.value),placeholder:"Coachee suchen…",style:{paddingLeft:34,width:"100%",boxSizing:"border-box"}})
+                ),
+                h("div",{style:{maxHeight:220,overflowY:"auto",marginBottom:14}},
+                  ...coachees.filter(c=>c.name.toLowerCase().includes(broadcastSearch.trim().toLowerCase())).map(c=>{
+                    const sel = broadcastRecip.includes(c.id);
+                    return h("label",{key:c.id,style:{display:"flex",alignItems:"center",gap:12,padding:"10px 12px",borderRadius:10,cursor:"pointer",marginBottom:6,border:"1.5px solid "+(sel?"var(--teal)":"var(--border2)"),background:sel?"var(--sage-pale)":"var(--surface)",userSelect:"none"}},
+                      h("input",{type:"checkbox",checked:sel,onChange:()=>toggleManualBroadcastRecip(c.id),style:{width:20,height:20,accentColor:"var(--teal)",cursor:"pointer",flexShrink:0}}),
+                      h("div",{style:{width:34,height:34,borderRadius:"50%",background:c.color,display:"flex",alignItems:"center",justifyContent:"center",fontSize:".7rem",fontWeight:700,color:"#fff",flexShrink:0}},c.initials),
+                      h("span",{style:{fontSize:".9rem",fontWeight:sel?600:400,color:"var(--text)"}},c.name)
+                    );
+                  }),
+                  broadcastSearch.trim()&&coachees.filter(c=>c.name.toLowerCase().includes(broadcastSearch.trim().toLowerCase())).length===0&&h("div",{style:{fontSize:".82rem",color:"var(--muted)",padding:"8px 2px"}},"Keine Coachees gefunden.")
                 ),
                 h("p",{style:{fontSize:".72rem",fontWeight:700,color:"var(--muted)",textTransform:"uppercase",letterSpacing:".06em",marginBottom:6}},"3 — Nachricht"),
                 h("textarea",{class:"textarea",rows:3,placeholder:"Nachricht verfassen…",value:broadcastMsg,onInput:e=>setBroadcastMsg(e.target.value),style:{width:"100%",marginBottom:10,boxSizing:"border-box",resize:"none"}}),
