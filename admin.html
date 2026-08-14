@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-14 10:34 admin -->
+<!-- Version: 2026-08-14 10:48 admin -->
 <!DOCTYPE html>
 <!-- Version: 2026-08-12 17:47 admin -->
 <head>
@@ -565,7 +565,7 @@ window.addEventListener('orientationchange', ()=>setTimeout(setVH,150));
     font-family:'Exo 2'; font-size:16px; background:var(--surface); color:var(--text); transition:border .2s;
   }
   .input:focus,.textarea:focus,.select:focus { outline:none; border-color:var(--teal); }
-  .textarea { resize:vertical; min-height:74px; }
+  .textarea { resize:vertical; min-height:74px; overflow-wrap:break-word; word-break:break-word; }
   .form-row { margin-bottom:12px; }
   .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
   .flex-between { display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:8px; }
@@ -704,7 +704,7 @@ window.addEventListener('orientationchange', ()=>setTimeout(setVH,150));
   .vote-row-c.sel-no{background:var(--danger-pale);border-color:var(--danger-border)}
   .vbtn{width:36px;height:36px;border-radius:50%;border:2px solid var(--border);background:var(--surface);cursor:pointer;font-size:.95rem;transition:all .15s;display:flex;align-items:center;justify-content:center;flex-shrink:0}
   .vbtn:hover{transform:scale(1.1)}
-  .vbtn.yes.on{background:var(--teal);border-color:var(--teal-dark)}
+  .vbtn.yes.on{background:var(--teal);border-color:var(--teal-dark);color:#fff}
   .vbtn.no.on{background:var(--danger);border-color:var(--danger-dark);color:white}
   /* event cards */
   .event-card-row{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;margin-bottom:12px;display:flex;transition:transform .15s}
@@ -1409,6 +1409,8 @@ const doodleGroupLabel = (key, coacheesArr) => {
   return "Einzeltermin"+(c?" "+c.name:"");
 };
 const fmtDt = dt => { try { const d=new Date(dt); if(isNaN(d.getTime())) return "Datum ungültig"; const days=["So","Mo","Di","Mi","Do","Fr","Sa"]; const months=["Jan","Feb","Mär","Apr","Mai","Jun","Jul","Aug","Sep","Okt","Nov","Dez"]; return days[d.getDay()]+", "+d.getDate()+". "+months[d.getMonth()]+" · "+String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0")+" Uhr"; } catch(e){ return "Datum ungültig"; }};
+// Bemerkungsfelder starten 1-zeilig (rows=1) und wachsen automatisch mit dem Inhalt (Kapitel 98.1).
+const autoGrowTextarea = el => { if(el){ el.style.height="auto"; el.style.height=el.scrollHeight+"px"; } };
 // Google-Calendar-Quicklink (kein Login/API nötig) — öffnet vorausgefülltes Event zum manuellen Speichern.
 // dt: datetime-local String (z.B. "2026-06-26T10:00"), durationMin: Termindauer in Minuten (Default 120).
 const gcalLink = (dt, title, details, durationMin=120) => {
@@ -2200,7 +2202,7 @@ function DashboardPage({coachees,library,doodles,setPage,user,openSenderFilter})
           <div style=${{minWidth:0}}>
             <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.3rem",fontWeight:700,color:"var(--text)"}}>${greeting}</div>
             <div style=${{fontSize:".88rem",color:"var(--muted)",marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"calc(100vw - 160px)"}}>Admin-Portal · Raum für Selbstwirksamkeit</div>
-            <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-08-14 10:34 · Doku v3.132 · 2026-08-14 10:34
+            <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-08-14 10:48 · Doku v3.132 · 2026-08-14 10:48
             </div>
           </div>
         </div>
@@ -4549,7 +4551,7 @@ function DoodlePage({doodles,setDoodles,coachees,adminUid}) {
                           <button style=${{background:"none",border:"none",cursor:"pointer",color:"var(--danger)",display:"flex",padding:4}} onClick=${()=>setNewSlots(ns=>ns.filter(x=>!(x.dt===s.dt&&x.audience===s.audience)))}><${Ic} name="x" size=${16}/></button>
                         </div>
                         <a href=${link} target="_blank" rel="noopener" style=${{display:"inline-flex",alignItems:"center",gap:5,fontSize:".72rem",fontWeight:600,color:"var(--teal)",textDecoration:"none",marginTop:6}}><${Ic} name="calendar" size=${12}/> Eventuell in Google Calendar eintragen</a>
-                        <textarea class="textarea" rows=${2} value=${s.note||""} onInput=${e=>{const val=e.target.value;setNewSlots(ns=>ns.map(x=>(x.dt===s.dt&&x.audience===s.audience)?{...x,note:val}:x));}} placeholder="Bemerkung zu diesem Termin (optional)" style=${{marginTop:8,width:"100%",boxSizing:"border-box",fontSize:".8rem",minHeight:44}}/>
+                        <textarea class="textarea" rows=${1} ref=${autoGrowTextarea} value=${s.note||""} onInput=${e=>{const val=e.target.value;setNewSlots(ns=>ns.map(x=>(x.dt===s.dt&&x.audience===s.audience)?{...x,note:val}:x));autoGrowTextarea(e.target);}} placeholder="Bemerkung zu diesem Termin (optional)" style=${{marginTop:8,width:"100%",boxSizing:"border-box",fontSize:".8rem",minHeight:38}}/>
                       </div>`;
                     })}
                     <div style=${{display:"flex",gap:8,alignItems:"center",marginTop:4}}>
@@ -4641,12 +4643,12 @@ function DoodlePage({doodles,setDoodles,coachees,adminUid}) {
                     ${s.note&&s.note.trim()&&html`
                       <div style=${{display:"flex",alignItems:"flex-start",gap:6,padding:"0 2px 8px"}}>
                         <${Ic} name="file" size=${13} style=${{color:"var(--teal)",marginTop:2,flexShrink:0}}/>
-                        <div style=${{fontSize:".82rem",fontWeight:600,color:"var(--text)",lineHeight:1.4}}>${s.note}</div>
+                        <div style=${{fontSize:".82rem",fontWeight:600,color:"var(--text)",lineHeight:1.4,overflowWrap:"break-word",wordBreak:"break-word",minWidth:0,flex:1}}>${s.note}</div>
                       </div>`}
                     ${Object.values(s.coacheeNotes||{}).filter(t=>t&&t.trim()).map((t,ti)=>html`
                       <div key=${ti} style=${{display:"flex",alignItems:"flex-start",gap:6,padding:"0 2px 8px"}}>
                         <${Ic} name="file" size=${13} style=${{color:"var(--teal)",marginTop:2,flexShrink:0}}/>
-                        <div style=${{fontSize:".82rem",fontWeight:600,color:"var(--text)",lineHeight:1.4}}>${t}</div>
+                        <div style=${{fontSize:".82rem",fontWeight:600,color:"var(--text)",lineHeight:1.4,overflowWrap:"break-word",wordBreak:"break-word",minWidth:0,flex:1}}>${t}</div>
                       </div>`)}
                   </div>`;
               }) : (()=>{
@@ -4699,8 +4701,8 @@ function DoodlePage({doodles,setDoodles,coachees,adminUid}) {
                                 <span style=${{fontSize:".78rem",fontWeight:isBest?700:400,color:isBest?"var(--teal)":"var(--muted)",minWidth:26,textAlign:"right"}}>${yesCount}/${total}</span>
                               </div>
                             </div>
-                            ${s.note&&s.note.trim()&&html`<div style=${{display:"flex",alignItems:"flex-start",gap:6,padding:"6px 2px 0"}}><${Ic} name="file" size=${12} style=${{color:"var(--teal)",marginTop:2,flexShrink:0}}/><div style=${{fontSize:".78rem",fontWeight:600,color:"var(--text)",lineHeight:1.4}}>${s.note}</div></div>`}
-                            ${Object.values(s.coacheeNotes||{}).filter(t=>t&&t.trim()).map((t,ti)=>html`<div key=${ti} style=${{display:"flex",alignItems:"flex-start",gap:6,padding:"4px 2px 0"}}><${Ic} name="file" size=${12} style=${{color:"var(--teal)",marginTop:2,flexShrink:0}}/><div style=${{fontSize:".78rem",fontWeight:600,color:"var(--text)",lineHeight:1.4}}>${t}</div></div>`)}
+                            ${s.note&&s.note.trim()&&html`<div style=${{display:"flex",alignItems:"flex-start",gap:6,padding:"6px 2px 0"}}><${Ic} name="file" size=${12} style=${{color:"var(--teal)",marginTop:2,flexShrink:0}}/><div style=${{fontSize:".78rem",fontWeight:600,color:"var(--text)",lineHeight:1.4,overflowWrap:"break-word",wordBreak:"break-word",minWidth:0,flex:1}}>${s.note}</div></div>`}
+                            ${Object.values(s.coacheeNotes||{}).filter(t=>t&&t.trim()).map((t,ti)=>html`<div key=${ti} style=${{display:"flex",alignItems:"flex-start",gap:6,padding:"4px 2px 0"}}><${Ic} name="file" size=${12} style=${{color:"var(--teal)",marginTop:2,flexShrink:0}}/><div style=${{fontSize:".78rem",fontWeight:600,color:"var(--text)",lineHeight:1.4,overflowWrap:"break-word",wordBreak:"break-word",minWidth:0,flex:1}}>${t}</div></div>`)}
                           </div>`;
                       })}
                       ${!isConfirmed&&html`<button class="btn btn-sage btn-sm" style=${{width:"100%",marginTop:2}} onClick=${()=>confirmGroupSlot(resultDoodle.id, key, sel??best)}>✓ ${doodleGroupLabel(key,coachees)} bestätigen</button>`}

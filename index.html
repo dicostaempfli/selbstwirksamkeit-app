@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-14 10:34 coachee -->
+<!-- Version: 2026-08-14 10:48 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -624,7 +624,7 @@
     font-family:'Exo 2'; font-size:16px; background:var(--surface); color:var(--text); transition:border .2s;
   }
   .input:focus,.textarea:focus,.select:focus { outline:none; border-color:var(--teal); }
-  .textarea { resize:vertical; min-height:74px; }
+  .textarea { resize:vertical; min-height:74px; overflow-wrap:break-word; word-break:break-word; }
   .form-row { margin-bottom:12px; }
   .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
   .flex-between { display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; }
@@ -789,7 +789,7 @@
   .vote-row-c.sel-no{background:#fff0ef;border-color:#f5c0bc;border-width:2px}
   .vbtn{width:36px;height:36px;border-radius:50%;border:2px solid var(--border);background:var(--surface);cursor:pointer;font-size:.95rem;transition:all .15s;display:flex;align-items:center;justify-content:center;flex-shrink:0}
   .vbtn:hover{transform:scale(1.1)}
-  .vbtn.yes.on{background:var(--teal);border-color:var(--teal-dark)}
+  .vbtn.yes.on{background:var(--teal);border-color:var(--teal-dark);color:#fff}
   .vbtn.no.on{background:var(--danger);border-color:#a03020;color:white}
   /* event cards */
   .event-card-row{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;margin-bottom:12px;display:flex;transition:transform .15s}
@@ -4611,6 +4611,8 @@ function doodleGroupsForUid(d, uid) {
   if(ownIdx.length) out.push({key:uid,label:"Dein Termin",icon:"user",indices:ownIdx});
   return out;
 }
+// Bemerkungsfelder starten 1-zeilig (rows=1) und wachsen automatisch mit dem Inhalt (Kapitel 98.1).
+function autoGrowTextarea(el) { if(el){ el.style.height="auto"; el.style.height=el.scrollHeight+"px"; } }
 function fmtDt(dt) {
   const d=new Date(dt);
   if(isNaN(d.getTime())) return "Datum ungültig";
@@ -4824,9 +4826,9 @@ function DoodlePage({user,doodles,setDoodles,coachees,events}) {
                                 </div>
                                 ${s.note&&html`<div style=${{display:"flex",alignItems:"flex-start",gap:6,padding:"0 2px 9px"}}>
                                   <${Ic} name="notes" size=${14} style=${{color:"var(--teal)",marginTop:2,flexShrink:0}}/>
-                                  <div style=${{fontSize:".85rem",fontWeight:600,color:"var(--text)",lineHeight:1.4}}>${s.note}</div>
+                                  <div style=${{fontSize:".85rem",fontWeight:600,color:"var(--text)",lineHeight:1.4,overflowWrap:"break-word",wordBreak:"break-word",minWidth:0,flex:1}}>${s.note}</div>
                                 </div>`}
-                                <textarea class="textarea" rows=${2} value=${ownNoteVal} onInput=${e=>setCoacheeNote(d.id,i,e.target.value)} placeholder="Bemerkung zu diesem Termin (optional)" style=${{width:"100%",boxSizing:"border-box",fontSize:".82rem",minHeight:44}}/>
+                                <textarea class="textarea" rows=${1} ref=${autoGrowTextarea} value=${ownNoteVal} onInput=${e=>{setCoacheeNote(d.id,i,e.target.value);autoGrowTextarea(e.target);}} placeholder="Bemerkung zu diesem Termin (optional)" style=${{width:"100%",boxSizing:"border-box",fontSize:".82rem",minHeight:38}}/>
                               </div>`;
                           })}
                       </div>`;
@@ -4894,9 +4896,9 @@ function DoodlePage({user,doodles,setDoodles,coachees,events}) {
                       </div>
                       ${s.note&&html`<div style=${{display:"flex",alignItems:"flex-start",gap:6,padding:"0 2px 9px"}}>
                         <${Ic} name="notes" size=${14} style=${{color:"var(--teal)",marginTop:2,flexShrink:0}}/>
-                        <div style=${{fontSize:".85rem",fontWeight:600,color:"var(--text)",lineHeight:1.4}}>${s.note}</div>
+                        <div style=${{fontSize:".85rem",fontWeight:600,color:"var(--text)",lineHeight:1.4,overflowWrap:"break-word",wordBreak:"break-word",minWidth:0,flex:1}}>${s.note}</div>
                       </div>`}
-                      <textarea class="textarea" rows=${2} value=${ownNoteVal} onInput=${e=>setCoacheeNote(d.id,i,e.target.value)} placeholder="Bemerkung zu diesem Termin (optional)" style=${{width:"100%",boxSizing:"border-box",fontSize:".82rem",minHeight:44}}/>
+                      <textarea class="textarea" rows=${1} ref=${autoGrowTextarea} value=${ownNoteVal} onInput=${e=>{setCoacheeNote(d.id,i,e.target.value);autoGrowTextarea(e.target);}} placeholder="Bemerkung zu diesem Termin (optional)" style=${{width:"100%",boxSizing:"border-box",fontSize:".82rem",minHeight:38}}/>
                     </div>`;
                 })}
                 <button class="btn btn-primary" style=${{marginTop:12,opacity:Object.values(coacheeVotes[d.id]||{}).some(v=>v==="yes")?1:0.4,cursor:Object.values(coacheeVotes[d.id]||{}).some(v=>v==="yes")?"pointer":"not-allowed"}} onClick=${()=>{if(Object.values(coacheeVotes[d.id]||{}).some(v=>v==="yes"))submitVotes(d.id);}}>Abstimmung senden</button>
