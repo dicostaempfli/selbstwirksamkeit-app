@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-14 14:31 coachee -->
+<!-- Version: 2026-08-14 14:38 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -2024,14 +2024,23 @@ function App({ user, userDoc }) {
       const fbDb = window._fb?.db;
       if(fbDb) {
         newD.forEach(d => {
-          // Convert slots for Firestore (votes keys must be strings)
+          // Convert slots for Firestore (votes/coacheeNotes keys must be strings).
+          // Bugfix (Kapitel 99): Vorher wurden hier nur dt+votes geschrieben — title,
+          // note, audience UND coacheeNotes gingen verloren, da dieser volle .set()-Write
+          // bei JEDEM setDoodles()-Aufruf (auch aus submitVotes) parallel zum dortigen,
+          // korrekten gezielten .update({slots:...}) lief. Race Condition: Welcher Write
+          // zuletzt ankam, gewann — landete dieser hier zuletzt, wurde die soeben vom
+          // Coachee erfasste Bemerkung sofort wieder aus Firestore entfernt (Rico-Report
+          // 14.08.2026: "Bemerkung taucht bei Ergebnissen nicht auf"). Jetzt werden alle
+          // Slot-Felder erhalten, nicht nur dt+votes.
           // .filter(Boolean) entfernt Lücken (undefined-Einträge) BEVOR sie nach Firestore geschrieben werden —
           // verhindert, dass ein lückenhaftes Array dauerhaft in der Datenbank landet (siehe Pitfall 39).
           const fsDoc = {
             ...d, uid,
-            slots: toSlotsArray(d.slots).map(s=>({
-              dt: s.dt,
-              votes: Object.fromEntries(Object.entries(s.votes||{}).map(([k,v])=>[String(k),v]))
+            slots: toSlotsArray(d.slots).filter(Boolean).map(s=>({
+              ...s,
+              votes: Object.fromEntries(Object.entries(s.votes||{}).map(([k,v])=>[String(k),v])),
+              coacheeNotes: Object.fromEntries(Object.entries(s.coacheeNotes||{}).map(([k,v])=>[String(k),v]))
             }))
           };
           fbDb.collection("doodles").doc(String(d.id)).set(fsDoc).catch(()=>{});
