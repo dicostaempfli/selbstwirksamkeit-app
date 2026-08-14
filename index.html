@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-14 15:46 coachee -->
+<!-- Version: 2026-08-14 18:47 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -2897,21 +2897,50 @@ function SettingsPage({user, onDeleted}) {
     setDeleting(true);
     const fbDb = window._fb?.db;
     const fbAuth = window._fb?.auth;
+    const fbStorage = window._fb?.storage;
     try {
       if(fbDb && user?.uid) {
         const uid = user.uid;
         const name = user.displayName || user.email || uid;
         const email = user.email || "";
+
+        // Chat-Nachrichten + zugehörige Storage-Dateianhänge löschen (vor Auth-Löschung,
+        // da danach die Firestore/Storage-Rules keine weiteren Schreibzugriffe mehr erlauben)
+        try {
+          const msgsSnap = await fbDb.collection("chats").doc(uid).collection("messages").get();
+          const jobs = [];
+          msgsSnap.forEach(d => {
+            const data = d.data();
+            if(data.file?.storagePath && fbStorage) {
+              jobs.push(fbStorage.ref(data.file.storagePath).delete().catch(()=>{}));
+            }
+            jobs.push(d.ref.delete().catch(()=>{}));
+          });
+          await Promise.all(jobs);
+        } catch(e) {}
+
+        // Eigene Tages-Impuls-Einträge löschen
+        try {
+          const impSnap = await fbDb.collection("impulse_entries").where("uid","==",uid).get();
+          await Promise.all(impSnap.docs.map(d=>d.ref.delete().catch(()=>{})));
+        } catch(e) {}
+
+        // Eigene Erinnerungen ("Meine Impulse") löschen
+        try {
+          const remSnap = await fbDb.collection("reminders").get();
+          await Promise.all(remSnap.docs.map(d=>d.ref.delete().catch(()=>{})));
+        } catch(e) {}
+
         // Vor Löschung: users_deleted Dokument anlegen (für Admin sichtbar)
         await fbDb.collection("users_deleted").doc(uid).set({
           uid, name, email,
           deletedAt: new Date().toISOString(),
           deletedBy: "coachee"
         });
-        // Daten löschen
+        // Profil löschen
         await fbDb.collection("users").doc(uid).delete().catch(()=>{});
       }
-      // Firebase Auth User löschen
+      // Firebase Auth User zuletzt löschen
       if(fbAuth?.currentUser) {
         await fbAuth.currentUser.delete().catch(()=>{});
       }

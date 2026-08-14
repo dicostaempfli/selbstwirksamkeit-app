@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-14 18:36 admin -->
+<!-- Version: 2026-08-14 18:56 admin -->
 <!DOCTYPE html>
 <!-- Version: 2026-08-12 17:47 admin -->
 <head>
@@ -2228,7 +2228,7 @@ function DashboardPage({coachees,library,doodles,setPage,user,openSenderFilter})
           <div style=${{minWidth:0}}>
             <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.3rem",fontWeight:700,color:"var(--text)"}}>${greeting}</div>
             <div style=${{fontSize:".88rem",color:"var(--muted)",marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"calc(100vw - 160px)"}}>Admin-Portal · Raum für Selbstwirksamkeit</div>
-            <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-08-14 18:36 · Doku v3.136 · 2026-08-14 18:35
+            <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-08-14 18:56 · Doku v3.138 · 2026-08-14 18:56
             </div>
           </div>
         </div>
@@ -3223,14 +3223,41 @@ function CoacheesPage({coachees,setCoachees,setPage,pending,setPending,deleted,s
       .catch(err => showToast("✗ Speichern fehlgeschlagen: " + err.message))
       .finally(() => setSavingEdit(false));
   };
-  const deleteCoachee = (id) => {
+  const deleteCoachee = async (id) => {
     if(!deleteConfirm) { setDeleteConfirm(true); setTimeout(()=>setDeleteConfirm(false),4000); return; }
     setDeleteConfirm(false);
     const firestore = db();
     if(!firestore) { showToast("✗ Keine Verbindung zur Datenbank — bitte Seite neu laden."); return; }
-    firestore.collection("users").doc(id).delete()
-      .then(() => { setCoachees(cs=>cs.filter(c=>c.id!==id)); setEditId(null); showToast("Coachee gelöscht"); })
-      .catch(err => showToast("✗ Löschen fehlgeschlagen: " + err.message));
+    const fbStorage = window._fb?.storage;
+    try {
+      // Chat-Nachrichten + zugehörige Storage-Dateianhänge löschen
+      const msgsSnap = await firestore.collection("chats").doc(id).collection("messages").get();
+      const jobs = [];
+      msgsSnap.forEach(d => {
+        const data = d.data();
+        if(data.file?.storagePath && fbStorage) {
+          jobs.push(fbStorage.ref(data.file.storagePath).delete().catch(()=>{}));
+        }
+        jobs.push(d.ref.delete().catch(()=>{}));
+      });
+      await Promise.all(jobs);
+
+      // Tages-Impuls-Einträge löschen
+      const impSnap = await firestore.collection("impulse_entries").where("uid","==",id).get();
+      await Promise.all(impSnap.docs.map(d=>d.ref.delete().catch(()=>{})));
+
+      // Erinnerungen ("Meine Impulse") löschen — benötigt erweiterte Firestore-Rule (isCoach())
+      const remSnap = await firestore.collection("reminders").where("uid","==",id).get();
+      await Promise.all(remSnap.docs.map(d=>d.ref.delete().catch(()=>{})));
+
+      // Profil zuletzt löschen
+      await firestore.collection("users").doc(id).delete();
+      setCoachees(cs=>cs.filter(c=>c.id!==id));
+      setEditId(null);
+      showToast("Coachee gelöscht — Auth-Account bitte manuell in Firebase Console entfernen");
+    } catch(err) {
+      showToast("✗ Löschen fehlgeschlagen: " + err.message);
+    }
   };
   // Fix (03.08.2026, auf Ricos Wunsch): "Coaching" (Paar/Einzel/Eltern) ist inhaltlich
   // eine Einfachauswahl — ein Coachee hat genau eine Coaching-Art, nicht mehrere. Bisher
