@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-14 11:03 admin -->
+<!-- Version: 2026-08-14 12:03 admin -->
 <!DOCTYPE html>
 <!-- Version: 2026-08-12 17:47 admin -->
 <head>
@@ -2212,7 +2212,7 @@ function DashboardPage({coachees,library,doodles,setPage,user,openSenderFilter})
           <div style=${{minWidth:0}}>
             <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.3rem",fontWeight:700,color:"var(--text)"}}>${greeting}</div>
             <div style=${{fontSize:".88rem",color:"var(--muted)",marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"calc(100vw - 160px)"}}>Admin-Portal · Raum für Selbstwirksamkeit</div>
-            <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-08-14 11:03 · Doku v3.132 · 2026-08-14 11:03
+            <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-08-14 12:03 · Doku v3.132 · 2026-08-14 12:03
             </div>
           </div>
         </div>
@@ -4366,6 +4366,7 @@ function DoodlePage({doodles,setDoodles,coachees,adminUid}) {
   const [newDesc,setNewDesc] = useState("");
   const [newSlots,setNewSlots] = useState([]); // {dt, audience, note} — audience: null|"gemeinsam"|uid (Kapitel 98, Termin-Set)
   const [blockDt,setBlockDt] = useState({}); // Entwurfs-Datum pro Block ("all"|"gemeinsam"|uid)
+  const [blockTitle,setBlockTitle] = useState({}); // Entwurfs-Titel pro Block (Kapitel 98.3)
   const [selRecip,setSelRecip] = useState([]);
   const [doodleCat,setDoodleCat] = useState([]);
   const [catModeActive,setCatModeActive] = useState(false);
@@ -4389,7 +4390,7 @@ function DoodlePage({doodles,setDoodles,coachees,adminUid}) {
     const dt = blockDt[block.key] || defaultDt();
     if(!dt) return;
     if(newSlots.some(s=>s.dt===dt && s.audience===block.audience)) return;
-    setNewSlots(s=>[...s,{dt,audience:block.audience,note:""}]);
+    setNewSlots(s=>[...s,{dt,audience:block.audience,note:"",title:(blockTitle[block.key]||"").trim()}]);
     const d=new Date(dt); d.setHours(d.getHours()+2);
     setBlockDt(bd=>({...bd,[block.key]:localDtStr(d)}));
   };
@@ -4416,8 +4417,8 @@ function DoodlePage({doodles,setDoodles,coachees,adminUid}) {
   const createDoodle = () => {
     if(!newTitle.trim()||newSlots.length<1) return;
     const nd={id:"d"+Date.now(),title:newTitle.trim(),desc:newDesc.trim()||"Wähle alle möglichen Termine aus.",status:"open",recipients:[...selRecip],
-      slots:newSlots.map(s=>({dt:s.dt,votes:{},note:(s.note||"").trim(),...(s.audience?{audience:s.audience}:{})}))};
-    setShowCreate(false);setNewTitle("");setNewDesc("");setNewSlots([]);setBlockDt({});setSelRecip([]);setDoodleCat([]);setCatModeActive(false);setRecipSearch("");
+      slots:newSlots.map(s=>({dt:s.dt,votes:{},note:(s.note||"").trim(),...(s.title&&s.title.trim()?{title:s.title.trim()}:{}),...(s.audience?{audience:s.audience}:{})}))};
+    setShowCreate(false);setNewTitle("");setNewDesc("");setNewSlots([]);setBlockDt({});setBlockTitle({});setSelRecip([]);setDoodleCat([]);setCatModeActive(false);setRecipSearch("");
     setDoodles(ds=>[nd,...ds]);
     const firestore = db();
     if(firestore) firestore.collection("doodles").doc(String(nd.id)).set(nd).catch(()=>{});
@@ -4549,11 +4550,17 @@ function DoodlePage({doodles,setDoodles,coachees,adminUid}) {
                           <button style=${{background:"none",border:"none",cursor:"pointer",color:"var(--danger)",display:"flex",padding:4}} onClick=${()=>setNewSlots(ns=>ns.filter(x=>!(x.dt===s.dt&&x.audience===s.audience)))}><${Ic} name="x" size=${16}/></button>
                         </div>
                         <a href=${link} target="_blank" rel="noopener" style=${{display:"inline-flex",alignItems:"center",gap:5,fontSize:".72rem",fontWeight:600,color:"var(--teal)",textDecoration:"none",marginTop:6}}><${Ic} name="calendar" size=${12}/> Eventuell in Google Calendar eintragen</a>
-                        <textarea class="textarea" rows=${1} ref=${autoGrowTextarea} value=${s.note||""} onInput=${e=>{const val=e.target.value;setNewSlots(ns=>ns.map(x=>(x.dt===s.dt&&x.audience===s.audience)?{...x,note:val}:x));autoGrowTextarea(e.target);}} placeholder="Bemerkung zu diesem Termin" style=${{marginTop:8,width:"100%",boxSizing:"border-box",fontSize:".8rem",minHeight:38}}/>
+                        <label class="label" style=${{fontSize:".72rem",marginTop:8,marginBottom:4}}>Titel <span style=${{fontWeight:400,opacity:.7}}>(erscheint bei Terminbestätigung)</span></label>
+                        <input class="input" value=${s.title||""} onInput=${e=>{const val=e.target.value;setNewSlots(ns=>ns.map(x=>(x.dt===s.dt&&x.audience===s.audience)?{...x,title:val}:x));}} placeholder="z.B. Sarah bei Rico" style=${{width:"100%",boxSizing:"border-box",fontSize:".82rem",marginBottom:8}}/>
+                        <label class="label" style=${{fontSize:".72rem",marginBottom:4}}>Bemerkung</label>
+                        <textarea class="textarea" rows=${1} ref=${autoGrowTextarea} value=${s.note||""} onInput=${e=>{const val=e.target.value;setNewSlots(ns=>ns.map(x=>(x.dt===s.dt&&x.audience===s.audience)?{...x,note:val}:x));autoGrowTextarea(e.target);}} placeholder="Bemerkung zu diesem Termin" style=${{width:"100%",boxSizing:"border-box",fontSize:".8rem",minHeight:38}}/>
                       </div>`;
                     })}
-                    <div style=${{display:"flex",gap:8,alignItems:"center",marginTop:4}}>
-                      <input class="input" type="datetime-local" value=${blockDt[block.key]||defaultDt()} onChange=${e=>setBlockDt(bd=>({...bd,[block.key]:e.target.value}))} onInput=${e=>setBlockDt(bd=>({...bd,[block.key]:e.target.value}))} style=${{flex:1,minWidth:0}}/>
+                    <div style=${{display:"flex",gap:8,alignItems:"flex-end",marginTop:4}}>
+                      <div style=${{flex:1,minWidth:0}}>
+                        <input class="input" type="datetime-local" value=${blockDt[block.key]||defaultDt()} onChange=${e=>setBlockDt(bd=>({...bd,[block.key]:e.target.value}))} onInput=${e=>setBlockDt(bd=>({...bd,[block.key]:e.target.value}))} style=${{width:"100%",boxSizing:"border-box",marginBottom:6}}/>
+                        <input class="input" value=${blockTitle[block.key]||""} onInput=${e=>setBlockTitle(bt=>({...bt,[block.key]:e.target.value}))} placeholder="Titel (optional)" style=${{width:"100%",boxSizing:"border-box"}}/>
+                      </div>
                       <button class="btn btn-sage btn-sm" onClick=${()=>addSlotToBlock(block)}>+ Hinzufügen</button>
                     </div>
                   </div>
@@ -4632,6 +4639,7 @@ function DoodlePage({doodles,setDoodles,coachees,adminUid}) {
                       <div style=${{flex:1}}>
                         ${isConfirmed&&html`<span style=${{fontSize:".68rem",fontWeight:700,background:"var(--teal)",color:"#fff",padding:"1px 7px",borderRadius:99,display:"inline-block",marginBottom:3}}>✓ bestätigt</span>`}
                         ${!isConfirmed&&isBest&&selectedSlots.length===0&&html`<span style=${{fontSize:".68rem",fontWeight:700,background:"var(--teal)",color:"#fff",padding:"1px 7px",borderRadius:99,display:"inline-block",marginBottom:3}}>Bester Termin</span>`}
+                        ${s.title&&s.title.trim()&&html`<div style=${{fontSize:".78rem",fontWeight:700,color:"var(--teal)",marginBottom:1}}>${s.title}</div>`}
                         <div style=${{fontSize:".88rem",fontWeight:600,color:"var(--text)"}}>${parts[0]?.trim()}</div>
                         <div style=${{fontSize:".75rem",color:"var(--muted)"}}>${parts[1]?.trim()}</div>
                       </div>

@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-14 11:03 coachee -->
+<!-- Version: 2026-08-14 12:03 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -4812,10 +4812,11 @@ function DoodlePage({user,doodles,setDoodles,coachees,events}) {
                               ${confirmedInGroup.map(ci=>{
                                 const best = slots[ci];
                                 if(!best) return null;
-                                return html`<div key=${ci} style=${{marginBottom:8}}>
+                                return html`<div key=${ci} style=${{marginBottom:20}}>
+                                  ${best.title&&best.title.trim()&&html`<div style=${{fontSize:".78rem",fontWeight:700,color:"var(--text)",marginBottom:5}}>${best.title}</div>`}
                                   <div style=${{background:"var(--teal)",color:"#fff",borderRadius:10,padding:"8px 14px",display:"inline-block",fontWeight:700,fontSize:".88rem",marginBottom:6}}>${fmtDt(best.dt)}</div>
                                   <div>
-                                    <a href=${icsDataUrl(best.dt, d.title+" — "+g.label, d.desc, 120)} download=${"Termin_"+d.title.replace(/[^a-zA-Z0-9]/g,"_")+"_"+g.key.replace(/[^a-zA-Z0-9]/g,"_")+"_"+ci+".ics"}
+                                    <a href=${icsDataUrl(best.dt, (best.title||d.title+" — "+g.label), d.desc, 120)} download=${"Termin_"+d.title.replace(/[^a-zA-Z0-9]/g,"_")+"_"+g.key.replace(/[^a-zA-Z0-9]/g,"_")+"_"+ci+".ics"}
                                       style=${{display:"inline-flex",alignItems:"center",gap:6,background:"var(--sage-pale)",color:"var(--forest)",fontWeight:700,fontSize:".8rem",padding:"8px 14px",borderRadius:9,textDecoration:"none"}}>
                                       <${Ic} name="calendar" size=${13}/> Zum Kalender hinzufügen
                                     </a>
@@ -4832,6 +4833,7 @@ function DoodlePage({user,doodles,setDoodles,coachees,events}) {
                               <div key=${i} class=${"vote-row-c"+(v==="yes"?" sel-yes":v==="no"?" sel-no":"")} style=${{display:"block",cursor:"default"}}>
                                 <div style=${{display:"flex",alignItems:"center",gap:10}}>
                                   <div style=${{flex:1}}>
+                                    ${s.title&&s.title.trim()&&html`<div style=${{fontSize:".72rem",fontWeight:700,color:"var(--teal)",marginBottom:1}}>${s.title}</div>`}
                                     <div style=${{fontWeight:700,fontSize:".88rem",color:"var(--text)"}}>${fmtDt(s.dt).split("·")[0].trim()}</div>
                                     <div style=${{fontSize:".74rem",color:"var(--muted)"}}>${fmtDt(s.dt).split("·")[1]?.trim()}</div>
                                   </div>
@@ -4872,10 +4874,11 @@ function DoodlePage({user,doodles,setDoodles,coachees,events}) {
                       ${confirmed.map(ci=>{
                         const best = slots[ci];
                         if(!best) return null;
-                        return html`<div key=${ci} style=${{marginBottom:10}}>
+                        return html`<div key=${ci} style=${{marginBottom:26}}>
+                          ${best.title&&best.title.trim()&&html`<div style=${{fontSize:".78rem",fontWeight:700,color:"var(--text)",marginBottom:5}}>${best.title}</div>`}
                           <div style=${{background:"var(--teal)",color:"#fff",borderRadius:10,padding:"10px 18px",display:"inline-block",fontWeight:700,fontSize:".95rem",marginBottom:8}}>${fmtDt(best.dt)}</div>
                           <div>
-                            <a href=${icsDataUrl(best.dt, d.title, d.desc, 120)} download=${"Termin_"+d.title.replace(/[^a-zA-Z0-9]/g,"_")+"_"+ci+".ics"}
+                            <a href=${icsDataUrl(best.dt, (best.title||d.title), d.desc, 120)} download=${"Termin_"+d.title.replace(/[^a-zA-Z0-9]/g,"_")+"_"+ci+".ics"}
                               style=${{display:"inline-flex",alignItems:"center",gap:7,background:"var(--sage-pale)",color:"var(--forest)",fontWeight:700,fontSize:".85rem",padding:"10px 18px",borderRadius:10,textDecoration:"none"}}>
                               <${Ic} name="calendar" size=${15}/> Zum Kalender hinzufügen
                             </a>
@@ -4906,6 +4909,7 @@ function DoodlePage({user,doodles,setDoodles,coachees,events}) {
                         <div key=${i} class=${"vote-row-c"+(v==="yes"?" sel-yes":v==="no"?" sel-no":"")} style=${{display:"block",cursor:"default"}}>
                           <div style=${{display:"flex",alignItems:"center",gap:10}}>
                             <div style=${{flex:1}}>
+                              ${s.title&&s.title.trim()&&html`<div style=${{fontSize:".72rem",fontWeight:700,color:"var(--teal)",marginBottom:1}}>${s.title}</div>`}
                               <div style=${{fontWeight:700,fontSize:".88rem",color:"var(--text)"}}>${fmtDt(s.dt).split("·")[0].trim()}</div>
                               <div style=${{fontSize:".74rem",color:"var(--muted)"}}>${fmtDt(s.dt).split("·")[1]?.trim()}</div>
                             </div>
