@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-14 14:02 coachee -->
+<!-- Version: 2026-08-14 14:20 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -4741,6 +4741,11 @@ function DoodlePage({user,doodles,setDoodles,coachees,events}) {
 
   const confirmSlot = (did) => {
     setDoodles(ds=>ds.map(x=>x.id===did?{...x,status:"closed"}:x));
+    // Firestore-Write nachgerüstet (fehlte zuvor komplett — Status blieb nur lokal
+    // "closed", fiel bei jedem neuen onSnapshot/Reload auf den alten Firestore-Stand
+    // zurück, Admin sah den Doodle weiterhin als "Offen").
+    const firestore = window._fb?.db;
+    if(firestore) firestore.collection("doodles").doc(String(did)).update({status:"closed"}).catch(()=>{});
     setShowResults(null); setShowConfirmed(true);
   };
 
