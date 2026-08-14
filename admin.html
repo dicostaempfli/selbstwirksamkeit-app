@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-14 10:48 admin -->
+<!-- Version: 2026-08-14 11:03 admin -->
 <!DOCTYPE html>
 <!-- Version: 2026-08-12 17:47 admin -->
 <head>
@@ -1408,6 +1408,16 @@ const doodleGroupLabel = (key, coacheesArr) => {
   const c=(coacheesArr||[]).find(x=>x.id===key);
   return "Einzeltermin"+(c?" "+c.name:"");
 };
+// Mehrfachbestätigung (Kapitel 98.2): Admin kann mehrere Termine gleichzeitig bestätigen (z.B. mehrere
+// tatsächlich stattfindende Termine in einem Doodle). `confirmedSlots` ist ein Array von Slot-Indizes.
+// Rückwärtskompatibel zu altem `confirmedSlot` (einzelne Zahl) und dem kurzzeitig verwendeten
+// Gruppen-Objekt-Format ({gruppe: idx}) aus einer früheren Session-Iteration.
+const confirmedIndices = d => {
+  if(Array.isArray(d.confirmedSlots)) return d.confirmedSlots;
+  if(d.confirmedSlots && typeof d.confirmedSlots==="object") return Object.values(d.confirmedSlots).filter(v=>v!=null);
+  if(d.confirmedSlot!=null) return [d.confirmedSlot];
+  return [];
+};
 const fmtDt = dt => { try { const d=new Date(dt); if(isNaN(d.getTime())) return "Datum ungültig"; const days=["So","Mo","Di","Mi","Do","Fr","Sa"]; const months=["Jan","Feb","Mär","Apr","Mai","Jun","Jul","Aug","Sep","Okt","Nov","Dez"]; return days[d.getDay()]+", "+d.getDate()+". "+months[d.getMonth()]+" · "+String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0")+" Uhr"; } catch(e){ return "Datum ungültig"; }};
 // Bemerkungsfelder starten 1-zeilig (rows=1) und wachsen automatisch mit dem Inhalt (Kapitel 98.1).
 const autoGrowTextarea = el => { if(el){ el.style.height="auto"; el.style.height=el.scrollHeight+"px"; } };
@@ -2202,7 +2212,7 @@ function DashboardPage({coachees,library,doodles,setPage,user,openSenderFilter})
           <div style=${{minWidth:0}}>
             <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.3rem",fontWeight:700,color:"var(--text)"}}>${greeting}</div>
             <div style=${{fontSize:".88rem",color:"var(--muted)",marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"calc(100vw - 160px)"}}>Admin-Portal · Raum für Selbstwirksamkeit</div>
-            <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-08-14 10:48 · Doku v3.132 · 2026-08-14 10:48
+            <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-08-14 11:03 · Doku v3.132 · 2026-08-14 11:03
             </div>
           </div>
         </div>
@@ -4351,7 +4361,7 @@ function DoodlePage({doodles,setDoodles,coachees,adminUid}) {
   const [showCreate,setShowCreate] = useState(false);
   const [showResults,setShowResults] = useState(null);
   const [showConfirmed,setShowConfirmed] = useState(null);
-  const [selectedSlot,setSelectedSlot] = useState(null);
+  const [selectedSlots,setSelectedSlots] = useState([]); // Mehrfachauswahl im Ergebnisse-Modal (Kapitel 98.2)
   const [newTitle,setNewTitle] = useState("");
   const [newDesc,setNewDesc] = useState("");
   const [newSlots,setNewSlots] = useState([]); // {dt, audience, note} — audience: null|"gemeinsam"|uid (Kapitel 98, Termin-Set)
@@ -4360,7 +4370,6 @@ function DoodlePage({doodles,setDoodles,coachees,adminUid}) {
   const [doodleCat,setDoodleCat] = useState([]);
   const [catModeActive,setCatModeActive] = useState(false);
   const [recipSearch,setRecipSearch] = useState("");
-  const [selectedGroupSlot,setSelectedGroupSlot] = useState({});
 
   const localDtStr = (d) => { const pad=n=>String(n).padStart(2,'0'); return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+'T'+pad(d.getHours())+':'+pad(d.getMinutes()); };
   const defaultDt = () => { const d=new Date(); d.setDate(d.getDate()+1); d.setHours(10,0,0,0); return localDtStr(d); };
@@ -4425,31 +4434,20 @@ function DoodlePage({doodles,setDoodles,coachees,adminUid}) {
     return best;
   };
 
-  const confirmSlot = (did, slotIdx) => {
-    const doodle = doodles.find(x=>x.id===did);
-    const confirmedDt = doodle?.slots?.[slotIdx]?.dt;
-    setDoodles(ds=>ds.map(x=>x.id===did?{...x,status:"closed",confirmedSlot:slotIdx??0}:x));
-    const firestore = db();
-    if(firestore) firestore.collection("doodles").doc(String(did)).update({status:"closed",confirmedSlot:slotIdx??0}).catch(()=>{});
-    setShowResults(null);setSelectedSlot(null);
-    setShowConfirmed({title:doodle?.title||"Coaching-Termin",dt:confirmedDt});
-  };
+  const toggleSelectedSlot = i => setSelectedSlots(s=>s.includes(i)?s.filter(x=>x!==i):[...s,i]);
 
-  // Termin-Set (Kapitel 98): bestätigt genau eine Gruppe (Runder Tisch ODER ein Einzeltermin) statt des
-  // ganzen Doodles. Der Doodle wird erst "closed", sobald jede vorkommende Gruppe ihren Termin hat.
-  const confirmGroupSlot = (did, groupKey, slotIdx) => {
-    if(slotIdx==null||slotIdx<0) return;
+  // Mehrfachbestätigung (Kapitel 98.2): Admin kann beliebig viele Termine gleichzeitig bestätigen —
+  // z.B. mehrere tatsächlich stattfindende Termine innerhalb eines Doodles. Gilt für alle Doodles,
+  // unabhängig davon, ob sie über das Termin-Set (Runder Tisch/Einzeltermine) getaggt sind.
+  const confirmSelectedSlots = (did) => {
+    if(selectedSlots.length<1) return;
     const doodle = doodles.find(x=>x.id===did);
-    if(!doodle) return;
-    const groupKeys = [...new Set(toSlotsArray(doodle.slots).filter(Boolean).map(doodleGroupKey))];
-    const newConfirmed = {...(doodle.confirmedSlots||{}), [groupKey]: slotIdx};
-    const allDone = groupKeys.every(k=>newConfirmed[k]!=null);
-    setDoodles(ds=>ds.map(x=>x.id===did?{...x,confirmedSlots:newConfirmed,status:allDone?"closed":x.status}:x));
+    const sorted = [...selectedSlots].sort((a,b)=>a-b);
+    setDoodles(ds=>ds.map(x=>x.id===did?{...x,status:"closed",confirmedSlots:sorted}:x));
     const firestore = db();
-    if(firestore) firestore.collection("doodles").doc(String(did)).update({confirmedSlots:newConfirmed,...(allDone?{status:"closed"}:{})}).catch(()=>{});
-    setSelectedGroupSlot(g=>({...g,[groupKey]:undefined}));
-    if(allDone){ setShowResults(null); showToast("✓ Alle Termine bestätigt"); }
-    else { showToast("✓ "+(doodleGroupLabel(groupKey,coachees)||"Termin")+" bestätigt"); }
+    if(firestore) firestore.collection("doodles").doc(String(did)).update({status:"closed",confirmedSlots:sorted}).catch(()=>{});
+    setShowResults(null);setSelectedSlots([]);
+    showToast("✓ "+sorted.length+" Termin"+(sorted.length===1?"":"e")+" bestätigt");
   };
 
   const resultDoodle = doodles.find(d=>d.id===showResults);
@@ -4492,7 +4490,7 @@ function DoodlePage({doodles,setDoodles,coachees,adminUid}) {
                 return html`<div key=${rid} style=${{width:28,height:28,borderRadius:"50%",background:c.color,display:"flex",alignItems:"center",justifyContent:"center",fontSize:".68rem",fontWeight:700,color:"#fff"}} title=${c.name}>${c.initials}</div>`;
               })}</div>
             </div>
-            <div style=${{display:"flex",gap:8}}>              <button class="btn btn-sage btn-sm" style=${{flex:1}} onClick=${()=>{setShowResults(d.id);setSelectedSlot(bestSlotIdx(d));setSelectedGroupSlot({});}}>Ergebnisse</button>
+            <div style=${{display:"flex",gap:8}}>              <button class="btn btn-sage btn-sm" style=${{flex:1}} onClick=${()=>{setShowResults(d.id);setSelectedSlots([]);}}>Ergebnisse</button>
               ${d.status==="open"&&html`<button class="btn btn-ghost btn-sm" onClick=${()=>{
                 const firestore=window._fb?.db||(typeof db==="function"?db():null);
                 if(firestore)firestore.collection("doodles").doc(String(d.id)).update({status:"closed"}).catch(()=>{});
@@ -4551,7 +4549,7 @@ function DoodlePage({doodles,setDoodles,coachees,adminUid}) {
                           <button style=${{background:"none",border:"none",cursor:"pointer",color:"var(--danger)",display:"flex",padding:4}} onClick=${()=>setNewSlots(ns=>ns.filter(x=>!(x.dt===s.dt&&x.audience===s.audience)))}><${Ic} name="x" size=${16}/></button>
                         </div>
                         <a href=${link} target="_blank" rel="noopener" style=${{display:"inline-flex",alignItems:"center",gap:5,fontSize:".72rem",fontWeight:600,color:"var(--teal)",textDecoration:"none",marginTop:6}}><${Ic} name="calendar" size=${12}/> Eventuell in Google Calendar eintragen</a>
-                        <textarea class="textarea" rows=${1} ref=${autoGrowTextarea} value=${s.note||""} onInput=${e=>{const val=e.target.value;setNewSlots(ns=>ns.map(x=>(x.dt===s.dt&&x.audience===s.audience)?{...x,note:val}:x));autoGrowTextarea(e.target);}} placeholder="Bemerkung zu diesem Termin (optional)" style=${{marginTop:8,width:"100%",boxSizing:"border-box",fontSize:".8rem",minHeight:38}}/>
+                        <textarea class="textarea" rows=${1} ref=${autoGrowTextarea} value=${s.note||""} onInput=${e=>{const val=e.target.value;setNewSlots(ns=>ns.map(x=>(x.dt===s.dt&&x.audience===s.audience)?{...x,note:val}:x));autoGrowTextarea(e.target);}} placeholder="Bemerkung zu diesem Termin" style=${{marginTop:8,width:"100%",boxSizing:"border-box",fontSize:".8rem",minHeight:38}}/>
                       </div>`;
                     })}
                     <div style=${{display:"flex",gap:8,alignItems:"center",marginTop:4}}>
@@ -4600,122 +4598,80 @@ function DoodlePage({doodles,setDoodles,coachees,adminUid}) {
           </div>
         </div>`}
 
-      ${/* RESULTS MODAL */showResults&&resultDoodle&&html`
+      ${/* RESULTS MODAL */showResults&&resultDoodle&&(()=>{
+        const slots = toSlotsArray(resultDoodle.slots);
+        const best = bestSlotIdx(resultDoodle);
+        const alreadyConfirmed = confirmedIndices(resultDoodle);
+        return html`
         <div class="overlay" onClick=${e=>{if(e.target===e.currentTarget)setShowResults(null);}}>
           <div class="modal" style=${{padding:0,display:"flex",flexDirection:"column"}}>
             <div style=${{padding:"16px 18px 12px",borderBottom:"1px solid var(--border)",display:"flex",alignItems:"center",justifyContent:"space-between",flexShrink:0}}>
               <h2 class="modal-title" style=${{marginBottom:0}}>${resultDoodle.title}</h2>
               <button style=${{background:"none",border:"none",cursor:"pointer",color:"var(--muted)",padding:4,borderRadius:8,display:"flex"}} onClick=${()=>setShowResults(null)}>${h(Ic,{name:"x",size:20})}</button>
             </div>
-            <div style=${{padding:"14px 18px",overflowY:"auto",flex:1,display:"flex",flexDirection:"column",gap:8}}>
-              ${!doodleHasGroups(resultDoodle) ? toSlotsArray(resultDoodle.slots).map((s,i)=>{
+            <p style=${{padding:"10px 18px 0",margin:0,fontSize:".78rem",color:"var(--muted)"}}>Beliebig viele Termine anhaken und gemeinsam bestätigen.</p>
+            <div style=${{padding:"10px 18px 14px",overflowY:"auto",flex:1,display:"flex",flexDirection:"column",gap:8}}>
+              ${slots.map((s,i)=>{
                 if(!s) return null;
-                const best=bestSlotIdx(resultDoodle);
                 const isBest=i===best&&Object.values(s.votes||{}).some(v=>v==="yes");
                 const yesCount=Object.values(s.votes||{}).filter(v=>v==="yes").length;
-                const total=(resultDoodle.recipients||[]).length;
+                const groupKey = doodleGroupKey(s);
+                const total = groupKey==="all" ? (resultDoodle.recipients||[]).length : (groupKey==="gemeinsam" ? (resultDoodle.recipients||[]).length : 1);
                 const parts=fmtDt(s.dt).split("·");
-                const isSel = i===selectedSlot;
-                const rowBg = isSel ? "var(--teal-pale)" : "var(--surface2)";
-                const rowBorder = isSel ? "2.5px solid var(--teal)" : "0.5px solid var(--border)";
-                const rowOpacity = selectedSlot!=null && !isSel ? 0.45 : 1;
+                const isConfirmed = alreadyConfirmed.includes(i);
+                const isChecked = selectedSlots.includes(i);
+                const rowBg = isChecked||isConfirmed ? "var(--teal-pale)" : "var(--surface2)";
+                const rowBorder = isChecked||isConfirmed ? "2px solid var(--teal)" : "0.5px solid var(--border)";
+                const groupLabel = doodleGroupLabel(groupKey, coachees);
                 return html`
-                  <div key=${i} style=${{padding:"12px 14px",borderRadius:10,background:rowBg,border:rowBorder,opacity:rowOpacity,transition:"opacity .15s"}}>
-                    <div style=${{display:"flex",alignItems:"center",gap:12,cursor:"pointer"}} onClick=${()=>setSelectedSlot(i)}>
+                  <div key=${i} style=${{padding:"12px 14px",borderRadius:10,background:rowBg,border:rowBorder}}>
+                    <div style=${{display:"flex",alignItems:"center",gap:12,cursor:"pointer"}} onClick=${()=>toggleSelectedSlot(i)}>
+                      <div style=${{width:20,height:20,borderRadius:5,border:"2px solid "+(isChecked||isConfirmed?"var(--teal)":"var(--border2)"),background:isChecked||isConfirmed?"var(--teal)":"transparent",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                        ${(isChecked||isConfirmed)&&h(Ic,{name:"check",size:13,style:{color:"#fff"}})}
+                      </div>
                       <div style=${{flex:1}}>
-                        ${isBest&&selectedSlot==null&&html`<span style=${{fontSize:".68rem",fontWeight:700,background:"var(--teal)",color:"#fff",padding:"1px 7px",borderRadius:99,display:"inline-block",marginBottom:3}}>Bester Termin</span>`}
+                        ${isConfirmed&&html`<span style=${{fontSize:".68rem",fontWeight:700,background:"var(--teal)",color:"#fff",padding:"1px 7px",borderRadius:99,display:"inline-block",marginBottom:3}}>✓ bestätigt</span>`}
+                        ${!isConfirmed&&isBest&&selectedSlots.length===0&&html`<span style=${{fontSize:".68rem",fontWeight:700,background:"var(--teal)",color:"#fff",padding:"1px 7px",borderRadius:99,display:"inline-block",marginBottom:3}}>Bester Termin</span>`}
                         <div style=${{fontSize:".88rem",fontWeight:600,color:"var(--text)"}}>${parts[0]?.trim()}</div>
                         <div style=${{fontSize:".75rem",color:"var(--muted)"}}>${parts[1]?.trim()}</div>
                       </div>
-                      <div style=${{display:"flex",gap:4,alignItems:"center"}}>
-                        ${(resultDoodle.recipients||[]).map(rid=>{
-                          const c=coachees.find(x=>x.id===rid);if(!c)return null;
-                          const v=s?.votes?.[rid];
-                          const isYes=v==="yes"; const isNo=v==="no";
-                          const avBg = isYes?"var(--teal)":isNo?"#fef2f2":"var(--surface2)";
-                          const avBorder = isNo?"1.5px solid #fca5a5":isYes?"none":"1px solid var(--border)";
-                          const avColor = isYes?"#fff":isNo?"#dc2626":"var(--muted)";
-                          return html`<div key=${rid} style=${{width:28,height:28,borderRadius:"50%",background:avBg,border:avBorder,display:"flex",alignItems:"center",justifyContent:"center",fontSize:".68rem",fontWeight:700,color:avColor}} title=${c.name+(v==="yes"?" — Ja":v==="no"?" — Nein":" — ausstehend")}>${c.initials}</div>`;
-                        })}
-                        <span style=${{fontSize:".8rem",fontWeight:isBest?700:400,color:isBest?"var(--teal)":"var(--muted)",minWidth:28,textAlign:"right"}}>${yesCount}/${total}</span>
+                      <div style=${{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:4}}>
+                        ${groupLabel&&html`<span style=${{fontSize:".64rem",fontWeight:700,padding:"2px 8px",borderRadius:99,background:groupKey==="gemeinsam"?"var(--teal)":"var(--surface2)",color:groupKey==="gemeinsam"?"#fff":"var(--muted)",border:groupKey==="gemeinsam"?"none":"1px solid var(--border2)"}}>${groupLabel}</span>`}
+                        <div style=${{display:"flex",gap:4,alignItems:"center"}}>
+                          ${(groupKey==="all"||groupKey==="gemeinsam"?(resultDoodle.recipients||[]):[groupKey]).map(rid=>{
+                            const c=coachees.find(x=>x.id===rid);if(!c)return null;
+                            const v=s?.votes?.[rid];
+                            const isYes=v==="yes"; const isNo=v==="no";
+                            const avBg = isYes?"var(--teal)":isNo?"#fef2f2":"var(--surface2)";
+                            const avBorder = isNo?"1.5px solid #fca5a5":isYes?"none":"1px solid var(--border)";
+                            const avColor = isYes?"#fff":isNo?"#dc2626":"var(--muted)";
+                            return html`<div key=${rid} style=${{width:26,height:26,borderRadius:"50%",background:avBg,border:avBorder,display:"flex",alignItems:"center",justifyContent:"center",fontSize:".64rem",fontWeight:700,color:avColor}} title=${c.name+(v==="yes"?" — Ja":v==="no"?" — Nein":" — ausstehend")}>${c.initials}</div>`;
+                          })}
+                          <span style=${{fontSize:".78rem",fontWeight:isBest?700:400,color:isBest?"var(--teal)":"var(--muted)",minWidth:26,textAlign:"right"}}>${yesCount}/${total}</span>
+                        </div>
                       </div>
                     </div>
                     ${s.note&&s.note.trim()&&html`
-                      <div style=${{display:"flex",alignItems:"flex-start",gap:6,padding:"0 2px 8px"}}>
+                      <div style=${{display:"flex",alignItems:"flex-start",gap:6,padding:"8px 2px 0"}}>
                         <${Ic} name="file" size=${13} style=${{color:"var(--teal)",marginTop:2,flexShrink:0}}/>
                         <div style=${{fontSize:".82rem",fontWeight:600,color:"var(--text)",lineHeight:1.4,overflowWrap:"break-word",wordBreak:"break-word",minWidth:0,flex:1}}>${s.note}</div>
                       </div>`}
                     ${Object.values(s.coacheeNotes||{}).filter(t=>t&&t.trim()).map((t,ti)=>html`
-                      <div key=${ti} style=${{display:"flex",alignItems:"flex-start",gap:6,padding:"0 2px 8px"}}>
+                      <div key=${ti} style=${{display:"flex",alignItems:"flex-start",gap:6,padding:"6px 2px 0"}}>
                         <${Ic} name="file" size=${13} style=${{color:"var(--teal)",marginTop:2,flexShrink:0}}/>
                         <div style=${{fontSize:".82rem",fontWeight:600,color:"var(--text)",lineHeight:1.4,overflowWrap:"break-word",wordBreak:"break-word",minWidth:0,flex:1}}>${t}</div>
                       </div>`)}
                   </div>`;
-              }) : (()=>{
-                // Termin-Set (Kapitel 98): Ergebnisse gruppiert nach Runder Tisch / Einzeltermin, je mit eigenem Bestätigen-Button.
-                const slots = toSlotsArray(resultDoodle.slots);
-                const groupsMap = {};
-                slots.forEach((s,i)=>{ if(!s) return; const k=doodleGroupKey(s); (groupsMap[k]=groupsMap[k]||[]).push(i); });
-                const order = Object.keys(groupsMap).sort((a,b)=>(a==="gemeinsam"?0:1)-(b==="gemeinsam"?0:1));
-                return order.map(key=>{
-                  const indices = groupsMap[key];
-                  let best=-1,bestCount=-1;
-                  indices.forEach(i=>{ const yes=Object.values(slots[i]?.votes||{}).filter(v=>v==="yes").length; if(yes>bestCount){bestCount=yes;best=i;} });
-                  const confirmedIdx = resultDoodle.confirmedSlots?.[key];
-                  const isConfirmed = confirmedIdx!=null;
-                  const sel = selectedGroupSlot[key];
-                  return html`
-                    <div key=${key} style=${{border:"1px solid var(--border2)",borderRadius:10,padding:"10px 12px",marginBottom:4}}>
-                      <div style=${{display:"flex",alignItems:"center",gap:6,marginBottom:8}}>
-                        <${Ic} name=${key==="gemeinsam"?"users":"user"} size=${14} style=${{color:key==="gemeinsam"?"var(--teal)":"var(--muted)"}}/>
-                        <span style=${{fontSize:".82rem",fontWeight:700,color:key==="gemeinsam"?"var(--teal)":"var(--text)"}}>${doodleGroupLabel(key,coachees)}</span>
-                        ${isConfirmed&&html`<span style=${{marginLeft:"auto",fontSize:".68rem",fontWeight:700,background:"var(--teal)",color:"#fff",padding:"2px 8px",borderRadius:99}}>✓ bestätigt</span>`}
-                      </div>
-                      ${indices.map(i=>{
-                        const s=slots[i];
-                        const isBest=i===best&&Object.values(s.votes||{}).some(v=>v==="yes");
-                        const yesCount=Object.values(s.votes||{}).filter(v=>v==="yes").length;
-                        const total = key==="gemeinsam" ? (resultDoodle.recipients||[]).length : 1;
-                        const parts=fmtDt(s.dt).split("·");
-                        const isSel = i===sel;
-                        const rowBg = isConfirmed ? (i===confirmedIdx?"var(--teal-pale)":"var(--surface2)") : (isSel?"var(--teal-pale)":"var(--surface2)");
-                        const rowBorder = isConfirmed ? (i===confirmedIdx?"2.5px solid var(--teal)":"0.5px solid var(--border)") : (isSel?"2.5px solid var(--teal)":"0.5px solid var(--border)");
-                        return html`
-                          <div key=${i} style=${{padding:"10px 12px",borderRadius:9,background:rowBg,border:rowBorder,marginBottom:6,opacity:isConfirmed&&i!==confirmedIdx?0.45:1}}>
-                            <div style=${{display:"flex",alignItems:"center",gap:10,cursor:isConfirmed?"default":"pointer"}} onClick=${()=>{if(!isConfirmed)setSelectedGroupSlot(g=>({...g,[key]:i}));}}>
-                              <div style=${{flex:1}}>
-                                ${isBest&&!isConfirmed&&sel==null&&html`<span style=${{fontSize:".68rem",fontWeight:700,background:"var(--teal)",color:"#fff",padding:"1px 7px",borderRadius:99,display:"inline-block",marginBottom:3}}>Bester Termin</span>`}
-                                <div style=${{fontSize:".85rem",fontWeight:600,color:"var(--text)"}}>${parts[0]?.trim()}</div>
-                                <div style=${{fontSize:".74rem",color:"var(--muted)"}}>${parts[1]?.trim()}</div>
-                              </div>
-                              <div style=${{display:"flex",gap:4,alignItems:"center"}}>
-                                ${(key==="gemeinsam"?(resultDoodle.recipients||[]):[key]).map(rid=>{
-                                  const c=coachees.find(x=>x.id===rid);if(!c)return null;
-                                  const v=s?.votes?.[rid];
-                                  const isYes=v==="yes"; const isNo=v==="no";
-                                  const avBg = isYes?"var(--teal)":isNo?"#fef2f2":"var(--surface2)";
-                                  const avBorder = isNo?"1.5px solid #fca5a5":isYes?"none":"1px solid var(--border)";
-                                  const avColor = isYes?"#fff":isNo?"#dc2626":"var(--muted)";
-                                  return html`<div key=${rid} style=${{width:26,height:26,borderRadius:"50%",background:avBg,border:avBorder,display:"flex",alignItems:"center",justifyContent:"center",fontSize:".64rem",fontWeight:700,color:avColor}} title=${c.name+(v==="yes"?" — Ja":v==="no"?" — Nein":" — ausstehend")}>${c.initials}</div>`;
-                                })}
-                                <span style=${{fontSize:".78rem",fontWeight:isBest?700:400,color:isBest?"var(--teal)":"var(--muted)",minWidth:26,textAlign:"right"}}>${yesCount}/${total}</span>
-                              </div>
-                            </div>
-                            ${s.note&&s.note.trim()&&html`<div style=${{display:"flex",alignItems:"flex-start",gap:6,padding:"6px 2px 0"}}><${Ic} name="file" size=${12} style=${{color:"var(--teal)",marginTop:2,flexShrink:0}}/><div style=${{fontSize:".78rem",fontWeight:600,color:"var(--text)",lineHeight:1.4,overflowWrap:"break-word",wordBreak:"break-word",minWidth:0,flex:1}}>${s.note}</div></div>`}
-                            ${Object.values(s.coacheeNotes||{}).filter(t=>t&&t.trim()).map((t,ti)=>html`<div key=${ti} style=${{display:"flex",alignItems:"flex-start",gap:6,padding:"4px 2px 0"}}><${Ic} name="file" size=${12} style=${{color:"var(--teal)",marginTop:2,flexShrink:0}}/><div style=${{fontSize:".78rem",fontWeight:600,color:"var(--text)",lineHeight:1.4,overflowWrap:"break-word",wordBreak:"break-word",minWidth:0,flex:1}}>${t}</div></div>`)}
-                          </div>`;
-                      })}
-                      ${!isConfirmed&&html`<button class="btn btn-sage btn-sm" style=${{width:"100%",marginTop:2}} onClick=${()=>confirmGroupSlot(resultDoodle.id, key, sel??best)}>✓ ${doodleGroupLabel(key,coachees)} bestätigen</button>`}
-                    </div>`;
-                });
-              })()}
+              })}
             </div>
-            <div style=${{padding:"12px 18px 16px",borderTop:"1px solid var(--border)",display:"flex",gap:10,flexShrink:0}}>
-              <button class="btn btn-ghost" style=${{flex:1}} onClick=${()=>{setShowResults(null);setSelectedSlot(null);}}>Schliessen</button>
-              ${!doodleHasGroups(resultDoodle)&&html`<button class="btn btn-primary" style=${{flex:2}} onClick=${()=>confirmSlot(resultDoodle.id, selectedSlot??bestSlotIdx(resultDoodle))}>✓ Termin bestätigen</button>`}
+            <div style=${{padding:"12px 18px 16px",borderTop:"1px solid var(--border)",display:"flex",gap:10,alignItems:"center",flexShrink:0}}>
+              <span style=${{fontSize:".76rem",color:"var(--muted)",flex:1}}>${selectedSlots.length>0?selectedSlots.length+" ausgewählt":""}</span>
+              <button class="btn btn-ghost" onClick=${()=>{setShowResults(null);setSelectedSlots([]);}}>Schliessen</button>
+              <button class="btn btn-primary" disabled=${selectedSlots.length<1} onClick=${()=>confirmSelectedSlots(resultDoodle.id)}>✓ ${selectedSlots.length>1?selectedSlots.length+" Termine":"Termin"} bestätigen</button>
             </div>
           </div>
-        </div>`}
+        </div>`;
+      })()}
 
       ${showConfirmed&&html`
         <div class="overlay" onClick=${()=>setShowConfirmed(null)}>

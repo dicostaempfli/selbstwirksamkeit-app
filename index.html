@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-14 10:48 coachee -->
+<!-- Version: 2026-08-14 11:03 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -4611,6 +4611,15 @@ function doodleGroupsForUid(d, uid) {
   if(ownIdx.length) out.push({key:uid,label:"Dein Termin",icon:"user",indices:ownIdx});
   return out;
 }
+// Mehrfachbestätigung (Kapitel 98.2): Admin kann mehrere Termine gleichzeitig bestätigen.
+// `confirmedSlots` ist ein Array von Slot-Indizes. Rückwärtskompatibel zu altem `confirmedSlot`
+// (einzelne Zahl) und dem kurzzeitig verwendeten Gruppen-Objekt-Format aus einer früheren Session-Iteration.
+function confirmedIndices(d) {
+  if(Array.isArray(d.confirmedSlots)) return d.confirmedSlots;
+  if(d.confirmedSlots && typeof d.confirmedSlots==="object") return Object.values(d.confirmedSlots).filter(v=>v!=null);
+  if(d.confirmedSlot!=null) return [d.confirmedSlot];
+  return [];
+}
 // Bemerkungsfelder starten 1-zeilig (rows=1) und wachsen automatisch mit dem Inhalt (Kapitel 98.1).
 function autoGrowTextarea(el) { if(el){ el.style.height="auto"; el.style.height=el.scrollHeight+"px"; } }
 function fmtDt(dt) {
@@ -4776,19 +4785,21 @@ function DoodlePage({user,doodles,setDoodles,coachees,events}) {
           <div key=${d.id} style=${{background:"var(--surface)",borderRadius:"var(--radius)",boxShadow:"var(--shadow)",padding:24,marginBottom:14,border:"1.5px solid var(--border2)"}}>
             ${doodleHasGroups(d) ? (() => {
                 // Termin-Set (Kapitel 98): Runder Tisch + Dein Termin je mit eigenem Status (abstimmen / gesendet / bestätigt).
+                // Mehrfachbestätigung (Kapitel 98.2): pro Gruppe können mehrere Termine gleichzeitig bestätigt sein.
                 const groups = doodleGroupsForUid(d, uid);
                 const slots = toSlotsArray(d.slots);
+                const confirmed = confirmedIndices(d);
                 const dismissDoodle = (did) => {
                   const firestore = window._fb?.db||(typeof db==="function"?db():null);
                   if(firestore) firestore.collection("doodles").doc(String(did)).update({dismissed: window.firebase?.firestore?.FieldValue?.arrayUnion(uid)||[uid]}).catch(()=>{});
                   setDoodles(ds=>ds.map(x=>x.id===did?{...x,dismissed:[...(x.dismissed||[]),uid]}:x));
                 };
-                const allConfirmed = groups.length>0 && groups.every(g=>d.confirmedSlots?.[g.key]!=null);
+                const allConfirmed = groups.length>0 && groups.every(g=>g.indices.some(i=>confirmed.includes(i)));
                 return html`
                   <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.05rem",fontWeight:700,color:"var(--text)",marginBottom:4}}>${d.title}</div>
                   <div style=${{fontSize:".83rem",color:"var(--muted)",marginBottom:14}}>${d.desc}</div>
                   ${groups.map(g=>{
-                    const confirmedIdx = d.confirmedSlots?.[g.key];
+                    const confirmedInGroup = g.indices.filter(i=>confirmed.includes(i));
                     const hasVoted = g.indices.some(i=>slots[i]?.votes?.[uid]);
                     return html`
                       <div key=${g.key} style=${{border:"1px solid var(--border2)",borderRadius:10,padding:"12px 14px",marginBottom:12}}>
@@ -4796,20 +4807,22 @@ function DoodlePage({user,doodles,setDoodles,coachees,events}) {
                           <${Ic} name=${g.icon} size=${14} style=${{color:g.key==="gemeinsam"?"var(--teal)":"var(--muted)"}}/>
                           <span style=${{fontSize:".84rem",fontWeight:700,color:g.key==="gemeinsam"?"var(--teal)":"var(--text)"}}>${g.label}</span>
                         </div>
-                        ${confirmedIdx!=null ? (()=>{
-                            const best = slots[confirmedIdx];
-                            if(!best) return html`<p style=${{fontSize:".82rem",color:"var(--muted)",textAlign:"center"}}>Termindaten konnten nicht geladen werden.</p>`;
-                            return html`<div style=${{textAlign:"center",padding:"6px 0"}}>
+                        ${confirmedInGroup.length>0 ? html`<div style=${{textAlign:"center",padding:"6px 0"}}>
                               <div style=${{fontSize:"1.4rem",marginBottom:6}}>🎉</div>
-                              <div style=${{background:"var(--teal)",color:"#fff",borderRadius:10,padding:"8px 14px",display:"inline-block",fontWeight:700,fontSize:".88rem",marginBottom:10}}>${fmtDt(best.dt)}</div>
-                              <div>
-                                <a href=${icsDataUrl(best.dt, d.title+" — "+g.label, d.desc, 120)} download=${"Termin_"+d.title.replace(/[^a-zA-Z0-9]/g,"_")+"_"+g.key.replace(/[^a-zA-Z0-9]/g,"_")+".ics"}
-                                  style=${{display:"inline-flex",alignItems:"center",gap:6,background:"var(--sage-pale)",color:"var(--forest)",fontWeight:700,fontSize:".8rem",padding:"8px 14px",borderRadius:9,textDecoration:"none"}}>
-                                  <${Ic} name="calendar" size=${13}/> Zum Kalender hinzufügen
-                                </a>
-                              </div>
-                            </div>`;
-                          })()
+                              ${confirmedInGroup.map(ci=>{
+                                const best = slots[ci];
+                                if(!best) return null;
+                                return html`<div key=${ci} style=${{marginBottom:8}}>
+                                  <div style=${{background:"var(--teal)",color:"#fff",borderRadius:10,padding:"8px 14px",display:"inline-block",fontWeight:700,fontSize:".88rem",marginBottom:6}}>${fmtDt(best.dt)}</div>
+                                  <div>
+                                    <a href=${icsDataUrl(best.dt, d.title+" — "+g.label, d.desc, 120)} download=${"Termin_"+d.title.replace(/[^a-zA-Z0-9]/g,"_")+"_"+g.key.replace(/[^a-zA-Z0-9]/g,"_")+"_"+ci+".ics"}
+                                      style=${{display:"inline-flex",alignItems:"center",gap:6,background:"var(--sage-pale)",color:"var(--forest)",fontWeight:700,fontSize:".8rem",padding:"8px 14px",borderRadius:9,textDecoration:"none"}}>
+                                      <${Ic} name="calendar" size=${13}/> Zum Kalender hinzufügen
+                                    </a>
+                                  </div>
+                                </div>`;
+                              })}
+                            </div>`
                         : hasVoted ? html`<p style=${{fontSize:".82rem",color:"var(--muted)",textAlign:"center",padding:"6px 0"}}>✓ Deine Antwort wurde übermittelt.</p>`
                         : g.indices.map(i=>{
                             const s = slots[i];
@@ -4828,7 +4841,7 @@ function DoodlePage({user,doodles,setDoodles,coachees,events}) {
                                   <${Ic} name="notes" size=${14} style=${{color:"var(--teal)",marginTop:2,flexShrink:0}}/>
                                   <div style=${{fontSize:".85rem",fontWeight:600,color:"var(--text)",lineHeight:1.4,overflowWrap:"break-word",wordBreak:"break-word",minWidth:0,flex:1}}>${s.note}</div>
                                 </div>`}
-                                <textarea class="textarea" rows=${1} ref=${autoGrowTextarea} value=${ownNoteVal} onInput=${e=>{setCoacheeNote(d.id,i,e.target.value);autoGrowTextarea(e.target);}} placeholder="Bemerkung zu diesem Termin (optional)" style=${{width:"100%",boxSizing:"border-box",fontSize:".82rem",minHeight:38}}/>
+                                <textarea class="textarea" rows=${1} ref=${autoGrowTextarea} value=${ownNoteVal} onInput=${e=>{setCoacheeNote(d.id,i,e.target.value);autoGrowTextarea(e.target);}} placeholder="Bemerkung zu diesem Termin" style=${{width:"100%",boxSizing:"border-box",fontSize:".82rem",minHeight:38}}/>
                               </div>`;
                           })}
                       </div>`;
@@ -4841,68 +4854,75 @@ function DoodlePage({user,doodles,setDoodles,coachees,events}) {
                   : html`<button class="btn btn-primary" style=${{marginTop:4,opacity:Object.values(coacheeVotes[d.id]||{}).some(v=>v==="yes")?1:0.4,cursor:Object.values(coacheeVotes[d.id]||{}).some(v=>v==="yes")?"pointer":"not-allowed"}} onClick=${()=>{if(Object.values(coacheeVotes[d.id]||{}).some(v=>v==="yes"))submitVotes(d.id);}}>Abstimmung senden</button>`}
                 `;
               })()
-              : (toSlotsArray(d.slots).some(s=>s?.votes?.[uid])
-              ? (() => {
-                  if(d.status==="closed") {
-                    const slots = toSlotsArray(d.slots);
-                    const bestIdx = d.confirmedSlot!=null ? d.confirmedSlot : slots.reduce((bi,s,i)=>Object.keys(s?.votes||{}).length>Object.keys(slots[bi]?.votes||{}).length?i:bi, 0);
-                    const best = slots[bestIdx];
-                    if(!best) return html`<div style=${{textAlign:"center",padding:"24px 0",color:"var(--muted)"}}><p>Termindaten konnten nicht geladen werden.</p></div>`;
-                    const dismissDoodle = (did) => {
-                      const firestore = window._fb?.db||(typeof db==="function"?db():null);
-                      if(firestore) firestore.collection("doodles").doc(String(did)).update({dismissed: window.firebase?.firestore?.FieldValue?.arrayUnion(uid)||[uid]}).catch(()=>{});
-                      setDoodles(ds=>ds.map(x=>x.id===did?{...x,dismissed:[...(x.dismissed||[]),uid]}:x));
-                    };
+              : (() => {
+                  // Mehrfachbestätigung (Kapitel 98.2): auch ohne Termin-Set-Gruppen können mehrere Termine bestätigt sein.
+                  const slots = toSlotsArray(d.slots);
+                  const confirmed = confirmedIndices(d);
+                  const hasVoted = toSlotsArray(d.slots).some(s=>s?.votes?.[uid]);
+                  const dismissDoodle = (did) => {
+                    const firestore = window._fb?.db||(typeof db==="function"?db():null);
+                    if(firestore) firestore.collection("doodles").doc(String(did)).update({dismissed: window.firebase?.firestore?.FieldValue?.arrayUnion(uid)||[uid]}).catch(()=>{});
+                    setDoodles(ds=>ds.map(x=>x.id===did?{...x,dismissed:[...(x.dismissed||[]),uid]}:x));
+                  };
+                  if(confirmed.length>0) {
                     return html`<div style=${{textAlign:"center",padding:"24px 0"}}>
                       <div style=${{fontSize:"2rem",marginBottom:8}}>🎉</div>
-                      <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.1rem",fontWeight:700,color:"var(--forest)",marginBottom:6}}>Termin bestätigt!</div>
+                      <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.1rem",fontWeight:700,color:"var(--forest)",marginBottom:6}}>${confirmed.length>1?"Termine bestätigt!":"Termin bestätigt!"}</div>
                       <p style=${{color:"var(--muted)",fontSize:".85rem",marginBottom:8}}>${d.title}</p>
-                      <div style=${{background:"var(--teal)",color:"#fff",borderRadius:10,padding:"10px 18px",display:"inline-block",fontWeight:700,fontSize:".95rem",marginBottom:16}}>${fmtDt(best.dt)}</div>
-                      <div style=${{marginTop:4}}>
-                        <a href=${icsDataUrl(best.dt, d.title, d.desc, 120)} download=${"Termin_"+d.title.replace(/[^a-zA-Z0-9]/g,"_")+".ics"}
-                          style=${{display:"inline-flex",alignItems:"center",gap:7,background:"var(--sage-pale)",color:"var(--forest)",fontWeight:700,fontSize:".85rem",padding:"10px 18px",borderRadius:10,textDecoration:"none"}}>
-                          <${Ic} name="calendar" size=${15}/> Zum Kalender hinzufügen
-                        </a>
-                      </div>
+                      ${confirmed.map(ci=>{
+                        const best = slots[ci];
+                        if(!best) return null;
+                        return html`<div key=${ci} style=${{marginBottom:10}}>
+                          <div style=${{background:"var(--teal)",color:"#fff",borderRadius:10,padding:"10px 18px",display:"inline-block",fontWeight:700,fontSize:".95rem",marginBottom:8}}>${fmtDt(best.dt)}</div>
+                          <div>
+                            <a href=${icsDataUrl(best.dt, d.title, d.desc, 120)} download=${"Termin_"+d.title.replace(/[^a-zA-Z0-9]/g,"_")+"_"+ci+".ics"}
+                              style=${{display:"inline-flex",alignItems:"center",gap:7,background:"var(--sage-pale)",color:"var(--forest)",fontWeight:700,fontSize:".85rem",padding:"10px 18px",borderRadius:10,textDecoration:"none"}}>
+                              <${Ic} name="calendar" size=${15}/> Zum Kalender hinzufügen
+                            </a>
+                          </div>
+                        </div>`;
+                      })}
                       <div style=${{marginTop:14,textAlign:"center"}}>
-                      <p style=${{fontSize:".78rem",color:"var(--muted)",marginBottom:8}}>Tippe «Erledigt» an, sobald du den Termin in deinen Kalender eingetragen hast.</p>
+                      <p style=${{fontSize:".78rem",color:"var(--muted)",marginBottom:8}}>Tippe «Erledigt» an, sobald du ${confirmed.length>1?"die Termine":"den Termin"} in deinen Kalender eingetragen hast.</p>
                       <button style=${{padding:"9px 20px",borderRadius:8,background:"none",border:"1px solid var(--border2)",color:"var(--muted)",fontSize:".83rem",cursor:"pointer"}} onClick=${()=>dismissDoodle(d.id)}>✓ Erledigt</button>
                     </div>
                     </div>`;
                   }
-                  return html`<div style=${{textAlign:"center",padding:"24px 0"}}>
-                    <div style=${{fontSize:"2rem",marginBottom:8}}>✓</div>
-                    <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.1rem",fontWeight:700,color:"var(--forest)",marginBottom:6}}>Danke!</div>
-                    <p style=${{color:"var(--muted)",fontSize:".85rem"}}>Deine Antwort für <strong>${d.title}</strong> wurde übermittelt.</p>
-                  </div>`;
-                })()
-              : html`
-                <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.05rem",fontWeight:700,color:"var(--text)",marginBottom:4}}>${d.title}</div>
-                <div style=${{fontSize:".83rem",color:"var(--muted)",marginBottom:14}}>${d.desc}</div>
-                ${toSlotsArray(d.slots).map((s,i)=>{
-                  if(!s) return null;
-                  const v=(coacheeVotes[d.id]||{})[i];
-                  const ownNoteVal = (coacheeNotes[d.id]||{})[i] ?? (s.coacheeNotes?.[uid]||"");
-                  return html`
-                    <div key=${i} class=${"vote-row-c"+(v==="yes"?" sel-yes":v==="no"?" sel-no":"")} style=${{display:"block",cursor:"default"}}>
-                      <div style=${{display:"flex",alignItems:"center",gap:10}}>
-                        <div style=${{flex:1}}>
-                          <div style=${{fontWeight:700,fontSize:".88rem",color:"var(--text)"}}>${fmtDt(s.dt).split("·")[0].trim()}</div>
-                          <div style=${{fontSize:".74rem",color:"var(--muted)"}}>${fmtDt(s.dt).split("·")[1]?.trim()}</div>
-                        </div>
-                        <div>
-                          <button class=${"vbtn yes"+(v==="yes"?" on":"")} onClick=${()=>castVote(d.id,i,v==="yes"?"":"yes")}>✓</button>
-                        </div>
-                      </div>
-                      ${s.note&&html`<div style=${{display:"flex",alignItems:"flex-start",gap:6,padding:"0 2px 9px"}}>
-                        <${Ic} name="notes" size=${14} style=${{color:"var(--teal)",marginTop:2,flexShrink:0}}/>
-                        <div style=${{fontSize:".85rem",fontWeight:600,color:"var(--text)",lineHeight:1.4,overflowWrap:"break-word",wordBreak:"break-word",minWidth:0,flex:1}}>${s.note}</div>
-                      </div>`}
-                      <textarea class="textarea" rows=${1} ref=${autoGrowTextarea} value=${ownNoteVal} onInput=${e=>{setCoacheeNote(d.id,i,e.target.value);autoGrowTextarea(e.target);}} placeholder="Bemerkung zu diesem Termin (optional)" style=${{width:"100%",boxSizing:"border-box",fontSize:".82rem",minHeight:38}}/>
+                  if(hasVoted) {
+                    return html`<div style=${{textAlign:"center",padding:"24px 0"}}>
+                      <div style=${{fontSize:"2rem",marginBottom:8}}>✓</div>
+                      <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.1rem",fontWeight:700,color:"var(--forest)",marginBottom:6}}>Danke!</div>
+                      <p style=${{color:"var(--muted)",fontSize:".85rem"}}>Deine Antwort für <strong>${d.title}</strong> wurde übermittelt.</p>
                     </div>`;
-                })}
-                <button class="btn btn-primary" style=${{marginTop:12,opacity:Object.values(coacheeVotes[d.id]||{}).some(v=>v==="yes")?1:0.4,cursor:Object.values(coacheeVotes[d.id]||{}).some(v=>v==="yes")?"pointer":"not-allowed"}} onClick=${()=>{if(Object.values(coacheeVotes[d.id]||{}).some(v=>v==="yes"))submitVotes(d.id);}}>Abstimmung senden</button>
-              `)}
+                  }
+                  return html`
+                    <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.05rem",fontWeight:700,color:"var(--text)",marginBottom:4}}>${d.title}</div>
+                    <div style=${{fontSize:".83rem",color:"var(--muted)",marginBottom:14}}>${d.desc}</div>
+                    ${toSlotsArray(d.slots).map((s,i)=>{
+                      if(!s) return null;
+                      const v=(coacheeVotes[d.id]||{})[i];
+                      const ownNoteVal = (coacheeNotes[d.id]||{})[i] ?? (s.coacheeNotes?.[uid]||"");
+                      return html`
+                        <div key=${i} class=${"vote-row-c"+(v==="yes"?" sel-yes":v==="no"?" sel-no":"")} style=${{display:"block",cursor:"default"}}>
+                          <div style=${{display:"flex",alignItems:"center",gap:10}}>
+                            <div style=${{flex:1}}>
+                              <div style=${{fontWeight:700,fontSize:".88rem",color:"var(--text)"}}>${fmtDt(s.dt).split("·")[0].trim()}</div>
+                              <div style=${{fontSize:".74rem",color:"var(--muted)"}}>${fmtDt(s.dt).split("·")[1]?.trim()}</div>
+                            </div>
+                            <div>
+                              <button class=${"vbtn yes"+(v==="yes"?" on":"")} onClick=${()=>castVote(d.id,i,v==="yes"?"":"yes")}>✓</button>
+                            </div>
+                          </div>
+                          ${s.note&&html`<div style=${{display:"flex",alignItems:"flex-start",gap:6,padding:"0 2px 9px"}}>
+                            <${Ic} name="notes" size=${14} style=${{color:"var(--teal)",marginTop:2,flexShrink:0}}/>
+                            <div style=${{fontSize:".85rem",fontWeight:600,color:"var(--text)",lineHeight:1.4,overflowWrap:"break-word",wordBreak:"break-word",minWidth:0,flex:1}}>${s.note}</div>
+                          </div>`}
+                          <textarea class="textarea" rows=${1} ref=${autoGrowTextarea} value=${ownNoteVal} onInput=${e=>{setCoacheeNote(d.id,i,e.target.value);autoGrowTextarea(e.target);}} placeholder="Bemerkung zu diesem Termin" style=${{width:"100%",boxSizing:"border-box",fontSize:".82rem",minHeight:38}}/>
+                        </div>`;
+                    })}
+                    <button class="btn btn-primary" style=${{marginTop:12,opacity:Object.values(coacheeVotes[d.id]||{}).some(v=>v==="yes")?1:0.4,cursor:Object.values(coacheeVotes[d.id]||{}).some(v=>v==="yes")?"pointer":"not-allowed"}} onClick=${()=>{if(Object.values(coacheeVotes[d.id]||{}).some(v=>v==="yes"))submitVotes(d.id);}}>Abstimmung senden</button>
+                  `;
+                })()}
           </div>`)}
         ${doodles.filter(d=>(d.recipients||[]).includes(uid)&&!(d.dismissed||[]).includes(uid)).length===0&&html`<div style=${{textAlign:"center",padding:"32px",color:"var(--muted)"}}><p>Keine offenen Terminvorschläge.</p></div>`}
       `}
