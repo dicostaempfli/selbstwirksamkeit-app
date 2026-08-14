@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-14 07:43 admin -->
+<!-- Version: 2026-08-14 10:34 admin -->
 <!DOCTYPE html>
 <!-- Version: 2026-08-12 17:47 admin -->
 <head>
@@ -1397,6 +1397,17 @@ const toSlotsArray = slots => {
   if(slots && typeof slots==="object") return Object.keys(slots).sort((a,b)=>Number(a)-Number(b)).map(k=>slots[k]);
   return [];
 };
+// Termin-Set (Runder Tisch + Einzeltermine, Kapitel 98): Slots können ein optionales `audience`-Feld tragen —
+// "gemeinsam" (Runder Tisch, beide Empfänger) oder eine Coachee-UID (nur für diese Person). Fehlt das Feld,
+// gilt der Slot wie bisher für alle Empfänger (voll rückwärtskompatibel zu bestehenden Doodles).
+const doodleHasGroups = d => toSlotsArray(d.slots).some(s=>s&&s.audience);
+const doodleGroupKey = s => (s&&s.audience) ? s.audience : "all";
+const doodleGroupLabel = (key, coacheesArr) => {
+  if(key==="all") return null;
+  if(key==="gemeinsam") return "Runder Tisch";
+  const c=(coacheesArr||[]).find(x=>x.id===key);
+  return "Einzeltermin"+(c?" "+c.name:"");
+};
 const fmtDt = dt => { try { const d=new Date(dt); if(isNaN(d.getTime())) return "Datum ungültig"; const days=["So","Mo","Di","Mi","Do","Fr","Sa"]; const months=["Jan","Feb","Mär","Apr","Mai","Jun","Jul","Aug","Sep","Okt","Nov","Dez"]; return days[d.getDay()]+", "+d.getDate()+". "+months[d.getMonth()]+" · "+String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0")+" Uhr"; } catch(e){ return "Datum ungültig"; }};
 // Google-Calendar-Quicklink (kein Login/API nötig) — öffnet vorausgefülltes Event zum manuellen Speichern.
 // dt: datetime-local String (z.B. "2026-06-26T10:00"), durationMin: Termindauer in Minuten (Default 120).
@@ -2189,7 +2200,7 @@ function DashboardPage({coachees,library,doodles,setPage,user,openSenderFilter})
           <div style=${{minWidth:0}}>
             <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.3rem",fontWeight:700,color:"var(--text)"}}>${greeting}</div>
             <div style=${{fontSize:".88rem",color:"var(--muted)",marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"calc(100vw - 160px)"}}>Admin-Portal · Raum für Selbstwirksamkeit</div>
-            <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-08-14 07:43 · Doku v3.132 · 2026-08-14 07:43
+            <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-08-14 10:34 · Doku v3.132 · 2026-08-14 10:34
             </div>
           </div>
         </div>
@@ -4341,23 +4352,35 @@ function DoodlePage({doodles,setDoodles,coachees,adminUid}) {
   const [selectedSlot,setSelectedSlot] = useState(null);
   const [newTitle,setNewTitle] = useState("");
   const [newDesc,setNewDesc] = useState("");
-  const [newSlots,setNewSlots] = useState([]);
-  const [newSlotDt,setNewSlotDt] = useState("");
-  const [newSlotNotes,setNewSlotNotes] = useState({});
+  const [newSlots,setNewSlots] = useState([]); // {dt, audience, note} — audience: null|"gemeinsam"|uid (Kapitel 98, Termin-Set)
+  const [blockDt,setBlockDt] = useState({}); // Entwurfs-Datum pro Block ("all"|"gemeinsam"|uid)
   const [selRecip,setSelRecip] = useState([]);
   const [doodleCat,setDoodleCat] = useState([]);
   const [catModeActive,setCatModeActive] = useState(false);
   const [recipSearch,setRecipSearch] = useState("");
+  const [selectedGroupSlot,setSelectedGroupSlot] = useState({});
 
   const localDtStr = (d) => { const pad=n=>String(n).padStart(2,'0'); return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+'T'+pad(d.getHours())+':'+pad(d.getMinutes()); };
   const defaultDt = () => { const d=new Date(); d.setDate(d.getDate()+1); d.setHours(10,0,0,0); return localDtStr(d); };
 
-  const addSlot = () => {
-    if(!newSlotDt) return;
-    if(newSlots.includes(newSlotDt)) return;
-    setNewSlots(s=>[...s,newSlotDt].sort());
-    const d=new Date(newSlotDt); d.setHours(d.getHours()+2);
-    setNewSlotDt(localDtStr(d));
+  // Termin-Set (Kapitel 98): bei genau 2 ausgewählten Empfängern (Paar) wird die Terminliste in drei Blöcke
+  // aufgeteilt — Runder Tisch (beide) + je ein Einzeltermin-Block. Sonst wie bisher ein einzelner Block.
+  const isPair = selRecip.length===2;
+  const blockDefs = isPair ? [
+    {key:"gemeinsam",label:"Runder Tisch",icon:"users",audience:"gemeinsam"},
+    {key:selRecip[0],label:"Einzeltermin "+(coachees.find(c=>c.id===selRecip[0])?.name||""),icon:"user",audience:selRecip[0]},
+    {key:selRecip[1],label:"Einzeltermin "+(coachees.find(c=>c.id===selRecip[1])?.name||""),icon:"user",audience:selRecip[1]},
+  ] : [
+    {key:"all",label:"Zeitvorschläge",icon:null,audience:null}
+  ];
+
+  const addSlotToBlock = (block) => {
+    const dt = blockDt[block.key] || defaultDt();
+    if(!dt) return;
+    if(newSlots.some(s=>s.dt===dt && s.audience===block.audience)) return;
+    setNewSlots(s=>[...s,{dt,audience:block.audience,note:""}]);
+    const d=new Date(dt); d.setHours(d.getHours()+2);
+    setBlockDt(bd=>({...bd,[block.key]:localDtStr(d)}));
   };
 
   const getCoacheeCats = c => [...(Array.isArray(c.coaching)?c.coaching:(c.coaching?[c.coaching]:[])), ...(Array.isArray(c.gender)?c.gender:(c.gender?[c.gender]:[])), ...(c.categories||[])];
@@ -4380,10 +4403,10 @@ function DoodlePage({doodles,setDoodles,coachees,adminUid}) {
   };
 
   const createDoodle = () => {
-    const allSlots = newSlotDt && !newSlots.includes(newSlotDt) ? [...newSlots, newSlotDt].sort() : newSlots;
-    if(!newTitle.trim()||allSlots.length<1) return;
-    const nd={id:"d"+Date.now(),title:newTitle.trim(),desc:newDesc.trim()||"Wähle alle möglichen Termine aus.",status:"open",recipients:[...selRecip],slots:allSlots.map(dt=>({dt,votes:{},note:(newSlotNotes[dt]||"").trim()}))};
-    setShowCreate(false);setNewTitle("");setNewDesc("");setNewSlots([]);setNewSlotNotes({});setSelRecip([]);setDoodleCat([]);setCatModeActive(false);setRecipSearch("");
+    if(!newTitle.trim()||newSlots.length<1) return;
+    const nd={id:"d"+Date.now(),title:newTitle.trim(),desc:newDesc.trim()||"Wähle alle möglichen Termine aus.",status:"open",recipients:[...selRecip],
+      slots:newSlots.map(s=>({dt:s.dt,votes:{},note:(s.note||"").trim(),...(s.audience?{audience:s.audience}:{})}))};
+    setShowCreate(false);setNewTitle("");setNewDesc("");setNewSlots([]);setBlockDt({});setSelRecip([]);setDoodleCat([]);setCatModeActive(false);setRecipSearch("");
     setDoodles(ds=>[nd,...ds]);
     const firestore = db();
     if(firestore) firestore.collection("doodles").doc(String(nd.id)).set(nd).catch(()=>{});
@@ -4410,6 +4433,23 @@ function DoodlePage({doodles,setDoodles,coachees,adminUid}) {
     setShowConfirmed({title:doodle?.title||"Coaching-Termin",dt:confirmedDt});
   };
 
+  // Termin-Set (Kapitel 98): bestätigt genau eine Gruppe (Runder Tisch ODER ein Einzeltermin) statt des
+  // ganzen Doodles. Der Doodle wird erst "closed", sobald jede vorkommende Gruppe ihren Termin hat.
+  const confirmGroupSlot = (did, groupKey, slotIdx) => {
+    if(slotIdx==null||slotIdx<0) return;
+    const doodle = doodles.find(x=>x.id===did);
+    if(!doodle) return;
+    const groupKeys = [...new Set(toSlotsArray(doodle.slots).filter(Boolean).map(doodleGroupKey))];
+    const newConfirmed = {...(doodle.confirmedSlots||{}), [groupKey]: slotIdx};
+    const allDone = groupKeys.every(k=>newConfirmed[k]!=null);
+    setDoodles(ds=>ds.map(x=>x.id===did?{...x,confirmedSlots:newConfirmed,status:allDone?"closed":x.status}:x));
+    const firestore = db();
+    if(firestore) firestore.collection("doodles").doc(String(did)).update({confirmedSlots:newConfirmed,...(allDone?{status:"closed"}:{})}).catch(()=>{});
+    setSelectedGroupSlot(g=>({...g,[groupKey]:undefined}));
+    if(allDone){ setShowResults(null); showToast("✓ Alle Termine bestätigt"); }
+    else { showToast("✓ "+(doodleGroupLabel(groupKey,coachees)||"Termin")+" bestätigt"); }
+  };
+
   const resultDoodle = doodles.find(d=>d.id===showResults);
 
   return html`
@@ -4422,7 +4462,7 @@ function DoodlePage({doodles,setDoodles,coachees,adminUid}) {
             <div style=${{fontSize:".82rem",color:"var(--muted)",marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>Terminvorschläge koordinieren.</div>
           </div>
         </div>
-        <button style=${{background:"var(--teal)",color:"#fff",border:"none",borderRadius:10,padding:"9px 12px",fontSize:".75rem",fontWeight:600,cursor:"pointer",whiteSpace:"nowrap",display:"flex",alignItems:"center",gap:5,flexShrink:0}} onClick=${()=>{setNewSlotDt(defaultDt());setShowCreate(true);}}><${Ic} name="plus" size=${13}/> Neuer Doodle</button>
+        <button style=${{background:"var(--teal)",color:"#fff",border:"none",borderRadius:10,padding:"9px 12px",fontSize:".75rem",fontWeight:600,cursor:"pointer",whiteSpace:"nowrap",display:"flex",alignItems:"center",gap:5,flexShrink:0}} onClick=${()=>{setBlockDt({all:defaultDt()});setShowCreate(true);}}><${Ic} name="plus" size=${13}/> Neuer Doodle</button>
       </div>
 
       ${doodles.length===0&&html`<div style=${{textAlign:"center",padding:"48px",color:"var(--muted)"}}><p>Noch kein Terminvorschlag erstellt.</p></div>`}
@@ -4450,7 +4490,7 @@ function DoodlePage({doodles,setDoodles,coachees,adminUid}) {
                 return html`<div key=${rid} style=${{width:28,height:28,borderRadius:"50%",background:c.color,display:"flex",alignItems:"center",justifyContent:"center",fontSize:".68rem",fontWeight:700,color:"#fff"}} title=${c.name}>${c.initials}</div>`;
               })}</div>
             </div>
-            <div style=${{display:"flex",gap:8}}>              <button class="btn btn-sage btn-sm" style=${{flex:1}} onClick=${()=>{setShowResults(d.id);setSelectedSlot(bestSlotIdx(d));}}>Ergebnisse</button>
+            <div style=${{display:"flex",gap:8}}>              <button class="btn btn-sage btn-sm" style=${{flex:1}} onClick=${()=>{setShowResults(d.id);setSelectedSlot(bestSlotIdx(d));setSelectedGroupSlot({});}}>Ergebnisse</button>
               ${d.status==="open"&&html`<button class="btn btn-ghost btn-sm" onClick=${()=>{
                 const firestore=window._fb?.db||(typeof db==="function"?db():null);
                 if(firestore)firestore.collection("doodles").doc(String(d.id)).update({status:"closed"}).catch(()=>{});
@@ -4490,25 +4530,34 @@ function DoodlePage({doodles,setDoodles,coachees,adminUid}) {
               </div>
               <div class="form-row">
                 <label class="label">Zeitvorschläge</label>
-                ${newSlots.map(dt=>{
-                  const parts=fmtDt(dt).split("·");
-                  const link = gcalLink(dt, "Eventuell: "+(newTitle.trim()||"Coaching-Termin"), "Terminvorschlag (Doodle) — noch nicht bestätigt.");
-                  return html`<div key=${dt} style=${{background:"var(--surface2)",border:"0.5px solid var(--border)",borderRadius:10,padding:"8px 12px",marginBottom:6}}>
-                    <div style=${{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-                      <div>
-                        <div style=${{fontSize:".88rem",fontWeight:600,color:"var(--text)"}}>${parts[0]?.trim()}</div>
-                        <div style=${{fontSize:".75rem",color:"var(--muted)"}}>${parts[1]?.trim()}</div>
-                      </div>
-                      <button style=${{background:"none",border:"none",cursor:"pointer",color:"var(--danger)",display:"flex",padding:4}} onClick=${()=>{setNewSlots(s=>s.filter(x=>x!==dt));setNewSlotNotes(n=>{const c={...n};delete c[dt];return c;});}}><${Ic} name="x" size=${16}/></button>
+                ${isPair&&html`<div style=${{fontSize:".78rem",color:"var(--muted)",marginBottom:8}}>Paar erkannt — Runder Tisch (beide) + je ein Einzeltermin.</div>`}
+                ${blockDefs.map(block=>html`
+                  <div key=${block.key} style=${{background:"var(--surface2)",border:"1px solid var(--border2)",borderRadius:10,padding:"10px 12px",marginBottom:10}}>
+                    ${block.icon&&html`<div style=${{display:"flex",alignItems:"center",gap:6,marginBottom:8}}>
+                      <${Ic} name=${block.icon} size=${14} style=${{color:block.audience==="gemeinsam"?"var(--teal)":"var(--muted)"}}/>
+                      <span style=${{fontSize:".8rem",fontWeight:700,fontFamily:"'Exo 2',sans-serif",color:block.audience==="gemeinsam"?"var(--teal)":"var(--text)"}}>${block.label}</span>
+                    </div>`}
+                    ${newSlots.filter(s=>s.audience===block.audience).map(s=>{
+                      const parts=fmtDt(s.dt).split("·");
+                      const link = gcalLink(s.dt, "Eventuell: "+(newTitle.trim()||"Coaching-Termin"), "Terminvorschlag (Doodle) — noch nicht bestätigt.");
+                      return html`<div key=${s.dt+"|"+(s.audience||"")} style=${{background:"#fff",border:"0.5px solid var(--border)",borderRadius:10,padding:"8px 12px",marginBottom:6}}>
+                        <div style=${{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                          <div>
+                            <div style=${{fontSize:".88rem",fontWeight:600,color:"var(--text)"}}>${parts[0]?.trim()}</div>
+                            <div style=${{fontSize:".75rem",color:"var(--muted)"}}>${parts[1]?.trim()}</div>
+                          </div>
+                          <button style=${{background:"none",border:"none",cursor:"pointer",color:"var(--danger)",display:"flex",padding:4}} onClick=${()=>setNewSlots(ns=>ns.filter(x=>!(x.dt===s.dt&&x.audience===s.audience)))}><${Ic} name="x" size=${16}/></button>
+                        </div>
+                        <a href=${link} target="_blank" rel="noopener" style=${{display:"inline-flex",alignItems:"center",gap:5,fontSize:".72rem",fontWeight:600,color:"var(--teal)",textDecoration:"none",marginTop:6}}><${Ic} name="calendar" size=${12}/> Eventuell in Google Calendar eintragen</a>
+                        <textarea class="textarea" rows=${2} value=${s.note||""} onInput=${e=>{const val=e.target.value;setNewSlots(ns=>ns.map(x=>(x.dt===s.dt&&x.audience===s.audience)?{...x,note:val}:x));}} placeholder="Bemerkung zu diesem Termin (optional)" style=${{marginTop:8,width:"100%",boxSizing:"border-box",fontSize:".8rem",minHeight:44}}/>
+                      </div>`;
+                    })}
+                    <div style=${{display:"flex",gap:8,alignItems:"center",marginTop:4}}>
+                      <input class="input" type="datetime-local" value=${blockDt[block.key]||defaultDt()} onChange=${e=>setBlockDt(bd=>({...bd,[block.key]:e.target.value}))} onInput=${e=>setBlockDt(bd=>({...bd,[block.key]:e.target.value}))} style=${{flex:1,minWidth:0}}/>
+                      <button class="btn btn-sage btn-sm" onClick=${()=>addSlotToBlock(block)}>+ Hinzufügen</button>
                     </div>
-                    <a href=${link} target="_blank" rel="noopener" style=${{display:"inline-flex",alignItems:"center",gap:5,fontSize:".72rem",fontWeight:600,color:"var(--teal)",textDecoration:"none",marginTop:6}}><${Ic} name="calendar" size=${12}/> Eventuell in Google Calendar eintragen</a>
-                    <textarea class="textarea" rows=${2} value=${newSlotNotes[dt]||""} onInput=${e=>setNewSlotNotes(n=>({...n,[dt]:e.target.value}))} placeholder="Bemerkung zu diesem Termin (optional)" style=${{marginTop:8,width:"100%",boxSizing:"border-box",fontSize:".8rem",minHeight:44}}/>
-                  </div>`;
-                })}
-                <div style=${{display:"flex",gap:8,alignItems:"center",marginTop:4}}>
-                  <input class="input" type="datetime-local" value=${newSlotDt} onChange=${e=>setNewSlotDt(e.target.value)} onInput=${e=>setNewSlotDt(e.target.value)} style=${{flex:1,minWidth:0}}/>
-                  <button class="btn btn-sage btn-sm" onClick=${addSlot}>+ Hinzufügen</button>
-                </div>
+                  </div>
+                `)}
               </div>
               <div class="form-row">
                 <label class="label">Zielgruppe <span style=${{fontWeight:400,fontSize:".8em",opacity:.7}}>(optional — wählt Empfänger automatisch vor)</span></label>
@@ -4557,7 +4606,7 @@ function DoodlePage({doodles,setDoodles,coachees,adminUid}) {
               <button style=${{background:"none",border:"none",cursor:"pointer",color:"var(--muted)",padding:4,borderRadius:8,display:"flex"}} onClick=${()=>setShowResults(null)}>${h(Ic,{name:"x",size:20})}</button>
             </div>
             <div style=${{padding:"14px 18px",overflowY:"auto",flex:1,display:"flex",flexDirection:"column",gap:8}}>
-              ${toSlotsArray(resultDoodle.slots).map((s,i)=>{
+              ${!doodleHasGroups(resultDoodle) ? toSlotsArray(resultDoodle.slots).map((s,i)=>{
                 if(!s) return null;
                 const best=bestSlotIdx(resultDoodle);
                 const isBest=i===best&&Object.values(s.votes||{}).some(v=>v==="yes");
@@ -4600,11 +4649,68 @@ function DoodlePage({doodles,setDoodles,coachees,adminUid}) {
                         <div style=${{fontSize:".82rem",fontWeight:600,color:"var(--text)",lineHeight:1.4}}>${t}</div>
                       </div>`)}
                   </div>`;
-              })}
+              }) : (()=>{
+                // Termin-Set (Kapitel 98): Ergebnisse gruppiert nach Runder Tisch / Einzeltermin, je mit eigenem Bestätigen-Button.
+                const slots = toSlotsArray(resultDoodle.slots);
+                const groupsMap = {};
+                slots.forEach((s,i)=>{ if(!s) return; const k=doodleGroupKey(s); (groupsMap[k]=groupsMap[k]||[]).push(i); });
+                const order = Object.keys(groupsMap).sort((a,b)=>(a==="gemeinsam"?0:1)-(b==="gemeinsam"?0:1));
+                return order.map(key=>{
+                  const indices = groupsMap[key];
+                  let best=-1,bestCount=-1;
+                  indices.forEach(i=>{ const yes=Object.values(slots[i]?.votes||{}).filter(v=>v==="yes").length; if(yes>bestCount){bestCount=yes;best=i;} });
+                  const confirmedIdx = resultDoodle.confirmedSlots?.[key];
+                  const isConfirmed = confirmedIdx!=null;
+                  const sel = selectedGroupSlot[key];
+                  return html`
+                    <div key=${key} style=${{border:"1px solid var(--border2)",borderRadius:10,padding:"10px 12px",marginBottom:4}}>
+                      <div style=${{display:"flex",alignItems:"center",gap:6,marginBottom:8}}>
+                        <${Ic} name=${key==="gemeinsam"?"users":"user"} size=${14} style=${{color:key==="gemeinsam"?"var(--teal)":"var(--muted)"}}/>
+                        <span style=${{fontSize:".82rem",fontWeight:700,color:key==="gemeinsam"?"var(--teal)":"var(--text)"}}>${doodleGroupLabel(key,coachees)}</span>
+                        ${isConfirmed&&html`<span style=${{marginLeft:"auto",fontSize:".68rem",fontWeight:700,background:"var(--teal)",color:"#fff",padding:"2px 8px",borderRadius:99}}>✓ bestätigt</span>`}
+                      </div>
+                      ${indices.map(i=>{
+                        const s=slots[i];
+                        const isBest=i===best&&Object.values(s.votes||{}).some(v=>v==="yes");
+                        const yesCount=Object.values(s.votes||{}).filter(v=>v==="yes").length;
+                        const total = key==="gemeinsam" ? (resultDoodle.recipients||[]).length : 1;
+                        const parts=fmtDt(s.dt).split("·");
+                        const isSel = i===sel;
+                        const rowBg = isConfirmed ? (i===confirmedIdx?"var(--teal-pale)":"var(--surface2)") : (isSel?"var(--teal-pale)":"var(--surface2)");
+                        const rowBorder = isConfirmed ? (i===confirmedIdx?"2.5px solid var(--teal)":"0.5px solid var(--border)") : (isSel?"2.5px solid var(--teal)":"0.5px solid var(--border)");
+                        return html`
+                          <div key=${i} style=${{padding:"10px 12px",borderRadius:9,background:rowBg,border:rowBorder,marginBottom:6,opacity:isConfirmed&&i!==confirmedIdx?0.45:1}}>
+                            <div style=${{display:"flex",alignItems:"center",gap:10,cursor:isConfirmed?"default":"pointer"}} onClick=${()=>{if(!isConfirmed)setSelectedGroupSlot(g=>({...g,[key]:i}));}}>
+                              <div style=${{flex:1}}>
+                                ${isBest&&!isConfirmed&&sel==null&&html`<span style=${{fontSize:".68rem",fontWeight:700,background:"var(--teal)",color:"#fff",padding:"1px 7px",borderRadius:99,display:"inline-block",marginBottom:3}}>Bester Termin</span>`}
+                                <div style=${{fontSize:".85rem",fontWeight:600,color:"var(--text)"}}>${parts[0]?.trim()}</div>
+                                <div style=${{fontSize:".74rem",color:"var(--muted)"}}>${parts[1]?.trim()}</div>
+                              </div>
+                              <div style=${{display:"flex",gap:4,alignItems:"center"}}>
+                                ${(key==="gemeinsam"?(resultDoodle.recipients||[]):[key]).map(rid=>{
+                                  const c=coachees.find(x=>x.id===rid);if(!c)return null;
+                                  const v=s?.votes?.[rid];
+                                  const isYes=v==="yes"; const isNo=v==="no";
+                                  const avBg = isYes?"var(--teal)":isNo?"#fef2f2":"var(--surface2)";
+                                  const avBorder = isNo?"1.5px solid #fca5a5":isYes?"none":"1px solid var(--border)";
+                                  const avColor = isYes?"#fff":isNo?"#dc2626":"var(--muted)";
+                                  return html`<div key=${rid} style=${{width:26,height:26,borderRadius:"50%",background:avBg,border:avBorder,display:"flex",alignItems:"center",justifyContent:"center",fontSize:".64rem",fontWeight:700,color:avColor}} title=${c.name+(v==="yes"?" — Ja":v==="no"?" — Nein":" — ausstehend")}>${c.initials}</div>`;
+                                })}
+                                <span style=${{fontSize:".78rem",fontWeight:isBest?700:400,color:isBest?"var(--teal)":"var(--muted)",minWidth:26,textAlign:"right"}}>${yesCount}/${total}</span>
+                              </div>
+                            </div>
+                            ${s.note&&s.note.trim()&&html`<div style=${{display:"flex",alignItems:"flex-start",gap:6,padding:"6px 2px 0"}}><${Ic} name="file" size=${12} style=${{color:"var(--teal)",marginTop:2,flexShrink:0}}/><div style=${{fontSize:".78rem",fontWeight:600,color:"var(--text)",lineHeight:1.4}}>${s.note}</div></div>`}
+                            ${Object.values(s.coacheeNotes||{}).filter(t=>t&&t.trim()).map((t,ti)=>html`<div key=${ti} style=${{display:"flex",alignItems:"flex-start",gap:6,padding:"4px 2px 0"}}><${Ic} name="file" size=${12} style=${{color:"var(--teal)",marginTop:2,flexShrink:0}}/><div style=${{fontSize:".78rem",fontWeight:600,color:"var(--text)",lineHeight:1.4}}>${t}</div></div>`)}
+                          </div>`;
+                      })}
+                      ${!isConfirmed&&html`<button class="btn btn-sage btn-sm" style=${{width:"100%",marginTop:2}} onClick=${()=>confirmGroupSlot(resultDoodle.id, key, sel??best)}>✓ ${doodleGroupLabel(key,coachees)} bestätigen</button>`}
+                    </div>`;
+                });
+              })()}
             </div>
             <div style=${{padding:"12px 18px 16px",borderTop:"1px solid var(--border)",display:"flex",gap:10,flexShrink:0}}>
               <button class="btn btn-ghost" style=${{flex:1}} onClick=${()=>{setShowResults(null);setSelectedSlot(null);}}>Schliessen</button>
-              <button class="btn btn-primary" style=${{flex:2}} onClick=${()=>confirmSlot(resultDoodle.id, selectedSlot??bestSlotIdx(resultDoodle))}>✓ Termin bestätigen</button>
+              ${!doodleHasGroups(resultDoodle)&&html`<button class="btn btn-primary" style=${{flex:2}} onClick=${()=>confirmSlot(resultDoodle.id, selectedSlot??bestSlotIdx(resultDoodle))}>✓ Termin bestätigen</button>`}
             </div>
           </div>
         </div>`}
