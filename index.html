@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-15 14:53 coachee -->
+<!-- Version: 2026-08-15 14:59 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -5225,8 +5225,8 @@ function LoginPage({ onLogin }) {
 
   return html`
     <div style=${{
-      minHeight:"var(--vp-h, 100dvh)", width:"100%", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"safe center",
-      background:"var(--bg)", padding:"24px", overflowY:"auto"
+      position:"fixed", inset:0, width:"100%", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"safe center",
+      background:"var(--bg)", padding:"24px", overflowY:"auto", zIndex:1
     }}>
       <div style=${{fontFamily:"'Exo 2',sans-serif",fontSize:".62rem",fontWeight:600,color:"#B8860B",letterSpacing:"0.5px",marginBottom:14}}>88445719</div>
       <div style=${{
@@ -5467,7 +5467,7 @@ function Root() {
       <div style=${{width:36,height:36,borderRadius:"50%",border:"3px solid var(--border)",borderTopColor:"var(--teal)",animation:"spin .8s linear infinite",willChange:"transform"}}/>
     </div>`;
 
-  if(!user) return html`<${LoginPage}/>`;
+  if(!user) return h(Portal, null, h(LoginPage, null));
 
   return html`<${AppGate} user=${user}/>`;
 }
