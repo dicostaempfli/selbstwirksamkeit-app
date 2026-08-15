@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-15 15:30 admin -->
+<!-- Version: 2026-08-15 17:04 admin -->
 <!DOCTYPE html>
 <!-- Version: 2026-08-12 17:47 admin -->
 <head>
@@ -1905,6 +1905,25 @@ function AdminApp({user}) {
     return () => unsub();
   }, []);
 
+  // ── Auto-Löschung erledigter Doodles (Kapitel 110) ──
+  // Rico-Wunsch: Sobald der/die Coachee(s) selbst "✓ Erledigt" getippt haben (bedeutet:
+  // Termin(e) im eigenen Kalender eingetragen), soll der Doodle bei Diana/Rico automatisch
+  // verschwinden — kein zusätzlicher Bestätigungsklick des Coaches mehr nötig. Bei mehreren
+  // Empfängern (Termin-Set: Runder Tisch + Einzeltermine) müssen ALLE recipients dismissed
+  // haben, bevor gelöscht wird. Löschung läuft rein clientseitig hier in der Admin-App (kein
+  // Cloud-Function-Trigger nötig) — Coach hat laut Firestore-Rules ohnehin volles Schreibrecht.
+  useEffect(() => {
+    const firestore = db();
+    if(!firestore) return;
+    doodles.forEach(d => {
+      const recip = d.recipients||[];
+      const dismissed = d.dismissed||[];
+      if(recip.length > 0 && recip.every(r => dismissed.includes(r))) {
+        firestore.collection("doodles").doc(String(d.id)).delete().catch(()=>{});
+      }
+    });
+  }, [doodles]);
+
   // ── Coachees aus Firestore laden ──
   useEffect(() => {
     const firestore = db();
@@ -2228,7 +2247,7 @@ function DashboardPage({coachees,library,doodles,setPage,user,openSenderFilter})
           <div style=${{minWidth:0}}>
             <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.3rem",fontWeight:700,color:"var(--text)"}}>${greeting}</div>
             <div style=${{fontSize:".88rem",color:"var(--muted)",marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"calc(100vw - 160px)"}}>Admin-Portal · Raum für Selbstwirksamkeit</div>
-            <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-08-15 15:30 · Doku v3.138 · 2026-08-15 15:30
+            <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-08-15 17:04 · Doku v3.142 · 2026-08-15 17:04
             </div>
           </div>
         </div>
@@ -4576,19 +4595,11 @@ function DoodlePage({doodles,setDoodles,coachees,adminUid}) {
                 const firestore=window._fb?.db||(typeof db==="function"?db():null);
                 if(firestore)firestore.collection("doodles").doc(String(d.id)).update({status:"closed"}).catch(()=>{});
               }}>Schliessen</button>`}
-              <button style=${{width:34,height:34,background:"#fef2f2",border:"0.5px solid #fca5a5",borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",flexShrink:0}} title=${d.status==="closed"?"Erledigt":"Löschen"} onClick=${()=>{
+              <button style=${{width:34,height:34,background:"#fef2f2",border:"0.5px solid #fca5a5",borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",flexShrink:0}} title="Löschen (auch ohne Erledigt-Bestätigung der Coachees)" onClick=${()=>{
                 const firestore=window._fb?.db||(typeof db==="function"?db():null);
                 if(!firestore) return;
-                if(d.status==="closed") {
-                  const allDismissed=[...(d.dismissed||[]),adminUid];
-                  const allRecip=(d.recipients||[]);
-                  const everyoneDone=allRecip.every(r=>allDismissed.includes(r))&&allDismissed.includes(adminUid);
-                  if(everyoneDone) { firestore.collection("doodles").doc(String(d.id)).delete().catch(()=>{}); }
-                  else { firestore.collection("doodles").doc(String(d.id)).update({dismissed:allDismissed}).catch(()=>{}); }
-                } else {
-                  firestore.collection("doodles").doc(String(d.id)).delete().catch(()=>{});
-                }
-              }}>${h(Ic,{name:d.status==="closed"?"check":"trash",size:14,style:{color:d.status==="closed"?"#156e6e":"#dc2626"}})}</button>
+                firestore.collection("doodles").doc(String(d.id)).delete().catch(()=>{});
+              }}>${h(Ic,{name:"trash",size:14,style:{color:"#dc2626"}})}</button>
             </div>
           </div>`;
       })}
