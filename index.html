@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-14 18:47 coachee -->
+<!-- Version: 2026-08-15 14:15 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -2165,15 +2165,46 @@ function App({ user, userDoc }) {
     return () => unsub();
   }, [user?.uid]);
 
-  const [impulseUnreadCount, setImpulseUnreadCount] = useState(0);
+  // ── "Meine Impulse"-Reminder-Fälligkeit ohne Push (NEU, Kapitel 105) ──
+  // Liest dieselbe, bereits täglich von prepareDailyReminders berechnete Queue, die
+  // sonst nur checkReminders (Cloud Function) für den Push-Versand liest — bewusst
+  // keine eigene, zweite Wiederholungs-Berechnung (Wochentage/Monatstage/Custom-
+  // Intervalle) im Client, um das in Kapitel 26.1 bewusst entkoppelte Server-Modell
+  // nicht zu duplizieren. Erfordert neue, rein lesende Firestore-Rule (nur eigene uid,
+  // siehe Session-Ende-Hinweis). "Gesehen" wird rein clientseitig per localStorage-Flag
+  // getrackt (kein Firestore-Write nötig) — analog zum bestehenden impuls_dismissed_-Muster.
+  const [dailyReminderQueue, setDailyReminderQueue] = useState([]);
   useEffect(() => {
-    if(!user?.uid) { setImpulseUnreadCount(0); return; }
-    if(!impulseFlagLoaded) return;
+    if(!uid) { setDailyReminderQueue([]); return; }
+    const fbDb = window._fb?.db;
+    if(!fbDb) return;
+    const unsub = fbDb.collection("daily_reminder_queue").where("uid","==",uid).onSnapshot(
+      snap => setDailyReminderQueue(snap.docs.map(d=>({...d.data(), id:d.id}))),
+      ()=>{}
+    );
+    return () => unsub();
+  }, [uid]);
+
+  const getDueUnseenReminderIds = () => {
+    if(!user?.uid) return [];
+    const todayStr3 = new Date().toISOString().split("T")[0];
+    const ids = dailyReminderQueue.filter(e => {
+      const parts = String(e.time||"00:00").split(":");
+      const dueAt = new Date();
+      dueAt.setHours(Number(parts[0])||0, Number(parts[1])||0, 0, 0);
+      if(dueAt.getTime() > Date.now()) return false;
+      let seen = false;
+      try { seen = localStorage.getItem("reminderSeen_"+user.uid+"_"+e.reminderId) === todayStr3; } catch(err) {}
+      return !seen;
+    }).map(e => e.reminderId);
+    return [...new Set(ids)]; // dedupe: additionalTimes können mehrere Queue-Einträge pro Reminder erzeugen
+  };
+
+  const getTagesimpulsPending = () => {
+    if(!user?.uid) return false;
     let welcomePending = false;
     try {
       const seenPhase = localStorage.getItem("phaseWelcomeSeen_"+user.uid);
-      // Flag fehlt komplett → wie in ImpulsPage: kein rückwirkendes "Willkommen",
-      // zählt nicht als offen (deckungsgleich mit der dortigen Erstlauf-Logik).
       welcomePending = seenPhase !== null && Number(seenPhase) !== impulseFlagData.activePhase;
     } catch(e) {}
     let dismissedToday = false;
@@ -2181,11 +2212,53 @@ function App({ user, userDoc }) {
       const todayStr2 = new Date().toISOString().split("T")[0];
       dismissedToday = localStorage.getItem("impuls_dismissed_"+user.uid) === todayStr2;
     } catch(e) {}
-    const impulseDue = impulseFlagData.nextImpulseAt <= Date.now() && !dismissedToday;
-    setImpulseUnreadCount((welcomePending || impulseDue) ? 1 : 0);
-  }, [impulseFlagData, impulseFlagLoaded, user?.uid, page]);
+    return welcomePending || (impulseFlagData.nextImpulseAt <= Date.now() && !dismissedToday);
+  };
 
-  const navTo = (p) => { setPage(p); setMobileChatOpen(false); };
+  const [impulseUnreadCount, setImpulseUnreadCount] = useState(0);
+  useEffect(() => {
+    if(!user?.uid) { setImpulseUnreadCount(0); return; }
+    if(!impulseFlagLoaded) return;
+    // Menü-Badge zeigt die echte Anzahl offener Punkte (Tagesimpuls zählt max. 1,
+    // dazu jeder fällige, noch nicht gesehene Reminder) — bewusst anders als die
+    // Homescreen-App-Icon-Badge weiter unten, die laut Rico-Entscheid (Kapitel 66)
+    // immer nur "1" zeigt, nie eine echte Zahl.
+    setImpulseUnreadCount((getTagesimpulsPending()?1:0) + getDueUnseenReminderIds().length);
+  }, [impulseFlagData, impulseFlagLoaded, user?.uid, page, dailyReminderQueue]);
+
+  // ── Auto-Popup-Queue bei manuellem Icon-Tap (ohne Push) ──
+  // Tippt der Coachee direkt auf das Impulse-Icon, statt über einen Push zu kommen,
+  // sollen trotzdem alle offenen Punkte nacheinander als Popup erscheinen — Tagesimpuls
+  // zuerst, danach fällige Reminder einzeln. Technik: wiederverwendet dieselben
+  // pendingImpulsPopup/pendingReminderId-States, die sonst nur der Push-Deep-Link setzt;
+  // der Rest der Queue liegt in einer Ref (kein Rerender-Trigger nötig) und wird über
+  // onManualPopupClosed (ruft advanceManualPopupQueue) nachgeschoben, sobald die
+  // jeweilige Komponente ihr eigenes Popup wirklich schliesst (nicht beim blossen
+  // Deep-Link-Konsum, der pendingImpulsPopup sofort selbst wieder auf false setzt).
+  const manualPopupQueueRef = useRef([]);
+  const advanceManualPopupQueue = () => {
+    if(manualPopupQueueRef.current.length === 0) return;
+    const next = manualPopupQueueRef.current.shift();
+    if(next.type === "tagesimpuls") { setImpulseDefaultTab("tagesimpuls"); setPendingImpulsPopup(true); }
+    else { setImpulseDefaultTab("meine"); setPendingReminderId(next.id); }
+  };
+
+  const navTo = (p) => {
+    // Manuelle Auto-Popup-Queue nur auslösen, wenn kein echter Push-Deep-Link gerade
+    // ohnehin schon eine pending-ID gesetzt hat (Push hat immer Vorrang, kein Duplikat).
+    if(p === "impulse" && page !== "impulse" && !pendingImpulsPopup && !pendingReminderId) {
+      const queue = [];
+      if(getTagesimpulsPending()) queue.push({type:"tagesimpuls"});
+      getDueUnseenReminderIds().forEach(id => queue.push({type:"reminder", id}));
+      if(queue.length > 0) {
+        const first = queue.shift();
+        manualPopupQueueRef.current = queue;
+        if(first.type === "tagesimpuls") { setImpulseDefaultTab("tagesimpuls"); setPendingImpulsPopup(true); }
+        else { setImpulseDefaultTab("meine"); setPendingReminderId(first.id); }
+      }
+    }
+    setPage(p); setMobileChatOpen(false);
+  };
   const totalUnreadVal = chatUnreadCount;
 
   // ── Homescreen-App-Icon-Badge (Badging API) ──
@@ -2347,7 +2420,7 @@ function App({ user, userDoc }) {
     <div style=${{flex:1,display:'flex',overflow:'hidden',minWidth:0}}>
       ${page==="dashboard" && html`<${DashboardPage} coachees=${coachees} library=${library} reminders=${reminders} remindersReady=${remindersReady} libraryReady=${libraryReady} libraryUnreadCount=${libraryUnreadCount} doodles=${doodles} setPage=${navTo} user=${user} userDoc=${userDoc} onLogoTap=${handleLogoTap} setImpulseDefaultTab=${setImpulseDefaultTab} activeImpuls=${activeImpuls} setActiveImpuls=${setActiveImpuls}/>`}
       ${page==="chat"      && html`<${ChatPage} user=${user} coachees=${coachees} setCoachees=${setCoachees} mobileChatOpen=${mobileChatOpen} setMobileChatOpen=${setMobileChatOpen} recipient=${chatRecipient} setRecipient=${setChatRecipient}/>`}
-      ${page==="impulse"   && html`<${ImpulseTab} user=${user} reminders=${reminders} setReminders=${saveReminders} setPage=${navTo} defaultSubTab=${impulseDefaultTab} setDefaultSubTab=${setImpulseDefaultTab} setActiveImpuls=${setActiveImpuls} activeImpuls=${activeImpuls} pendingReminderId=${pendingReminderId} setPendingReminderId=${setPendingReminderId} pendingImpulsPopup=${pendingImpulsPopup} setPendingImpulsPopup=${setPendingImpulsPopup} pendingReflexionPopup=${pendingReflexionPopup} setPendingReflexionPopup=${setPendingReflexionPopup}/>`}
+      ${page==="impulse"   && html`<${ImpulseTab} user=${user} reminders=${reminders} setReminders=${saveReminders} setPage=${navTo} defaultSubTab=${impulseDefaultTab} setDefaultSubTab=${setImpulseDefaultTab} setActiveImpuls=${setActiveImpuls} activeImpuls=${activeImpuls} pendingReminderId=${pendingReminderId} setPendingReminderId=${setPendingReminderId} pendingImpulsPopup=${pendingImpulsPopup} setPendingImpulsPopup=${setPendingImpulsPopup} pendingReflexionPopup=${pendingReflexionPopup} setPendingReflexionPopup=${setPendingReflexionPopup} onManualPopupClosed=${advanceManualPopupQueue}/>`}
       ${page==="library"   && html`<${LibraryPage} library=${library} setLibrary=${saveLibrary} pendingLibraryId=${pendingLibraryId} clearPendingLibraryId=${()=>setPendingLibraryId(null)} uid=${user?.uid}/>`}
       ${page==="doodle"    && html`<${DoodlePage} user=${user} doodles=${doodles} setDoodles=${saveDoodles} coachees=${coachees} events=${events}/>`}
       ${page==="settings"  && html`<${SettingsPage} user=${user} onDeleted=${()=>{ const a=window._fb?.auth; if(a) a.signOut().catch(()=>{}); }}/>`}
@@ -3110,7 +3183,7 @@ function DashboardPage({coachees,library,reminders,remindersReady,libraryReady,l
 }
 
 // ── IMPULSE TAB (Sub-Tab: Meine Impulse + Tages-Impuls) ──
-function ImpulseTab({ user, reminders, setReminders, setPage, defaultSubTab, setDefaultSubTab, setActiveImpuls, activeImpuls, pendingReminderId, setPendingReminderId, pendingImpulsPopup, setPendingImpulsPopup, pendingReflexionPopup, setPendingReflexionPopup }) {
+function ImpulseTab({ user, reminders, setReminders, setPage, defaultSubTab, setDefaultSubTab, setActiveImpuls, activeImpuls, pendingReminderId, setPendingReminderId, pendingImpulsPopup, setPendingImpulsPopup, pendingReflexionPopup, setPendingReflexionPopup, onManualPopupClosed }) {
   const [activeSubTab, setActiveSubTab] = useState(defaultSubTab || 'meine');
   // Fix: War die Impulse-Seite beim Push-Tap schon offen (App im Hintergrund, nicht
   // komplett geschlossen), bleibt ImpulseTab als Komponente bestehen — der useState-
@@ -3124,8 +3197,8 @@ function ImpulseTab({ user, reminders, setReminders, setPage, defaultSubTab, set
   const isMeine = activeSubTab === 'meine';
   const isTagesimpuls = activeSubTab === 'tagesimpuls';
   const subContent = isMeine
-    ? h(RemindersPage, { reminders, setReminders, pendingReminderId, setPendingReminderId })
-    : h(ImpulsPage, { user, setPage, setActiveImpuls, activeImpuls, pendingImpulsPopup, setPendingImpulsPopup, pendingReflexionPopup, setPendingReflexionPopup });
+    ? h(RemindersPage, { reminders, setReminders, pendingReminderId, setPendingReminderId, user, onManualPopupClosed })
+    : h(ImpulsPage, { user, setPage, setActiveImpuls, activeImpuls, pendingImpulsPopup, setPendingImpulsPopup, pendingReflexionPopup, setPendingReflexionPopup, onManualPopupClosed });
   return html`
     <div class="impulse-tab-wrap">
       <div class="impulse-subtab-nav">
@@ -3261,7 +3334,7 @@ const PHASE_INFO = {
   4: { title: "Körper & Achtsamkeit",             pageStart: 73, pageEnd: 82 }
 };
 
-function ImpulsPage({ user, setPage, setActiveImpuls, activeImpuls, pendingImpulsPopup, setPendingImpulsPopup, pendingReflexionPopup, setPendingReflexionPopup }) {
+function ImpulsPage({ user, setPage, setActiveImpuls, activeImpuls, pendingImpulsPopup, setPendingImpulsPopup, pendingReflexionPopup, setPendingReflexionPopup, onManualPopupClosed }) {
   const [step, setStep]           = useState(0);
   // NEU (06.08.2026): welcomePhase hält die Phase, für die gerade der Willkommens-Screen
   // (step===7) angezeigt wird — unabhängig vom später geladenen Tagesimpuls.
@@ -3802,10 +3875,10 @@ function ImpulsPage({ user, setPage, setActiveImpuls, activeImpuls, pendingImpul
         impuls: impuls,
         pageLabel: workbookLabel(impuls),
         showSpaeter: !popupIsSnoozed,
-        onAnnehmen: ()=>{handleAnnehmen();setShowPushPopup(false);},
+        onAnnehmen: ()=>{handleAnnehmen();setShowPushPopup(false);if(onManualPopupClosed)onManualPopupClosed();},
         onSpaeter: handleSpaeter,
-        onHeuteNicht: ()=>{handleHeuteNicht();setShowPushPopup(false);},
-        onClose: ()=>setShowPushPopup(false)
+        onHeuteNicht: ()=>{handleHeuteNicht();setShowPushPopup(false);if(onManualPopupClosed)onManualPopupClosed();},
+        onClose: ()=>{setShowPushPopup(false);if(onManualPopupClosed)onManualPopupClosed();}
       }))}
     </div>`;
 }
@@ -4344,7 +4417,7 @@ const ReminderViewPopup = ({reminder:r, showEdit, onClose, onEdit}) => {
     </div>`;
 };
 
-function RemindersPage({reminders,setReminders,pendingReminderId,setPendingReminderId}) {
+function RemindersPage({reminders,setReminders,pendingReminderId,setPendingReminderId,user,onManualPopupClosed}) {
   const [showModal,setShowModal] = useState(false);
   const [editId,setEditId]       = useState(null);
   const [form,setForm]           = useState(BLANK_FORM);
@@ -4485,7 +4558,21 @@ function RemindersPage({reminders,setReminders,pendingReminderId,setPendingRemin
       ${viewReminder&&html`<${ReminderViewPopup}
         reminder=${viewReminder.reminder}
         showEdit=${viewReminder.showEdit}
-        onClose=${()=>setViewReminder(null)}
+        onClose=${()=>{
+          // Markiert diesen Reminder für heute als "gesehen" — verhindert, dass er im
+          // Menü-Badge/Auto-Popup-Queue erneut auftaucht, bis er morgen wieder fällig ist.
+          // Gilt für Push-Tap UND manuellen Icon-Tap gleichermassen (beide laufen über
+          // denselben openView()-Weg), daher hier zentral statt an zwei Stellen.
+          try {
+            const r = viewReminder.reminder;
+            if(r?.id && user?.uid) {
+              const todayStr3 = new Date().toISOString().split("T")[0];
+              localStorage.setItem("reminderSeen_"+user.uid+"_"+r.id, todayStr3);
+            }
+          } catch(e) {}
+          setViewReminder(null);
+          if(onManualPopupClosed) onManualPopupClosed();
+        }}
         onEdit=${()=>{setViewReminder(null);openEdit(viewReminder.reminder);}}
       />`}
 
