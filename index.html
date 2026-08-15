@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-15 14:59 coachee -->
+<!-- Version: 2026-08-15 16:49 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -1937,9 +1937,16 @@ function App({ user, userDoc }) {
     if(!fbDb) return;
 
     // Seed demo data on first login, then listen for changes
-    const remRef = fbDb.collection("reminders");
+    // Fix (Kapitel 109): remRef/doodleRef waren bisher unbefilterte Collection-Queries.
+    // Die Firestore-Rules prüfen aber pro Dokument (resource.data.uid / resource.data.recipients) —
+    // ohne passendes .where() kann Firestore bei einer List-Query NICHT im Voraus beweisen, dass nur
+    // erlaubte Dokumente zurückkommen, und lehnt die GESAMTE Abfrage mit PERMISSION_DENIED ab (nicht nur
+    // einzelne Dokumente). Bei den beiden Coach-UIDs fiel das nie auf, da deren isCoach()-Regel
+    // dokument-unabhängig ist und daher immer beweisbar bleibt, auch ohne .where(). Für echte Coachees
+    // liefen sowohl "Meine Impulse" (reminders) als auch die Doodle-Sichtbarkeit dadurch komplett leer.
+    const remRef = fbDb.collection("reminders").where("uid","==",uid);
     const libRef = fbDb.collection("library");
-    const doodleRef = fbDb.collection("doodles");
+    const doodleRef = fbDb.collection("doodles").where("recipients","array-contains",uid);
 
     const restorePhotos = (items) => items.map(r => {
       try {
@@ -1961,9 +1968,15 @@ function App({ user, userDoc }) {
       } catch(e) { console.log("Sync error:", e.message); }
     };
 
-    syncCollection(remRef,    INIT_REMINDERS, setReminders);
-    syncCollection(libRef,    INIT_LIBRARY,   setLibrary);
-    syncCollection(doodleRef, INIT_DOODLES,   setDoodles);
+    // Fix (Kapitel 109): reminders liegt flach (nicht als users/{uid}-Unterkollektion) — die
+    // Demo-Seed-IDs aus INIT_REMINDERS (1..5) waren bisher GLOBAL, nicht pro Coachee eindeutig.
+    // Zwei verschiedene, neue Coachees hätten dieselben Dokument-IDs überschrieben (Datenkollision)
+    // bzw. nach dem obigen Query-Fix beim zweiten Coachee einen PERMISSION_DENIED ausgelöst, da das
+    // Dokument dann schon einem anderen uid gehört. Fix: uid wird Teil der Seed-ID.
+    const seededReminders = INIT_REMINDERS.map(r => ({...r, id: uid+"_"+r.id}));
+    syncCollection(remRef,    seededReminders, setReminders);
+    syncCollection(libRef,    INIT_LIBRARY,    setLibrary);
+    syncCollection(doodleRef, INIT_DOODLES,    setDoodles);
 
     // Live listeners
     // dataReady-Flags werden hier gesetzt (nicht schon nach syncCollection oben), da
