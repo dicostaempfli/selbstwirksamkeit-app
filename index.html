@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-15 16:49 coachee -->
+<!-- Version: 2026-08-15 17:12 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <html lang="de">
@@ -4991,7 +4991,7 @@ function DoodlePage({user,doodles,setDoodles,coachees,events}) {
                   ${allConfirmed ? html`
                     <div style=${{textAlign:"center"}}>
                       <p style=${{fontSize:".78rem",color:"var(--muted)",marginBottom:8}}>Tippe «Erledigt» an, sobald du die Termine in deinen Kalender eingetragen hast.</p>
-                      <button style=${{padding:"9px 20px",borderRadius:8,background:"none",border:"1px solid var(--border2)",color:"var(--muted)",fontSize:".83rem",cursor:"pointer"}} onClick=${()=>dismissDoodle(d.id)}>✓ Erledigt</button>
+                      <button style=${{padding:"11px 20px",borderRadius:9,background:"var(--teal)",border:"none",color:"#fff",fontWeight:700,fontSize:".85rem",cursor:"pointer"}} onClick=${()=>dismissDoodle(d.id)}>✓ Erledigt</button>
                     </div>`
                   : html`<button class="btn btn-primary" style=${{marginTop:4,opacity:Object.values(coacheeVotes[d.id]||{}).some(v=>v==="yes")?1:0.4,cursor:Object.values(coacheeVotes[d.id]||{}).some(v=>v==="yes")?"pointer":"not-allowed"}} onClick=${()=>{if(Object.values(coacheeVotes[d.id]||{}).some(v=>v==="yes"))submitVotes(d.id);}}>Abstimmung senden</button>`}
                 `;
@@ -5027,7 +5027,7 @@ function DoodlePage({user,doodles,setDoodles,coachees,events}) {
                       })}
                       <div style=${{marginTop:6,textAlign:"center"}}>
                       <p style=${{fontSize:".78rem",color:"var(--muted)",marginBottom:8}}>Tippe «Erledigt» an, sobald du ${confirmed.length>1?"die Termine":"den Termin"} in deinen Kalender eingetragen hast.</p>
-                      <button style=${{padding:"9px 20px",borderRadius:8,background:"none",border:"1px solid var(--border2)",color:"var(--muted)",fontSize:".83rem",cursor:"pointer"}} onClick=${()=>dismissDoodle(d.id)}>✓ Erledigt</button>
+                      <button style=${{padding:"11px 20px",borderRadius:9,background:"var(--teal)",border:"none",color:"#fff",fontWeight:700,fontSize:".85rem",cursor:"pointer"}} onClick=${()=>dismissDoodle(d.id)}>✓ Erledigt</button>
                     </div>
                     </div>`;
                   }
