@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-14 18:56 admin -->
+<!-- Version: 2026-08-15 15:30 admin -->
 <!DOCTYPE html>
 <!-- Version: 2026-08-12 17:47 admin -->
 <head>
@@ -2228,7 +2228,7 @@ function DashboardPage({coachees,library,doodles,setPage,user,openSenderFilter})
           <div style=${{minWidth:0}}>
             <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.3rem",fontWeight:700,color:"var(--text)"}}>${greeting}</div>
             <div style=${{fontSize:".88rem",color:"var(--muted)",marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"calc(100vw - 160px)"}}>Admin-Portal · Raum für Selbstwirksamkeit</div>
-            <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-08-14 18:56 · Doku v3.138 · 2026-08-14 18:56
+            <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-08-15 15:30 · Doku v3.138 · 2026-08-15 15:30
             </div>
           </div>
         </div>
@@ -3249,6 +3249,13 @@ function CoacheesPage({coachees,setCoachees,setPage,pending,setPending,deleted,s
       // Erinnerungen ("Meine Impulse") löschen — benötigt erweiterte Firestore-Rule (isCoach())
       const remSnap = await firestore.collection("reminders").where("uid","==",id).get();
       await Promise.all(remSnap.docs.map(d=>d.ref.delete().catch(()=>{})));
+
+      // Push-Geräte-Subscriptions löschen (users/{id}/devices/*) — NEU 15.08.2026
+      // Bisher übersehene Unterkollektion (Kapitel 28.6-Muster: Firestore-Rules UND
+      // Löschlogik behandeln Unterkollektionen nicht automatisch mit). Rein technischer
+      // Datenrest ohne Coachee-sichtbaren Effekt, aber Teil einer vollständigen Löschung.
+      const devSnap = await firestore.collection("users").doc(id).collection("devices").get();
+      await Promise.all(devSnap.docs.map(d=>d.ref.delete().catch(()=>{})));
 
       // Profil zuletzt löschen
       await firestore.collection("users").doc(id).delete();
