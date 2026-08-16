@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-16 14:40 coachee -->
+<!-- Version: 2026-08-16 14:49 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <!DOCTYPE html>
@@ -2222,7 +2222,12 @@ function App({ user, userDoc }) {
     let welcomePending = false;
     try {
       const seenPhase = localStorage.getItem("phaseWelcomeSeen_"+user.uid);
-      welcomePending = seenPhase !== null && Number(seenPhase) !== impulseFlagData.activePhase;
+      const ap = impulseFlagData.activePhase;
+      // GEÄNDERT (16.08.2026): Fehlt der Flag komplett (allererstes App-Öffnen, noch nie
+      // gesehen) UND ist bereits eine Phase aktiv (Admin hat Kreis getippt), zählt das jetzt
+      // ebenfalls als "pending" — vorher wurde dieser Fall übersehen (seenPhase!==null-Check),
+      // wodurch der Nav-Badge bei einem brandneuen, push-losen Coachee nie erschien.
+      welcomePending = !!ap && (seenPhase === null || Number(seenPhase) !== ap);
     } catch(e) {}
     let dismissedToday = false;
     try {
@@ -2314,7 +2319,8 @@ function App({ user, userDoc }) {
     let welcomePending = false;
     try {
       const seenPhase = localStorage.getItem("phaseWelcomeSeen_"+user.uid);
-      welcomePending = seenPhase !== null && Number(seenPhase) !== impulseFlagData.activePhase;
+      const ap = impulseFlagData.activePhase;
+      welcomePending = !!ap && (seenPhase === null || Number(seenPhase) !== ap);
     } catch(e) {}
     if(welcomePending && page === "dashboard") {
       autoWelcomeNavDone.current = true;
@@ -3492,18 +3498,19 @@ function ImpulsPage({ user, setPage, setActiveImpuls, activeImpuls, pendingImpul
           // den localStorage-Flag nicht anfasst.
           if (!activePhase) { setStep(6); return; }
 
-          // NEU (06.08.2026, Variante A): Willkommens-Screen bei Phasenwechsel. Ein rein
-          // lokaler localStorage-Vergleich (kein neues Firestore-Feld nötig) — sobald die
-          // gespeicherte "zuletzt gesehene Phase" von der aktuellen activePhase abweicht,
-          // wird einmalig der Willkommens-Screen (step===7) gezeigt statt des normalen
-          // Tagesimpuls-Flows. Fehlt der Flag komplett (bestehende Coachees vor diesem
-          // Update, oder allererster App-Start), wird er nur gesetzt, OHNE den Screen zu
-          // zeigen — kein rückwirkendes/verfrühtes "Willkommen" für längst laufende Phasen.
+          // NEU (06.08.2026, Variante A), GEÄNDERT (16.08.2026): Willkommens-Screen bei
+          // Phasenwechsel. Ein rein lokaler localStorage-Vergleich (kein neues Firestore-
+          // Feld nötig) — sobald die gespeicherte "zuletzt gesehene Phase" von der aktuellen
+          // activePhase abweicht ODER der Flag komplett fehlt, wird einmalig der Willkommens-
+          // Screen (step===7) gezeigt statt des normalen Tagesimpuls-Flows. Der fehlende Flag
+          // zählt jetzt bewusst mit dazu (vorher: nur gesetzt, nicht gezeigt) — durch den
+          // Guard direkt oberhalb ist an dieser Stelle bereits sichergestellt, dass activePhase
+          // wirklich existiert (Admin hat mindestens einmal eine Phase gesetzt), ein fehlender
+          // Flag bedeutet also immer den echten Erstfall eines Coachees, der die Nachricht noch
+          // nie gesehen hat — nie ein rückwirkendes "Willkommen" für längst laufende Phasen.
           const phaseSeenKey = "phaseWelcomeSeen_" + (user?.uid || "guest");
           const seenPhase = localStorage.getItem(phaseSeenKey);
-          if (seenPhase === null) {
-            localStorage.setItem(phaseSeenKey, String(activePhase));
-          } else if (Number(seenPhase) !== activePhase) {
+          if (seenPhase === null || Number(seenPhase) !== activePhase) {
             localStorage.setItem(phaseSeenKey, String(activePhase));
             setWelcomePhase(activePhase);
             setStep(7);
