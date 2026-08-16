@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-16 15:44 coachee -->
+<!-- Version: 2026-08-16 16:27 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <!DOCTYPE html>
@@ -2176,7 +2176,13 @@ function App({ user, userDoc }) {
     if(!fbDb || !user?.uid) return;
     const unsub = fbDb.collection("users").doc(user.uid).onSnapshot(doc => {
       const d = doc.data() || {};
-      setImpulseFlagData({activePhase:d.activePhase||null, nextImpulseAt:d.nextImpulseAt||0});
+      // GEÄNDERT (16.08.2026, Fix Nebenbefund 2): "|| 0" behandelte ein komplett fehlendes
+      // nextImpulseAt-Feld (echter Neu-Coachee, noch nie von einer Cloud Function berührt)
+      // fälschlich wie eine explizite 0 ("sofort fällig") — 0 <= Date.now() ist immer wahr,
+      // wodurch der Nav-/App-Icon-Badge schon vor jedem Admin-Trigger einen Tagesimpuls
+      // vortäuschte. "?? Infinity" unterscheidet jetzt "Feld fehlt komplett" (nie fällig) von
+      // einer bewusst gesetzten 0 (z.B. Admin-Testreset, weiterhin sofort fällig).
+      setImpulseFlagData({activePhase:d.activePhase||null, nextImpulseAt:d.nextImpulseAt ?? Infinity});
       setImpulseFlagLoaded(true);
     }, () => {});
     return () => unsub();
@@ -2234,7 +2240,10 @@ function App({ user, userDoc }) {
       const todayStr2 = new Date().toISOString().split("T")[0];
       dismissedToday = localStorage.getItem("impuls_dismissed_"+user.uid) === todayStr2;
     } catch(e) {}
-    return welcomePending || (impulseFlagData.nextImpulseAt <= Date.now() && !dismissedToday);
+    // Zusätzliche Absicherung (16.08.2026): nextImpulseAt kann grundsätzlich nur fällig sein,
+    // solange überhaupt eine Phase aktiv ist — ohne activePhase gibt es keinen Tagesimpuls-
+    // Rhythmus, unabhängig vom (nach obigem Fix ohnehin korrekten) Feldwert.
+    return welcomePending || (!!impulseFlagData.activePhase && impulseFlagData.nextImpulseAt <= Date.now() && !dismissedToday);
   };
 
   const [impulseUnreadCount, setImpulseUnreadCount] = useState(0);
