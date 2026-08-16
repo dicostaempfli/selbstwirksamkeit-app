@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-16 15:22 coachee -->
+<!-- Version: 2026-08-16 15:44 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <!DOCTYPE html>
@@ -5203,9 +5203,20 @@ function LoginPage({ onLogin }) {
   // Meldung "E-Mail oder Passwort falsch", obwohl er schlicht noch kein Konto hat.
   // Der Link in der Willkommens-E-Mail (admin.html) trägt jetzt "?neu=1" — dieser Marker
   // wird hier einmalig beim Mount gelesen und bestimmt den Startmodus.
+  // NOCHMALS VERSCHÄRFT (Fix Nebenbefund 3): "?neu=1" allein reicht nicht — der Coachee kann
+  // nach erfolgreicher Registrierung denselben Mail-Link nochmal antippen, einen vor diesem
+  // Fix bereits zum Home-Bildschirm hinzugefügten Link erneut öffnen, oder sich bewusst
+  // abmelden und den Link erneut nutzen. In all diesen Fällen trägt die URL weiterhin
+  // "?neu=1", obwohl längst ein Konto existiert. Das lokale Geräte-Flag "sw_auth_seen"
+  // (gesetzt in der App-Komponente, sobald irgendwann ein echter User-Wert vorlag) hat
+  // deshalb IMMER Vorrang: War dieses Gerät schon einmal angemeldet, startet die Seite im
+  // Anmelden-Modus — unabhängig vom URL-Parameter. Nur ein wirklich unberührtes Gerät (kein
+  // Flag) darf über "?neu=1" in den Registrieren-Modus starten.
   const [mode,setMode] = useState(() => {
-    try { return new URLSearchParams(window.location.search).get("neu") === "1" ? "register" : "login"; }
-    catch(e) { return "login"; }
+    try {
+      if(localStorage.getItem("sw_auth_seen") === "1") return "login";
+      return new URLSearchParams(window.location.search).get("neu") === "1" ? "register" : "login";
+    } catch(e) { return "login"; }
   }); // login | register
   // Fix (16.08.2026): "?neu=1" nur für den allerersten Aufruf relevant — sofort aus der
   // Adresszeile entfernen (ohne Reload/History-Eintrag), damit ein PWA-"Zum Home-Bildschirm
@@ -5510,6 +5521,14 @@ function Root() {
         unsubscribe = fbAuth.onAuthStateChanged(u => {
           setUser(u);
           setAuthReady(true);
+          // NEU (16.08.2026, Fix Nebenbefund 3): Sobald irgendwann ein echter User-Wert
+          // vorliegt (frisch registriert/eingeloggt, oder aus persistenter Session
+          // wiederhergestellt), dauerhaftes Geräte-Flag setzen. Grundlage für den
+          // robusteren LoginPage-Startmodus unten — verlässlicher als der reine
+          // "?neu=1"-URL-Parameter, der z.B. bei erneutem Öffnen eines zum Home-Bildschirm
+          // hinzugefügten Links oder erneutem Antippen desselben Mail-Links weiterhin
+          // vorhanden sein kann, obwohl der Coachee längst ein Konto hat.
+          if(u) { try { localStorage.setItem("sw_auth_seen", "1"); } catch(e) {} }
         });
       } else if(attempts < 20) {
         setTimeout(() => tryAuth(attempts + 1), 300);
