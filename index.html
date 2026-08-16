@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-16 16:27 coachee -->
+<!-- Version: 2026-08-16 17:48 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <!DOCTYPE html>
@@ -1956,12 +1956,17 @@ function App({ user, userDoc }) {
       } catch(e){}
       return r;
     });
-    const syncCollection = async (ref, initData, setter, idField) => {
+    // Fix (Pitfall 36): "ref" ist bei remRef/doodleRef seit dem .where()-Fix eine Query,
+    // keine CollectionReference mehr — Query-Objekte haben kein .doc(). Dadurch schlug das
+    // Seeden neuer Coachees stillschweigend mit "ref.doc is not a function" fehl (verschluckt
+    // im catch), "Meine Impulse" blieb dauerhaft leer. Fix: separate ungefilterte
+    // baseRef fürs Anlegen der Dokumente, ref bleibt (gefiltert) fürs .get()/live-Rules.
+    const syncCollection = async (ref, initData, setter, idField, baseRef) => {
       try {
         const snap = await ref.get();
         if(snap.empty) {
           for(const item of initData) {
-            await ref.doc(String(item[idField||"id"])).set({...item, uid});
+            await (baseRef||ref).doc(String(item[idField||"id"])).set({...item, uid});
           }
         } else {
           setter(snap.docs.map(d=>({...d.data(), id:d.id})));
@@ -1975,9 +1980,9 @@ function App({ user, userDoc }) {
     // bzw. nach dem obigen Query-Fix beim zweiten Coachee einen PERMISSION_DENIED ausgelöst, da das
     // Dokument dann schon einem anderen uid gehört. Fix: uid wird Teil der Seed-ID.
     const seededReminders = INIT_REMINDERS.map(r => ({...r, id: uid+"_"+r.id}));
-    syncCollection(remRef,    seededReminders, setReminders);
+    syncCollection(remRef,    seededReminders, setReminders, undefined, fbDb.collection("reminders"));
     syncCollection(libRef,    INIT_LIBRARY,    setLibrary);
-    syncCollection(doodleRef, INIT_DOODLES,    setDoodles);
+    syncCollection(doodleRef, INIT_DOODLES,    setDoodles,   undefined, fbDb.collection("doodles"));
 
     // Live listeners
     // dataReady-Flags werden hier gesetzt (nicht schon nach syncCollection oben), da

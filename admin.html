@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-16 17:26 admin -->
+<!-- Version: 2026-08-16 17:48 admin -->
 <!DOCTYPE html>
 <!-- Version: 2026-08-12 17:47 admin -->
 <head>
@@ -1448,6 +1448,37 @@ const gcalLink = (dt, title, details, durationMin=120) => {
     return "https://calendar.google.com/calendar/render?"+params.toString();
   } catch(e){ return "https://calendar.google.com/"; }
 };
+// Pitfall 36: Admin-Sprachmemos wurden hart als "audio/webm" verschickt, unabhängig vom
+// tatsächlich aufgenommenen Container (Diana/Rico nehmen meist auf Desktop/Firefox auf).
+// iOS-Safari-Coachees können WebM-Audio grundsätzlich NICHT abspielen (nativer <audio>-Tag
+// zeigt "Fehler" statt Player) — unabhängig davon, auf welchem Gerät aufgenommen wurde.
+// Fix: Aufnahme wird vor dem Senden immer zu WAV/PCM re-encoded — von JEDEM Browser
+// (inkl. iOS Safari) nativ abspielbar, ohne zusätzliche Library.
+const encodeWav = audioBuffer => {
+  const numChannels = audioBuffer.numberOfChannels;
+  const sampleRate  = audioBuffer.sampleRate;
+  const numFrames   = audioBuffer.length;
+  const blockAlign  = numChannels * 2; // 16-bit
+  const dataSize    = numFrames * blockAlign;
+  const buffer = new ArrayBuffer(44 + dataSize);
+  const view   = new DataView(buffer);
+  const writeStr = (offset, str) => { for(let i=0;i<str.length;i++) view.setUint8(offset+i, str.charCodeAt(i)); };
+  writeStr(0,"RIFF"); view.setUint32(4,36+dataSize,true); writeStr(8,"WAVE");
+  writeStr(12,"fmt "); view.setUint32(16,16,true); view.setUint16(20,1,true);
+  view.setUint16(22,numChannels,true); view.setUint32(24,sampleRate,true);
+  view.setUint32(28,sampleRate*blockAlign,true); view.setUint16(32,blockAlign,true);
+  view.setUint16(34,16,true); writeStr(36,"data"); view.setUint32(40,dataSize,true);
+  const channels = []; for(let c=0;c<numChannels;c++) channels.push(audioBuffer.getChannelData(c));
+  let offset = 44;
+  for(let i=0;i<numFrames;i++){
+    for(let c=0;c<numChannels;c++){
+      let s = Math.max(-1,Math.min(1,channels[c][i]));
+      s = s<0 ? s*0x8000 : s*0x7FFF;
+      view.setInt16(offset,s,true); offset+=2;
+    }
+  }
+  return new Blob([view],{type:"audio/wav"});
+};
 const readFile = f => new Promise(res => {
   const r = new FileReader();
   r.onload = ev => {
@@ -2262,7 +2293,7 @@ function DashboardPage({coachees,library,doodles,setPage,user,openSenderFilter})
           <div style=${{minWidth:0}}>
             <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.3rem",fontWeight:700,color:"var(--text)"}}>${greeting}</div>
             <div style=${{fontSize:".88rem",color:"var(--muted)",marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"calc(100vw - 160px)"}}>Admin-Portal · Raum für Selbstwirksamkeit</div>
-            <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-08-16 17:26 · Doku v3.148 · 2026-08-16 17:26
+            <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-08-16 17:48 · Doku v3.148 · 2026-08-16 17:26
             </div>
           </div>
         </div>
@@ -2830,13 +2861,30 @@ function ChatWindow({coachee,sender,setSender,onSend,onSendImg,onSendFile,onDele
       mediaRecRef.current = mr; chunksRef.current = [];
       mr.ondataavailable = ev => chunksRef.current.push(ev.data);
       mr.onstop = () => {
-        const blob = new Blob(chunksRef.current,{type:"audio/webm"});
-        const rdr = new FileReader();
-        rdr.onload = ev2 => {
-          onSendFile({url:ev2.target.result,name:"Sprachmemo.webm",type:"audio/webm",isAudio:true},sender);
-        };
-        rdr.readAsDataURL(blob);
+        const rawBlob = new Blob(chunksRef.current,{type: mr.mimeType || "audio/webm"});
         stream.getTracks().forEach(t=>t.stop());
+        const sendAsDataUrl = (blob, name, type) => {
+          const rdr = new FileReader();
+          rdr.onload = ev2 => onSendFile({url:ev2.target.result,name,type,isAudio:true},sender);
+          rdr.readAsDataURL(blob);
+        };
+        // Immer zu WAV re-encoden (Pitfall 36) — iOS-Safari-Coachees können den
+        // ursprünglichen Aufnahme-Container (meist webm/ogg von Desktop-Browsern) sonst
+        // nicht abspielen. Bei Dekodierfehler Fallback auf Original-Format.
+        const arrReader = new FileReader();
+        arrReader.onload = ev => {
+          try {
+            const ctx = new (window.AudioContext||window.webkitAudioContext)();
+            ctx.decodeAudioData(ev.target.result.slice(0), decoded => {
+              const wavBlob = encodeWav(decoded);
+              ctx.close();
+              sendAsDataUrl(wavBlob,"Sprachmemo.wav","audio/wav");
+            }, () => sendAsDataUrl(rawBlob,"Sprachmemo."+(rawBlob.type.includes("mp4")?"m4a":"webm"),rawBlob.type||"audio/webm"));
+          } catch(e) {
+            sendAsDataUrl(rawBlob,"Sprachmemo."+(rawBlob.type.includes("mp4")?"m4a":"webm"),rawBlob.type||"audio/webm");
+          }
+        };
+        arrReader.readAsArrayBuffer(rawBlob);
       };
       mr.start(); setRecording(true);
     } catch(err) { alert("Mikrofon-Zugriff nicht möglich."); }
