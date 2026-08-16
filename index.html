@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-16 15:16 coachee -->
+<!-- Version: 2026-08-16 15:22 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <!DOCTYPE html>
@@ -2176,13 +2176,7 @@ function App({ user, userDoc }) {
     if(!fbDb || !user?.uid) return;
     const unsub = fbDb.collection("users").doc(user.uid).onSnapshot(doc => {
       const d = doc.data() || {};
-      // GEÄNDERT (16.08.2026, Fix Nebenbefund 2): "|| 0" behandelte ein komplett fehlendes
-      // nextImpulseAt-Feld (echter Neu-Coachee, noch nie von einer Cloud Function berührt)
-      // fälschlich wie eine explizite 0 ("sofort fällig") — 0 <= Date.now() ist immer wahr,
-      // wodurch der Nav-/App-Icon-Badge schon vor jedem Admin-Trigger einen Tagesimpuls
-      // vortäuschte. "?? Infinity" unterscheidet jetzt "Feld fehlt komplett" (nie fällig) von
-      // einer bewusst gesetzten 0 (z.B. Admin-Testreset, weiterhin sofort fällig).
-      setImpulseFlagData({activePhase:d.activePhase||null, nextImpulseAt:d.nextImpulseAt ?? Infinity});
+      setImpulseFlagData({activePhase:d.activePhase||null, nextImpulseAt:d.nextImpulseAt||0});
       setImpulseFlagLoaded(true);
     }, () => {});
     return () => unsub();
@@ -2240,10 +2234,7 @@ function App({ user, userDoc }) {
       const todayStr2 = new Date().toISOString().split("T")[0];
       dismissedToday = localStorage.getItem("impuls_dismissed_"+user.uid) === todayStr2;
     } catch(e) {}
-    // Zusätzliche Absicherung (16.08.2026): nextImpulseAt kann grundsätzlich nur fällig sein,
-    // solange überhaupt eine Phase aktiv ist — ohne activePhase gibt es keinen Tagesimpuls-
-    // Rhythmus, unabhängig vom (nach obigem Fix ohnehin korrekten) Feldwert.
-    return welcomePending || (!!impulseFlagData.activePhase && impulseFlagData.nextImpulseAt <= Date.now() && !dismissedToday);
+    return welcomePending || (impulseFlagData.nextImpulseAt <= Date.now() && !dismissedToday);
   };
 
   const [impulseUnreadCount, setImpulseUnreadCount] = useState(0);
@@ -5206,7 +5197,28 @@ function DoodlePage({user,doodles,setDoodles,coachees,events}) {
 
 // ── LOGIN PAGE ──
 function LoginPage({ onLogin }) {
-  const [mode,setMode]       = useState("login"); // login | register
+  // GEÄNDERT (16.08.2026): Bisher immer "login" als Startwert — ein brandneuer Coachee,
+  // der über den Willkommens-E-Mail-Link kommt, landete dadurch fälschlich im Anmelden-
+  // statt im Registrieren-Modus und bekam bei einem Anmeldeversuch die irreführende
+  // Meldung "E-Mail oder Passwort falsch", obwohl er schlicht noch kein Konto hat.
+  // Der Link in der Willkommens-E-Mail (admin.html) trägt jetzt "?neu=1" — dieser Marker
+  // wird hier einmalig beim Mount gelesen und bestimmt den Startmodus.
+  const [mode,setMode] = useState(() => {
+    try { return new URLSearchParams(window.location.search).get("neu") === "1" ? "register" : "login"; }
+    catch(e) { return "login"; }
+  }); // login | register
+  // Fix (16.08.2026): "?neu=1" nur für den allerersten Aufruf relevant — sofort aus der
+  // Adresszeile entfernen (ohne Reload/History-Eintrag), damit ein PWA-"Zum Home-Bildschirm
+  // hinzufügen" NICHT dauerhaft diesen Parameter mitspeichert und die App sonst bei jedem
+  // künftigen Öffnen (auch nach erfolgreicher Registrierung) wieder im Registrieren-Modus
+  // starten würde.
+  useEffect(() => {
+    try {
+      if(new URLSearchParams(window.location.search).get("neu") === "1") {
+        window.history.replaceState(null, "", window.location.pathname + window.location.hash);
+      }
+    } catch(e) {}
+  }, []);
   const [email,setEmail]     = useState("");
   const [password,setPassword] = useState("");
   const [error,setError]     = useState("");
