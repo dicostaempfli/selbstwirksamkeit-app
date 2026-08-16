@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-16 15:22 admin -->
+<!-- Version: 2026-08-16 17:26 admin -->
 <!DOCTYPE html>
 <!-- Version: 2026-08-12 17:47 admin -->
 <head>
@@ -1448,7 +1448,22 @@ const gcalLink = (dt, title, details, durationMin=120) => {
     return "https://calendar.google.com/calendar/render?"+params.toString();
   } catch(e){ return "https://calendar.google.com/"; }
 };
-const readFile = f => new Promise(res => { const r=new FileReader(); r.onload=e=>res(e.target.result); r.readAsDataURL(f); });
+const readFile = f => new Promise(res => {
+  const r = new FileReader();
+  r.onload = ev => {
+    const img = new Image();
+    img.onload = () => {
+      const MAX=800, canvas=document.createElement('canvas');
+      let w=img.width, h=img.height;
+      if(w>MAX||h>MAX){ if(w>h){h=Math.round(h*MAX/w);w=MAX;}else{w=Math.round(w*MAX/h);h=MAX;} }
+      canvas.width=w; canvas.height=h;
+      canvas.getContext('2d').drawImage(img,0,0,w,h);
+      res(canvas.toDataURL('image/jpeg',0.75));
+    };
+    img.src = ev.target.result;
+  };
+  r.readAsDataURL(f);
+});
 const showToast = msg => { const t=document.createElement('div'); t.className='toast'; t.textContent=msg; document.body.appendChild(t); setTimeout(()=>{t.style.opacity='0';setTimeout(()=>t.remove(),300);},3000); };
 const db = () => window._fb?.db;
 const auth = () => window._fb?.auth;
@@ -2247,7 +2262,7 @@ function DashboardPage({coachees,library,doodles,setPage,user,openSenderFilter})
           <div style=${{minWidth:0}}>
             <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.3rem",fontWeight:700,color:"var(--text)"}}>${greeting}</div>
             <div style=${{fontSize:".88rem",color:"var(--muted)",marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"calc(100vw - 160px)"}}>Admin-Portal · Raum für Selbstwirksamkeit</div>
-            <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-08-16 15:22 · Doku v3.146 · 2026-08-16 15:22
+            <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-08-16 17:26 · Doku v3.148 · 2026-08-16 17:26
             </div>
           </div>
         </div>
@@ -2562,16 +2577,31 @@ function ChatPage({coachees,setCoachees,openId,clearOpenId,presetSender,clearPre
     const t = now.toLocaleTimeString("de-CH",{hour:"2-digit",minute:"2-digit"});
     const d = dateKeyFromTs(now.getTime());
     const msg={from:"admin",sender,recipient:activeId,imgSrc:dataUrl,isVideo,text:"",time:t,date:d,ts:Date.now()};
-    if(firestore) firestore.collection("chats").doc(activeId).collection("messages").add(msg).catch(()=>{});
+    if(firestore) firestore.collection("chats").doc(activeId).collection("messages").add(msg).catch(e=>showToast("✗ Senden fehlgeschlagen: " + e.message));
   };
-  const sendFile = (file, sender="Diana") => {
+  const sendFile = async (file, sender="Diana") => {
     if(!activeId) return;
     const firestore = db();
+    if(!firestore) return;
+    const fbStorage = window._fb?.storage;
     const now = new Date();
     const t = now.toLocaleTimeString("de-CH",{hour:"2-digit",minute:"2-digit"});
     const d = dateKeyFromTs(now.getTime());
-    const msg={from:"admin",sender,recipient:activeId,file,text:"",time:t,date:d,ts:Date.now()};
-    if(firestore) firestore.collection("chats").doc(activeId).collection("messages").add(msg).catch(()=>{});
+    try {
+      let fileData = file;
+      if(fbStorage && file.url && file.url.startsWith('data:')) {
+        // Base64 → Blob → Storage hochladen (analog Coachee-App)
+        const resp = await fetch(file.url);
+        const blob = await resp.blob();
+        const path = 'chats/'+activeId+'/'+Date.now()+'_'+file.name;
+        const ref  = fbStorage.ref(path);
+        await ref.put(blob, {contentType: file.type || blob.type});
+        const downloadUrl = await ref.getDownloadURL();
+        fileData = {name: file.name, type: file.type, size: file.size||blob.size, isAudio: file.isAudio||false, url: downloadUrl, storagePath: path};
+      }
+      const msg={from:"admin",sender,recipient:activeId,file:fileData,text:"",time:t,date:d,ts:Date.now()};
+      await firestore.collection("chats").doc(activeId).collection("messages").add(msg);
+    } catch(e) { showToast("✗ Senden fehlgeschlagen: " + e.message); }
   };
 
   return html`
