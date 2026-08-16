@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-16 17:48 coachee -->
+<!-- Version: 2026-08-16 17:53 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <!DOCTYPE html>
@@ -1676,13 +1676,12 @@ const REM_ICONS = [
   {key:"target",label:"Ziel"},{key:"user",label:"Selbst"},{key:"clock",label:"Zeit"},
   {key:"repeat",label:"Routine"},{key:"sliders",label:"Fokus"},{key:"pen",label:"Schreiben"},
 ];
-const INIT_REMINDERS = [
-  {id:1,label:"Morgen-Reflexion",icon:"sunrise",time:"07:30",recurrence:"daily",enabled:true,photos:[],area:"Ich-Sein",additionalTimes:[]},
-  {id:2,label:"Atemübung",icon:"leaf",time:"09:00",recurrence:"daily",enabled:true,photos:[],area:"Ich-Sein",additionalTimes:["13:00","17:00"]},
-  {id:3,label:"Paar-Check-in",icon:"heart",time:"20:00",recurrence:"daily",enabled:true,photos:[],area:"Paar-Sein",additionalTimes:[]},
-  {id:4,label:"Familienmoment",icon:"sun",time:"18:00",recurrence:"weekly",weekdays:[0,2,4],enabled:true,photos:[],area:"Eltern-Sein",additionalTimes:[]},
-  {id:5,label:"Monatlicher Rückblick",icon:"compass",time:"18:00",recurrence:"monthly",monthDays:[1],enabled:true,photos:[],area:"Allgemein",additionalTimes:[]},
-];
+// Pitfall 37: INIT_REMINDERS enthielt 5 Beispiel-Impulse, die bei jedem neuen Coachee
+// automatisch geseedet wurden — analog zum bereits entfernten INIT_DOODLES (Kapitel 36).
+// Rico: werden nicht gebraucht, irritieren Coachees. Leer, damit "Meine Impulse" bei
+// neuen Coachees korrekt mit 0 aktiven Impulsen startet (der ref.doc-Fix bleibt bestehen,
+// er sichert nur, dass Seeding technisch funktioniert, sobald wieder Daten gebraucht werden).
+const INIT_REMINDERS = [];
 const INIT_LIBRARY = [
   {id:1,type:"audio",title:"Atemübung — 5 Minuten",desc:"Geführte Atemübung zur täglichen Zentrierung.",duration:"5:12",uploadedAt:"20.03.2026"},
   {id:2,type:"video",title:"Einführung: Selbstwirksamkeit",desc:"Was bedeutet Selbstwirksamkeit im Alltag?",duration:"12:44",uploadedAt:"18.03.2026"},
