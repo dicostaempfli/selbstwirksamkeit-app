@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-16 14:08 coachee -->
+<!-- Version: 2026-08-16 14:40 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <!DOCTYPE html>
@@ -2166,14 +2166,17 @@ function App({ user, userDoc }) {
   // schon aus dem User-Dokument liest (activePhase, nextImpulseAt), plus dieselben
   // localStorage-Flags, die ImpulsPage selbst schreibt/liest (phaseWelcomeSeen_,
   // impuls_dismissed_). Reine Anzeige-Logik, keine neue Datenquelle.
-  const [impulseFlagData, setImpulseFlagData] = useState({activePhase:1, nextImpulseAt:0});
+  // GEÄNDERT (16.08.2026): Default/Fallback von activePhase:1 auf activePhase:null —
+  // ein neuer Coachee hat jetzt bis zum ersten Admin-Tap auf Kreis 1 gar kein activePhase-
+  // Feld (siehe admin.html-Neuanlage), soll also nicht wie Phase 1 behandelt werden.
+  const [impulseFlagData, setImpulseFlagData] = useState({activePhase:null, nextImpulseAt:0});
   const [impulseFlagLoaded, setImpulseFlagLoaded] = useState(false);
   useEffect(() => {
     const fbDb = window._fb?.db;
     if(!fbDb || !user?.uid) return;
     const unsub = fbDb.collection("users").doc(user.uid).onSnapshot(doc => {
       const d = doc.data() || {};
-      setImpulseFlagData({activePhase:d.activePhase||1, nextImpulseAt:d.nextImpulseAt||0});
+      setImpulseFlagData({activePhase:d.activePhase||null, nextImpulseAt:d.nextImpulseAt||0});
       setImpulseFlagLoaded(true);
     }, () => {});
     return () => unsub();
@@ -3473,9 +3476,21 @@ function ImpulsPage({ user, setPage, setActiveImpuls, activeImpuls, pendingImpul
       .then(([doc, uDoc]) => {
         const getData = (data) => {
           const uData = uDoc.exists ? uDoc.data() : {};
-          const activePhase = uData.activePhase || 1;
+          // GEÄNDERT (16.08.2026): Fallback von "|| 1" auf "|| null" — admin.html setzt
+          // activePhase bei Coachee-Neuanlage nicht mehr automatisch auf 1 (siehe Kapitel
+          // "Phase-1-Startzustand"). Ein fehlendes activePhase-Feld darf hier nicht länger
+          // wie eine bereits aktive Phase 1 behandelt werden, sonst würde der Willkommens-
+          // Screen/Tagesimpuls-Flow schon vor dem bewussten Admin-Tap auf Kreis 1 anlaufen.
+          const activePhase = uData.activePhase || null;
           const nextImpulseAt = uData.nextImpulseAt || 0;
-          setActivePhaseNum(activePhase);
+          setActivePhaseNum(activePhase || 1); // reiner Anzeige-Fallback für PHASE_INFO, siehe unten
+
+          // NEU (16.08.2026): Noch keine Phase vom Admin gesetzt (activePhase fehlt) —
+          // es gibt schlicht nichts zu zeigen. Ruhiger Leerzustand (step 6, rendert null,
+          // siehe bestehendes Muster bei "heute schon abgelehnt"), statt Phase-1-Inhalte
+          // vorzutäuschen. Bewusst VOR dem phaseWelcomeSeen-Vergleich, damit dieser Fall
+          // den localStorage-Flag nicht anfasst.
+          if (!activePhase) { setStep(6); return; }
 
           // NEU (06.08.2026, Variante A): Willkommens-Screen bei Phasenwechsel. Ein rein
           // lokaler localStorage-Vergleich (kein neues Firestore-Feld nötig) — sobald die
