@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-17 14:46 admin -->
+<!-- Version: 2026-08-17 14:50 admin -->
 <!DOCTYPE html>
 <!-- Version: 2026-08-12 17:47 admin -->
 <head>
@@ -2285,8 +2285,11 @@ function AdminApp({user}) {
 function DashboardPage({coachees,library,doodles,setPage,user,openSenderFilter,openErrorCount}) {
   const hour = new Date().getHours();
   const greetWord = hour<12?"Guten Morgen":hour<18?"Guten Tag":"Guten Abend";
-  const userName = user?.displayName?.split(" ")[0] || user?.email?.split("@")[0] || "Diana";
-  const greeting = greetWord + ", " + userName;
+  // Diana und Rico teilen sich denselben Admin-Login (siehe Kongruenz-Doku) — eine
+  // Erkennung, wer gerade eingeloggt ist, ist daher nicht zuverlässig möglich. Fix
+  // (NEU 17.08.2026, Ricos Wunsch): feste Anrede "Diana & Rico" statt versuchtem
+  // Auslesen von user.displayName/email (zeigte bisher immer nur "Rico").
+  const greeting = greetWord + ", Diana & Rico";
   const openDoodles = doodles.filter(d=>d.status==="open").length;
   const unreadDianaTotal = coachees.reduce((a,c)=>a+(c.unreadDiana||0),0);
   const unreadRicoTotal = coachees.reduce((a,c)=>a+(c.unreadRico||0),0);
@@ -2318,7 +2321,7 @@ function DashboardPage({coachees,library,doodles,setPage,user,openSenderFilter,o
           <div style=${{minWidth:0}}>
             <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.3rem",fontWeight:700,color:"var(--text)"}}>${greeting}</div>
             <div style=${{fontSize:".88rem",color:"var(--muted)",marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"calc(100vw - 160px)"}}>Admin-Portal · Raum für Selbstwirksamkeit</div>
-            <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-08-17 14:46 · Doku v3.154 · 2026-08-17 14:23
+            <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-08-17 14:50 · Doku v3.154 · 2026-08-17 14:23
             </div>
           </div>
         </div>
