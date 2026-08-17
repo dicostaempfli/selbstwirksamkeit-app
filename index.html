@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-16 17:53 coachee -->
+<!-- Version: 2026-08-17 13:14 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <!DOCTYPE html>
@@ -1754,9 +1754,30 @@ function App({ user, userDoc }) {
   // URL navigiert. Reagiert sowohl beim Erst-Laden (App war geschlossen) als auch auf
   // spätere hashchange-Events (App war im Hintergrund offen, SW navigiert den Client neu).
   const HASH_TO_PAGE = { chat: "chat", library: "library", doodle: "doodle" };
+  // ── Kurzer Lade-Hinweis statt "Home-Flash" bei Push-Tap auf schwachem Netz ──
+  // NEU 17.08.2026 (Fund "Push-Tap zeigt kurz Home, bevor der Impuls nach ~12s erscheint",
+  // Live-Test Test1 bei schwachem Empfang): Bewusst NICHT an die volle Retry-Dauer der
+  // Kaltstart-Fallback-Logik oben gekoppelt (bis zu 8s) — das würde auch jeden GANZ
+  // normalen App-Start (ohne jeden Push) für bis zu 8s mit einem Spinner verzögern, da der
+  // Cache-Storage-Check technisch nicht unterscheiden kann, ob überhaupt ein Deep-Link
+  // aussteht. Stattdessen ein kurzes, hart gedeckeltes 1.5s-Fenster: reicht, um den
+  // allergrössten Teil echter Race-Fälle (Cache-Write der SW noch nicht fertig) visuell
+  // abzudecken, ohne den Normalfall spürbar zu verzögern. Wird sofort beendet, sobald
+  // routeHash() tatsächlich etwas anwendet (siehe unten) oder die 1.5s ablaufen.
+  const [deepLinkChecking, setDeepLinkChecking] = useState(true);
+  useEffect(() => {
+    const t = setTimeout(() => setDeepLinkChecking(false), 1500);
+    return () => clearTimeout(t);
+  }, []);
   // Gemeinsame Routing-Logik, sowohl für den normalen Hash-Weg (hashchange/Erst-Laden)
   // als auch für den Kaltstart-Fallback über Cache Storage (applyPendingDeepLink unten).
   const routeHash = (hash) => {
+    // Sobald routeHash() mit einem ECHTEN Hash aufgerufen wird (egal ob direkt aus der URL
+    // oder verspätet über den Kaltstart-Cache-Fallback), ist die kurze Warte-Anzeige oben
+    // (deepLinkChecking) nicht mehr nötig — der leere Erst-Aufruf beim Mount (hash === "")
+    // löst das bewusst NICHT aus, sonst würde jeder normale App-Start die Anzeige sofort
+    // wieder abschalten, noch bevor der Kaltstart-Fallback überhaupt eine Chance hatte.
+    if(hash) setDeepLinkChecking(false);
     // Fix (02.07.2026, Kapitel 33): Kurzlebigen Crash-Recovery-Eintrag hinterlegen, sobald
     // ein gültiges Push-Ziel geroutet wird — greift nur, wenn hardReload() später ohne
     // eigenen Hash aufgerufen wird (siehe dortiger Kommentar). Deckt ALLE Push-Kategorien ab
@@ -1830,7 +1851,14 @@ function App({ user, userDoc }) {
           // cacheWrite in sw.js zuvorkommen, das alte 600ms-Fenster (4×150ms) reichte in
           // diesem Fall oft nicht. Grosszügiger auf ca. 2s (10×200ms) erweitert, damit auch
           // dieser Reload-Pfad den Cache-Eintrag zuverlässig noch vorfindet.
-          if(attempt < 10) setTimeout(() => applyPendingDeepLink(attempt + 1), 200);
+          // Weitere Erweiterung (17.08.2026, Fund "Push-Tap öffnet Impuls erst nach ~12s
+          // bei schwachem Empfang"): 2s reichten bei schlechtem Mobilfunk (Live-Test mit
+          // Test1, 2 von 4 Balken 5G) nicht aus — auf ca. 8s (40×200ms) erweitert. Rein
+          // client-seitiger Cache-Storage-Check ohne Netzwerk-Roundtrip pro Versuch,
+          // daher auch bei 40 Versuchen keine spürbaren Zusatzkosten für den Normalfall
+          // (kein Deep-Link vorhanden) — läuft unsichtbar im Hintergrund, ohne das UI
+          // zu blockieren.
+          if(attempt < 40) setTimeout(() => applyPendingDeepLink(attempt + 1), 200);
           return;
         }
         const data = await resp.json();
@@ -2455,6 +2483,13 @@ function App({ user, userDoc }) {
     <${Sidebar} page=${page} setPage=${navTo} totalUnread=${totalUnreadVal} impulseUnread=${impulseUnreadCount} libraryUnread=${libraryUnreadCount} doodleUnread=${doodleUnreadCount} user=${user} onLogoTap=${handleLogoTap}/>
     <div style=${{flex:1,display:'flex',overflow:'hidden',minWidth:0}}>
       ${page==="dashboard" && html`<${DashboardPage} coachees=${coachees} library=${library} reminders=${reminders} remindersReady=${remindersReady} libraryReady=${libraryReady} libraryUnreadCount=${libraryUnreadCount} doodles=${doodles} setPage=${navTo} user=${user} userDoc=${userDoc} onLogoTap=${handleLogoTap} setImpulseDefaultTab=${setImpulseDefaultTab} activeImpuls=${activeImpuls} setActiveImpuls=${setActiveImpuls}/>`}
+      ${/* NEU 17.08.2026: kurzer Lade-Hinweis statt sichtbarem "Home-Flash", solange der
+          Kaltstart-Deep-Link-Check (siehe deepLinkChecking oben) noch offen ist — hart
+          gedeckelt auf 1.5s, siehe Kommentar dort. Nur auf der Home-Seite, da genau dort
+          der irreführende Zwischenzustand ("Push getappt, aber App zeigt Home") auftrat. */''}
+      ${deepLinkChecking && page==="dashboard" && h(Portal, null, h('div', {style:{position:'fixed',top:0,left:0,width:'100vw',height:'100dvh',display:'flex',alignItems:'center',justifyContent:'center',background:'rgba(249,247,243,.92)',zIndex:50}},
+        h('div', {style:{width:34,height:34,border:'3px solid #e3dfda',borderTopColor:'#156e6e',borderRadius:'50%',animation:'spin .8s linear infinite'}})
+      ))}
       ${page==="chat"      && html`<${ChatPage} user=${user} coachees=${coachees} setCoachees=${setCoachees} mobileChatOpen=${mobileChatOpen} setMobileChatOpen=${setMobileChatOpen} recipient=${chatRecipient} setRecipient=${setChatRecipient}/>`}
       ${page==="impulse"   && html`<${ImpulseTab} user=${user} reminders=${reminders} setReminders=${saveReminders} setPage=${navTo} defaultSubTab=${impulseDefaultTab} setDefaultSubTab=${setImpulseDefaultTab} setActiveImpuls=${setActiveImpuls} activeImpuls=${activeImpuls} pendingReminderId=${pendingReminderId} setPendingReminderId=${setPendingReminderId} pendingImpulsPopup=${pendingImpulsPopup} setPendingImpulsPopup=${setPendingImpulsPopup} pendingReflexionPopup=${pendingReflexionPopup} setPendingReflexionPopup=${setPendingReflexionPopup} onManualPopupClosed=${advanceManualPopupQueue}/>`}
       ${page==="library"   && html`<${LibraryPage} library=${library} setLibrary=${saveLibrary} pendingLibraryId=${pendingLibraryId} clearPendingLibraryId=${()=>setPendingLibraryId(null)} uid=${user?.uid}/>`}
