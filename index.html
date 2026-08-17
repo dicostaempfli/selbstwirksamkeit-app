@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-17 13:33 coachee -->
+<!-- Version: 2026-08-17 13:40 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <!DOCTYPE html>
@@ -2025,7 +2025,15 @@ function App({ user, userDoc }) {
       const fbDb = window._fb?.db;
       if(fbDb) {
         newRems.forEach(r => { const {photos,...rNoPhotos}=r; fbDb.collection("reminders").doc(String(r.id)).set({...rNoPhotos,uid}).catch(()=>{}); });
-        fbDb.collection("reminders").get().then(snap => {
+        // Fix (17.08.2026, Kongruenz zu Kapitel 109.7/119): Cleanup-Query war bisher
+        // unbefiltert (fbDb.collection("reminders").get()) — für echte Coachees lehnt
+        // Firestore eine unbefilterte List-Query gegen die dokumentbasierte Rule
+        // (resource.data.uid == uid) komplett ab (PERMISSION_DENIED), verschluckt durch
+        // .catch(()=>{}). Gelöschte/geänderte Reminder blieben dadurch in Firestore
+        // bestehen und konnten beim nächsten Live-Sync zurückkommen. Zusätzlich unnötig
+        // teuer (las bisher die reminders ALLER Coachees bei jedem Speichern). Fix:
+        // gefiltert auf eigene uid, analog remRef oben.
+        fbDb.collection("reminders").where("uid","==",uid).get().then(snap => {
           const ids = newRems.map(r=>String(r.id));
           snap.docs.forEach(d => { if(!ids.includes(d.id)) d.ref.delete().catch(()=>{}); });
         }).catch(()=>{});
@@ -2076,7 +2084,11 @@ function App({ user, userDoc }) {
           };
           fbDb.collection("doodles").doc(String(d.id)).set(fsDoc).catch(()=>{});
         });
-        fbDb.collection("doodles").get().then(snap => {
+        // Fix (17.08.2026, gleiches Muster wie saveReminders oben): Cleanup-Query war
+        // unbefiltert — für echte Coachees PERMISSION_DENIED (verschluckt), zusätzlich
+        // unnötig teuer (las bisher doodles ALLER Coachees). Gefiltert auf recipients
+        // array-contains uid, analog doodleRef oben.
+        fbDb.collection("doodles").where("recipients","array-contains",uid).get().then(snap => {
           const ids = newD.map(d=>String(d.id));
           snap.docs.forEach(d => { if(!ids.includes(d.id)) d.ref.delete().catch(()=>{}); });
         }).catch(()=>{});
