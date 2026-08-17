@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-17 14:23 coachee -->
+<!-- Version: 2026-08-17 15:28 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <!DOCTYPE html>
@@ -2571,14 +2571,14 @@ function ChatPage({user,coachees,setCoachees,mobileChatOpen,setMobileChatOpen,re
     if(!text.trim()||!uid||!fbDb) return;
     const t = new Date().toLocaleTimeString('de-CH',{hour:'2-digit',minute:'2-digit'});
     const d = dateKeyFromTs(Date.now());
-    fbDb.collection("chats").doc(uid).collection("messages").add({from:"coachee",sender:uid,recipient,text:text.trim(),time:t,date:d,ts:Date.now(),seen:false}).catch(()=>{});
+    fbDb.collection("chats").doc(uid).collection("messages").add({from:"coachee",sender:uid,recipient,text:text.trim(),time:t,date:d,ts:Date.now(),seen:false}).catch(e=>{_logClientError('FIRESTORE_WRITE_FAIL','sendMsg: '+(e&&e.message),'Chat'); showToastMsg("✗ Nachricht konnte nicht gesendet werden");});
   };
 
   const sendImg = (dataUrl, isVideo=false) => {
     if(!uid||!fbDb) return;
     const t = new Date().toLocaleTimeString('de-CH',{hour:'2-digit',minute:'2-digit'});
     const d = dateKeyFromTs(Date.now());
-    fbDb.collection("chats").doc(uid).collection("messages").add({from:"coachee",sender:uid,recipient,imgSrc:dataUrl,isVideo,text:"",time:t,date:d,ts:Date.now()}).catch(()=>{});
+    fbDb.collection("chats").doc(uid).collection("messages").add({from:"coachee",sender:uid,recipient,imgSrc:dataUrl,isVideo,text:"",time:t,date:d,ts:Date.now()}).catch(e=>{_logClientError('FIRESTORE_WRITE_FAIL','sendImg: '+(e&&e.message),'Chat'); showToastMsg("✗ Datei konnte nicht gesendet werden");});
   };
 
   const sendFile = async file => {

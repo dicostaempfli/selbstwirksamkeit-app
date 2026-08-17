@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-17 15:08 admin -->
+<!-- Version: 2026-08-17 15:28 admin -->
 <!DOCTYPE html>
 <!-- Version: 2026-08-12 17:47 admin -->
 <head>
@@ -2324,8 +2324,8 @@ function DashboardPage({coachees,library,doodles,setPage,user,openSenderFilter,o
       </div>
       <div style=${{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginTop:14,paddingTop:10,paddingBottom:16,borderTop:"1px solid var(--border2)",borderBottom:"1px solid var(--border2)",marginBottom:16,gap:10}}>
         <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.7,lineHeight:1.5}}>
-          <div>App v2026-08-17 15:08 · Doku v3.154</div>
-          <div>2026-08-17 14:23</div>
+          <div>App v2026-08-17 15:28 · Doku v3.155</div>
+          <div>2026-08-17 15:28</div>
         </div>
         <div style=${{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
           <button class="dash-reload-btn" title="Fehler-Log" onClick=${()=>setPage("errors")} style=${{position:"relative",color:openErrorCount>0?"#993C1D":"var(--muted)"}}>
@@ -2549,12 +2549,22 @@ function ChatPage({coachees,setCoachees,openId,clearOpenId,presetSender,clearPre
     const now = new Date();
     const t = now.toLocaleTimeString("de-CH",{hour:"2-digit",minute:"2-digit"});
     const d = dateKeyFromTs(now.getTime());
-    broadcastRecipients.forEach(c=>{
-      const msg={from:"admin",sender:"Diana",recipient:c.id,text:broadcastMsg.trim(),time:t,date:d,ts:Date.now(),seen:false};
-      if(firestore) firestore.collection("chats").doc(c.id).collection("messages").add(msg).catch(()=>{});
-    });
+    const recipientsSnapshot = [...broadcastRecipients];
+    const textToSend = broadcastMsg.trim();
     setBroadcastMsg(""); setBroadcastCat([]); setBroadcastRecip([]); setBroadcastCatModeActive(false); setBroadcastSearch(""); setShowBroadcast(false);
-    showToast("✓ Nachricht gesendet an "+broadcastRecipients.length+" Coachee"+(broadcastRecipients.length!==1?"s":""));
+    if(!firestore){ showToast("✗ Keine Verbindung zur Datenbank"); return; }
+    const jobs = recipientsSnapshot.map(c=>{
+      const msg={from:"admin",sender:"Diana",recipient:c.id,text:textToSend,time:t,date:d,ts:Date.now(),seen:false};
+      return firestore.collection("chats").doc(c.id).collection("messages").add(msg);
+    });
+    Promise.allSettled(jobs).then(results=>{
+      const failed = results.filter(r=>r.status==="rejected").length;
+      if(failed===0){
+        showToast("✓ Nachricht gesendet an "+recipientsSnapshot.length+" Coachee"+(recipientsSnapshot.length!==1?"s":""));
+      } else {
+        showToast("✗ "+failed+" von "+recipientsSnapshot.length+" Nachricht"+(recipientsSnapshot.length!==1?"en":"")+" fehlgeschlagen");
+      }
+    });
   };
 
     const selectCoachee = (id, who) => {
@@ -4708,8 +4718,14 @@ function DoodlePage({doodles,setDoodles,coachees,adminUid}) {
     setShowCreate(false);setNewTitle("");setNewDesc("");setNewSlots([]);setBlockDt({});setBlockTitle({});setBlockNote({});setSelRecip([]);setDoodleCat([]);setCatModeActive(false);setRecipSearch("");
     setDoodles(ds=>[nd,...ds]);
     const firestore = db();
-    if(firestore) firestore.collection("doodles").doc(String(nd.id)).set(nd).catch(()=>{});
-    showToast("✓ Terminvorschlag erstellt");
+    if(firestore){
+      firestore.collection("doodles").doc(String(nd.id)).set(nd)
+        .then(()=>showToast("✓ Terminvorschlag erstellt"))
+        .catch(e=>{ setDoodles(ds=>ds.filter(d=>d.id!==nd.id)); showToast("✗ Terminvorschlag konnte nicht gespeichert werden: "+(e&&e.message||"Fehler")); });
+    } else {
+      setDoodles(ds=>ds.filter(d=>d.id!==nd.id));
+      showToast("✗ Keine Verbindung zur Datenbank");
+    }
   };
 
   const bestSlotIdx = d => {
