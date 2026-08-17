@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-16 17:48 admin -->
+<!-- Version: 2026-08-17 13:36 admin -->
 <!DOCTYPE html>
 <!-- Version: 2026-08-12 17:47 admin -->
 <head>
@@ -23,10 +23,15 @@
 <title>Admin — Raum für Selbstwirksamkeit</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manuale:wght@400;600;700&family=Exo+2:wght@400;600;700&display=swap"/>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
+<link rel="preconnect" href="https://www.gstatic.com"/>
+<link rel="preconnect" href="https://firestore.googleapis.com"/>
+<!-- Firebase Compat SDK — NEU 17.08.2026 (Start-/Ladeverhalten-Optimierung, analog index.html):
+     defer statt render-blockierendem Laden. Ungefährlich, da die bestehende Init-Funktion
+     weiter unten ohnehin per Polling wartet, bis "firebase" verfügbar ist. -->
+<script defer src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script defer src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script defer src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script defer src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
 <script>
 // Auto-reload when app comes back to foreground
     // Fix 02.07.2026 (Kapitel 32): window.location.reload(true) ersetzt durch dasselbe
@@ -2293,7 +2298,7 @@ function DashboardPage({coachees,library,doodles,setPage,user,openSenderFilter})
           <div style=${{minWidth:0}}>
             <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.3rem",fontWeight:700,color:"var(--text)"}}>${greeting}</div>
             <div style=${{fontSize:".88rem",color:"var(--muted)",marginTop:2,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"calc(100vw - 160px)"}}>Admin-Portal · Raum für Selbstwirksamkeit</div>
-            <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-08-16 17:48 · Doku v3.148 · 2026-08-16 17:26
+            <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.6,marginTop:1}}>App v2026-08-17 13:36 · Doku v3.148 · 2026-08-16 17:26
             </div>
           </div>
         </div>
