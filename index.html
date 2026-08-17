@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-17 15:53 coachee -->
+<!-- Version: 2026-08-17 16:03 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <!DOCTYPE html>
@@ -5275,8 +5275,17 @@ function LoginPage({ onLogin }) {
   // Anmelden-Modus — unabhängig vom URL-Parameter. Nur ein wirklich unberührtes Gerät (kein
   // Flag) darf über "?neu=1" in den Registrieren-Modus starten.
   const [mode,setMode] = useState(() => {
+    // Fix (17.08.2026, Nebenbefund): sw_auth_seen-Check und "?neu=1"-Check standen bisher im
+    // selben try-Block. In restriktiven Kontexten (z.B. In-App-Browser der Mail-/Gmail-App,
+    // Safari-Private-Modus, Storage-Partitionierung) kann localStorage.getItem() eine Exception
+    // werfen — dann griff der catch für den GESAMTEN Block, die URL-Prüfung wurde nie erreicht,
+    // und die Seite startete unabhängig vom Geräteverlauf immer im Anmelden-Modus, selbst auf
+    // einem komplett unberührten neuen Gerät. Jetzt: beide Prüfungen entkoppelt, ein
+    // localStorage-Fehler verhindert die "?neu=1"-Erkennung nicht mehr.
+    let seen = false;
+    try { seen = localStorage.getItem("sw_auth_seen") === "1"; } catch(e) {}
+    if(seen) return "login";
     try {
-      if(localStorage.getItem("sw_auth_seen") === "1") return "login";
       return new URLSearchParams(window.location.search).get("neu") === "1" ? "register" : "login";
     } catch(e) { return "login"; }
   }); // login | register
