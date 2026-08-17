@@ -209,10 +209,16 @@
   .area-detail ul{ list-style:none; display:flex; flex-direction:column; gap:7px; margin-bottom:14px; }
   .area-detail ul li{ font-size:.82rem; color:var(--ink); padding-left:18px; position:relative; }
   .area-detail ul li::before{ content:"·"; color:var(--leaf-deep); position:absolute; left:4px; font-size:1.2rem; line-height:.6; }
+  .area-detail p{ font-size:.82rem; color:var(--ink); line-height:1.5; margin-bottom:14px; }
   .area-detail .push-note{
     background:var(--ivory); border-radius:12px; padding:12px 14px;
     font-size:.78rem; color:var(--muted); border:0.5px dashed var(--border);
     text-align:left;
+  }
+  .model-note{
+    background:var(--ivory); border-radius:12px; padding:14px 16px;
+    font-size:.86rem; color:var(--ink); border:0.5px dashed var(--border);
+    text-align:left; margin-bottom:22px; line-height:1.5;
   }
 
   /* ───────── phase wheel ───────── */
@@ -440,12 +446,8 @@
       <h3>Chat</h3>
       <p>Direktkommunikation mit Diana &amp; Rico zwischen den Sitzungen.</p>
       <div class="area-detail">
-        <ul>
-          <li>Kurze Rückmeldungen zu einem Impuls</li>
-          <li>Fragen, die bis zur nächsten Sitzung nicht warten können</li>
-          <li>Freude, Stolz oder Erkenntnisse mitteilen</li>
-        </ul>
-        <div class="push-note">🔔 <strong>Push-Benachrichtigungen</strong> sind freiwillig — du wirst beim ersten Start gefragt und kannst das jederzeit in den Telefoneinstellungen ändern.</div>
+        <p>Ab jetzt läuft die gesamte Kommunikation deines Coachings über diesen Chat — nicht mehr per WhatsApp, SMS oder E-Mail. So bleibt alles an einem Ort, geschützt und nur für dich und uns sichtbar.</p>
+        <div class="push-note">🔔 <strong>Aktiviere Push-Benachrichtigungen unbedingt</strong> — sie sind wichtig für die ganze App, vor allem damit du deine Impulse nicht verpasst. Du wirst beim ersten Start gefragt, ändern kannst du das jederzeit in den Telefoneinstellungen.</div>
       </div>
     </div>
     <div class="area-card" data-area="2">
@@ -480,6 +482,7 @@
     <div class="phase-card"><div class="pnum">Phase 3</div><h3>Beziehungen &amp; Kommunikation</h3></div>
     <div class="phase-card"><div class="pnum">Phase 4</div><h3>Körper &amp; Achtsamkeit</h3></div>
   </div>
+  <div class="model-note"><strong>Tagesimpulse gehören zu deinem Coaching-Paket.</strong> Läuft dein Coaching auf Stundenbasis, erhältst du keine Tagesimpulse.</div>
   <p class="footnote" style="margin-bottom:30px;">Wie oft? Je nach Coaching-Modell passen Diana oder Rico den Rhythmus für dich an.</p>
   <div class="flow-list">
     <div class="flow-step">
