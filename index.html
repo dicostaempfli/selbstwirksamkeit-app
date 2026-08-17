@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-17 13:40 coachee -->
+<!-- Version: 2026-08-17 13:49 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <!DOCTYPE html>
@@ -1688,13 +1688,12 @@ const REM_ICONS = [
 // neuen Coachees korrekt mit 0 aktiven Impulsen startet (der ref.doc-Fix bleibt bestehen,
 // er sichert nur, dass Seeding technisch funktioniert, sobald wieder Daten gebraucht werden).
 const INIT_REMINDERS = [];
-const INIT_LIBRARY = [
-  {id:1,type:"audio",title:"Atemübung — 5 Minuten",desc:"Geführte Atemübung zur täglichen Zentrierung.",duration:"5:12",uploadedAt:"20.03.2026"},
-  {id:2,type:"video",title:"Einführung: Selbstwirksamkeit",desc:"Was bedeutet Selbstwirksamkeit im Alltag?",duration:"12:44",uploadedAt:"18.03.2026"},
-  {id:3,type:"dokus",title:"Reflexionsbogen — Woche 1",desc:"Leitfragen für deine erste Coaching-Woche.",uploadedAt:"15.03.2026"},
-  {id:4,type:"audio",title:"Körper-Scan Entspannung",desc:"Geführte Körperwahrnehmung für abends.",duration:"8:30",uploadedAt:"10.03.2026"},
-  {id:5,type:"dokus",title:"Werte-Kompass Übung",desc:"Finde und verankere deine persönlichen Werte.",uploadedAt:"05.03.2026"},
-];
+// Fix (17.08.2026, analog Kapitel 119.3 "INIT_REMINDERS geleert"): Demo-Bibliothek
+// (5 feste Einträge) wurde von echten Coachees als irritierend empfunden — geleert,
+// analog zur bereits früher geleerten INIT_REMINDERS/INIT_DOODLES. Bleibt als leeres
+// Array bestehen (statt komplett entfernt), da syncCollection() den Parameter erwartet
+// und für den Fall künftig wieder gewünschter Vorlagen-Daten vorbereitet sein soll.
+const INIT_LIBRARY = [];
 
 const REC_TYPES = [
   {id:"daily",label:"Täglich",iconName:"sun"},
