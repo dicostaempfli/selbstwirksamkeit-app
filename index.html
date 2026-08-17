@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-17 13:49 coachee -->
+<!-- Version: 2026-08-17 14:23 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <!DOCTYPE html>
@@ -1331,11 +1331,31 @@ setTimeout(function() {
 </script>
 
 <script type="module">
+// Fehler-Log für Admin (NEU 17.08.2026, Kapitel 128): schreibt still im Hintergrund
+// unbehandelte Fehler nach Firestore (error_logs), damit Diana/Rico sie im Admin sehen
+// können, ohne dass der Coachee irgendetwas davon bemerkt. Kein UI-Impact auf Coachee-Seite.
+function _logClientError(code, message, context) {
+  try {
+    var fsDb = window._fb && window._fb.db;
+    if(!fsDb) return;
+    fsDb.collection("error_logs").add({
+      uid: window._rswUid || null,
+      name: window._rswUserName || null,
+      errorCode: code,
+      message: String(message||"").slice(0,500),
+      context: context || window._rswCurrentPage || null,
+      userAgent: navigator.userAgent,
+      ts: Date.now(),
+      resolved: false
+    }).catch(function(){});
+  } catch(e) {}
+}
 // Global error handler to catch and display runtime errors
 window.onerror = (msg, src, line, col, err) => {
   if(line === 0 && !src) return true; // Cross-Origin-Fehler ignorieren
 
   var info = msg + '\n' + (src||'?') + ':' + line + ':' + col + (err&&err.stack ? '\n' + String(err.stack).split('\n').slice(0,4).join('\n') : '');
+  _logClientError('JS_UNCAUGHT', info);
   if(window._showCrashScreen) window._showCrashScreen(info);
   return true;
 };
@@ -1354,6 +1374,7 @@ window.addEventListener('unhandledrejection', e => {
   // normal den Crashscreen aus.
   if(/in-progress transaction/i.test(msg)) { console.warn('[IDB] transienter Safari-Fehler ignoriert:', msg); return; }
   var info = 'Unhandled Promise Rejection: ' + msg + (r&&r.stack ? '\n' + String(r.stack).split('\n').slice(0,4).join('\n') : '');
+  _logClientError('UNHANDLED_REJECTION', info);
   if(window._showCrashScreen) window._showCrashScreen(info);
 });
 import { h, render, Fragment } from 'preact';
@@ -1718,6 +1739,7 @@ function recLabel(r) {
 
 function App({ user, userDoc }) {
   const [page,setPage]           = useState("dashboard");
+  useEffect(() => { window._rswCurrentPage = page; }, [page]); // für _logClientError (Kapitel 128)
   const [coachees,setCoachees]   = useState(INIT_COACHEES);
   // Fix (31.07.2026, Fund Rico "beim App-Start blitzt kurz eine andere/alte Ansicht auf"):
   // reminders/library starteten bisher direkt mit INIT_REMINDERS/INIT_LIBRARY (5 fest
@@ -2023,7 +2045,7 @@ function App({ user, userDoc }) {
       const newRems = typeof newRemsOrFn === "function" ? newRemsOrFn(prev) : newRemsOrFn;
       const fbDb = window._fb?.db;
       if(fbDb) {
-        newRems.forEach(r => { const {photos,...rNoPhotos}=r; fbDb.collection("reminders").doc(String(r.id)).set({...rNoPhotos,uid}).catch(()=>{}); });
+        newRems.forEach(r => { const {photos,...rNoPhotos}=r; fbDb.collection("reminders").doc(String(r.id)).set({...rNoPhotos,uid}).catch(e=>_logClientError('FIRESTORE_WRITE_FAIL','saveReminders: '+(e&&e.message),'Termine')); });
         // Fix (17.08.2026, Kongruenz zu Kapitel 109.7/119): Cleanup-Query war bisher
         // unbefiltert (fbDb.collection("reminders").get()) — für echte Coachees lehnt
         // Firestore eine unbefilterte List-Query gegen die dokumentbasierte Rule
@@ -2081,7 +2103,7 @@ function App({ user, userDoc }) {
               coacheeNotes: Object.fromEntries(Object.entries(s.coacheeNotes||{}).map(([k,v])=>[String(k),v]))
             }))
           };
-          fbDb.collection("doodles").doc(String(d.id)).set(fsDoc).catch(()=>{});
+          fbDb.collection("doodles").doc(String(d.id)).set(fsDoc).catch(e=>_logClientError('FIRESTORE_WRITE_FAIL','saveDoodles: '+(e&&e.message),'Termine'));
         });
         // Fix (17.08.2026, gleiches Muster wie saveReminders oben): Cleanup-Query war
         // unbefiltert — für echte Coachees PERMISSION_DENIED (verschluckt), zusätzlich
@@ -5558,6 +5580,8 @@ function Root() {
         unsubscribe = fbAuth.onAuthStateChanged(u => {
           setUser(u);
           setAuthReady(true);
+          window._rswUid = u ? u.uid : null; // für _logClientError (Fehler-Log, Kapitel 128)
+          if(!u) window._rswUserName = null;
           // NEU (16.08.2026, Fix Nebenbefund 3): Sobald irgendwann ein echter User-Wert
           // vorliegt (frisch registriert/eingeloggt, oder aus persistenter Session
           // wiederhergestellt), dauerhaftes Geräte-Flag setzen. Grundlage für den
@@ -5658,7 +5682,7 @@ function AppGate({user}) {
     if(!firestore) { setUserDoc(null); return; }
     firestore.collection("users").doc(user.uid).get()
       .then(async snap => {
-        if(snap.exists) { setUserDoc(snap.data()); return; }
+        if(snap.exists) { setUserDoc(snap.data()); window._rswUserName = snap.data()?.name || null; return; }
         // Kein users-Dokument vorhanden — prüfen, ob ein passender users_pending-Eintrag
         // (angelegt von Diana/Rico in der Admin-App) per E-Mail-Adresse geclaimt werden kann.
         const email = user.email;
