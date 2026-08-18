@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-18 12:05 coachee -->
+<!-- Version: 2026-08-18 21:16 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <!DOCTYPE html>
@@ -1827,7 +1827,7 @@ function App({ user, userDoc }) {
       // Reminder-Push trägt jetzt die konkrete reminderId im Hash (#impulse-meine-<id>),
       // damit das Anzeige-Popup weiss, welcher Impuls gemeint ist (statt nur der Subtab).
       const remId = hash.slice("impulse-meine-".length);
-      setImpulseDefaultTab("meine"); setPage("impulse"); setPendingReminderId(remId);
+      setImpulseDefaultTab("meine"); setPage("impulse"); enqueueOrSetReminder(remId);
     }
     else if(hash === "impulse-meine" || hash === "impulse") { setImpulseDefaultTab("meine"); setPage("impulse"); }
     else if(hash.startsWith("library-")) {
@@ -2312,6 +2312,20 @@ function App({ user, userDoc }) {
     return welcomePending || (!!impulseFlagData.activePhase && impulseFlagData.nextImpulseAt <= Date.now() && !dismissedToday);
   };
 
+  // Fix (18.08.2026, Rückmeldung "Badge in Menüleiste bei Impulse wird nicht angezeigt"):
+  // getTagesimpulsPending()/getDueUnseenReminderIds() werten Date.now() aus, aber der
+  // Effect darunter hatte bisher KEINEN zeitbasierten Trigger — er lief nur bei einer
+  // Änderung von impulseFlagData/dailyReminderQueue/page/user erneut. Wurde ein Reminder
+  // erst fällig, WÄHREND die App bereits offen war (kein neuer Firestore-Snapshot, keine
+  // Navigation), blieb der Badge bis zum nächsten zufälligen Trigger unsichtbar — im
+  // gesamten File gab es bisher keinen einzigen setInterval. Leichtgewichtiger Tick alle
+  // 30s erzwingt jetzt eine periodische Neubewertung, unabhängig von externen Events.
+  const [impulsTick,setImpulsTick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setImpulsTick(t => t+1), 30000);
+    return () => clearInterval(id);
+  }, []);
+
   const [impulseUnreadCount, setImpulseUnreadCount] = useState(0);
   useEffect(() => {
     if(!user?.uid) { setImpulseUnreadCount(0); return; }
@@ -2321,7 +2335,7 @@ function App({ user, userDoc }) {
     // Homescreen-App-Icon-Badge weiter unten, die laut Rico-Entscheid (Kapitel 66)
     // immer nur "1" zeigt, nie eine echte Zahl.
     setImpulseUnreadCount((getTagesimpulsPending()?1:0) + getDueUnseenReminderIds().length);
-  }, [impulseFlagData, impulseFlagLoaded, user?.uid, page, dailyReminderQueue]);
+  }, [impulseFlagData, impulseFlagLoaded, user?.uid, page, dailyReminderQueue, impulsTick]);
 
   // ── Auto-Popup-Queue bei manuellem Icon-Tap (ohne Push) ──
   // Tippt der Coachee direkt auf das Impulse-Icon, statt über einen Push zu kommen,
@@ -2334,10 +2348,47 @@ function App({ user, userDoc }) {
   // Deep-Link-Konsum, der pendingImpulsPopup sofort selbst wieder auf false setzt).
   const manualPopupQueueRef = useRef([]);
   const advanceManualPopupQueue = () => {
-    if(manualPopupQueueRef.current.length === 0) return;
+    if(manualPopupQueueRef.current.length === 0) {
+      // Fix (18.08.2026, Rückmeldung "mehrere Impulse werden verschluckt"): Nach Leerlaufen
+      // der expliziten Queue zusätzlich prüfen, ob inzwischen weitere, bisher nie erfasste
+      // Reminder fällig&ungesehen sind — z.B. weil ein Push nur EINEN einzelnen Reminder
+      // auslöste (oder die anderen wegen gleichzeitiger Zustellung von der Notification-
+      // Anzeige des Betriebssystems verdeckt/zusammengefasst wurden), während mehrere
+      // gleichzeitig fällig waren. Ohne diesen Nachschlag blieben die übrigen komplett
+      // verschwunden, bis der Coachee zufällig erneut auf das Impulse-Icon tippt. Bewusst
+      // NUR Reminder werden so nachgeladen, nie der Tagesimpuls erneut eingereiht: dessen
+      // "X"/Backdrop-Schliessen setzt keinen dismissedToday-Flag, ein automatisches
+      // Wieder-Einreihen könnte sonst denselben Tagesimpuls in einer Endlosschleife zeigen.
+      const stillDue = getDueUnseenReminderIds();
+      if(stillDue.length === 0) return;
+      manualPopupQueueRef.current = stillDue.map(id => ({type:"reminder", id}));
+    }
     const next = manualPopupQueueRef.current.shift();
     if(next.type === "tagesimpuls") { setImpulseDefaultTab("tagesimpuls"); setPendingImpulsPopup(true); }
     else { setImpulseDefaultTab("meine"); setPendingReminderId(next.id); }
+  };
+  // Fix (18.08.2026, Rückmeldung "Impulse werden verschluckt, v.a. wenn mehrere ausgelöst
+  // werden und Push angetippt wird"): Ein Reminder-Push (#impulse-meine-<id>) setzte bisher
+  // IMMER direkt pendingReminderId, ohne zu prüfen, ob dort schon eine andere, noch nicht
+  // konsumierte ID wartet (z.B. weil kurz zuvor ein zweiter Push-Tap oder der Kaltstart-
+  // Fallback applyPendingDeepLink() denselben Hash-Pfad erneut durchlief, siehe Kapitel-32-
+  // Kommentar oben). Das simple Überschreiben liess die ältere ID spurlos verschwinden, ohne
+  // dass ihr Popup je erschien — "verschluckt", exakt wie gemeldet. Jetzt: reiht eine neue
+  // Push-Ziel-ID in dieselbe manualPopupQueueRef ein, statt eine bereits wartende zu
+  // überschreiben; sobald das aktuell gezeigte Popup schliesst, schiebt onManualPopupClosed
+  // (advanceManualPopupQueue) automatisch die nächste nach — dieselbe, bereits bewährte
+  // Technik wie beim manuellen Icon-Tap oben.
+  const enqueueOrSetReminder = (remId) => {
+    setPendingReminderId(prev => {
+      if(prev && String(prev) !== String(remId)) {
+        // Dedupe: dieselbe ID nicht doppelt in die Warteschlange stellen (z.B. bei
+        // wiederholtem Hash-Routing desselben Pushes).
+        const already = manualPopupQueueRef.current.some(it => it.type === "reminder" && String(it.id) === String(remId));
+        if(!already) manualPopupQueueRef.current = [...manualPopupQueueRef.current, {type:"reminder", id:remId}];
+        return prev;
+      }
+      return remId;
+    });
   };
 
   const navTo = (p) => {
