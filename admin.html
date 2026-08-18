@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-18 10:15 admin -->
+<!-- Version: 2026-08-18 10:29 admin -->
 <!DOCTYPE html>
 <!-- Version: 2026-08-12 17:47 admin -->
 <head>
@@ -465,7 +465,7 @@ window.addEventListener('orientationchange', ()=>setTimeout(setVH,150));
     padding-bottom: max(10px, env(safe-area-inset-bottom, 10px));
     display: flex;
     align-items: flex-end;
-    gap: 8px;
+    gap: 9px;
     overflow: hidden;
     max-width: 100%;
   }
@@ -475,16 +475,16 @@ window.addEventListener('orientationchange', ()=>setTimeout(setVH,150));
     width: 0;
     background: var(--bg);
     border: 1.5px solid var(--border);
-    border-radius: 20px;
-    padding: 9px 15px;
+    border-radius: 22px;
+    padding: 12px 17px;
     font-family: 'Exo 2';
     font-size: 16px;
     color: var(--text);
     resize: none;
-    max-height: 100px;
-    overflow-y: auto;
-    line-height: 1.45;
-    transition: border .2s;
+    max-height: 156px;
+    overflow-y: hidden;
+    line-height: 1.6;
+    transition: border .2s, height .1s ease;
   }
   .input-box:focus { outline: none; border-color: var(--teal); background: #fff; }
   .send-btn {
@@ -567,11 +567,12 @@ window.addEventListener('orientationchange', ()=>setTimeout(setVH,150));
   /* Forms */
   .label { font-size:.72rem; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; margin-bottom:5px; display:block; }
   .input,.textarea,.select {
-    width:100%; padding:8px 12px; border:1.5px solid var(--border); border-radius:10px;
+    width:100%; padding:11px 14px; border:1.5px solid var(--border); border-radius:10px;
     font-family:'Exo 2'; font-size:16px; background:var(--surface); color:var(--text); transition:border .2s;
+    line-height:1.5;
   }
   .input:focus,.textarea:focus,.select:focus { outline:none; border-color:var(--teal); }
-  .textarea { resize:vertical; min-height:74px; overflow-wrap:break-word; word-break:break-word; }
+  .textarea { resize:vertical; min-height:92px; line-height:1.55; overflow-wrap:break-word; word-break:break-word; }
   .form-row { margin-bottom:12px; }
   .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
   .flex-between { display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:8px; }
@@ -810,7 +811,7 @@ window.addEventListener('orientationchange', ()=>setTimeout(setVH,150));
       flex-shrink: 0;
       padding: 8px 10px;
     }
-    .input-box { font-size: 16px; padding: 8px 12px; }
+    .input-box { font-size: 16px; padding: 10px 14px; }
 
     /* Quick replies */
     .quick-replies { padding: 0 12px 6px; }
@@ -926,7 +927,7 @@ window.addEventListener('orientationchange', ()=>setTimeout(setVH,150));
     /* ── Form inputs on mobile ── */
     .input, .select, .textarea {
       font-size: 16px !important; /* Prevents iOS zoom on focus */
-      padding: 8px 10px;
+      padding: 10px 12px;
     }
     input[type="time"] {
       font-size: 14px !important;
@@ -1000,7 +1001,7 @@ window.addEventListener('orientationchange', ()=>setTimeout(setVH,150));
     }
     .msg-bubble-wrap { max-width: 82%; }
     .msg-bubble { font-size: .91rem; }
-    .input-box { font-size: 16px; padding: 8px 12px; }
+    .input-box { font-size: 16px; padding: 10px 14px; }
 
   }
 
@@ -1046,7 +1047,7 @@ window.addEventListener('orientationchange', ()=>setTimeout(setVH,150));
 .conv-time { font-size:.68rem; color:var(--muted); }
 .conv-unread { background:var(--teal); color:#fff; border-radius:99px; padding:2px 6px; font-size:.65rem; font-weight:700; min-width:18px; text-align:center; }
 .chat-input-bar { background:var(--surface); border-top:1px solid var(--border); padding:10px 14px; display:flex; align-items:flex-end; gap:8px; flex-shrink:0; }
-.chat-textarea { flex:1; background:var(--bg); border:1.5px solid var(--border); border-radius:20px; padding:9px 15px; font-family:'Exo 2'; font-size:16px; color:var(--text); resize:none; max-height:100px; overflow-y:auto; line-height:1.45; }
+.chat-textarea { flex:1; background:var(--bg); border:1.5px solid var(--border); border-radius:22px; padding:12px 17px; font-family:'Exo 2'; font-size:16px; color:var(--text); resize:none; max-height:156px; overflow-y:auto; line-height:1.6; }
 .chat-textarea:focus { outline:none; border-color:var(--teal); }
 
 /* Admin stat cards */
@@ -2324,8 +2325,8 @@ function DashboardPage({coachees,library,doodles,setPage,user,openSenderFilter,o
       </div>
       <div style=${{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginTop:14,paddingTop:10,paddingBottom:16,borderTop:"1px solid var(--border2)",borderBottom:"1px solid var(--border2)",marginBottom:16,gap:10}}>
         <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.7,lineHeight:1.5}}>
-          <div>App v2026-08-18 10:15 · Doku v3.159</div>
-          <div>2026-08-17 16:03</div>
+          <div>App v2026-08-18 10:29 · Doku v3.159</div>
+          <div>2026-08-18 10:29</div>
         </div>
         <div style=${{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
           <button class="dash-reload-btn" title="Fehler-Log" onClick=${()=>setPage("errors")} style=${{position:"relative",color:openErrorCount>0?"#993C1D":"var(--muted)"}}>
@@ -2875,7 +2876,7 @@ function ChatWindow({coachee,sender,setSender,onSend,onSendImg,onSendFile,onDele
   },{});
   const groupsSorted = Object.entries(groups).sort((a,b)=>a[0].localeCompare(b[0]));
 
-  const handleSend = () => { if(!input.trim())return; onSend(input,sender); setInput(""); if(textRef.current){textRef.current.style.height='auto';} };
+  const handleSend = () => { if(!input.trim())return; onSend(input,sender); setInput(""); if(textRef.current){textRef.current.style.height='auto'; textRef.current.style.overflowY='hidden';} };
   const handleKey  = e => { if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();handleSend();} };
 
   const handleChatImg = async e => {
@@ -3081,7 +3082,13 @@ function ChatWindow({coachee,sender,setSender,onSend,onSendImg,onSendFile,onDele
             borderRadius:"50%",background:"var(--danger)",border:"2px solid var(--surface)"}}/>`}
         </button>
         <textarea ref=${textRef} class="input-box" rows=${1} value=${input}
-          onInput=${e=>setInput(e.target.value)} onKeyDown=${handleKey}
+          onInput=${e=>{
+            setInput(e.target.value);
+            const el=e.target;
+            el.style.height='auto';
+            el.style.height=Math.min(el.scrollHeight,156)+'px';
+            el.style.overflowY=el.scrollHeight>156?'auto':'hidden';
+          }} onKeyDown=${handleKey}
           onFocus=${()=>{
             setTimeout(()=>{
               if(textRef.current) textRef.current.scrollIntoView({block:"nearest",behavior:"smooth"});
