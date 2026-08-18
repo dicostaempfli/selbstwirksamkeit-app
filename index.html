@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-18 10:10 coachee -->
+<!-- Version: 2026-08-18 10:15 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <!DOCTYPE html>
@@ -5643,10 +5643,21 @@ function PrivacyScreen({user, onAccept}) {
       // "fire and forget" mit separatem Timeout-Race, App-Fortschritt wartet nicht mehr
       // auf die Netzwerkantwort. Firestore-Offline-Persistenz synct den Write nach, sobald
       // die Verbindung zurück ist.
+      // Fix (18.08.2026, Fortsetzung): _logClientError ergänzt — Rico wies zu Recht darauf
+      // hin, dass dieser Fall im Fehler-Log unsichtbar war. Zwei Pfade jetzt geloggt:
+      // a) echter Firestore-Fehler (Reject) → FIRESTORE_WRITE_FAIL, wie bei den anderen
+      //    Writes (Termine/Doodles/Chat) schon üblich, hier aber bisher vergessen.
+      // b) Timeout gewinnt das Race (Promise hängt, weder resolved noch rejected — genau
+      //    das war der ursprüngliche Blocker) → neuer Code AGB_ACCEPT_TIMEOUT. Ein rein
+      //    hängendes Promise löst weder window.onerror noch unhandledrejection aus, daher
+      //    braucht es diesen expliziten Log-Zeitpunkt im Race selbst.
+      let settled = false;
       const update = firestore.collection("users").doc(user.uid)
         .update({ agbAccepted: true, agbAcceptedAt: new Date().toISOString() })
-        .catch(()=>{});
+        .then(()=>{ settled = true; })
+        .catch(e => { settled = true; _logClientError('FIRESTORE_WRITE_FAIL', 'PrivacyScreen doAccept: ' + (e&&e.message), 'Datenschutz'); });
       await Promise.race([ update, new Promise(resolve => setTimeout(resolve, 6000)) ]);
+      if(!settled) _logClientError('AGB_ACCEPT_TIMEOUT', 'doAccept: Firestore-Write nach 6s nicht abgeschlossen, User trotzdem weitergeleitet', 'Datenschutz');
     }
     onAccept();
   };
