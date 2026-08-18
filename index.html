@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-18 11:03 coachee -->
+<!-- Version: 2026-08-18 12:05 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <!DOCTYPE html>
@@ -89,17 +89,29 @@
       // setzen), ging bei JEDEM Reload-Pfad (Watchdog, Crash-Screen, Hintergrund>60s) ein zuvor
       // erfolgreich angewendetes Push-Ziel verloren, sobald der pending-deeplink-Cache-Eintrag
       // schon konsumiert war (er wird beim ersten Lesen sofort gelöscht — applyPendingDeepLink).
-      // routeHash() hinterlegt deshalb bei jedem erfolgreichen Routing zusätzlich einen sehr
-      // kurzlebigen (30s) Recovery-Eintrag in localStorage — einmalig gelesen und sofort gelöscht,
-      // damit spätere, unabhängige Reloads (z.B. normales Hintergrund/Vordergrund-Wechseln nach
-      // Minuten) nicht ungewollt auf ein längst überholtes Ziel zurückspringen.
+      // routeHash() hinterlegt deshalb bei jedem erfolgreichen Routing zusätzlich einen
+      // kurzlebigen (120s) Recovery-Eintrag in localStorage — einmalig gelesen und sofort
+      // gelöscht, damit spätere, unabhängige Reloads (z.B. normales Hintergrund/Vordergrund-
+      // Wechseln nach Minuten) nicht ungewollt auf ein längst überholtes Ziel zurückspringen.
+      // Fix (18.08.2026, Fund "Impuls-Push wird bei hängendem App-Start verschluckt"):
+      // War bisher 30s. Der visibilitychange-Handler unten (der genau diesen Recovery-Eintrag
+      // konsumieren soll) löst den Reload aber erst ab 60s Hintergrundzeit aus — der exakte
+      // Pfad, für den dieser Recovery-Mechanismus gebaut wurde, konnte den Eintrag dadurch
+      // NIE rechtzeitig vorfinden (60s Wartezeit > 30s Gültigkeit), da 30s < 60s strukturell
+      // garantiert bereits abgelaufen war. Jeder Impuls-Push (Tages-Impuls wie Meine Impulse),
+      // bei dem die App beim Öffnen hing und der Coachee sie daraufhin wegdrückte und nach
+      // über einer Minute wieder öffnete, landete dadurch zuverlässig auf Home statt beim
+      // Impuls — der pending-deeplink-Cache-Eintrag war zu diesem Zeitpunkt bereits gelöscht
+      // (wird beim ersten Lesen sofort konsumiert, siehe applyPendingDeepLink), der Impuls
+      // damit unwiederbringlich weg. Auf 120s angehoben, damit die 60s-Reload-Schwelle mit
+      // komfortablem Puffer sicher unterschritten wird.
       if(!hash) {
         try {
           const raw = localStorage.getItem('rsw_crash_recover_hash');
           if(raw) {
             localStorage.removeItem('rsw_crash_recover_hash');
             const r = JSON.parse(raw);
-            if(r && r.hash && (Date.now() - (r.ts || 0) < 30000)) hash = '#' + r.hash;
+            if(r && r.hash && (Date.now() - (r.ts || 0) < 120000)) hash = '#' + r.hash;
           }
         } catch(e) {}
       }
