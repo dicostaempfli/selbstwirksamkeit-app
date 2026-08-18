@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-18 10:29 admin -->
+<!-- Version: 2026-08-18 11:03 admin -->
 <!DOCTYPE html>
 <!-- Version: 2026-08-12 17:47 admin -->
 <head>
@@ -2325,8 +2325,8 @@ function DashboardPage({coachees,library,doodles,setPage,user,openSenderFilter,o
       </div>
       <div style=${{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginTop:14,paddingTop:10,paddingBottom:16,borderTop:"1px solid var(--border2)",borderBottom:"1px solid var(--border2)",marginBottom:16,gap:10}}>
         <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.7,lineHeight:1.5}}>
-          <div>App v2026-08-18 10:29 · Doku v3.159</div>
-          <div>2026-08-18 10:29</div>
+          <div>App v2026-08-18 11:03 · Doku v3.159</div>
+          <div>2026-08-18 11:03</div>
         </div>
         <div style=${{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
           <button class="dash-reload-btn" title="Fehler-Log" onClick=${()=>setPage("errors")} style=${{position:"relative",color:openErrorCount>0?"#993C1D":"var(--muted)"}}>
@@ -2877,7 +2877,10 @@ function ChatWindow({coachee,sender,setSender,onSend,onSendImg,onSendFile,onDele
   const groupsSorted = Object.entries(groups).sort((a,b)=>a[0].localeCompare(b[0]));
 
   const handleSend = () => { if(!input.trim())return; onSend(input,sender); setInput(""); if(textRef.current){textRef.current.style.height='auto'; textRef.current.style.overflowY='hidden';} };
-  const handleKey  = e => { if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();handleSend();} };
+  const handleKey  = e => {
+    const isTouchOnly = window.matchMedia && window.matchMedia('(hover: none) and (pointer: coarse)').matches;
+    if(e.key==="Enter"&&!e.shiftKey&&!isTouchOnly){e.preventDefault();handleSend();}
+  };
 
   const handleChatImg = async e => {
     const files = e.target.files; if(!files||!files[0])return;
