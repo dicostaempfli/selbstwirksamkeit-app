@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-18 11:03 admin -->
+<!-- Version: 2026-08-18 11:42 admin -->
 <!DOCTYPE html>
 <!-- Version: 2026-08-12 17:47 admin -->
 <head>
@@ -2325,8 +2325,8 @@ function DashboardPage({coachees,library,doodles,setPage,user,openSenderFilter,o
       </div>
       <div style=${{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginTop:14,paddingTop:10,paddingBottom:16,borderTop:"1px solid var(--border2)",borderBottom:"1px solid var(--border2)",marginBottom:16,gap:10}}>
         <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.7,lineHeight:1.5}}>
-          <div>App v2026-08-18 11:03 · Doku v3.159</div>
-          <div>2026-08-18 11:03</div>
+          <div>App v2026-08-18 11:42 · Doku v3.159</div>
+          <div>2026-08-18 11:42</div>
         </div>
         <div style=${{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
           <button class="dash-reload-btn" title="Fehler-Log" onClick=${()=>setPage("errors")} style=${{position:"relative",color:openErrorCount>0?"#993C1D":"var(--muted)"}}>
@@ -3488,7 +3488,7 @@ function CoacheesPage({coachees,setCoachees,setPage,pending,setPending,deleted,s
             h("span",null," und einem eigenen Passwort. Sein Zugang wird dabei automatisch freigeschaltet — du musst nichts mehr in der Firebase Console eintragen.")
           ),
           h("div",{className:"email-copy-area",style:{background:"var(--bg)",border:"1.5px solid var(--border)",borderRadius:12,padding:"16px 18px",fontFamily:"Georgia,serif",fontSize:".88rem",lineHeight:1.9,color:"var(--text)",whiteSpace:"pre-wrap",overflowWrap:"break-word",wordBreak:"break-word",userSelect:"all",marginBottom:16}},
-            showEmail&&("Liebe/r "+showEmail.name+"\n\nHerzlich willkommen bei Raum f\u00fcr Selbstwirksamkeit!\n\nWir freuen uns sehr, dich auf diesem Weg begleiten zu d\u00fcrfen. Deine pers\u00f6nliche Coaching-App ist jetzt f\u00fcr dich freigeschaltet.\n\nBevor du startest, schau dir gerne kurz an, wie die App funktioniert:\nhttps://dicostaempfli.github.io/selbstwirksamkeit-app/onboarding.html\n\nSo gelangst du zur App:\nhttps://dicostaempfli.github.io/selbstwirksamkeit-app/?neu=1\n\nRichte dort deinen Zugang ein — mit deiner E-Mail-Adresse ("+showEmail.email+") und einem Passwort deiner Wahl. Alternativ geht es auch direkt mit deinem Google-Konto.\n\nWas dich erwartet:\n\u2022 Tages-Impuls \u2014 ein t\u00e4glicher Impuls vom Denken ins F\u00fchlen\n\u2022 Atemball \u2014 dein t\u00e4gliches Ritual zur Zentrierung\n\u2022 Meine Impulse \u2014 deine eigenen, wiederkehrenden Impulse\n\u2022 Chat \u2014 direkte Verbindung zu uns\n\nDie App ist bewusst einfach gehalten \u2014 kein Zeitfresser, sondern ein sanfter Anker im Alltag.\n\nWir freuen uns auf den gemeinsamen Weg.\n\nHerzlich,\nDiana & Rico\nRaum f\u00fcr Selbstwirksamkeit\nwww.selbstwirksamkeit.ch")
+            showEmail&&("Liebe/r "+showEmail.name+"\n\nHerzlich willkommen bei der App von Raum f\u00fcr Selbstwirksamkeit!\n\nWir freuen uns sehr, dich auf diesem Weg begleiten zu d\u00fcrfen. Deine pers\u00f6nliche Coaching-App ist jetzt f\u00fcr dich freigeschaltet.\n\nBevor du startest, schau dir gerne kurz an, wie die App funktioniert:\nhttps://dicostaempfli.github.io/selbstwirksamkeit-app/onboarding.html\n\nSo gelangst du zur App:\nhttps://dicostaempfli.github.io/selbstwirksamkeit-app/?neu=1\n\nRichte dort deinen Zugang ein — mit deiner E-Mail-Adresse ("+showEmail.email+") und einem Passwort deiner Wahl. Alternativ geht es auch direkt mit deinem Google-Konto.\n\nWas dich erwartet:\n\u2022 Chat \u2014 direkte Verbindung zu uns zwischen den Sitzungen\n\u2022 Impulse \u2014 kleine, wiederkehrende Denkanst\u00f6sse vom Denken ins F\u00fchlen\n\u2022 Mediathek \u2014 \u00dcbungen und Inhalte zum Vertiefen\n\u2022 Termine \u2014 deine Coaching-Termine und Events auf einen Blick\n\nDie App ist bewusst einfach gehalten \u2014 kein Zeitfresser, sondern ein sanfter Anker im Alltag.\n\nFalls die Registrierung nicht klappen sollte: Schreib Rico kurz per WhatsApp eine (letzte) Nachricht. Anschliessend l\u00e4uft die gesamte Kommunikation \u00fcber die App \u2014 nicht mehr per WhatsApp oder SMS. So bleibt alles an einem Ort, gesch\u00fctzt und nur f\u00fcr dich und uns sichtbar.\n\nWir freuen uns auf den gemeinsamen Weg.\n\nHerzlich,\nDiana & Rico\nRaum f\u00fcr Selbstwirksamkeit\nwww.selbstwirksamkeit.ch")
           ),
           h("div",{style:{display:"flex",gap:10}},
             h("button",{
