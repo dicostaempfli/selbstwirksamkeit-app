@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-17 16:03 coachee -->
+<!-- Version: 2026-08-18 10:10 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <!DOCTYPE html>
@@ -5635,9 +5635,18 @@ function PrivacyScreen({user, onAccept}) {
     setSaving(true);
     const firestore = window._fb?.db;
     if(firestore) {
-      try {
-        await firestore.collection("users").doc(user.uid).update({ agbAccepted: true, agbAcceptedAt: new Date().toISOString() });
-      } catch(e) {}
+      // Fix (18.08.2026): Kein await ohne Timeout mehr — bei hängender/instabiler
+      // Verbindung blieb das Promise unbegrenzt pending (weder resolved noch rejected),
+      // der try/catch griff nie, und onAccept() wurde nie aufgerufen. Die Person sass
+      // dauerhaft auf "Wird gespeichert…" fest, obwohl sie im Hintergrund (users_pending-
+      // Claim beim Login) bereits als aktiver Coachee angelegt war. Jetzt: Firestore-Write
+      // "fire and forget" mit separatem Timeout-Race, App-Fortschritt wartet nicht mehr
+      // auf die Netzwerkantwort. Firestore-Offline-Persistenz synct den Write nach, sobald
+      // die Verbindung zurück ist.
+      const update = firestore.collection("users").doc(user.uid)
+        .update({ agbAccepted: true, agbAcceptedAt: new Date().toISOString() })
+        .catch(()=>{});
+      await Promise.race([ update, new Promise(resolve => setTimeout(resolve, 6000)) ]);
     }
     onAccept();
   };
