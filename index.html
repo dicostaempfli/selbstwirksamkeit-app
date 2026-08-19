@@ -3509,13 +3509,16 @@ const ImpulsReflexionPopup = ({onJa, onNein, onClose}) => html`
 // NEU (06.08.2026): Willkommens-Screen bei Phasenwechsel (Variante A). Workbook-Titel
 // und Seitenzahlen sind an das physische Workbook gebunden und ändern sich praktisch nie
 // — deshalb bewusst als Konstante im Code statt als weiteres Firestore-/Admin-JSON-Feld,
-// analog zu den bereits hardcodierten Coach-UIDs. Quelle: Mastervorlage SC_2026,
-// Inhaltsverzeichnis (Phase 1: S.4, Phase 2: S.27, Phase 3: S.54, Phase 4: S.73, Schlusswort: S.83).
+// analog zu den bereits hardcodierten Coach-UIDs.
+// GEÄNDERT (19.08.2026): Seitenzahlen an die aktuelle Mastervorlage SC_2026 (Stand
+// 23.06.26) angepasst — die vorherigen Werte stammten aus einer älteren Workbook-Fassung.
+// Quelle: Mastervorlage SC_2026, Inhaltsverzeichnis (Land-Karten der Realität: S.4,
+// Phase 1: S.11, Phase 2: S.31, Phase 3: S.58, Phase 4: S.77, Schlusswort: S.87).
 const PHASE_INFO = {
-  1: { title: "Werte & Lebenssinn",              pageStart: 4,  pageEnd: 26 },
-  2: { title: "Gedanken & Gefühle",               pageStart: 27, pageEnd: 53 },
-  3: { title: "Beziehungen & Kommunikation",      pageStart: 54, pageEnd: 72 },
-  4: { title: "Körper & Achtsamkeit",             pageStart: 73, pageEnd: 82 }
+  1: { title: "Werte & Lebenssinn",              pageStart: 11, pageEnd: 30 },
+  2: { title: "Gedanken & Gefühle",               pageStart: 31, pageEnd: 57 },
+  3: { title: "Beziehungen & Kommunikation",      pageStart: 58, pageEnd: 76 },
+  4: { title: "Körper & Achtsamkeit",             pageStart: 77, pageEnd: 86 }
 };
 
 function ImpulsPage({ user, setPage, setActiveImpuls, activeImpuls, pendingImpulsPopup, setPendingImpulsPopup, pendingReflexionPopup, setPendingReflexionPopup, onManualPopupClosed }) {
