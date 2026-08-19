@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-19 21:24 coachee -->
+<!-- Version: 2026-08-19 22:35 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <!DOCTYPE html>
@@ -2347,6 +2347,29 @@ function App({ user, userDoc }) {
   // jeweilige Komponente ihr eigenes Popup wirklich schliesst (nicht beim blossen
   // Deep-Link-Konsum, der pendingImpulsPopup sofort selbst wieder auf false setzt).
   const manualPopupQueueRef = useRef([]);
+  // Fix (19.08.2026, Rückmeldung "Impuls erscheint beim App-Öffnen kurz, dann lädt die
+  // App neu und der Impuls ist weg"): Der seit 03.07.2026 bestehende >60s-Hintergrund-
+  // Reload (siehe hardReload()/visibilitychange-Handler im <head>-Skript ganz oben) kann
+  // jederzeit feuern, sobald die App aus längerem Hintergrund zurückkehrt — bisher war
+  // nur der echte Push-Tap-Pfad über routeHash() dagegen abgesichert: routeHash()
+  // hinterlegt einen kurzlebigen 'rsw_crash_recover_hash'-Recovery-Eintrag, den
+  // hardReload() beim tatsächlichen Reload wieder ausliest und als Hash anhängt, damit
+  // die Seite nach dem Reload gezielt zum selben Ziel zurückfindet. Der automatische
+  // Anzeige-Pfad ohne Push (Kapitel 143/146) sowie der manuelle Icon-Tap setzten diesen
+  // Recovery-Eintrag bisher NICHT. Feuerte der Reload genau in dem kurzen Moment, in dem
+  // ein Popup ohne Push automatisch aufgegangen war (State liegt nach Rückkehr aus dem
+  // Hintergrund bereits im Speicher, das Popup erscheint dadurch quasi sofort — knapp
+  // vor dem bis zu 800ms späteren hardReload()), verschwand es beim Reload spurlos: die
+  // Wiedererkennung danach hing rein von der Geschwindigkeit des erneuten Firestore-
+  // Snapshots ab, statt garantiert zu sein. Gemeinsame Hilfsfunktion setzt jetzt an
+  // allen drei Stellen, die ein Popup anzeigen (hier, navTo(), Auto-Nav-Effect unten),
+  // denselben Recovery-Eintrag wie ein echter Push — unabhängig vom Auslöser.
+  const showQueueItem = (item) => {
+    const h = item.type === "tagesimpuls" ? "impulse-tages" : ("impulse-meine-" + item.id);
+    try { localStorage.setItem('rsw_crash_recover_hash', JSON.stringify({ hash: h, ts: Date.now() })); } catch(e) {}
+    if(item.type === "tagesimpuls") { setImpulseDefaultTab("tagesimpuls"); setPendingImpulsPopup(true); }
+    else { setImpulseDefaultTab("meine"); setPendingReminderId(item.id); }
+  };
   const advanceManualPopupQueue = () => {
     if(manualPopupQueueRef.current.length === 0) {
       // Fix (18.08.2026, Rückmeldung "mehrere Impulse werden verschluckt"): Nach Leerlaufen
@@ -2364,8 +2387,7 @@ function App({ user, userDoc }) {
       manualPopupQueueRef.current = stillDue.map(id => ({type:"reminder", id}));
     }
     const next = manualPopupQueueRef.current.shift();
-    if(next.type === "tagesimpuls") { setImpulseDefaultTab("tagesimpuls"); setPendingImpulsPopup(true); }
-    else { setImpulseDefaultTab("meine"); setPendingReminderId(next.id); }
+    showQueueItem(next);
   };
   // Fix (18.08.2026, Rückmeldung "Impulse werden verschluckt, v.a. wenn mehrere ausgelöst
   // werden und Push angetippt wird"): Ein Reminder-Push (#impulse-meine-<id>) setzte bisher
@@ -2401,8 +2423,7 @@ function App({ user, userDoc }) {
       if(queue.length > 0) {
         const first = queue.shift();
         manualPopupQueueRef.current = queue;
-        if(first.type === "tagesimpuls") { setImpulseDefaultTab("tagesimpuls"); setPendingImpulsPopup(true); }
-        else { setImpulseDefaultTab("meine"); setPendingReminderId(first.id); }
+        showQueueItem(first);
       }
     }
     setPage(p); setMobileChatOpen(false);
@@ -2499,8 +2520,7 @@ function App({ user, userDoc }) {
       autoImpulsNavDone.current = true;
       const first = queue.shift();
       manualPopupQueueRef.current = queue;
-      if(first.type === "tagesimpuls") { setImpulseDefaultTab("tagesimpuls"); setPendingImpulsPopup(true); }
-      else { setImpulseDefaultTab("meine"); setPendingReminderId(first.id); }
+      showQueueItem(first);
       setPage("impulse");
     }
   }, [impulseFlagData, impulseFlagLoaded, user?.uid, pendingImpulsPopup, pendingReminderId, pendingLibraryId, dailyReminderQueue, impulsTick, page]);
