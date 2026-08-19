@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-19 22:35 coachee -->
+<!-- Version: 2026-08-19 23:15 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <!DOCTYPE html>
@@ -2248,7 +2248,10 @@ function App({ user, userDoc }) {
       // wodurch der Nav-/App-Icon-Badge schon vor jedem Admin-Trigger einen Tagesimpuls
       // vortäuschte. "?? Infinity" unterscheidet jetzt "Feld fehlt komplett" (nie fällig) von
       // einer bewusst gesetzten 0 (z.B. Admin-Testreset, weiterhin sofort fällig).
-      setImpulseFlagData({activePhase:d.activePhase||null, nextImpulseAt:d.nextImpulseAt ?? Infinity});
+      // NEU (19.08.2026, siehe isWelcomePending()-Helper weiter unten): phaseWelcomeRequestedAt
+      // zusätzlich mitgeführt — nötig, damit auch ein Wiederholungs-Trigger aus admin.html
+      // (Klick auf bereits aktive Phase, ändert NICHT activePhase) hier erkannt wird.
+      setImpulseFlagData({activePhase:d.activePhase||null, nextImpulseAt:d.nextImpulseAt ?? Infinity, phaseWelcomeRequestedAt: Number(d.phaseWelcomeRequestedAt)||0});
       setImpulseFlagLoaded(true);
     }, () => {});
     return () => unsub();
@@ -2291,16 +2294,10 @@ function App({ user, userDoc }) {
 
   const getTagesimpulsPending = () => {
     if(!user?.uid) return false;
-    let welcomePending = false;
-    try {
-      const seenPhase = localStorage.getItem("phaseWelcomeSeen_"+user.uid);
-      const ap = impulseFlagData.activePhase;
-      // GEÄNDERT (16.08.2026): Fehlt der Flag komplett (allererstes App-Öffnen, noch nie
-      // gesehen) UND ist bereits eine Phase aktiv (Admin hat Kreis getippt), zählt das jetzt
-      // ebenfalls als "pending" — vorher wurde dieser Fall übersehen (seenPhase!==null-Check),
-      // wodurch der Nav-Badge bei einem brandneuen, push-losen Coachee nie erschien.
-      welcomePending = !!ap && (seenPhase === null || Number(seenPhase) !== ap);
-    } catch(e) {}
+    // GEÄNDERT (19.08.2026): nutzt jetzt die geteilte isWelcomePending()-Prüfung (siehe
+    // dortiger Kommentar) — erkennt zusätzlich zum echten Phasenwechsel auch einen
+    // Wiederholungs-Trigger der Willkommensnachricht (phaseWelcomeRequestedAt).
+    const welcomePending = isWelcomePending(user.uid, impulseFlagData.activePhase, impulseFlagData.phaseWelcomeRequestedAt);
     let dismissedToday = false;
     try {
       const todayStr2 = new Date().toISOString().split("T")[0];
@@ -2499,12 +2496,12 @@ function App({ user, userDoc }) {
       // statt Home, noch bevor die echte Phase bekannt war (siehe Kapitel 63b/Pitfall 68).
     if(pendingImpulsPopup || pendingReminderId || pendingLibraryId) return;
     if(!autoWelcomeNavDone.current) {
-      let welcomePending = false;
-      try {
-        const seenPhase = localStorage.getItem("phaseWelcomeSeen_"+user.uid);
-        const ap = impulseFlagData.activePhase;
-        welcomePending = !!ap && (seenPhase === null || Number(seenPhase) !== ap);
-      } catch(e) {}
+      // GEÄNDERT (19.08.2026): nutzt jetzt dieselbe geteilte isWelcomePending()-Prüfung wie
+      // getTagesimpulsPending() und ImpulsPage — erkennt jetzt auch einen Wiederholungs-
+      // Trigger der Willkommensnachricht (phaseWelcomeRequestedAt), nicht nur einen echten
+      // Phasenwechsel. Konsumiert wird der Flag weiterhin erst in ImpulsPage selbst (dort
+      // wird step===7 tatsächlich gerendert) — hier nur die Navigation dorthin.
+      const welcomePending = isWelcomePending(user.uid, impulseFlagData.activePhase, impulseFlagData.phaseWelcomeRequestedAt);
       if(welcomePending && page === "dashboard") {
         autoWelcomeNavDone.current = true;
         setImpulseDefaultTab("tagesimpuls");
@@ -3570,6 +3567,39 @@ const PHASE_INFO = {
   4: { title: "Körper & Achtsamkeit",             pageStart: 77, pageEnd: 86 }
 };
 
+// NEU (19.08.2026, Rückmeldung "Willkommensnachricht erneut ausgelöst zeigt Tagesimpuls
+// statt Willkommen"): Geteilte Willkommens-Pending-Prüfung, von App() (Badge/Auto-Nav) UND
+// ImpulsPage() (tatsächliche Anzeige-Entscheidung, step===7) gleichermassen genutzt — vorher
+// gab es zwei unabhängige, leicht auseinanderlaufende Kopien derselben Logik. Zwei
+// unabhängige Auslöser gelten jetzt gleichwertig als "Willkommen pending":
+// (1) activePhase weicht von der zuletzt gesehenen Phase ab (phaseWelcomeSeen_) — der
+//     ursprüngliche, einzige Fall (echter Phasenwechsel).
+// (2) phaseWelcomeRequestedAt (von admin.html bei jedem Klick auf "Willkommensnachricht
+//     für Phase X erneut senden" neu gesetzt, OHNE activePhase zu ändern — setPhase()s
+//     isRepeat-Zweig) ist neuer als der zuletzt konsumierte Wert (phaseWelcomeRequestSeen_).
+//     Ohne diesen zweiten Auslöser erkennt Fall (1) einen Wiederholungs-Trigger nie, da
+//     activePhase dabei bewusst unverändert bleibt — der Coachee landete dadurch bisher
+//     beim normalen Tagesimpuls statt beim erneut angeforderten Willkommens-Screen.
+function isWelcomePending(uid, activePhase, requestedAt) {
+  if(!activePhase) return false;
+  try {
+    const seenPhase = localStorage.getItem("phaseWelcomeSeen_" + (uid || "guest"));
+    const phaseMismatch = seenPhase === null || Number(seenPhase) !== activePhase;
+    const requestSeenAt = Number(localStorage.getItem("phaseWelcomeRequestSeen_" + (uid || "guest"))) || 0;
+    const repeatRequestPending = !!requestedAt && requestedAt > requestSeenAt;
+    return phaseMismatch || repeatRequestPending;
+  } catch(e) { return false; }
+}
+// Markiert Phase UND ggf. Wiederholungs-Request als konsumiert — von beiden Anzeige-
+// Entscheidungsstellen (ImpulsPage step===7, App-Level-Auto-Nav) beim tatsächlichen Zeigen
+// aufgerufen, damit der Screen sich nicht in einer Endlosschleife erneut auslöst.
+function markWelcomeSeen(uid, activePhase, requestedAt) {
+  try {
+    localStorage.setItem("phaseWelcomeSeen_" + (uid || "guest"), String(activePhase));
+    if(requestedAt) localStorage.setItem("phaseWelcomeRequestSeen_" + (uid || "guest"), String(requestedAt));
+  } catch(e) {}
+}
+
 function ImpulsPage({ user, setPage, setActiveImpuls, activeImpuls, pendingImpulsPopup, setPendingImpulsPopup, pendingReflexionPopup, setPendingReflexionPopup, onManualPopupClosed }) {
   const [step, setStep]           = useState(0);
   // NEU (06.08.2026): welcomePhase hält die Phase, für die gerade der Willkommens-Screen
@@ -3716,10 +3746,17 @@ function ImpulsPage({ user, setPage, setActiveImpuls, activeImpuls, pendingImpul
           // wirklich existiert (Admin hat mindestens einmal eine Phase gesetzt), ein fehlender
           // Flag bedeutet also immer den echten Erstfall eines Coachees, der die Nachricht noch
           // nie gesehen hat — nie ein rückwirkendes "Willkommen" für längst laufende Phasen.
-          const phaseSeenKey = "phaseWelcomeSeen_" + (user?.uid || "guest");
-          const seenPhase = localStorage.getItem(phaseSeenKey);
-          if (seenPhase === null || Number(seenPhase) !== activePhase) {
-            localStorage.setItem(phaseSeenKey, String(activePhase));
+          // GEÄNDERT (19.08.2026, Rückmeldung "Willkommensnachricht erneut ausgelöst zeigt
+          // Tagesimpuls statt Willkommen"): nutzt jetzt die geteilte isWelcomePending()-
+          // Prüfung (siehe dortiger Kommentar) statt nur den Phasenvergleich — erkennt
+          // zusätzlich einen Wiederholungs-Trigger aus admin.html (Klick auf bereits aktive
+          // Phase, setPhase()s isRepeat-Zweig setzt bewusst NUR phaseWelcomeRequestedAt,
+          // NICHT activePhase, damit ein laufender Tagesimpuls-Plan unangetastet bleibt —
+          // der reine Phasenvergleich erkannte diesen Fall dadurch nie und liess den
+          // Coachee stattdessen direkt beim Tagesimpuls landen).
+          const requestedAt = Number(uData.phaseWelcomeRequestedAt) || 0;
+          if (isWelcomePending(user?.uid, activePhase, requestedAt)) {
+            markWelcomeSeen(user?.uid, activePhase, requestedAt);
             setWelcomePhase(activePhase);
             setStep(7);
             welcomeShownRef.current = true; // Fix (10.08.2026, Pitfall 69): siehe Deklaration oben —
