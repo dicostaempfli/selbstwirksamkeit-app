@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-19 12:53 coachee -->
+<!-- Version: 2026-08-19 13:09 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <!DOCTYPE html>
@@ -89,17 +89,29 @@
       // setzen), ging bei JEDEM Reload-Pfad (Watchdog, Crash-Screen, Hintergrund>60s) ein zuvor
       // erfolgreich angewendetes Push-Ziel verloren, sobald der pending-deeplink-Cache-Eintrag
       // schon konsumiert war (er wird beim ersten Lesen sofort gelöscht — applyPendingDeepLink).
-      // routeHash() hinterlegt deshalb bei jedem erfolgreichen Routing zusätzlich einen sehr
-      // kurzlebigen (30s) Recovery-Eintrag in localStorage — einmalig gelesen und sofort gelöscht,
-      // damit spätere, unabhängige Reloads (z.B. normales Hintergrund/Vordergrund-Wechseln nach
-      // Minuten) nicht ungewollt auf ein längst überholtes Ziel zurückspringen.
+      // routeHash() hinterlegt deshalb bei jedem erfolgreichen Routing zusätzlich einen
+      // kurzlebigen (120s) Recovery-Eintrag in localStorage — einmalig gelesen und sofort
+      // gelöscht, damit spätere, unabhängige Reloads (z.B. normales Hintergrund/Vordergrund-
+      // Wechseln nach Minuten) nicht ungewollt auf ein längst überholtes Ziel zurückspringen.
+      // Fix (18.08.2026, Fund "Impuls-Push wird bei hängendem App-Start verschluckt"):
+      // War bisher 30s. Der visibilitychange-Handler unten (der genau diesen Recovery-Eintrag
+      // konsumieren soll) löst den Reload aber erst ab 60s Hintergrundzeit aus — der exakte
+      // Pfad, für den dieser Recovery-Mechanismus gebaut wurde, konnte den Eintrag dadurch
+      // NIE rechtzeitig vorfinden (60s Wartezeit > 30s Gültigkeit), da 30s < 60s strukturell
+      // garantiert bereits abgelaufen war. Jeder Impuls-Push (Tages-Impuls wie Meine Impulse),
+      // bei dem die App beim Öffnen hing und der Coachee sie daraufhin wegdrückte und nach
+      // über einer Minute wieder öffnete, landete dadurch zuverlässig auf Home statt beim
+      // Impuls — der pending-deeplink-Cache-Eintrag war zu diesem Zeitpunkt bereits gelöscht
+      // (wird beim ersten Lesen sofort konsumiert, siehe applyPendingDeepLink), der Impuls
+      // damit unwiederbringlich weg. Auf 120s angehoben, damit die 60s-Reload-Schwelle mit
+      // komfortablem Puffer sicher unterschritten wird.
       if(!hash) {
         try {
           const raw = localStorage.getItem('rsw_crash_recover_hash');
           if(raw) {
             localStorage.removeItem('rsw_crash_recover_hash');
             const r = JSON.parse(raw);
-            if(r && r.hash && (Date.now() - (r.ts || 0) < 30000)) hash = '#' + r.hash;
+            if(r && r.hash && (Date.now() - (r.ts || 0) < 120000)) hash = '#' + r.hash;
           }
         } catch(e) {}
       }
@@ -461,21 +473,21 @@
     padding-bottom: max(10px, env(safe-area-inset-bottom, 10px));
     display: flex;
     align-items: flex-end;
-    gap: 8px;
+    gap: 9px;
   }
   .input-box {
     flex: 1;
     background: var(--bg);
     border: 1.5px solid var(--border);
-    border-radius: 20px;
-    padding: 9px 15px;
+    border-radius: 22px;
+    padding: 12px 17px;
     font-family: 'Exo 2';
     font-size: 16px;
     color: var(--text);
     resize: none;
-    max-height: 130px;
+    max-height: 156px;
     overflow-y: hidden;
-    line-height: 1.45;
+    line-height: 1.6;
     transition: border .2s, height .1s ease;
   }
   .input-box:focus { outline: none; border-color: var(--teal); background: #fff; }
@@ -627,11 +639,12 @@
   /* Forms */
   .label { font-size:.72rem; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; margin-bottom:5px; display:block; }
   .input,.textarea,.select {
-    width:100%; padding:8px 12px; border:1.5px solid var(--border); border-radius:10px;
+    width:100%; padding:11px 14px; border:1.5px solid var(--border); border-radius:10px;
     font-family:'Exo 2'; font-size:16px; background:var(--surface); color:var(--text); transition:border .2s;
+    line-height:1.5;
   }
   .input:focus,.textarea:focus,.select:focus { outline:none; border-color:var(--teal); }
-  .textarea { resize:vertical; min-height:74px; overflow-wrap:break-word; word-break:break-word; }
+  .textarea { resize:vertical; min-height:92px; line-height:1.55; overflow-wrap:break-word; word-break:break-word; }
   .form-row { margin-bottom:12px; }
   .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
   .flex-between { display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; }
@@ -944,7 +957,7 @@
       flex-shrink: 0;
       padding: 8px 10px;
     }
-    .input-box { font-size: 16px; padding: 8px 12px; }
+    .input-box { font-size: 16px; padding: 10px 14px; }
 
     /* Quick replies */
     .quick-replies { padding: 0 12px 6px; }
@@ -1067,7 +1080,7 @@
     /* ── Form inputs on mobile ── */
     .input, .select, .textarea {
       font-size: 16px !important; /* Prevents iOS zoom on focus */
-      padding: 8px 10px;
+      padding: 10px 12px;
     }
     input[type="time"] {
       font-size: 14px !important;
@@ -1142,7 +1155,7 @@
     }
     .msg-bubble-wrap { max-width: 82%; }
     .msg-bubble { font-size: .91rem; }
-    .input-box { font-size: 16px; padding: 8px 12px; }
+    .input-box { font-size: 16px; padding: 10px 14px; }
 
   }
 
@@ -1814,7 +1827,7 @@ function App({ user, userDoc }) {
       // Reminder-Push trägt jetzt die konkrete reminderId im Hash (#impulse-meine-<id>),
       // damit das Anzeige-Popup weiss, welcher Impuls gemeint ist (statt nur der Subtab).
       const remId = hash.slice("impulse-meine-".length);
-      setImpulseDefaultTab("meine"); setPage("impulse"); setPendingReminderId(remId);
+      setImpulseDefaultTab("meine"); setPage("impulse"); enqueueOrSetReminder(remId);
     }
     else if(hash === "impulse-meine" || hash === "impulse") { setImpulseDefaultTab("meine"); setPage("impulse"); }
     else if(hash.startsWith("library-")) {
@@ -2299,6 +2312,20 @@ function App({ user, userDoc }) {
     return welcomePending || (!!impulseFlagData.activePhase && impulseFlagData.nextImpulseAt <= Date.now() && !dismissedToday);
   };
 
+  // Fix (18.08.2026, Rückmeldung "Badge in Menüleiste bei Impulse wird nicht angezeigt"):
+  // getTagesimpulsPending()/getDueUnseenReminderIds() werten Date.now() aus, aber der
+  // Effect darunter hatte bisher KEINEN zeitbasierten Trigger — er lief nur bei einer
+  // Änderung von impulseFlagData/dailyReminderQueue/page/user erneut. Wurde ein Reminder
+  // erst fällig, WÄHREND die App bereits offen war (kein neuer Firestore-Snapshot, keine
+  // Navigation), blieb der Badge bis zum nächsten zufälligen Trigger unsichtbar — im
+  // gesamten File gab es bisher keinen einzigen setInterval. Leichtgewichtiger Tick alle
+  // 30s erzwingt jetzt eine periodische Neubewertung, unabhängig von externen Events.
+  const [impulsTick,setImpulsTick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setImpulsTick(t => t+1), 30000);
+    return () => clearInterval(id);
+  }, []);
+
   const [impulseUnreadCount, setImpulseUnreadCount] = useState(0);
   useEffect(() => {
     if(!user?.uid) { setImpulseUnreadCount(0); return; }
@@ -2308,7 +2335,7 @@ function App({ user, userDoc }) {
     // Homescreen-App-Icon-Badge weiter unten, die laut Rico-Entscheid (Kapitel 66)
     // immer nur "1" zeigt, nie eine echte Zahl.
     setImpulseUnreadCount((getTagesimpulsPending()?1:0) + getDueUnseenReminderIds().length);
-  }, [impulseFlagData, impulseFlagLoaded, user?.uid, page, dailyReminderQueue]);
+  }, [impulseFlagData, impulseFlagLoaded, user?.uid, page, dailyReminderQueue, impulsTick]);
 
   // ── Auto-Popup-Queue bei manuellem Icon-Tap (ohne Push) ──
   // Tippt der Coachee direkt auf das Impulse-Icon, statt über einen Push zu kommen,
@@ -2321,10 +2348,47 @@ function App({ user, userDoc }) {
   // Deep-Link-Konsum, der pendingImpulsPopup sofort selbst wieder auf false setzt).
   const manualPopupQueueRef = useRef([]);
   const advanceManualPopupQueue = () => {
-    if(manualPopupQueueRef.current.length === 0) return;
+    if(manualPopupQueueRef.current.length === 0) {
+      // Fix (18.08.2026, Rückmeldung "mehrere Impulse werden verschluckt"): Nach Leerlaufen
+      // der expliziten Queue zusätzlich prüfen, ob inzwischen weitere, bisher nie erfasste
+      // Reminder fällig&ungesehen sind — z.B. weil ein Push nur EINEN einzelnen Reminder
+      // auslöste (oder die anderen wegen gleichzeitiger Zustellung von der Notification-
+      // Anzeige des Betriebssystems verdeckt/zusammengefasst wurden), während mehrere
+      // gleichzeitig fällig waren. Ohne diesen Nachschlag blieben die übrigen komplett
+      // verschwunden, bis der Coachee zufällig erneut auf das Impulse-Icon tippt. Bewusst
+      // NUR Reminder werden so nachgeladen, nie der Tagesimpuls erneut eingereiht: dessen
+      // "X"/Backdrop-Schliessen setzt keinen dismissedToday-Flag, ein automatisches
+      // Wieder-Einreihen könnte sonst denselben Tagesimpuls in einer Endlosschleife zeigen.
+      const stillDue = getDueUnseenReminderIds();
+      if(stillDue.length === 0) return;
+      manualPopupQueueRef.current = stillDue.map(id => ({type:"reminder", id}));
+    }
     const next = manualPopupQueueRef.current.shift();
     if(next.type === "tagesimpuls") { setImpulseDefaultTab("tagesimpuls"); setPendingImpulsPopup(true); }
     else { setImpulseDefaultTab("meine"); setPendingReminderId(next.id); }
+  };
+  // Fix (18.08.2026, Rückmeldung "Impulse werden verschluckt, v.a. wenn mehrere ausgelöst
+  // werden und Push angetippt wird"): Ein Reminder-Push (#impulse-meine-<id>) setzte bisher
+  // IMMER direkt pendingReminderId, ohne zu prüfen, ob dort schon eine andere, noch nicht
+  // konsumierte ID wartet (z.B. weil kurz zuvor ein zweiter Push-Tap oder der Kaltstart-
+  // Fallback applyPendingDeepLink() denselben Hash-Pfad erneut durchlief, siehe Kapitel-32-
+  // Kommentar oben). Das simple Überschreiben liess die ältere ID spurlos verschwinden, ohne
+  // dass ihr Popup je erschien — "verschluckt", exakt wie gemeldet. Jetzt: reiht eine neue
+  // Push-Ziel-ID in dieselbe manualPopupQueueRef ein, statt eine bereits wartende zu
+  // überschreiben; sobald das aktuell gezeigte Popup schliesst, schiebt onManualPopupClosed
+  // (advanceManualPopupQueue) automatisch die nächste nach — dieselbe, bereits bewährte
+  // Technik wie beim manuellen Icon-Tap oben.
+  const enqueueOrSetReminder = (remId) => {
+    setPendingReminderId(prev => {
+      if(prev && String(prev) !== String(remId)) {
+        // Dedupe: dieselbe ID nicht doppelt in die Warteschlange stellen (z.B. bei
+        // wiederholtem Hash-Routing desselben Pushes).
+        const already = manualPopupQueueRef.current.some(it => it.type === "reminder" && String(it.id) === String(remId));
+        if(!already) manualPopupQueueRef.current = [...manualPopupQueueRef.current, {type:"reminder", id:remId}];
+        return prev;
+      }
+      return remId;
+    });
   };
 
   const navTo = (p) => {
@@ -2371,6 +2435,20 @@ function App({ user, userDoc }) {
   // navigiert — ein echter Push-Deep-Link (Chat/Reminder/Mediathek) hat immer Vorrang
   // und wird nicht überschrieben.
   const autoWelcomeNavDone = useRef(false);
+  // NEU (19.08.2026, Rückmeldung "Impuls wird nicht angezeigt, wenn der Push nicht angetippt
+  // wird, sondern die App danach ganz normal geöffnet wird — und taucht auch nach einem
+  // kompletten Neustart nicht mehr auf"): Bisher erschien ein fälliger Tagesimpuls/Reminder
+  // OHNE Push-Tap ausschliesslich dann als Popup, wenn der Coachee selbst aktiv auf das
+  // Impulse-Icon tippte (siehe navTo()-Queue oben) — ein einfaches App-Öffnen (Landung auf
+  // Home) zeigte nichts von selbst an. War der Badge zusätzlich (temporär, siehe Kapitel 141)
+  // nicht sichtbar, wirkte das für den Coachee wie ein spurloses Verschwinden, obwohl die
+  // Daten (nextImpulseAt/dailyReminderQueue) unverändert weiter fällig blieben. Fix: einmal
+  // pro App-Start wird jetzt, analog zur bereits bestehenden Willkommensnachricht-Automatik
+  // direkt darunter, automatisch zum Impulse-Tab samt derselben Popup-Queue-Technik navigiert,
+  // sobald feststeht, dass ein Tagesimpuls oder mindestens ein Reminder fällig&ungesehen ist —
+  // unabhängig davon, ob je ein Push angetippt wurde. Ein echter Push-Deep-Link sowie eine
+  // anstehende Willkommensnachricht haben weiterhin Vorrang (return oben/unten).
+  const autoImpulsNavDone = useRef(false);
   useEffect(() => {
     if(autoWelcomeNavDone.current || !user?.uid) return;
     if(!impulseFlagLoaded) return; // Pitfall: Platzhalter-Default {activePhase:1} vor dem
@@ -2388,8 +2466,21 @@ function App({ user, userDoc }) {
       autoWelcomeNavDone.current = true;
       setImpulseDefaultTab("tagesimpuls");
       setPage("impulse");
+      return;
     }
-  }, [impulseFlagData, impulseFlagLoaded, user?.uid, pendingImpulsPopup, pendingReminderId, pendingLibraryId]);
+    if(autoImpulsNavDone.current || page !== "dashboard") return;
+    const queue = [];
+    if(getTagesimpulsPending()) queue.push({type:"tagesimpuls"});
+    getDueUnseenReminderIds().forEach(id => queue.push({type:"reminder", id}));
+    if(queue.length > 0) {
+      autoImpulsNavDone.current = true;
+      const first = queue.shift();
+      manualPopupQueueRef.current = queue;
+      if(first.type === "tagesimpuls") { setImpulseDefaultTab("tagesimpuls"); setPendingImpulsPopup(true); }
+      else { setImpulseDefaultTab("meine"); setPendingReminderId(first.id); }
+      setPage("impulse");
+    }
+  }, [impulseFlagData, impulseFlagLoaded, user?.uid, pendingImpulsPopup, pendingReminderId, pendingLibraryId, dailyReminderQueue, impulsTick]);
 
 
   const NAV_ITEMS = [
@@ -2730,7 +2821,10 @@ function ChatWindow({coachee,recipient,setRecipient,onSend,onSendImg,onSendFile,
     setInput("");
     if(textRef.current){ textRef.current.style.height='auto'; textRef.current.style.overflowY='hidden'; }
   };
-  const handleKey  = e => { if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();handleSend();} };
+  const handleKey  = e => {
+    const isTouchOnly = window.matchMedia && window.matchMedia('(hover: none) and (pointer: coarse)').matches;
+    if(e.key==="Enter"&&!e.shiftKey&&!isTouchOnly){e.preventDefault();handleSend();}
+  };
 
   const handleChatImg = async e => {
     const files = e.target.files; if(!files||!files[0])return;
@@ -2926,8 +3020,8 @@ function ChatWindow({coachee,recipient,setRecipient,onSend,onSendImg,onSendFile,
             setInput(e.target.value);
             const el=e.target;
             el.style.height='auto';
-            el.style.height=Math.min(el.scrollHeight,130)+'px';
-            el.style.overflowY=el.scrollHeight>130?'auto':'hidden';
+            el.style.height=Math.min(el.scrollHeight,156)+'px';
+            el.style.overflowY=el.scrollHeight>156?'auto':'hidden';
           }} onKeyDown=${handleKey}
           onFocus=${()=>{
             setTimeout(()=>{
