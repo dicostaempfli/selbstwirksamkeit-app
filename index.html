@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-20 10:23 coachee -->
+<!-- Version: 2026-08-20 13:20 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <!DOCTYPE html>
@@ -1746,6 +1746,16 @@ function recLabel(r) {
   return r.time+" Uhr";
 }
 
+// NEU (20.08.2026, Kapitel "Impuls-Zuverlässigkeit"): Bisher lieferte
+// new Date().toISOString().split("T")[0] das UTC-Datum, nicht das Schweizer
+// Lokaldatum — zwischen Mitternacht und ca. 02:00 Uhr Schweizer Zeit zeigte das
+// noch den Vortag. Intern blieb das zwar konsistent (Setzen/Prüfen nutzten denselben
+// Wert), konnte sich aber gegenüber serverseitigen Cron-Läufen (prepareDailyReminders/
+// checkReminders) verschieben. Ersetzt an allen bisherigen todayStr-Stellen.
+function todayZurich() {
+  return new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Zurich' }).format(new Date());
+}
+
 // ════════════════════════════════════════
 // ROOT APP
 // ════════════════════════════════════════
@@ -2277,9 +2287,57 @@ function App({ user, userDoc }) {
     return () => unsub();
   }, [uid]);
 
+  // ── "impuls_seen" (NEU 20.08.2026, Kapitel "Impuls-Zuverlässigkeit") ──
+  // Geräteübergreifende Ergänzung zu den bisherigen localStorage-Flags
+  // (reminderSeen_/impuls_dismissed_), die rein lokal pro Browser/Installation gelten.
+  // BEWUSST als Doppel-Schreiben statt Ersatz umgesetzt: der Tages-Impuls-Mount-Effect
+  // in ImpulsPage verlässt sich beim Kaltstart über Push-Tap auf den synchron sofort
+  // verfügbaren localStorage-Wert (Pitfall 69/71, Race Condition, wenn Firestore beim
+  // Kaltstart noch nicht verbunden ist) — dieser Mechanismus bleibt unverändert. Die
+  // Firestore-Collection liefert zusätzlich denselben Status auf allen anderen Geräten
+  // des Coachees, sobald die Verbindung steht. Query bewusst nur nach uid (kein
+  // zusätzliches date-where), um keinen neuen Composite-Index zu benötigen — die
+  // Tagesfilterung passiert clientseitig beim Aufbau der Map.
+  const [impulsSeenMap, setImpulsSeenMap] = useState({});
+  useEffect(() => {
+    if(!uid) { setImpulsSeenMap({}); return; }
+    const fbDb = window._fb?.db;
+    if(!fbDb) return;
+    const unsub = fbDb.collection("impuls_seen").where("uid","==",uid).onSnapshot(
+      snap => {
+        const todayStr = todayZurich();
+        const m = {};
+        snap.docs.forEach(d => {
+          const x = d.data();
+          if(x.date === todayStr && x.key) m[x.key] = true;
+        });
+        setImpulsSeenMap(m);
+      },
+      ()=>{}
+    );
+    return () => unsub();
+  }, [uid]);
+
+  // Schreibt "gesehen" sowohl lokal (schnell, synchron, race-frei beim Kaltstart) als
+  // auch nach Firestore (geräteübergreifender Sync). type: "tagesimpuls" | "reminder".
+  const markImpulsSeen = (type, reminderId) => {
+    if(!user?.uid) return;
+    const dateStr = todayZurich();
+    try {
+      if(type === "tagesimpuls") localStorage.setItem("impuls_dismissed_"+user.uid, dateStr);
+      else localStorage.setItem("reminderSeen_"+user.uid+"_"+reminderId, dateStr);
+    } catch(e) {}
+    const fbDb = window._fb?.db;
+    if(!fbDb) return;
+    const key = type === "tagesimpuls" ? ("tagesimpuls_"+dateStr) : ("reminder_"+reminderId+"_"+dateStr);
+    fbDb.collection("impuls_seen").doc(user.uid+"_"+key).set({
+      uid: user.uid, key, date: dateStr, seenAt: Date.now()
+    }).catch(() => {});
+  };
+
   const getDueUnseenReminderIds = () => {
     if(!user?.uid) return [];
-    const todayStr3 = new Date().toISOString().split("T")[0];
+    const todayStr3 = todayZurich();
     const ids = dailyReminderQueue.filter(e => {
       const parts = String(e.time||"00:00").split(":");
       const dueAt = new Date();
@@ -2287,6 +2345,8 @@ function App({ user, userDoc }) {
       if(dueAt.getTime() > Date.now()) return false;
       let seen = false;
       try { seen = localStorage.getItem("reminderSeen_"+user.uid+"_"+e.reminderId) === todayStr3; } catch(err) {}
+      // NEU: zusätzlich Firestore-Status prüfen (z.B. auf einem anderen Gerät gesehen).
+      if(!seen) seen = !!impulsSeenMap["reminder_"+e.reminderId+"_"+todayStr3];
       return !seen;
     }).map(e => e.reminderId);
     return [...new Set(ids)]; // dedupe: additionalTimes können mehrere Queue-Einträge pro Reminder erzeugen
@@ -2298,11 +2358,14 @@ function App({ user, userDoc }) {
     // dortiger Kommentar) — erkennt zusätzlich zum echten Phasenwechsel auch einen
     // Wiederholungs-Trigger der Willkommensnachricht (phaseWelcomeRequestedAt).
     const welcomePending = isWelcomePending(user.uid, impulseFlagData.activePhase, impulseFlagData.phaseWelcomeRequestedAt);
+    const todayStr2 = todayZurich();
     let dismissedToday = false;
     try {
-      const todayStr2 = new Date().toISOString().split("T")[0];
       dismissedToday = localStorage.getItem("impuls_dismissed_"+user.uid) === todayStr2;
     } catch(e) {}
+    // NEU: zusätzlich Firestore-Status prüfen (z.B. auf einem anderen Gerät "Heute nicht"
+    // getippt oder Tagesimpuls angenommen).
+    if(!dismissedToday) dismissedToday = !!impulsSeenMap["tagesimpuls_"+todayStr2];
     // Zusätzliche Absicherung (16.08.2026): nextImpulseAt kann grundsätzlich nur fällig sein,
     // solange überhaupt eine Phase aktiv ist — ohne activePhase gibt es keinen Tagesimpuls-
     // Rhythmus, unabhängig vom (nach obigem Fix ohnehin korrekten) Feldwert.
@@ -2332,7 +2395,7 @@ function App({ user, userDoc }) {
     // Homescreen-App-Icon-Badge weiter unten, die laut Rico-Entscheid (Kapitel 66)
     // immer nur "1" zeigt, nie eine echte Zahl.
     setImpulseUnreadCount((getTagesimpulsPending()?1:0) + getDueUnseenReminderIds().length);
-  }, [impulseFlagData, impulseFlagLoaded, user?.uid, page, dailyReminderQueue, impulsTick]);
+  }, [impulseFlagData, impulseFlagLoaded, user?.uid, page, dailyReminderQueue, impulsTick, impulsSeenMap]);
 
   // ── Auto-Popup-Queue bei manuellem Icon-Tap (ohne Push) ──
   // Tippt der Coachee direkt auf das Impulse-Icon, statt über einen Push zu kommen,
@@ -2640,9 +2703,9 @@ function App({ user, userDoc }) {
     )}
     <${Sidebar} page=${page} setPage=${navTo} totalUnread=${totalUnreadVal} impulseUnread=${impulseUnreadCount} libraryUnread=${libraryUnreadCount} doodleUnread=${doodleUnreadCount} user=${user} onLogoTap=${handleLogoTap}/>
     <div style=${{flex:1,display:'flex',overflow:'hidden',minWidth:0}}>
-      ${page==="dashboard" && html`<${DashboardPage} coachees=${coachees} library=${library} reminders=${reminders} remindersReady=${remindersReady} libraryReady=${libraryReady} libraryUnreadCount=${libraryUnreadCount} doodles=${doodles} setPage=${navTo} user=${user} userDoc=${userDoc} onLogoTap=${handleLogoTap} setImpulseDefaultTab=${setImpulseDefaultTab} activeImpuls=${activeImpuls} setActiveImpuls=${setActiveImpuls}/>`}
+      ${page==="dashboard" && html`<${DashboardPage} coachees=${coachees} library=${library} reminders=${reminders} remindersReady=${remindersReady} libraryReady=${libraryReady} libraryUnreadCount=${libraryUnreadCount} impulseUnreadCount=${impulseUnreadCount} impulseFlagLoaded=${impulseFlagLoaded} doodles=${doodles} setPage=${navTo} user=${user} userDoc=${userDoc} onLogoTap=${handleLogoTap} setImpulseDefaultTab=${setImpulseDefaultTab} activeImpuls=${activeImpuls} setActiveImpuls=${setActiveImpuls}/>`}
       ${page==="chat"      && html`<${ChatPage} user=${user} coachees=${coachees} setCoachees=${setCoachees} mobileChatOpen=${mobileChatOpen} setMobileChatOpen=${setMobileChatOpen} recipient=${chatRecipient} setRecipient=${setChatRecipient}/>`}
-      ${page==="impulse"   && html`<${ImpulseTab} user=${user} reminders=${reminders} setReminders=${saveReminders} setPage=${navTo} defaultSubTab=${impulseDefaultTab} setDefaultSubTab=${setImpulseDefaultTab} setActiveImpuls=${setActiveImpuls} activeImpuls=${activeImpuls} pendingReminderId=${pendingReminderId} setPendingReminderId=${setPendingReminderId} pendingImpulsPopup=${pendingImpulsPopup} setPendingImpulsPopup=${setPendingImpulsPopup} pendingReflexionPopup=${pendingReflexionPopup} setPendingReflexionPopup=${setPendingReflexionPopup} onManualPopupClosed=${advanceManualPopupQueue}/>`}
+      ${page==="impulse"   && html`<${ImpulseTab} user=${user} reminders=${reminders} setReminders=${saveReminders} setPage=${navTo} defaultSubTab=${impulseDefaultTab} setDefaultSubTab=${setImpulseDefaultTab} setActiveImpuls=${setActiveImpuls} activeImpuls=${activeImpuls} pendingReminderId=${pendingReminderId} setPendingReminderId=${setPendingReminderId} pendingImpulsPopup=${pendingImpulsPopup} setPendingImpulsPopup=${setPendingImpulsPopup} pendingReflexionPopup=${pendingReflexionPopup} setPendingReflexionPopup=${setPendingReflexionPopup} onManualPopupClosed=${advanceManualPopupQueue} onImpulsSeen=${markImpulsSeen}/>`}
       ${page==="library"   && html`<${LibraryPage} library=${library} setLibrary=${saveLibrary} pendingLibraryId=${pendingLibraryId} clearPendingLibraryId=${()=>setPendingLibraryId(null)} uid=${user?.uid}/>`}
       ${page==="doodle"    && html`<${DoodlePage} user=${user} doodles=${doodles} setDoodles=${saveDoodles} coachees=${coachees} events=${events}/>`}
       ${page==="settings"  && html`<${SettingsPage} user=${user} onDeleted=${()=>{ const a=window._fb?.auth; if(a) a.signOut().catch(()=>{}); }}/>`}
@@ -3307,7 +3370,7 @@ function SettingsPage({user, onDeleted}) {
     </div>`;
 }
 
-function DashboardPage({coachees,library,reminders,remindersReady,libraryReady,libraryUnreadCount,doodles,setPage,user,userDoc,onLogoTap,setImpulseDefaultTab,activeImpuls,setActiveImpuls}) {
+function DashboardPage({coachees,library,reminders,remindersReady,libraryReady,libraryUnreadCount,impulseUnreadCount,impulseFlagLoaded,doodles,setPage,user,userDoc,onLogoTap,setImpulseDefaultTab,activeImpuls,setActiveImpuls}) {
   const uid = user?.uid || null;
   const avgProg = 0; // goals removed
   const hour = new Date().getHours();
@@ -3327,7 +3390,7 @@ function DashboardPage({coachees,library,reminders,remindersReady,libraryReady,l
   useEffect(()=>{
     const fbDb=window._fb?.db;
     if(!fbDb||!user?.uid) return;
-    const todayStr = new Date().toISOString().split("T")[0];
+    const todayStr = todayZurich();
     // Fix (01.07.2026): .limit(5) ohne orderBy entfernt — bei vielen Testeinträgen für
     // denselben Tag lieferte Firestore ohne Sortierung eine faktisch willkürliche Auswahl
     // von 5 Dokumenten zurück, die den gerade frisch angenommenen "active"-Eintrag
@@ -3372,7 +3435,7 @@ function DashboardPage({coachees,library,reminders,remindersReady,libraryReady,l
             <div style=${{width:42,height:42,borderRadius:12,background:"var(--teal-pale)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><${Ic} name="impuls" size=${22} style=${{color:"var(--teal-dark)"}}/></div>
             <div style=${{flex:1}}>
               <div style=${{fontFamily:"'Manuale',serif",fontWeight:700,fontSize:"1rem",color:"var(--text)"}}>Meine Impulse</div>
-              <div style=${{fontSize:".82rem",color:"var(--muted)",marginTop:1}}>${remindersReady ? (n=>n===1?"1 aktiver Impuls":n+" aktive Impulse")(reminders.filter(r=>r.enabled).length) : "…"}</div>
+              <div style=${{fontSize:".82rem",color:"var(--muted)",marginTop:1}}>${(remindersReady&&impulseFlagLoaded) ? (n=>n===0?"Heute keine offenen Impulse":n===1?"1 heute offen":n+" heute offen")(impulseUnreadCount||0) : "…"}</div>
             </div>
             <${Ic} name="chevron" size=${16} style=${{color:"var(--border2)"}}/>
           </div>
@@ -3413,7 +3476,7 @@ function DashboardPage({coachees,library,reminders,remindersReady,libraryReady,l
 }
 
 // ── IMPULSE TAB (Sub-Tab: Meine Impulse + Tages-Impuls) ──
-function ImpulseTab({ user, reminders, setReminders, setPage, defaultSubTab, setDefaultSubTab, setActiveImpuls, activeImpuls, pendingReminderId, setPendingReminderId, pendingImpulsPopup, setPendingImpulsPopup, pendingReflexionPopup, setPendingReflexionPopup, onManualPopupClosed }) {
+function ImpulseTab({ user, reminders, setReminders, setPage, defaultSubTab, setDefaultSubTab, setActiveImpuls, activeImpuls, pendingReminderId, setPendingReminderId, pendingImpulsPopup, setPendingImpulsPopup, pendingReflexionPopup, setPendingReflexionPopup, onManualPopupClosed, onImpulsSeen }) {
   const [activeSubTab, setActiveSubTab] = useState(defaultSubTab || 'meine');
   // Fix: War die Impulse-Seite beim Push-Tap schon offen (App im Hintergrund, nicht
   // komplett geschlossen), bleibt ImpulseTab als Komponente bestehen — der useState-
@@ -3427,8 +3490,8 @@ function ImpulseTab({ user, reminders, setReminders, setPage, defaultSubTab, set
   const isMeine = activeSubTab === 'meine';
   const isTagesimpuls = activeSubTab === 'tagesimpuls';
   const subContent = isMeine
-    ? h(RemindersPage, { reminders, setReminders, pendingReminderId, setPendingReminderId, user, onManualPopupClosed })
-    : h(ImpulsPage, { user, setPage, setActiveImpuls, activeImpuls, pendingImpulsPopup, setPendingImpulsPopup, pendingReflexionPopup, setPendingReflexionPopup, onManualPopupClosed });
+    ? h(RemindersPage, { reminders, setReminders, pendingReminderId, setPendingReminderId, user, onManualPopupClosed, onImpulsSeen })
+    : h(ImpulsPage, { user, setPage, setActiveImpuls, activeImpuls, pendingImpulsPopup, setPendingImpulsPopup, pendingReflexionPopup, setPendingReflexionPopup, onManualPopupClosed, onImpulsSeen });
   return html`
     <div class="impulse-tab-wrap">
       <div class="impulse-subtab-nav">
@@ -3496,7 +3559,7 @@ function Portal({ children }) {
 // Gleiches Overlay/Karten-Design wie beim "Meine Impulse"-Popup, aber mit den echten
 // .btn-Klassen der App statt eigens gestalteter Buttons — genau wie auf der Vollbildseite.
 const ImpulsPushPopup = ({impuls, onAnnehmen, onSpaeter, onHeuteNicht, onClose, showSpaeter, pageLabel}) => html`
-  <div onClick=${e=>{if(e.target===e.currentTarget)onClose();}} style=${{
+  <div style=${{
     position:"fixed",inset:0,background:"rgba(14,78,78,.94)",
     zIndex:9999,display:"flex",alignItems:"center",justifyContent:"center"
   }}>
@@ -3529,7 +3592,7 @@ const ImpulsPushPopup = ({impuls, onAnnehmen, onSpaeter, onHeuteNicht, onClose, 
 // direkt ins Reflexionsformular (Step 3), "Heute nicht" verhält sich wie der bestehende
 // handleNeinHeute()-Pfad. Gleiches Overlay/Karten-Design wie die anderen Push-Popups.
 const ImpulsReflexionPopup = ({onJa, onNein, onClose}) => html`
-  <div onClick=${e=>{if(e.target===e.currentTarget)onClose();}} style=${{
+  <div style=${{
     position:"fixed",inset:0,background:"rgba(14,78,78,.94)",
     zIndex:9999,display:"flex",alignItems:"center",justifyContent:"center"
   }}>
@@ -3600,7 +3663,7 @@ function markWelcomeSeen(uid, activePhase, requestedAt) {
   } catch(e) {}
 }
 
-function ImpulsPage({ user, setPage, setActiveImpuls, activeImpuls, pendingImpulsPopup, setPendingImpulsPopup, pendingReflexionPopup, setPendingReflexionPopup, onManualPopupClosed }) {
+function ImpulsPage({ user, setPage, setActiveImpuls, activeImpuls, pendingImpulsPopup, setPendingImpulsPopup, pendingReflexionPopup, setPendingReflexionPopup, onManualPopupClosed, onImpulsSeen }) {
   const [step, setStep]           = useState(0);
   // NEU (06.08.2026): welcomePhase hält die Phase, für die gerade der Willkommens-Screen
   // (step===7) angezeigt wird — unabhängig vom später geladenen Tagesimpuls.
@@ -3683,14 +3746,14 @@ function ImpulsPage({ user, setPage, setActiveImpuls, activeImpuls, pendingImpul
     // würde ein früherer "Heute nicht"-Klick im Tagesverlauf jeden weiteren Push für
     // den Rest des Tages stumm verschlucken (step===6 → kompletter Render-Abbruch,
     // impuls wird nie aus Firestore geladen).
-    const todayStr2 = new Date().toISOString().split("T")[0];
+    const todayStr2 = todayZurich();
     const dismissedKey = "impuls_dismissed_" + (user?.uid || "guest");
     const dismissedDate = localStorage.getItem(dismissedKey);
     if (dismissedDate === todayStr2 && !pendingImpulsPopup) { setStep(6); return; }
 
     const fbDb = window._fb?.db;
     if (!fbDb || !user?.uid) return;
-    const todayStr = new Date().toISOString().split("T")[0];
+    const todayStr = todayZurich();
     // Fix (10.08.2026, Pitfall 71): users/{uid}.get() ohne source-Angabe kann beim
     // Kaltstart über Push-Tap (schwaches Netz, Firestore-Verbindung noch nicht
     // etabliert) stillschweigend einen veralteten lokalen Cache-Wert statt des
@@ -3895,7 +3958,7 @@ function ImpulsPage({ user, setPage, setActiveImpuls, activeImpuls, pendingImpul
       });
   }, [user, activeImpuls]);
 
-  const todayStr = new Date().toISOString().split("T")[0];
+  const todayStr = todayZurich();
   const dateStr  = new Date().toLocaleDateString("de-CH", { weekday:"long", day:"numeric", month:"long" });
 
   // NEU (06.08.2026): Workbook-Seitenhinweis pro Tagesimpuls. Zeigt die exakte Seite
@@ -3934,6 +3997,13 @@ function ImpulsPage({ user, setPage, setActiveImpuls, activeImpuls, pendingImpul
     // weitere Navigation zum Tages-Impuls (z.B. über die "Aktiver Impuls"-Karte auf
     // der Home-Seite), obwohl gerade ein aktiver Impuls existiert.
     localStorage.removeItem("impuls_dismissed_" + (user?.uid || "guest"));
+    // NEU (20.08.2026): denselben Dismiss-Zustand auch in der geräteübergreifenden
+    // impuls_seen-Collection aufheben, sonst würde auf einem anderen Gerät (das den
+    // "Heute nicht"-Klick per Firestore mitbekommen hat) der Tages-Impuls trotz echter
+    // Annahme hier weiterhin als "gesehen/verworfen" gelten.
+    if (fbDb && user?.uid) {
+      fbDb.collection("impuls_seen").doc(user.uid+"_tagesimpuls_"+todayStr).delete().catch(() => {});
+    }
     // Fix (02.07.2026, Fund per Screenshot): Bisher setStep(0.5) — eine Zwischenseite
     // ("Gut. Der Impuls begleitet dich heute...") mit eigenem "Ich bin bereit"-Button.
     // Direkter Sprung zu Home, analog zum selben Fix bei "Nein, heute nicht" — die
@@ -3967,9 +4037,11 @@ function ImpulsPage({ user, setPage, setActiveImpuls, activeImpuls, pendingImpul
 
   const handleHeuteNicht = () => {
     // localStorage-Flag setzen — sofort, unabhängig von Firestore
-    const todayStr3 = new Date().toISOString().split("T")[0];
+    const todayStr3 = todayZurich();
     const dismissedKey = "impuls_dismissed_" + (user?.uid || "guest");
     localStorage.setItem(dismissedKey, todayStr3);
+    // NEU (20.08.2026): zusätzlich geräteübergreifend in Firestore vermerken.
+    if (onImpulsSeen) onImpulsSeen("tagesimpuls");
     if (setActiveImpuls) setActiveImpuls(null);
     setActiveEntryRef(null);
     setStep(6);
@@ -4684,7 +4756,7 @@ const ReminderViewPopup = ({reminder:r, showEdit, onClose, onEdit}) => {
     ? html`<img src=${symbolSrc} style=${{width:98,height:98,objectFit:"contain",display:"block"}} alt=${r.sacredSymbol}/>`
     : html`<${Ic} name=${r.icon||"bell"} size=${40} style=${{color:ac.text}}/>`;
   return html`
-    <div onClick=${e=>{if(e.target===e.currentTarget)onClose();}} style=${{
+    <div style=${{
       position:"fixed",inset:0,background:"rgba(14,78,78,.94)",
       zIndex:9999,display:"flex",alignItems:"center",justifyContent:"center"
     }}>
@@ -4719,7 +4791,7 @@ const ReminderViewPopup = ({reminder:r, showEdit, onClose, onEdit}) => {
     </div>`;
 };
 
-function RemindersPage({reminders,setReminders,pendingReminderId,setPendingReminderId,user,onManualPopupClosed}) {
+function RemindersPage({reminders,setReminders,pendingReminderId,setPendingReminderId,user,onManualPopupClosed,onImpulsSeen}) {
   const [showModal,setShowModal] = useState(false);
   const [editId,setEditId]       = useState(null);
   const [form,setForm]           = useState(BLANK_FORM);
@@ -4868,8 +4940,10 @@ function RemindersPage({reminders,setReminders,pendingReminderId,setPendingRemin
           try {
             const r = viewReminder.reminder;
             if(r?.id && user?.uid) {
-              const todayStr3 = new Date().toISOString().split("T")[0];
+              const todayStr3 = todayZurich();
               localStorage.setItem("reminderSeen_"+user.uid+"_"+r.id, todayStr3);
+              // NEU (20.08.2026): zusätzlich geräteübergreifend in Firestore vermerken.
+              if(onImpulsSeen) onImpulsSeen("reminder", r.id);
             }
           } catch(e) {}
           setViewReminder(null);
