@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-20 17:00 admin -->
+<!-- Version: 2026-08-20 17:26 admin -->
 <!DOCTYPE html>
 <!-- Version: 2026-08-12 17:47 admin -->
 <head>
@@ -1706,10 +1706,17 @@ function LoginPage() {
     const p = mode==="login"
       ? fbAuth.signInWithEmailAndPassword(email,pw)
       : fbAuth.createUserWithEmailAndPassword(email,pw);
-    p.catch(e=>{
+    // Fix (20.08.2026): onAuthStateChanged in Root() feuert nach einem frischen Login manchmal
+    // nicht zuverlässig (bekanntes Verhalten in installierten iOS-PWAs, siehe Kommentar in
+    // Root()) — die App blieb dann auf der LoginPage stehen, obwohl der Login serverseitig
+    // längst erfolgreich war (erst ein manueller Neustart der App zeigte das Dashboard).
+    // Erzwungener Reload nach Erfolg umgeht das zuverlässig: Firebase liest die Session beim
+    // Neuladen frisch aus IndexedDB, das funktioniert nachweislich robust (Kaltstart-Fall).
+    p.then(()=>{ window.location.reload(); }).catch(e=>{
       const msgs={"auth/user-not-found":"E-Mail nicht gefunden.","auth/wrong-password":"Falsches Passwort.","auth/invalid-credential":"E-Mail oder Passwort falsch.","auth/email-already-in-use":"E-Mail bereits registriert.","auth/weak-password":"Passwort zu kurz (min. 6 Zeichen).","auth/invalid-email":"Ungültige E-Mail."};
       setError(msgs[e.code]||"Fehler: "+e.message);
-    }).finally(()=>{ setLoading(false); });
+      setLoading(false);
+    });
   };
 
   const doReset = () => {
