@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-20 20:57 coachee -->
+<!-- Version: 2026-08-20 22:45 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <!DOCTYPE html>
@@ -1786,6 +1786,13 @@ function App({ user, userDoc }) {
   const [impulseDefaultTab,setImpulseDefaultTab] = useState('meine');
   const [activeImpuls,setActiveImpuls]           = useState(null);
   const [pendingReminderId,setPendingReminderId] = useState(null);
+  // NEU (Kapitel 158, "Impuls-Zuverlässigkeit Teil 2" — mehrere Uhrzeiten am selben Tag):
+  // trägt zusätzlich zur reminderId die konkrete, aus der Fälligkeits-Queue bekannte
+  // Uhrzeit des gerade anzuzeigenden Vorkommnisses, damit beim Schliessen NUR dieses
+  // eine Vorkommnis (nicht der ganze Tag) als gesehen markiert wird. Bleibt null, wenn
+  // die Uhrzeit nicht bekannt ist (Push-Tap, direkter Klick aus der Liste) — dann wird
+  // beim Markieren auf die früheste fällige&ungesehene Uhrzeit dieses Reminders aufgelöst.
+  const [pendingReminderTime,setPendingReminderTime] = useState(null);
   const [pendingLibraryId,setPendingLibraryId]   = useState(null);
   const [pendingImpulsPopup,setPendingImpulsPopup] = useState(false);
   const [pendingReflexionPopup,setPendingReflexionPopup] = useState(false);
@@ -2316,38 +2323,96 @@ function App({ user, userDoc }) {
     return () => unsub();
   }, [uid]);
 
+  // NEU (Kapitel 158): prüft "gesehen" jetzt pro konkreter Uhrzeit statt pauschal pro Tag.
+  // Hintergrund: Ein Reminder mit "Weitere Uhrzeiten" (additionalTimes, z.B. Atemübung
+  // 3× täglich, siehe RemindersPage-Formular) erzeugt pro Tag mehrere, technisch
+  // unabhängige Fälligkeits-Vorkommnisse in daily_reminder_queue. Die bisherige "gesehen"-
+  // Markierung kannte nur reminderId+Datum — sobald EINES der Vorkommnisse an einem Tag
+  // geöffnet wurde, galten alle übrigen Uhrzeiten desselben Tages fälschlich ebenfalls als
+  // gesehen, obwohl für sie server-seitig weiterhin brav ein eigener Push feuerte (Rico-
+  // Meldung 20.08.2026 abends: 4 Push-Treffer für "Meine Impulse" über den Tag verteilt,
+  // Home-Karte zeigte trotzdem "Heute keine offenen Impulse").
+  const isReminderOccurrenceSeen = (reminderId, time, dateStr) => {
+    let seen = false;
+    try { seen = localStorage.getItem("reminderSeen_"+user.uid+"_"+reminderId+"_"+time) === dateStr; } catch(e) {}
+    if(!seen) seen = !!impulsSeenMap["reminder_"+reminderId+"_"+time+"_"+dateStr];
+    return seen;
+  };
+  // Löst beim Markieren (siehe markImpulsSeen) die konkrete Uhrzeit auf, falls sie nicht
+  // schon bekannt ist (Push-Tap kennt nur die reminderId, kein konkretes Vorkommnis) —
+  // nimmt die früheste heute fällige&noch ungesehene Uhrzeit dieses Reminders, analog zu
+  // "ältestes zuerst" bei der Popup-Queue. Gibt es keine fällige Uhrzeit (z.B. Vorschau vor
+  // der ersten Fälligkeit des Tages), bleibt es bei einer pauschalen Tages-Markierung wie
+  // bisher — harmlos, da dann ohnehin nichts fälschlich verschluckt werden kann.
+  const resolveEarliestDueUnseenTime = (reminderId, dateStr) => {
+    const due = dailyReminderQueue
+      .filter(e => String(e.reminderId) === String(reminderId))
+      .filter(e => {
+        const parts = String(e.time||"00:00").split(":");
+        const dueAt = new Date();
+        dueAt.setHours(Number(parts[0])||0, Number(parts[1])||0, 0, 0);
+        return dueAt.getTime() <= Date.now();
+      })
+      .map(e => e.time || "00:00")
+      .filter(t => !isReminderOccurrenceSeen(reminderId, t, dateStr))
+      .sort();
+    return due[0] || null;
+  };
+
   // Schreibt "gesehen" sowohl lokal (schnell, synchron, race-frei beim Kaltstart) als
   // auch nach Firestore (geräteübergreifender Sync). type: "tagesimpuls" | "reminder".
-  const markImpulsSeen = (type, reminderId) => {
+  // occTime (nur bei "reminder"): die konkrete Uhrzeit des geschlossenen Vorkommnisses,
+  // falls bekannt (siehe pendingReminderTime) — sonst wird sie hier aufgelöst.
+  const markImpulsSeen = (type, reminderId, occTime) => {
     if(!user?.uid) return;
     const dateStr = todayZurich();
-    try {
-      if(type === "tagesimpuls") localStorage.setItem("impuls_dismissed_"+user.uid, dateStr);
-      else localStorage.setItem("reminderSeen_"+user.uid+"_"+reminderId, dateStr);
-    } catch(e) {}
+    if(type === "tagesimpuls") {
+      // Tagesimpuls bleibt bewusst unverändert pro Tag markiert — es gibt pro Tag nur
+      // ein einziges nextImpulseAt-Vorkommnis, additionalTimes betrifft ausschliesslich
+      // "Meine Impulse"-Reminder, siehe Kapitel-158-Analyse.
+      try { localStorage.setItem("impuls_dismissed_"+user.uid, dateStr); } catch(e) {}
+      const fbDb = window._fb?.db;
+      if(!fbDb) return;
+      const key = "tagesimpuls_"+dateStr;
+      fbDb.collection("impuls_seen").doc(user.uid+"_"+key).set({
+        uid: user.uid, key, date: dateStr, seenAt: Date.now()
+      }).catch(() => {});
+      return;
+    }
+    const resolvedTime = occTime || resolveEarliestDueUnseenTime(reminderId, dateStr) || "any";
+    try { localStorage.setItem("reminderSeen_"+user.uid+"_"+reminderId+"_"+resolvedTime, dateStr); } catch(e) {}
     const fbDb = window._fb?.db;
     if(!fbDb) return;
-    const key = type === "tagesimpuls" ? ("tagesimpuls_"+dateStr) : ("reminder_"+reminderId+"_"+dateStr);
+    const key = "reminder_"+reminderId+"_"+resolvedTime+"_"+dateStr;
     fbDb.collection("impuls_seen").doc(user.uid+"_"+key).set({
       uid: user.uid, key, date: dateStr, seenAt: Date.now()
     }).catch(() => {});
   };
 
-  const getDueUnseenReminderIds = () => {
+  // UMBENANNT von getDueUnseenReminderIds (Kapitel 158): liefert jetzt ein Objekt pro
+  // fälligem&ungesehenem VORKOMMNIS ({id: reminderId, time}) statt nur eindeutige
+  // reminderIds — unterschiedliche Uhrzeiten desselben Reminders werden nicht mehr
+  // fälschlich auf einen einzigen Eintrag zusammengefasst (siehe Kommentar oben).
+  const getDueUnseenReminderOccurrences = () => {
     if(!user?.uid) return [];
     const todayStr3 = todayZurich();
-    const ids = dailyReminderQueue.filter(e => {
+    const occurrences = dailyReminderQueue.filter(e => {
       const parts = String(e.time||"00:00").split(":");
       const dueAt = new Date();
       dueAt.setHours(Number(parts[0])||0, Number(parts[1])||0, 0, 0);
       if(dueAt.getTime() > Date.now()) return false;
-      let seen = false;
-      try { seen = localStorage.getItem("reminderSeen_"+user.uid+"_"+e.reminderId) === todayStr3; } catch(err) {}
-      // NEU: zusätzlich Firestore-Status prüfen (z.B. auf einem anderen Gerät gesehen).
-      if(!seen) seen = !!impulsSeenMap["reminder_"+e.reminderId+"_"+todayStr3];
-      return !seen;
-    }).map(e => e.reminderId);
-    return [...new Set(ids)]; // dedupe: additionalTimes können mehrere Queue-Einträge pro Reminder erzeugen
+      return !isReminderOccurrenceSeen(e.reminderId, e.time || "00:00", todayStr3);
+    }).map(e => ({id: e.reminderId, time: e.time || "00:00"}));
+    // Dedupe nur echte Doppeleinträge (gleiche reminderId+Uhrzeit zweimal in der Queue,
+    // sollte serverseitig nicht vorkommen) — verschiedene Uhrzeiten bleiben bewusst eigene
+    // Einträge.
+    const dedupeKeys = new Set();
+    return occurrences.filter(o => {
+      const k = o.id+"|"+o.time;
+      if(dedupeKeys.has(k)) return false;
+      dedupeKeys.add(k);
+      return true;
+    });
   };
 
   const getTagesimpulsPending = () => {
@@ -2371,7 +2436,7 @@ function App({ user, userDoc }) {
   };
 
   // Fix (18.08.2026, Rückmeldung "Badge in Menüleiste bei Impulse wird nicht angezeigt"):
-  // getTagesimpulsPending()/getDueUnseenReminderIds() werten Date.now() aus, aber der
+  // getTagesimpulsPending()/getDueUnseenReminderOccurrences() werten Date.now() aus, aber der
   // Effect darunter hatte bisher KEINEN zeitbasierten Trigger — er lief nur bei einer
   // Änderung von impulseFlagData/dailyReminderQueue/page/user erneut. Wurde ein Reminder
   // erst fällig, WÄHREND die App bereits offen war (kein neuer Firestore-Snapshot, keine
@@ -2392,7 +2457,7 @@ function App({ user, userDoc }) {
     // dazu jeder fällige, noch nicht gesehene Reminder) — bewusst anders als die
     // Homescreen-App-Icon-Badge weiter unten, die laut Rico-Entscheid (Kapitel 66)
     // immer nur "1" zeigt, nie eine echte Zahl.
-    setImpulseUnreadCount((getTagesimpulsPending()?1:0) + getDueUnseenReminderIds().length);
+    setImpulseUnreadCount((getTagesimpulsPending()?1:0) + getDueUnseenReminderOccurrences().length);
   }, [impulseFlagData, impulseFlagLoaded, user?.uid, page, dailyReminderQueue, impulsTick, impulsSeenMap]);
 
   // ── Auto-Popup-Queue bei manuellem Icon-Tap (ohne Push) ──
@@ -2426,7 +2491,9 @@ function App({ user, userDoc }) {
     const h = item.type === "tagesimpuls" ? "impulse-tages" : ("impulse-meine-" + item.id);
     try { localStorage.setItem('rsw_crash_recover_hash', JSON.stringify({ hash: h, ts: Date.now() })); } catch(e) {}
     if(item.type === "tagesimpuls") { setImpulseDefaultTab("tagesimpuls"); setPendingImpulsPopup(true); }
-    else { setImpulseDefaultTab("meine"); setPendingReminderId(item.id); }
+    // NEU (Kapitel 158): item.time (falls aus getDueUnseenReminderOccurrences() bekannt)
+    // wird mitgegeben, damit beim Schliessen nur dieses eine Vorkommnis als gesehen gilt.
+    else { setImpulseDefaultTab("meine"); setPendingReminderTime(item.time || null); setPendingReminderId(item.id); }
   };
   const advanceManualPopupQueue = () => {
     if(manualPopupQueueRef.current.length === 0) {
@@ -2440,9 +2507,9 @@ function App({ user, userDoc }) {
       // NUR Reminder werden so nachgeladen, nie der Tagesimpuls erneut eingereiht: dessen
       // "X"/Backdrop-Schliessen setzt keinen dismissedToday-Flag, ein automatisches
       // Wieder-Einreihen könnte sonst denselben Tagesimpuls in einer Endlosschleife zeigen.
-      const stillDue = getDueUnseenReminderIds();
+      const stillDue = getDueUnseenReminderOccurrences();
       if(stillDue.length === 0) return;
-      manualPopupQueueRef.current = stillDue.map(id => ({type:"reminder", id}));
+      manualPopupQueueRef.current = stillDue.map(occ => ({type:"reminder", id:occ.id, time:occ.time}));
     }
     const next = manualPopupQueueRef.current.shift();
     showQueueItem(next);
@@ -2467,6 +2534,9 @@ function App({ user, userDoc }) {
         if(!already) manualPopupQueueRef.current = [...manualPopupQueueRef.current, {type:"reminder", id:remId}];
         return prev;
       }
+      // NEU (Kapitel 158): Push kennt nur die reminderId, keine konkrete Uhrzeit — beim
+      // Markieren wird sie in markImpulsSeen() aus der Fälligkeits-Queue aufgelöst.
+      setPendingReminderTime(null);
       return remId;
     });
   };
@@ -2477,7 +2547,7 @@ function App({ user, userDoc }) {
     if(p === "impulse" && page !== "impulse" && !pendingImpulsPopup && !pendingReminderId) {
       const queue = [];
       if(getTagesimpulsPending()) queue.push({type:"tagesimpuls"});
-      getDueUnseenReminderIds().forEach(id => queue.push({type:"reminder", id}));
+      getDueUnseenReminderOccurrences().forEach(occ => queue.push({type:"reminder", id:occ.id, time:occ.time}));
       if(queue.length > 0) {
         const first = queue.shift();
         manualPopupQueueRef.current = queue;
@@ -2573,7 +2643,7 @@ function App({ user, userDoc }) {
     if(autoImpulsNavDone.current || page !== "dashboard") return;
     const queue = [];
     if(getTagesimpulsPending()) queue.push({type:"tagesimpuls"});
-    getDueUnseenReminderIds().forEach(id => queue.push({type:"reminder", id}));
+    getDueUnseenReminderOccurrences().forEach(occ => queue.push({type:"reminder", id:occ.id, time:occ.time}));
     if(queue.length > 0) {
       autoImpulsNavDone.current = true;
       const first = queue.shift();
@@ -2703,7 +2773,7 @@ function App({ user, userDoc }) {
     <div style=${{flex:1,display:'flex',overflow:'hidden',minWidth:0}}>
       ${page==="dashboard" && html`<${DashboardPage} coachees=${coachees} library=${library} reminders=${reminders} remindersReady=${remindersReady} libraryReady=${libraryReady} libraryUnreadCount=${libraryUnreadCount} impulseUnreadCount=${impulseUnreadCount} impulseFlagLoaded=${impulseFlagLoaded} doodles=${doodles} setPage=${navTo} user=${user} userDoc=${userDoc} onLogoTap=${handleLogoTap} setImpulseDefaultTab=${setImpulseDefaultTab} activeImpuls=${activeImpuls} setActiveImpuls=${setActiveImpuls}/>`}
       ${page==="chat"      && html`<${ChatPage} user=${user} coachees=${coachees} setCoachees=${setCoachees} mobileChatOpen=${mobileChatOpen} setMobileChatOpen=${setMobileChatOpen} recipient=${chatRecipient} setRecipient=${setChatRecipient}/>`}
-      ${page==="impulse"   && html`<${ImpulseTab} user=${user} reminders=${reminders} setReminders=${saveReminders} setPage=${navTo} defaultSubTab=${impulseDefaultTab} setDefaultSubTab=${setImpulseDefaultTab} setActiveImpuls=${setActiveImpuls} activeImpuls=${activeImpuls} pendingReminderId=${pendingReminderId} setPendingReminderId=${setPendingReminderId} pendingImpulsPopup=${pendingImpulsPopup} setPendingImpulsPopup=${setPendingImpulsPopup} pendingReflexionPopup=${pendingReflexionPopup} setPendingReflexionPopup=${setPendingReflexionPopup} onManualPopupClosed=${advanceManualPopupQueue} onImpulsSeen=${markImpulsSeen}/>`}
+      ${page==="impulse"   && html`<${ImpulseTab} user=${user} reminders=${reminders} setReminders=${saveReminders} setPage=${navTo} defaultSubTab=${impulseDefaultTab} setDefaultSubTab=${setImpulseDefaultTab} setActiveImpuls=${setActiveImpuls} activeImpuls=${activeImpuls} pendingReminderId=${pendingReminderId} setPendingReminderId=${setPendingReminderId} pendingReminderTime=${pendingReminderTime} setPendingReminderTime=${setPendingReminderTime} pendingImpulsPopup=${pendingImpulsPopup} setPendingImpulsPopup=${setPendingImpulsPopup} pendingReflexionPopup=${pendingReflexionPopup} setPendingReflexionPopup=${setPendingReflexionPopup} onManualPopupClosed=${advanceManualPopupQueue} onImpulsSeen=${markImpulsSeen}/>`}
       ${page==="library"   && html`<${LibraryPage} library=${library} setLibrary=${saveLibrary} pendingLibraryId=${pendingLibraryId} clearPendingLibraryId=${()=>setPendingLibraryId(null)} uid=${user?.uid}/>`}
       ${page==="doodle"    && html`<${DoodlePage} user=${user} doodles=${doodles} setDoodles=${saveDoodles} coachees=${coachees} events=${events}/>`}
       ${page==="settings"  && html`<${SettingsPage} user=${user} onDeleted=${()=>{ const a=window._fb?.auth; if(a) a.signOut().catch(()=>{}); }}/>`}
@@ -3474,7 +3544,7 @@ function DashboardPage({coachees,library,reminders,remindersReady,libraryReady,l
 }
 
 // ── IMPULSE TAB (Sub-Tab: Meine Impulse + Tages-Impuls) ──
-function ImpulseTab({ user, reminders, setReminders, setPage, defaultSubTab, setDefaultSubTab, setActiveImpuls, activeImpuls, pendingReminderId, setPendingReminderId, pendingImpulsPopup, setPendingImpulsPopup, pendingReflexionPopup, setPendingReflexionPopup, onManualPopupClosed, onImpulsSeen }) {
+function ImpulseTab({ user, reminders, setReminders, setPage, defaultSubTab, setDefaultSubTab, setActiveImpuls, activeImpuls, pendingReminderId, setPendingReminderId, pendingReminderTime, setPendingReminderTime, pendingImpulsPopup, setPendingImpulsPopup, pendingReflexionPopup, setPendingReflexionPopup, onManualPopupClosed, onImpulsSeen }) {
   const [activeSubTab, setActiveSubTab] = useState(defaultSubTab || 'meine');
   // Fix: War die Impulse-Seite beim Push-Tap schon offen (App im Hintergrund, nicht
   // komplett geschlossen), bleibt ImpulseTab als Komponente bestehen — der useState-
@@ -3488,7 +3558,7 @@ function ImpulseTab({ user, reminders, setReminders, setPage, defaultSubTab, set
   const isMeine = activeSubTab === 'meine';
   const isTagesimpuls = activeSubTab === 'tagesimpuls';
   const subContent = isMeine
-    ? h(RemindersPage, { reminders, setReminders, pendingReminderId, setPendingReminderId, user, onManualPopupClosed, onImpulsSeen })
+    ? h(RemindersPage, { reminders, setReminders, pendingReminderId, setPendingReminderId, pendingReminderTime, setPendingReminderTime, user, onManualPopupClosed, onImpulsSeen })
     : h(ImpulsPage, { user, setPage, setActiveImpuls, activeImpuls, pendingImpulsPopup, setPendingImpulsPopup, pendingReflexionPopup, setPendingReflexionPopup, onManualPopupClosed, onImpulsSeen });
   return html`
     <div class="impulse-tab-wrap">
@@ -4789,11 +4859,11 @@ const ReminderViewPopup = ({reminder:r, showEdit, onClose, onEdit}) => {
     </div>`;
 };
 
-function RemindersPage({reminders,setReminders,pendingReminderId,setPendingReminderId,user,onManualPopupClosed,onImpulsSeen}) {
+function RemindersPage({reminders,setReminders,pendingReminderId,setPendingReminderId,pendingReminderTime,setPendingReminderTime,user,onManualPopupClosed,onImpulsSeen}) {
   const [showModal,setShowModal] = useState(false);
   const [editId,setEditId]       = useState(null);
   const [form,setForm]           = useState(BLANK_FORM);
-  const [viewReminder,setViewReminder] = useState(null); // {reminder, showEdit}
+  const [viewReminder,setViewReminder] = useState(null); // {reminder, showEdit, occTime}
 
   const [showSymbolPicker,setShowSymbolPicker] = useState(false);
   const labelRef = useRef(null);
@@ -4806,7 +4876,7 @@ function RemindersPage({reminders,setReminders,pendingReminderId,setPendingRemin
     }
   }, [showModal, form.label]);
   const openNew  = () => { setForm(BLANK_FORM); setEditId(null); setShowModal(true); };
-  const openView = (r, showEdit) => setViewReminder({reminder:r, showEdit});
+  const openView = (r, showEdit, occTime) => setViewReminder({reminder:r, showEdit, occTime: occTime || null});
   // Push-Deep-Link (#impulse-meine-<id>): Popup öffnen, sobald der passende Reminder in
   // der geladenen Liste vorhanden ist. WICHTIG: reminders startet beim Kaltstart mit
   // INIT_REMINDERS (Platzhalter) und wird erst asynchron per Firestore-Listener mit den
@@ -4815,10 +4885,17 @@ function RemindersPage({reminders,setReminders,pendingReminderId,setPendingRemin
   // App / Kaltstart über Push-Tap). Erst löschen, wenn der Reminder wirklich gefunden wurde.
   // Falls er inzwischen gelöscht/deaktiviert wurde, bleibt pendingReminderId bewusst gesetzt
   // (kein Effekt, kein Absturz) — harmlos, da reminders sich danach nicht mehr ständig ändert.
+  // NEU (Kapitel 158): pendingReminderTime (falls aus der Fälligkeits-Queue bekannt) wird
+  // mit ins Popup gereicht, damit beim Schliessen nur dieses eine Vorkommnis als gesehen
+  // markiert wird, statt pauschal der ganze Tag für diesen Reminder.
   useEffect(() => {
     if(!pendingReminderId) return;
     const found = reminders.find(r=>String(r.id)===String(pendingReminderId));
-    if(found) { openView(found, false); if(setPendingReminderId) setPendingReminderId(null); }
+    if(found) {
+      openView(found, false, pendingReminderTime);
+      if(setPendingReminderId) setPendingReminderId(null);
+      if(setPendingReminderTime) setPendingReminderTime(null);
+    }
   }, [pendingReminderId, reminders]);
   const openEdit = r  => {
     setForm({...BLANK_FORM,...r,additionalTimes:r.additionalTimes||[],area:r.area||'Allgemein'});
@@ -4931,17 +5008,17 @@ function RemindersPage({reminders,setReminders,pendingReminderId,setPendingRemin
         reminder=${viewReminder.reminder}
         showEdit=${viewReminder.showEdit}
         onClose=${()=>{
-          // Markiert diesen Reminder für heute als "gesehen" — verhindert, dass er im
-          // Menü-Badge/Auto-Popup-Queue erneut auftaucht, bis er morgen wieder fällig ist.
-          // Gilt für Push-Tap UND manuellen Icon-Tap gleichermassen (beide laufen über
-          // denselben openView()-Weg), daher hier zentral statt an zwei Stellen.
+          // Markiert dieses eine Vorkommnis (Reminder + konkrete Uhrzeit, falls bekannt)
+          // für heute als "gesehen" — verhindert, dass GENAU es im Menü-Badge/Auto-Popup-
+          // Queue erneut auftaucht, ohne dabei andere, noch ausstehende Uhrzeiten desselben
+          // Reminders am selben Tag mit zu "schlucken" (Kapitel 158 — vorher wurde hier der
+          // ganze Tag pauschal pro Reminder markiert, siehe Kommentar bei markImpulsSeen).
+          // Gilt für Push-Tap, Auto-/Manual-Popup-Queue UND direkten Listen-Klick
+          // gleichermassen (alle laufen über denselben openView()-Weg), daher hier zentral.
           try {
             const r = viewReminder.reminder;
             if(r?.id && user?.uid) {
-              const todayStr3 = todayZurich();
-              localStorage.setItem("reminderSeen_"+user.uid+"_"+r.id, todayStr3);
-              // NEU (20.08.2026): zusätzlich geräteübergreifend in Firestore vermerken.
-              if(onImpulsSeen) onImpulsSeen("reminder", r.id);
+              if(onImpulsSeen) onImpulsSeen("reminder", r.id, viewReminder.occTime);
             }
           } catch(e) {}
           setViewReminder(null);
