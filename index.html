@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-19 23:15 coachee -->
+<!-- Version: 2026-08-20 09:19 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <!DOCTYPE html>
@@ -3904,6 +3904,12 @@ function ImpulsPage({ user, setPage, setActiveImpuls, activeImpuls, pendingImpul
   // z.B. noch nicht aktualisierte Bibliothekseinträge).
   const workbookLabel = (imp) => {
     if (imp && imp.page) return `Siehe Workbook Seite ${imp.page}`;
+    // NEU (20.08.2026): Integrationsphase (activePhaseNum 5) hat keine eigene
+    // Workbook-Seitenspanne (deckt alle vier Phasen zugleich ab) — PHASE_INFO kennt bewusst
+    // keinen Eintrag 5. Ohne diesen Guard würde der bisherige Fallback stillschweigend auf
+    // PHASE_INFO[1] (Phase 1, S. 11–30) zurückfallen und eine falsche Seitenzahl anzeigen,
+    // falls je ein Integrationsphase-Impuls ohne eigenes page-Feld importiert würde.
+    if (activePhaseNum === 5) return "Siehe Workbook";
     const info = PHASE_INFO[activePhaseNum] || PHASE_INFO[1];
     return `Siehe Workbook Seite ${info.pageStart}–${info.pageEnd}`;
   };
@@ -4041,6 +4047,16 @@ function ImpulsPage({ user, setPage, setActiveImpuls, activeImpuls, pendingImpul
   // !impuls-Ladehinweis platziert — der Screen braucht keinen geladenen Tagesimpuls, der
   // eigentliche erste Impuls der neuen Phase folgt separat im gewohnten Rhythmus.
   if (step === 7) {
+    // NEU (20.08.2026): Integrationsphase wird intern als Phase 5 geführt (siehe admin.html
+    // setIntegrationPhase, Fund "Integrationsphase liefert keine Inhalte/keinen Start-
+    // Auslöser") und braucht einen eigenen Willkommenstext — die bisherige, für alle vier
+    // Transformationsphasen identische Formulierung ("Ab Seite Y im Workbook...") passt hier
+    // nicht mehr, da die Integrationsphase keiner einzelnen Workbook-Seitenspanne zugeordnet
+    // ist, sondern alle vier Phasen zugleich weiterträgt. PHASE_INFO kennt bewusst keinen
+    // Eintrag 5 (kein Workbook-Seitenbezug nötig, jeder Integrationsphase-Impuls trägt sein
+    // eigenes page-Feld, siehe workbookLabel()) — info wird für die Integrationsphase daher
+    // gar nicht verwendet.
+    const isIntegrationWelcome = welcomePhase === 5;
     const info = PHASE_INFO[welcomePhase] || PHASE_INFO[1];
     // GEÄNDERT (07.08.2026): Weder height:"100%" noch calc(100dvh - Xpx) lieferten laut
     // Ricos wiederholtem Live-Test eine echte Zentrierung — Ursache ist der in diesem Projekt
@@ -4057,10 +4073,10 @@ function ImpulsPage({ user, setPage, setActiveImpuls, activeImpuls, pendingImpul
           h("div", {style:{width:56, height:56, borderRadius:"50%", background:"var(--sage-pale)", display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 20px"}},
             h(Ic, {name:"impuls", size:26, style:{color:"var(--teal)"}})
           ),
-          h("p", {style:{fontFamily:"'Manuale',serif", fontSize:"1.15rem", fontWeight:700, color:"var(--text)", marginBottom:10}}, `Willkommen in Phase ${welcomePhase}`),
-          h("p", {style:{fontSize:".95rem", color:"var(--muted)", lineHeight:1.6, marginBottom:28}}, info.title),
-          h("p", {style:{fontSize:".9rem", color:"var(--muted)", lineHeight:1.7, maxWidth:320, margin:"0 auto"}}, `Ab Seite ${info.pageStart} im Workbook wartet, was zu dieser Phase gehört. Lesen allein reicht nicht — erst wenn du dich wirklich darauf einlässt, beginnt es zu wirken.`),
-          h("p", {style:{fontSize:".9rem", color:"var(--muted)", lineHeight:1.7, maxWidth:320, margin:"14px auto 32px"}}, "Wir sprechen in der nächsten Sitzung über deine neuen Erkenntnisse."),
+          h("p", {style:{fontFamily:"'Manuale',serif", fontSize:"1.15rem", fontWeight:700, color:"var(--text)", marginBottom:10}}, isIntegrationWelcome ? "Willkommen in der Integrationsphase" : `Willkommen in Phase ${welcomePhase}`),
+          isIntegrationWelcome ? null : h("p", {style:{fontSize:".95rem", color:"var(--muted)", lineHeight:1.6, marginBottom:28}}, info.title),
+          h("p", {style:{fontSize:".9rem", color:"var(--muted)", lineHeight:1.7, maxWidth:320, margin: isIntegrationWelcome ? "0 auto" : "0 auto"}}, isIntegrationWelcome ? "Die vier Phasen der Transformation hast du durchlaufen. Jetzt geht es darum, das Gelernte in deinem Alltag zu verankern." : `Ab Seite ${info.pageStart} im Workbook wartet, was zu dieser Phase gehört. Lesen allein reicht nicht — erst wenn du dich wirklich darauf einlässt, beginnt es zu wirken.`),
+          h("p", {style:{fontSize:".9rem", color:"var(--muted)", lineHeight:1.7, maxWidth:320, margin:"14px auto 32px"}}, isIntegrationWelcome ? "Ab jetzt begleiten dich regelmässig neue Impulse aus allen Phasen — als Erinnerung, dranzubleiben und das Erfahrene immer wieder bewusst zu leben." : "Wir sprechen in der nächsten Sitzung über deine neuen Erkenntnisse."),
           h("button", {class:"impulse-subtab-btn active", style:{width:"100%"}, onClick:()=>{ if(setPage) setPage("dashboard"); }}, "Alles klar")
         )
       )
