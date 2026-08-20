@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-20 10:51 admin -->
+<!-- Version: 2026-08-20 12:15 admin -->
 <!DOCTYPE html>
 <!-- Version: 2026-08-12 17:47 admin -->
 <head>
@@ -2338,7 +2338,7 @@ function DashboardPage({coachees,library,doodles,setPage,user,openSenderFilter,o
       <div style=${{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginTop:14,paddingTop:10,paddingBottom:16,borderTop:"1px solid var(--border2)",borderBottom:"1px solid var(--border2)",marginBottom:16,gap:10}}>
         <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.7,lineHeight:1.5}}>
           <div>App v2026-08-20 10:37 · Doku v3.185</div>
-          <div>2026-08-20 10:51</div>
+          <div>2026-08-20 12:15</div>
         </div>
         <div style=${{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
           <button class="dash-reload-btn" title="Fehler-Log" onClick=${()=>setPage("errors")} style=${{position:"relative",color:openErrorCount>0?"#993C1D":"var(--muted)"}}>
@@ -3751,28 +3751,38 @@ function CoacheesPage({coachees,setCoachees,setPage,pending,setPending,deleted,s
         </div>`}
 
       ${editPendingId&&html`
-        <div class="coachee-edit-sheet" onClick=${e=>{if(e.target===e.currentTarget)setEditPendingId(null);}}>
-          <div class="coachee-edit-panel">
-            <div style=${{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:18}}>
+        <div class="overlay" onClick=${e=>{if(e.target===e.currentTarget)setEditPendingId(null);}}>
+          <div class="modal">
+            <div style=${{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16}}>
               <h2 class="modal-title" style=${{marginBottom:0}}>Eintrag korrigieren</h2>
               <button style=${{background:"none",border:"none",cursor:"pointer",color:"var(--muted)",padding:4,borderRadius:8,display:"flex"}} onClick=${()=>setEditPendingId(null)}><${Ic} name="x" size=${20}/></button>
             </div>
-            <p style=${{fontSize:".78rem",color:"var(--muted)",marginBottom:14,marginTop:-6}}>Noch nicht registriert — hier kannst du Name und E-Mail korrigieren, z.B. bei einem Tippfehler.</p>
+            <div class="modal-preview">
+              <div style=${{width:46,height:46,borderRadius:"50%",background:editPendingForm.firstname?AVATAR_BG[[...editPendingForm.firstname].length%AVATAR_BG.length]:AVATAR_BG[0],display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,fontSize:".9rem",color:"var(--text)",flexShrink:0}}>
+                ${[editPendingForm.firstname,editPendingForm.lastname].filter(Boolean).join(" ").split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase()||"?"}
+              </div>
+              <div style=${{flex:1,minWidth:0}}>
+                <div style=${{fontWeight:700,fontSize:".92rem",color:editPendingForm.firstname?"var(--text)":"var(--muted)"}}>
+                  ${[editPendingForm.firstname,editPendingForm.lastname].filter(Boolean).join(" ")||"Name eingeben…"}
+                </div>
+                <div style=${{fontSize:".78rem",color:"var(--muted)",marginTop:3}}>Noch nicht registriert</div>
+              </div>
+            </div>
             <div class="form-grid" style=${{marginBottom:12}}>
               <div class="form-row" style=${{marginBottom:0}}>
                 <label class="label">Vorname *</label>
-                <input class="input" value=${editPendingForm.firstname} onInput=${e=>setEditPendingForm(f=>({...f,firstname:e.target.value}))} placeholder="Vorname"/>
+                <input class="input" value=${editPendingForm.firstname} onInput=${e=>setEditPendingForm(f=>({...f,firstname:e.target.value}))} placeholder="Anna"/>
               </div>
               <div class="form-row" style=${{marginBottom:0}}>
                 <label class="label">Nachname</label>
-                <input class="input" value=${editPendingForm.lastname} onInput=${e=>setEditPendingForm(f=>({...f,lastname:e.target.value}))} placeholder="Nachname"/>
+                <input class="input" value=${editPendingForm.lastname} onInput=${e=>setEditPendingForm(f=>({...f,lastname:e.target.value}))} placeholder="Meier"/>
               </div>
             </div>
             <div class="form-row">
               <label class="label">E-Mail *</label>
               <input class="input" type="email" value=${editPendingForm.email} onInput=${e=>setEditPendingForm(f=>({...f,email:e.target.value}))} placeholder="anna.meier@example.ch"/>
             </div>
-            <div style=${{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:18}}>
+            <div style=${{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8,marginTop:6,paddingBottom:16}}>
               <button class="btn btn-danger btn-sm" onClick=${deletePendingEntry}>
                 <${Ic} name="trash" size=${13}/> ${deletePendingConfirm ? "Sicher? Nochmal klicken" : "Löschen"}
               </button>
