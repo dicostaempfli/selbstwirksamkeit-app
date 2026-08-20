@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-20 19:58 admin -->
+<!-- Version: 2026-08-20 20:57 admin -->
 <!DOCTYPE html>
 <!-- Version: 2026-08-12 17:47 admin -->
 <head>
@@ -104,8 +104,7 @@
     window._fb = {
       auth: firebase.auth(),
       db:   firebase.firestore(),
-      storage: firebase.storage(),
-      googleProvider: new firebase.auth.GoogleAuthProvider()
+      storage: firebase.storage()
     };
     firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL);
   } catch(e) {
