@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-20 09:29 admin -->
+<!-- Version: 2026-08-20 09:50 admin -->
 <!DOCTYPE html>
 <!-- Version: 2026-08-12 17:47 admin -->
 <head>
@@ -4313,11 +4313,13 @@ function ImpulsPhasenTab() {
     catch(e){ return null; }
   };
 
-  // NEU (20.08.2026): baut die Fortschritts-/Abschluss-Zeile für die Integrationsphase.
-  // Bewusst als h()-Aufruf statt html`` (Pre-Output-Checkliste, Punkt 1: kein nested html``
-  // innerhalb eines &&-Ausdrucks) — wird oben per ${isIntegration && integrationStatusLine(...)}
-  // eingebunden.
-  const integrationStatusLine = (prog, fmt) => {
+  // GEÄNDERT (20.08.2026, Rico-Wunsch "gleiches Muster auch für Transformationsphase 1–4"):
+  // ursprünglich nur für die Integrationsphase gebaut (Kapitel 151), jetzt auf alle Phasen
+  // verallgemeinert — baut die Fortschritts-/Abschluss-Zeile phasenunabhängig (funktioniert
+  // identisch für Transformationsphase 1–4 wie für Integrationsphase/Phase 5). Bewusst als
+  // h()-Aufruf statt html`` (Pre-Output-Checkliste, Punkt 1: kein nested html`` innerhalb
+  // eines &&-Ausdrucks) — wird unten unconditional (für beide Phasenarten) eingebunden.
+  const phaseStatusLine = (prog, fmt) => {
     let text = "Noch kein Impuls ausgelöst";
     let done = false;
     if (prog && prog.total && prog.count) {
@@ -4361,50 +4363,57 @@ function ImpulsPhasenTab() {
     return () => unsub();
   }, []);
 
-  // NEU (20.08.2026): Bibliothek einmalig laden, um die Gesamtzahl der Integrationsphase-
-  // Impulse (Bibliotheks-Phase-ID 5) zu kennen — Grundlage für den Fortschritt "Impuls X
-  // von Y" weiter unten. Bewusst kein Live-Listener nötig, die Bibliothek ändert sich nicht
-  // im laufenden Admin-Betrieb.
-  const [libraryPhase5, setLibraryPhase5] = useState(null); // {ids:Set, total:number} | null
+  // GEÄNDERT (20.08.2026, Rico-Wunsch "gleiches Muster auch für Transformationsphase 1–4"):
+  // Bibliothek einmalig laden — ursprünglich nur Phase 5 (Integrationsphase), jetzt ALLE
+  // Phasen (1–5) als Map id→{ids,total}, Grundlage für den Fortschritt "Impuls X von Y"
+  // weiter unten, phasenunabhängig. Bewusst kein Live-Listener nötig, die Bibliothek ändert
+  // sich nicht im laufenden Admin-Betrieb.
+  const [libraryPhases, setLibraryPhases] = useState(null); // {[phaseId]: {ids:Set, total:number}} | null
   useEffect(() => {
     const firestore = db();
     if (!firestore) return;
     firestore.collection("settings").doc("impulse_library").get()
       .then(doc => {
         if (!doc.exists) return;
-        const phase5 = (doc.data().phases || []).find(p => p.id === 5);
-        const impulse = phase5 ? (phase5.impulse || []) : [];
-        setLibraryPhase5({ ids: new Set(impulse.map(i => i.id)), total: impulse.length });
+        const map = {};
+        (doc.data().phases || []).forEach(p => {
+          const impulse = p.impulse || [];
+          map[p.id] = { ids: new Set(impulse.map(i => i.id)), total: impulse.length };
+        });
+        setLibraryPhases(map);
       })
       .catch(() => {});
   }, []);
 
-  // NEU (20.08.2026): pro Integrationsphase-Coachee mit bereits gestartetem Tagesimpuls-Plan
-  // einmalig ermitteln, wie viele der Integrationsphase-Impulse bereits ausgelöst wurden und
-  // wann der jüngste davon war — analog zur bestehenden phaseImpulseCount-Logik in
-  // index.html (ImpulsPage), hier aber serverseitig für die Admin-Übersicht nachgebaut,
-  // da admin.html impulse_entries bisher nirgends lädt. "Ausgelöst" = createdAt des
+  // GEÄNDERT (20.08.2026): pro Coachee mit bereits gestartetem Tagesimpuls-Plan einmalig
+  // ermitteln, wie viele der Impulse SEINER aktuell aktiven Phase (egal ob Transformations-
+  // phase 1–4 oder Integrationsphase/Phase 5) bereits ausgelöst wurden und wann der jüngste
+  // davon war — ursprünglich nur für Integrationsphase gebaut (Kapitel 151), auf Ricos
+  // Wunsch jetzt phasenunabhängig. Analog zur bestehenden phaseImpulseCount-Logik in
+  // index.html (ImpulsPage), hier aber serverseitig für die Admin-Übersicht nachgebaut, da
+  // admin.html impulse_entries bisher nirgends lädt. "Ausgelöst" = createdAt des
   // impulse_entries-Eintrags (wann der Impuls dem Coachee angeboten wurde), nicht das
   // spätere Abschlussdatum — auf Ricos Wunsch, siehe Kapitel 150.
-  const [integrationProgress, setIntegrationProgress] = useState({}); // uid -> {count, total, lastAt}
+  const [phaseProgress, setPhaseProgress] = useState({}); // uid -> {count, total, lastAt}
   useEffect(() => {
-    if (!libraryPhase5 || !libraryPhase5.total) return;
+    if (!libraryPhases) return;
     const firestore = db();
     if (!firestore) return;
-    const targets = coachees.filter(c => c.packageType === "integration" && c.activePhase === 5 && c.impulsPlanStartedAt);
+    const targets = coachees.filter(c => c.activePhase && c.impulsPlanStartedAt && libraryPhases[c.activePhase] && libraryPhases[c.activePhase].total);
     targets.forEach(c => {
+      const info = libraryPhases[c.activePhase];
       firestore.collection("impulse_entries").where("uid","==",c.uid)
         .orderBy("createdAt","desc").limit(40).get()
         .then(snap => {
-          const matched = snap.docs.filter(d => libraryPhase5.ids.has(d.data().impulsId));
+          const matched = snap.docs.filter(d => info.ids.has(d.data().impulsId));
           const count = matched.length;
           const lastAt = count ? matched[0].data().createdAt : null; // desc sortiert, erster Treffer = jüngster
-          setIntegrationProgress(p => ({...p, [c.uid]: { count, total: libraryPhase5.total, lastAt }}));
+          setPhaseProgress(p => ({...p, [c.uid]: { count, total: info.total, lastAt }}));
         })
         .catch(() => {});
     });
     // eslint-disable-next-line
-  }, [libraryPhase5, coachees.map(c => c.uid+"|"+c.packageType+"|"+c.activePhase+"|"+c.impulsPlanStartedAt).join(",")]);
+  }, [libraryPhases, coachees.map(c => c.uid+"|"+c.activePhase+"|"+c.impulsPlanStartedAt).join(",")]);
 
   // GEÄNDERT (06.08.2026, Kapitel 51): Bug gefunden — impulsPlanStartedAt blieb bei einem
   // Phasenwechsel von der VORHERIGEN Phase stehen, wodurch die Karte weiterhin "Tagesimpuls-
@@ -4721,7 +4730,7 @@ function ImpulsPhasenTab() {
                     <span style=${{fontSize:".78rem",color:"var(--forest)"}}>Tagesimpuls-Plan: aktiv seit ${fmtDateAbs(c.impulsPlanStartedAt)}</span>
                     ${h(Ic,{name:"check",size:15,style:{color:"var(--forest)"}})}
                   </div>
-                  ${isIntegration && integrationStatusLine(integrationProgress[c.uid], fmtDateAbs)}`}
+                  ${phaseStatusLine(phaseProgress[c.uid], fmtDateAbs)}`}
                 ${!c.impulsPlanStartedAt && html`
                   <button onClick=${() => startImpulsPlan(c.uid)} disabled=${isStarting}
                     style=${{
