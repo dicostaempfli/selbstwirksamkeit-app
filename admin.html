@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-20 10:46 admin -->
+<!-- Version: 2026-08-20 10:51 admin -->
 <!DOCTYPE html>
 <!-- Version: 2026-08-12 17:47 admin -->
 <head>
@@ -2338,7 +2338,7 @@ function DashboardPage({coachees,library,doodles,setPage,user,openSenderFilter,o
       <div style=${{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginTop:14,paddingTop:10,paddingBottom:16,borderTop:"1px solid var(--border2)",borderBottom:"1px solid var(--border2)",marginBottom:16,gap:10}}>
         <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.7,lineHeight:1.5}}>
           <div>App v2026-08-20 10:37 · Doku v3.185</div>
-          <div>2026-08-20 10:46</div>
+          <div>2026-08-20 10:51</div>
         </div>
         <div style=${{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
           <button class="dash-reload-btn" title="Fehler-Log" onClick=${()=>setPage("errors")} style=${{position:"relative",color:openErrorCount>0?"#993C1D":"var(--muted)"}}>
@@ -4698,7 +4698,7 @@ function ImpulsPhasenTab() {
                  isIntegration true ist, ist der "Transformationsphase"-Button deaktiviert
                  (disabled, kein onClick-Effekt, eigener erklärender Tooltip) — ein Rückweg
                  ist so aus der Admin-Oberfläche heraus gar nicht mehr möglich. -->
-            <div style=${{display:"flex",gap:6,marginBottom:isIntegration?0:12}}>
+            <div style=${{display:"flex",gap:6,marginBottom:12}}>
               <button onClick=${() => { if (!isIntegration) setPackage(c.uid, baseType); }} disabled=${isIntegration}
                 title=${isIntegration ? "Rückweg von Integrationsphase zu Transformationsphase ist nicht vorgesehen" : "Transformationsphase"}
                 style=${{
