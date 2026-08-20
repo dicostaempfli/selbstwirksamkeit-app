@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-20 09:50 admin -->
+<!-- Version: 2026-08-20 10:00 admin -->
 <!DOCTYPE html>
 <!-- Version: 2026-08-12 17:47 admin -->
 <head>
@@ -4636,15 +4636,30 @@ function ImpulsPhasenTab() {
               </div>
             </div>
 
-            <!-- Umschalter: einzige noch aktive Auswahl — steuert packageType direkt -->
+            <!-- Umschalter: einzige noch aktive Auswahl — steuert packageType direkt.
+                 GEÄNDERT (20.08.2026, Rico-Vorgabe "Rückweg von Integrationsphase zu
+                 Transformationsphase nicht erwünscht, sonst Verwirrung"): Rückweg jetzt
+                 bewusst in der Admin-UI gesperrt, nicht nur ein Anzeige-Detail — Gesamtcheck
+                 hatte gezeigt, dass ein Klick auf "Transformationsphase" bei bereits aktiver
+                 Integrationsphase NUR packageType umschreibt, activePhase/impulsPlanStartedAt
+                 aber unverändert auf 5 stehen liess: der Coachee bekam serverseitig
+                 weiterhin Integrationsphase-Inhalte, während die Karte bereits irreführend
+                 "Phase 5 aktiv" unter dem Transformationsphase-Label zeigte. Fix: sobald
+                 isIntegration true ist, ist der "Transformationsphase"-Button deaktiviert
+                 (disabled, kein onClick-Effekt, eigener erklärender Tooltip) — ein Rückweg
+                 ist so aus der Admin-Oberfläche heraus gar nicht mehr möglich. -->
             <div style=${{display:"flex",gap:6,marginBottom:isIntegration?0:12}}>
-              <button onClick=${() => setPackage(c.uid, baseType)}
+              <button onClick=${() => { if (!isIntegration) setPackage(c.uid, baseType); }} disabled=${isIntegration}
+                title=${isIntegration ? "Rückweg von Integrationsphase zu Transformationsphase ist nicht vorgesehen" : "Transformationsphase"}
                 style=${{
                   flex:1, padding:"9px 0", borderRadius:9, border:"1.5px solid",
                   borderColor: !isIntegration ? "var(--forest-dark)" : "var(--border2)",
                   background: !isIntegration ? "var(--forest)" : "transparent",
                   color: !isIntegration ? "#fff" : "var(--muted)",
-                  fontSize:".8rem", fontWeight:700, cursor:"pointer", transition:"all .15s"
+                  fontSize:".8rem", fontWeight:700,
+                  cursor: isIntegration ? "not-allowed" : "pointer",
+                  opacity: isIntegration ? .5 : 1,
+                  transition:"all .15s"
                 }}
               >Transformationsphase</button>
               <button onClick=${() => setIntegrationPhase(c.uid)} disabled=${isSaving}
