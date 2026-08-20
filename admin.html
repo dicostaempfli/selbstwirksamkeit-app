@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-20 12:15 admin -->
+<!-- Version: 2026-08-20 12:23 admin -->
 <!DOCTYPE html>
 <!-- Version: 2026-08-12 17:47 admin -->
 <head>
@@ -2338,7 +2338,7 @@ function DashboardPage({coachees,library,doodles,setPage,user,openSenderFilter,o
       <div style=${{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginTop:14,paddingTop:10,paddingBottom:16,borderTop:"1px solid var(--border2)",borderBottom:"1px solid var(--border2)",marginBottom:16,gap:10}}>
         <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.7,lineHeight:1.5}}>
           <div>App v2026-08-20 10:37 · Doku v3.185</div>
-          <div>2026-08-20 12:15</div>
+          <div>2026-08-20 12:23</div>
         </div>
         <div style=${{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
           <button class="dash-reload-btn" title="Fehler-Log" onClick=${()=>setPage("errors")} style=${{position:"relative",color:openErrorCount>0?"#993C1D":"var(--muted)"}}>
@@ -3231,7 +3231,7 @@ function CoacheesPage({coachees,setCoachees,setPage,pending,setPending,deleted,s
   // Möglichkeit, den Eintrag direkt in der App zu korrigieren, nur der Umweg über die
   // Firebase Console. Eigenes, schlankes Edit-Sheet nur für Name + E-Mail.
   const [editPendingId,setEditPendingId]         = useState(null);
-  const [editPendingForm,setEditPendingForm]     = useState({firstname:"",lastname:"",email:""});
+  const [editPendingForm,setEditPendingForm]     = useState({firstname:"",lastname:"",email:"",notes:"",modell:"",coaching:[],gender:[],kids:false});
   const [savingPendingEdit,setSavingPendingEdit] = useState(false);
   const [deletePendingConfirm,setDeletePendingConfirm] = useState(false);
 
@@ -3315,10 +3315,22 @@ function CoacheesPage({coachees,setCoachees,setPage,pending,setPending,deleted,s
 
   const openEditPending = (p) => {
     const parts = (p.name||"").split(" ").filter(Boolean);
-    setEditPendingForm({firstname:parts[0]||"", lastname:parts.slice(1).join(" ")||"", email:p.email||""});
+    setEditPendingForm({
+      firstname:parts[0]||"", lastname:parts.slice(1).join(" ")||"", email:p.email||"",
+      notes:p.notes||"", modell:p.modell||"", coaching:p.coaching||[], gender:p.gender||[], kids:p.kids||false
+    });
     setEditPendingId(p.docId);
     setDeletePendingConfirm(false);
   };
+
+  // Analog zu selBtn/selEditBtn oben — Single-Select-Toggle (als Array der Länge 1
+  // gespeichert, konsistent mit dem bestehenden Coaching/Geschlecht-Muster).
+  const selEditPendingBtn = (field,val) => setEditPendingForm(f=>{
+    if(field==="coaching"||field==="gender"){
+      return {...f,[field]:(f[field]||[])[0]===val?[]:[val]};
+    }
+    return {...f,[field]:f[field]===val?"":val};
+  });
 
   const savePendingEdit = () => {
     const firestore = db();
@@ -3329,8 +3341,20 @@ function CoacheesPage({coachees,setCoachees,setPage,pending,setPending,deleted,s
     const emailNorm = editPendingForm.email.trim().toLowerCase();
     const original = pending.find(p => p.docId === editPendingId);
     if(!original) { setEditPendingId(null); return; }
-    const { docId, name, email, ...rest } = original;
-    const updatedData = { ...rest, name:fullname, email:emailNorm };
+    const { docId, name, email, notes, modell, coaching, gender, categories, packageType, kids, ...rest } = original;
+    // GEÄNDERT (20.08.2026, Rico-Wunsch "gleiches Design und gleiche Felder wie beim
+    // Erfassen"): Vorher wurden nur Name/E-Mail korrigiert — Bemerkungen/Modell/Coaching/
+    // Geschlecht blieben unangetastet. Jetzt vollständige Feldparität zu addCoachee(),
+    // inkl. identischer packageType-/categories-Ableitung (siehe dortiger Kommentar zu
+    // "Eltern" fällt fachlich unter dasselbe Package wie "Paar").
+    const newPackageType = (()=>{ const k=(editPendingForm.coaching||[])[0]?.toLowerCase(); return k==="eltern"?"paar":(k||editPendingForm.modell?.toLowerCase()||"einzel"); })();
+    const updatedData = {
+      ...rest, name:fullname, email:emailNorm,
+      notes:editPendingForm.notes, modell:editPendingForm.modell,
+      coaching:editPendingForm.coaching||[], gender:editPendingForm.gender||[],
+      categories:[...(editPendingForm.coaching||[]),...(editPendingForm.gender||[])],
+      packageType:newPackageType, kids:editPendingForm.kids||false
+    };
     setSavingPendingEdit(true);
     // E-Mail unverändert: einfaches Update auf demselben Dokument.
     // E-Mail geändert: `users_pending` nutzt die E-Mail als Dokument-ID (Kapitel 171-
@@ -3765,7 +3789,12 @@ function CoacheesPage({coachees,setCoachees,setPage,pending,setPending,deleted,s
                 <div style=${{fontWeight:700,fontSize:".92rem",color:editPendingForm.firstname?"var(--text)":"var(--muted)"}}>
                   ${[editPendingForm.firstname,editPendingForm.lastname].filter(Boolean).join(" ")||"Name eingeben…"}
                 </div>
-                <div style=${{fontSize:".78rem",color:"var(--muted)",marginTop:3}}>Noch nicht registriert</div>
+                <div style=${{display:"flex",gap:5,marginTop:5,flexWrap:"wrap"}}>
+                  ${editPendingForm.modell&&html`<span style=${{fontSize:".65rem",fontWeight:700,background:"var(--teal)",color:"#fff",borderRadius:99,padding:"1px 7px"}}>${editPendingForm.modell}</span>`}
+                  ${(editPendingForm.coaching||[]).length>0&&html`<span style=${{fontSize:".65rem",fontWeight:700,background:"var(--teal-pale)",color:"var(--teal-dark)",borderRadius:99,padding:"1px 7px"}}>${editPendingForm.coaching.join(", ")}${editPendingForm.kids&&!editPendingForm.coaching.includes("Eltern")?" + Kids":""}</span>`}
+                  ${(editPendingForm.gender||[]).length>0&&html`<span style=${{fontSize:".65rem",fontWeight:700,background:"var(--surface2)",color:"var(--muted)",borderRadius:99,padding:"1px 7px"}}>${editPendingForm.gender.join(", ")}</span>`}
+                  ${!editPendingForm.modell&&!(editPendingForm.coaching||[]).length&&!(editPendingForm.gender||[]).length&&html`<span style=${{fontSize:".65rem",fontWeight:700,background:"var(--surface2)",color:"var(--muted)",borderRadius:99,padding:"1px 7px"}}>Noch nicht registriert</span>`}
+                </div>
               </div>
             </div>
             <div class="form-grid" style=${{marginBottom:12}}>
@@ -3781,6 +3810,37 @@ function CoacheesPage({coachees,setCoachees,setPage,pending,setPending,deleted,s
             <div class="form-row">
               <label class="label">E-Mail *</label>
               <input class="input" type="email" value=${editPendingForm.email} onInput=${e=>setEditPendingForm(f=>({...f,email:e.target.value}))} placeholder="anna.meier@example.ch"/>
+            </div>
+            <div class="form-row">
+              <label class="label">Bemerkungen</label>
+              <textarea class="textarea" rows=${2} value=${editPendingForm.notes} onInput=${e=>setEditPendingForm(f=>({...f,notes:e.target.value}))} placeholder="Notizen zum Coachee…"/>
+            </div>
+            <div class="form-row">
+              <label class="label">Modell</label>
+              <div style=${{display:"flex",gap:8}}>
+                ${[["Stunden",html`<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>`],["Package",html`<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><path d="M3.27 6.96L12 12.01l8.73-5.05M12 22.08V12"/></svg>`]].map(([label,icon])=>html`
+                  <div key=${label} class=${"sel-btn"+(editPendingForm.modell===label?" active":"")} style=${{flex:1,flexDirection:"column",gap:5,padding:"10px 8px"}} onClick=${()=>selEditPendingBtn("modell",label)}>
+                    ${icon} ${label}
+                  </div>`)}
+              </div>
+            </div>
+            <div class="form-row">
+              <label class="label">Coaching</label>
+              <div style=${{display:"flex",gap:8,flexWrap:"wrap"}}>
+                ${[["Paar",html`<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>`],["Einzel",html`<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`],["Eltern",html`<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="5" r="3"/><path d="M4 21v-2a4 4 0 014-4h0"/><circle cx="17" cy="8" r="2"/><path d="M14 21v-1.5a3 3 0 013-3h0a3 3 0 013 3V21"/></svg>`]].map(([label,icon])=>html`
+                  <div key=${label} class=${"sel-btn"+((editPendingForm.coaching||[]).includes(label)?" active":"")} style=${{flex:1,minWidth:"80px",flexDirection:"column",gap:5,padding:"10px 8px"}} onClick=${()=>selEditPendingBtn("coaching",label)}>
+                    ${icon} ${label}
+                  </div>`)}
+              </div>
+            </div>
+            <div class="form-row">
+              <label class="label">Geschlecht</label>
+              <div style=${{display:"flex",gap:8}}>
+                ${[["Männlich",html`<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="14" r="6"/><path d="M22 2l-6 6M22 2h-6M22 2v6"/></svg>`],["Weiblich",html`<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6"/><path d="M12 14v8M9 19h6"/></svg>`]].map(([label,icon])=>html`
+                  <div key=${label} class=${"sel-btn"+((editPendingForm.gender||[]).includes(label)?" active":"")} style=${{flex:1,flexDirection:"column",gap:5,padding:"10px 8px"}} onClick=${()=>selEditPendingBtn("gender",label)}>
+                    ${icon} ${label}
+                  </div>`)}
+              </div>
             </div>
             <div style=${{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8,marginTop:6,paddingBottom:16}}>
               <button class="btn btn-danger btn-sm" onClick=${deletePendingEntry}>
