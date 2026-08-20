@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-20 15:00 admin -->
+<!-- Version: 2026-08-20 15:07 admin -->
 <!DOCTYPE html>
 <!-- Version: 2026-08-12 17:47 admin -->
 <head>
@@ -4338,7 +4338,9 @@ function LibraryPage({library,setLibrary}) {
             <div class="form-row"><label class="label">Titel *</label>
               <input class="input" value=${form.title} onInput=${e=>setForm(f=>({...f,title:e.target.value}))} placeholder="Titel des Materials"/></div>
             <div class="form-row"><label class="label">Beschreibung</label>
-              <input class="input" value=${form.desc} onInput=${e=>setForm(f=>({...f,desc:e.target.value}))} placeholder="Kurze Beschreibung…"/></div>
+              <textarea class="textarea" rows=${1} ref=${autoGrowTextarea} value=${form.desc}
+                onInput=${e=>{setForm(f=>({...f,desc:e.target.value}));autoGrowTextarea(e.target);}}
+                placeholder="Kurze Beschreibung…" style=${{width:'100%',boxSizing:'border-box',minHeight:38,resize:'none'}}/></div>
             ${form.type!=='link' && !fileData && /^https?:\/\//i.test((form.title+' '+form.desc).trim())&&html`
               <div style=${{display:'flex',alignItems:'center',gap:8,padding:'8px 12px',background:'#fdf3e0',border:'0.5px solid #ecd8a8',borderRadius:8,marginBottom:14}}>
                 <${Ic} name="link" size=${14} style=${{color:'#8a6a1f',flexShrink:0}}/>
