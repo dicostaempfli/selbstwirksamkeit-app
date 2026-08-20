@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-20 10:00 admin -->
+<!-- Version: 2026-08-20 10:33 admin -->
 <!DOCTYPE html>
 <!-- Version: 2026-08-12 17:47 admin -->
 <head>
@@ -1721,6 +1721,18 @@ function LoginPage() {
     // bisher nie zurück, verliess sich allein auf den Auth-Übergang in Root(). Jetzt
     // unbedingt zurückgesetzt, ausser beim Redirect-Fallback (dort verlässt die Seite
     // ohnehin per Navigation, ein Reset davor wäre wirkungslos aber auch harmlos).
+    // Fix (20.08.2026, Fehlermeldung 3 Rico "Login mit Google springt hin und her,
+    // leitet nicht weiter") — identische Ursache/Lösung wie index.html: signInWithPopup
+    // ist im installierten PWA-Standalone-Modus unzuverlässig (getrennter Browser-Kontext,
+    // Ergebnis kommt nicht zuverlässig zurück), dort direkt signInWithRedirect nutzen.
+    if(isAdminPWA()) {
+      try {
+        await fbAuth.signInWithRedirect(prov);
+      } catch(e) {
+        setError("Google fehlgeschlagen: " + e.message); setLoading(false);
+      }
+      return;
+    }
     try {
       await fbAuth.signInWithPopup(prov);
       setLoading(false);
@@ -2325,8 +2337,8 @@ function DashboardPage({coachees,library,doodles,setPage,user,openSenderFilter,o
       </div>
       <div style=${{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginTop:14,paddingTop:10,paddingBottom:16,borderTop:"1px solid var(--border2)",borderBottom:"1px solid var(--border2)",marginBottom:16,gap:10}}>
         <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.7,lineHeight:1.5}}>
-          <div>App v2026-08-19 13:09 · Doku v3.170</div>
-          <div>2026-08-17 16:03</div>
+          <div>App v2026-08-20 10:33 · Doku v3.185</div>
+          <div>2026-08-20 10:33</div>
         </div>
         <div style=${{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
           <button class="dash-reload-btn" title="Fehler-Log" onClick=${()=>setPage("errors")} style=${{position:"relative",color:openErrorCount>0?"#993C1D":"var(--muted)"}}>
@@ -3214,6 +3226,14 @@ function CoacheesPage({coachees,setCoachees,setPage,pending,setPending,deleted,s
   const [editId,setEditId]           = useState(null);
   const [showEmail,setShowEmail]     = useState(null);
   const [editForm,setEditForm]       = useState({});
+  // NEU (20.08.2026, Fehlermeldung 1 Rico): "Noch nicht registriert"-Karten waren bisher
+  // gar nicht antippbar — bei falscher/fehlender E-Mail (z.B. Tippfehler) gab es keine
+  // Möglichkeit, den Eintrag direkt in der App zu korrigieren, nur der Umweg über die
+  // Firebase Console. Eigenes, schlankes Edit-Sheet nur für Name + E-Mail.
+  const [editPendingId,setEditPendingId]         = useState(null);
+  const [editPendingForm,setEditPendingForm]     = useState({firstname:"",lastname:"",email:""});
+  const [savingPendingEdit,setSavingPendingEdit] = useState(false);
+  const [deletePendingConfirm,setDeletePendingConfirm] = useState(false);
 
   // Fix (03.08.2026, Fund "leere Kreise in der Coachees-Liste"): coaching/gender sind
   // Arrays — ein leeres Array [] ist in JS truthy, daher rendert `c.gender && html...`
@@ -3293,13 +3313,65 @@ function CoacheesPage({coachees,setCoachees,setPage,pending,setPending,deleted,s
     ))
   ) : null;
 
+  const openEditPending = (p) => {
+    const parts = (p.name||"").split(" ").filter(Boolean);
+    setEditPendingForm({firstname:parts[0]||"", lastname:parts.slice(1).join(" ")||"", email:p.email||""});
+    setEditPendingId(p.docId);
+    setDeletePendingConfirm(false);
+  };
+
+  const savePendingEdit = () => {
+    const firestore = db();
+    if(!firestore) { showToast("✗ Keine Verbindung zur Datenbank — bitte Seite neu laden."); return; }
+    const fname = editPendingForm.firstname.trim();
+    if(!fname || !editPendingForm.email.trim()) return;
+    const fullname = [fname, editPendingForm.lastname.trim()].filter(Boolean).join(" ");
+    const emailNorm = editPendingForm.email.trim().toLowerCase();
+    const original = pending.find(p => p.docId === editPendingId);
+    if(!original) { setEditPendingId(null); return; }
+    const { docId, name, email, ...rest } = original;
+    const updatedData = { ...rest, name:fullname, email:emailNorm };
+    setSavingPendingEdit(true);
+    // E-Mail unverändert: einfaches Update auf demselben Dokument.
+    // E-Mail geändert: `users_pending` nutzt die E-Mail als Dokument-ID (Kapitel 171-
+    // Architektur), daher neues Dokument anlegen. Löschen des alten Dokuments ist laut
+    // Firestore-Regeln nur dem Coachee selbst erlaubt (nicht dem Coach) — bestmöglicher
+    // Versuch, mit stillem Fallback + Hinweis an Rico, falls das Löschen serverseitig
+    // abgelehnt wird (dann bleibt der alte, falsche Eintrag bis zur manuellen Bereinigung
+    // in der Firebase Console bestehen, der neue korrigierte Eintrag funktioniert aber).
+    if(emailNorm !== editPendingId) {
+      firestore.collection("users_pending").doc(emailNorm).set(updatedData)
+        .then(() => {
+          setEditPendingId(null);
+          setSavingPendingEdit(false);
+          showToast("✓ Eintrag korrigiert");
+          firestore.collection("users_pending").doc(editPendingId).delete()
+            .catch(() => showToast("Hinweis: alter Eintrag (" + editPendingId + ") konnte nicht automatisch entfernt werden — bitte in der Firebase Console löschen."));
+        })
+        .catch(err => { setSavingPendingEdit(false); showToast("✗ Speichern fehlgeschlagen: " + err.message); });
+    } else {
+      firestore.collection("users_pending").doc(editPendingId).set(updatedData)
+        .then(() => { setEditPendingId(null); setSavingPendingEdit(false); showToast("✓ Eintrag korrigiert"); })
+        .catch(err => { setSavingPendingEdit(false); showToast("✗ Speichern fehlgeschlagen: " + err.message); });
+    }
+  };
+
+  const deletePendingEntry = () => {
+    if(!deletePendingConfirm) { setDeletePendingConfirm(true); return; }
+    const firestore = db();
+    if(!firestore) { showToast("✗ Keine Verbindung zur Datenbank."); return; }
+    firestore.collection("users_pending").doc(editPendingId).delete()
+      .then(() => { setEditPendingId(null); showToast("✓ Eintrag gelöscht"); })
+      .catch(err => showToast("✗ Löschen fehlgeschlagen (evtl. keine Berechtigung): " + err.message));
+  };
+
   const pendingSection = pending && pending.length > 0 ? h("div", {style:{marginBottom:24}},
     h("div", {style:{fontFamily:"'Manuale',serif",fontSize:"1rem",fontWeight:700,color:"var(--teal)",marginBottom:10,display:"flex",alignItems:"center",gap:8}},
       h("span", {style:{background:"var(--teal)",color:"#fff",borderRadius:"99px",padding:"1px 9px",fontSize:".78rem",fontWeight:700}}, pending.length),
       "Noch nicht registriert"
     ),
     h("p", {style:{fontSize:".78rem",color:"var(--muted)",marginBottom:10,marginTop:-4}}, "Diese Coachees haben die Willkommens-E-Mail erhalten, sich aber noch nicht selbst registriert. Sobald sie das tun, werden sie automatisch freigeschaltet."),
-    pending.map(p => h("div", {key:p.docId, style:{background:"var(--surface)",border:"0.5px solid var(--border)",borderRadius:14,padding:"14px 16px",marginBottom:10}},
+    pending.map(p => h("div", {key:p.docId, onClick:()=>openEditPending(p), style:{background:"var(--surface)",border:"0.5px solid var(--border)",borderRadius:14,padding:"14px 16px",marginBottom:10,cursor:"pointer"}},
       h("div", {style:{display:"flex",alignItems:"center",gap:10}},
         h("div", {style:{width:36,height:36,borderRadius:"50%",background:"var(--accent-pale)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}},
           h("span", {style:{fontWeight:700,color:"var(--teal)",fontSize:".85rem"}}, (p.name||"?").split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase())
@@ -3307,7 +3379,8 @@ function CoacheesPage({coachees,setCoachees,setPage,pending,setPending,deleted,s
         h("div", {style:{flex:1,minWidth:0}},
           h("div", {style:{fontWeight:700,color:"var(--text)",fontSize:".92rem"}}, p.name||"–"),
           h("div", {style:{color:"var(--muted)",fontSize:".78rem",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}, p.email||"")
-        )
+        ),
+        h(Ic, {name:"edit", size:14, style:{color:"var(--muted)",flexShrink:0}})
       )
     ))
   ) : null;
@@ -3488,7 +3561,7 @@ function CoacheesPage({coachees,setCoachees,setPage,pending,setPending,deleted,s
             h("span",null," und einem eigenen Passwort. Sein Zugang wird dabei automatisch freigeschaltet — du musst nichts mehr in der Firebase Console eintragen.")
           ),
           h("div",{className:"email-copy-area",style:{background:"var(--bg)",border:"1.5px solid var(--border)",borderRadius:12,padding:"16px 18px",fontFamily:"Georgia,serif",fontSize:".88rem",lineHeight:1.9,color:"var(--text)",whiteSpace:"pre-wrap",overflowWrap:"break-word",wordBreak:"break-word",userSelect:"all",marginBottom:16}},
-            showEmail&&("Liebe/r "+showEmail.name+"\n\nHerzlich willkommen bei Raum f\u00fcr Selbstwirksamkeit!\n\nWir freuen uns sehr, dich auf diesem Weg begleiten zu d\u00fcrfen. Deine pers\u00f6nliche Coaching-App ist jetzt f\u00fcr dich freigeschaltet.\n\nBevor du startest, schau dir gerne kurz an, wie die App funktioniert:\nhttps://dicostaempfli.github.io/selbstwirksamkeit-app/onboarding.html\n\nSo gelangst du zur App:\nhttps://dicostaempfli.github.io/selbstwirksamkeit-app/?neu=1\n\nRichte dort deinen Zugang ein — mit deiner E-Mail-Adresse ("+showEmail.email+") und einem Passwort deiner Wahl. Alternativ geht es auch direkt mit deinem Google-Konto.\n\nWas dich erwartet:\n\u2022 Tages-Impuls \u2014 ein t\u00e4glicher Impuls vom Denken ins F\u00fchlen\n\u2022 Atemball \u2014 dein t\u00e4gliches Ritual zur Zentrierung\n\u2022 Meine Impulse \u2014 deine eigenen, wiederkehrenden Impulse\n\u2022 Chat \u2014 direkte Verbindung zu uns\n\nDie App ist bewusst einfach gehalten \u2014 kein Zeitfresser, sondern ein sanfter Anker im Alltag.\n\nWir freuen uns auf den gemeinsamen Weg.\n\nHerzlich,\nDiana & Rico\nRaum f\u00fcr Selbstwirksamkeit\nwww.selbstwirksamkeit.ch")
+            showEmail&&("Liebe/r "+showEmail.name+"\n\nHerzlich willkommen bei der App von Raum f\u00fcr Selbstwirksamkeit!\n\nWir freuen uns sehr, dich auf diesem Weg begleiten zu d\u00fcrfen. Deine pers\u00f6nliche Coaching-App ist jetzt f\u00fcr dich freigeschaltet.\n\nBevor du startest, schau dir gerne kurz an, wie die App funktioniert:\nhttps://dicostaempfli.github.io/selbstwirksamkeit-app/onboarding.html\n\nSo gelangst du zur App:\nhttps://dicostaempfli.github.io/selbstwirksamkeit-app/?neu=1\n\nRichte dort deinen Zugang ein — mit deiner E-Mail-Adresse ("+showEmail.email+") und einem Passwort deiner Wahl. Alternativ geht es auch direkt mit deinem Google-Konto.\n\nWas dich erwartet:\n\u2022 Chat \u2014 direkte Verbindung zu uns zwischen den Sitzungen\n\u2022 Impulse \u2014 kleine, wiederkehrende Denkanst\u00f6sse vom Denken ins F\u00fchlen\n\u2022 Mediathek \u2014 \u00dcbungen und Inhalte zum Vertiefen\n\u2022 Termine \u2014 deine Coaching-Termine und Events auf einen Blick\n\nDie App ist bewusst einfach gehalten \u2014 kein Zeitfresser, sondern ein sanfter Anker im Alltag.\n\nFalls die Registrierung nicht klappen sollte: Schreib Rico kurz per WhatsApp eine (letzte) Nachricht. Anschliessend l\u00e4uft die gesamte Kommunikation \u00fcber die App — nicht mehr per WhatsApp oder SMS. So bleibt alles an einem Ort, gesch\u00fctzt und nur f\u00fcr dich und uns sichtbar.\n\nWir freuen uns auf den gemeinsamen Weg.\n\nHerzlich,\nDiana & Rico\nRaum f\u00fcr Selbstwirksamkeit\nwww.selbstwirksamkeit.ch")
           ),
           h("div",{style:{display:"flex",gap:10}},
             h("button",{
@@ -3672,6 +3745,40 @@ function CoacheesPage({coachees,setCoachees,setPage,pending,setPending,deleted,s
               <div style=${{display:"flex",gap:8}}>
                 <button class="btn btn-ghost" onClick=${()=>setEditId(null)}>Abbrechen</button>
                 <button class="btn btn-primary" onClick=${saveEdit} disabled=${savingEdit}>${savingEdit?"Speichern…":"Speichern"}</button>
+              </div>
+            </div>
+          </div>
+        </div>`}
+
+      ${editPendingId&&html`
+        <div class="coachee-edit-sheet" onClick=${e=>{if(e.target===e.currentTarget)setEditPendingId(null);}}>
+          <div class="coachee-edit-panel">
+            <div style=${{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:18}}>
+              <h2 class="modal-title" style=${{marginBottom:0}}>Eintrag korrigieren</h2>
+              <button style=${{background:"none",border:"none",cursor:"pointer",color:"var(--muted)",padding:4,borderRadius:8,display:"flex"}} onClick=${()=>setEditPendingId(null)}><${Ic} name="x" size=${20}/></button>
+            </div>
+            <p style=${{fontSize:".78rem",color:"var(--muted)",marginBottom:14,marginTop:-6}}>Noch nicht registriert — hier kannst du Name und E-Mail korrigieren, z.B. bei einem Tippfehler.</p>
+            <div class="form-grid" style=${{marginBottom:12}}>
+              <div class="form-row" style=${{marginBottom:0}}>
+                <label class="label">Vorname *</label>
+                <input class="input" value=${editPendingForm.firstname} onInput=${e=>setEditPendingForm(f=>({...f,firstname:e.target.value}))} placeholder="Vorname"/>
+              </div>
+              <div class="form-row" style=${{marginBottom:0}}>
+                <label class="label">Nachname</label>
+                <input class="input" value=${editPendingForm.lastname} onInput=${e=>setEditPendingForm(f=>({...f,lastname:e.target.value}))} placeholder="Nachname"/>
+              </div>
+            </div>
+            <div class="form-row">
+              <label class="label">E-Mail *</label>
+              <input class="input" type="email" value=${editPendingForm.email} onInput=${e=>setEditPendingForm(f=>({...f,email:e.target.value}))} placeholder="anna.meier@example.ch"/>
+            </div>
+            <div style=${{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:18}}>
+              <button class="btn btn-danger btn-sm" onClick=${deletePendingEntry}>
+                <${Ic} name="trash" size=${13}/> ${deletePendingConfirm ? "Sicher? Nochmal klicken" : "Löschen"}
+              </button>
+              <div style=${{display:"flex",gap:8}}>
+                <button class="btn btn-ghost" onClick=${()=>setEditPendingId(null)}>Abbrechen</button>
+                <button class="btn btn-primary" onClick=${savePendingEdit} disabled=${savingPendingEdit||!editPendingForm.firstname.trim()||!editPendingForm.email.trim()}>${savingPendingEdit?"Speichern…":"Speichern"}</button>
               </div>
             </div>
           </div>

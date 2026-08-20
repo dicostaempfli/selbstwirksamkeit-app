@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-20 09:19 coachee -->
+<!-- Version: 2026-08-20 10:23 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <!DOCTYPE html>
@@ -5542,16 +5542,28 @@ function LoginPage({ onLogin }) {
       const fbAuth = window._fb?.auth || window.firebase?.auth();
       const provider = window._fb?.googleProvider || new window.firebase.auth.GoogleAuthProvider();
       if(!fbAuth) throw {code:"no-auth", message:"Firebase nicht bereit"};
-      // Popup first (works on iOS PWA 16.4+, Android, Desktop)
-      // Redirect as fallback only if popup explicitly blocked
-      try {
-        await fbAuth.signInWithPopup(provider);
-      } catch(popupErr) {
-        if(popupErr.code === "auth/popup-blocked" || popupErr.code === "auth/operation-not-supported-in-this-environment") {
-          // Fallback to redirect
-          await fbAuth.signInWithRedirect(provider);
-        } else {
-          throw popupErr;
+      // Fix (20.08.2026, Fehlermeldung 3 Rico "Login mit Google springt hin und her,
+      // leitet nicht weiter"): signInWithPopup öffnet einen zweiten, vom PWA-Kontext
+      // getrennten Browser-Tab/-Fenster — sobald die App als installierte PWA läuft
+      // (isPWA(), Standalone-Modus), kann dieses Popup sein Ergebnis oft nicht zuverlässig
+      // per postMessage an die App zurückmelden: der Login-Tab öffnet sich, schliesst
+      // sich wieder oder springt zwischen App und Browser hin und her, ohne die App
+      // tatsächlich einzuloggen. Redirect (volle Seiten-Navigation, danach über
+      // getRedirectResult() oben in Root() aufgelöst) funktioniert im Standalone-Modus
+      // zuverlässig. Popup bleibt der Standardweg im normalen Browser-Tab (dort schneller/
+      // unauffälliger), Redirect wird dort weiterhin nur als Fallback genutzt.
+      if(isPWA()) {
+        await fbAuth.signInWithRedirect(provider);
+      } else {
+        try {
+          await fbAuth.signInWithPopup(provider);
+        } catch(popupErr) {
+          if(popupErr.code === "auth/popup-blocked" || popupErr.code === "auth/operation-not-supported-in-this-environment") {
+            // Fallback to redirect
+            await fbAuth.signInWithRedirect(provider);
+          } else {
+            throw popupErr;
+          }
         }
       }
     } catch(e) {
