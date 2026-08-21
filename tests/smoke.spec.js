@@ -19,8 +19,20 @@ test.beforeEach(() => {
   test.skip(!EMAIL || !PASSWORD, 'STAGING_TEST_EMAIL/STAGING_TEST_PASSWORD nicht gesetzt — Secrets im Repo hinterlegen.');
 });
 
+async function dismissBreathBall(page) {
+  // Der "Atemball" (Atemübung) erscheint einmal pro Kalendertag als Vollbild-Overlay
+  // (#breath-portal) — in einem frischen CI-Browser ohne gespeicherten Zustand also bei
+  // JEDEM Testlauf, und blockiert als fixed-position-Overlay alle Klicks darunter,
+  // inklusive des Login-Formulars. "Überspringen" schliesst ihn.
+  const skipLink = page.locator('.bh-skip-lnk');
+  if (await skipLink.isVisible({ timeout: 5000 }).catch(() => false)) {
+    await skipLink.click();
+  }
+}
+
 async function login(page) {
   await page.goto(STAGING_URL, { waitUntil: 'networkidle' });
+  await dismissBreathBall(page);
 
   // Falls eine vorherige Session noch eingeloggt ist, ist kein Login nötig.
   const emailField = page.locator('input[type="email"]').first();
