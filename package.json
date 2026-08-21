@@ -1,0 +1,11 @@
+{
+  "name": "selbstwirksamkeit-app-tests",
+  "private": true,
+  "description": "Regressions-Smoke-Test (Kapitel 161.4) — testet nicht die App selbst, nur den .github/workflows/smoke-test.yml-Ablauf.",
+  "scripts": {
+    "test:smoke": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.56.0"
+  }
+}
