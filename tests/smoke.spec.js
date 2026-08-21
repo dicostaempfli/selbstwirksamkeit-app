@@ -30,6 +30,15 @@ async function dismissBreathBall(page) {
   }
 }
 
+// Auf der Seite existiert sowohl die mobile untere Navigation (.bottom-nav-item)
+// als auch eine Desktop-Sidebar (.sb-item) — bei mobiler Viewport-Grösse (siehe
+// playwright.config.js) ist Letztere per CSS unsichtbar, aber weiterhin im DOM
+// vorhanden. Ohne ":visible" kann Playwright zufällig das unsichtbare Element
+// treffen und der Klick läuft in einen Timeout ("element is not visible").
+function navTab(page, label) {
+  return page.locator('.bottom-nav-item:visible, .sb-item:visible').filter({ hasText: label }).first();
+}
+
 async function login(page) {
   await page.goto(STAGING_URL, { waitUntil: 'networkidle' });
   await dismissBreathBall(page);
@@ -54,20 +63,20 @@ test('Navigations-Grundgerüst: alle Tabs erreichbar', async ({ page }) => {
   await login(page);
 
   for (const label of ['Chat', 'Impulse', 'Mediathek', 'Termine', 'Konto']) {
-    await page.locator('.bottom-nav-item, .sb-item').filter({ hasText: label }).first().click();
+    await navTab(page, label).click();
     await page.waitForTimeout(600);
     // Grober Crash-Check: kein Crash-Screen, keine leere Seite.
     await expect(page.locator('body')).not.toContainText('Die Verbindung dauert länger als erwartet');
   }
 
-  await page.locator('.bottom-nav-item, .sb-item').filter({ hasText: 'Home' }).first().click();
+  await navTab(page, 'Home').click();
   await expect(page.getByText(/^Guten Tag,/)).toBeVisible();
 });
 
 test('Regression Kapitel 160: X-Button verlässt Tages-Impuls zuverlässig Richtung Home', async ({ page }) => {
   await login(page);
 
-  await page.locator('.bottom-nav-item, .sb-item').filter({ hasText: 'Impulse' }).first().click();
+  await navTab(page, 'Impulse').click();
   await page.getByText('Tages-Impuls', { exact: true }).click();
   await page.waitForTimeout(500);
 
@@ -81,11 +90,11 @@ test('Regression Kapitel 160: X-Button verlässt Tages-Impuls zuverlässig Richt
 test('Regression Kapitel 160: Home-Tab verlässt Tages-Impuls zuverlässig', async ({ page }) => {
   await login(page);
 
-  await page.locator('.bottom-nav-item, .sb-item').filter({ hasText: 'Impulse' }).first().click();
+  await navTab(page, 'Impulse').click();
   await page.getByText('Tages-Impuls', { exact: true }).click();
   await page.waitForTimeout(500);
 
-  await page.locator('.bottom-nav-item, .sb-item').filter({ hasText: 'Home' }).first().click();
+  await navTab(page, 'Home').click();
 
   await expect(page.getByText(/^Guten Tag,/)).toBeVisible({ timeout: 5000 });
 });
