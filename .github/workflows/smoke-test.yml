@@ -1,0 +1,44 @@
+name: Regressions-Smoke-Test (Staging)
+
+# Läuft automatisch nach jedem Push, der index.html, staging/ oder die Tests
+# selbst betrifft — sowie manuell über den "Run workflow"-Button im Actions-Tab.
+# Testet gegen die Staging-Umgebung mit einem dedizierten Test-Account, nie
+# gegen echte Coachee-Daten. Siehe Projektdokumentation Kapitel 161.4.
+on:
+  push:
+    paths:
+      - "index.html"
+      - "staging/**"
+      - "tests/**"
+      - "playwright.config.js"
+  workflow_dispatch: {}
+
+jobs:
+  smoke-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Testabhängigkeiten installieren
+        run: npm install
+
+      - name: Playwright-Browser installieren
+        run: npx playwright install --with-deps chromium
+
+      - name: Smoke-Test ausführen
+        env:
+          STAGING_TEST_EMAIL: ${{ secrets.STAGING_TEST_EMAIL }}
+          STAGING_TEST_PASSWORD: ${{ secrets.STAGING_TEST_PASSWORD }}
+        run: npx playwright test
+
+      - name: Testbericht hochladen (auch bei Fehlschlag)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 14
