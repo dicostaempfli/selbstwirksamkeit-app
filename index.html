@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-20 22:57 coachee -->
+<!-- Version: 2026-08-21 07:38 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <!DOCTYPE html>
@@ -2554,6 +2554,17 @@ function App({ user, userDoc }) {
         showQueueItem(first);
       }
     }
+    // Fix (21.08.2026, Fund "Tages-Impuls bleibt hängen — X-Button und Home-Tab reagieren
+    // nicht"): Verlässt der Coachee den Tages-Impuls bewusst über X oder den Home-Tab
+    // (Ziel "dashboard"), während der Tagesimpuls noch unentschieden/fällig ist, feuerte
+    // der Auto-Redirect-Effect weiter unten (autoImpulsNavDone, Kapitel ~143/19.08.2026)
+    // im selben Zyklus sofort erneut und schickte sofort wieder zurück zu Impulse — der
+    // Coachee kam vom Tages-Impuls dadurch nie mehr weg. autoImpulsNavDone hier vorab auf
+    // true setzen unterdrückt genau diesen einen Redirect. Der Reset-Effect (siehe unten,
+    // "Sobald Home verlassen wird, wieder scharf schalten") setzt das Flag beim nächsten
+    // Verlassen von Dashboard ganz normal wieder zurück — die eigentliche Automatik für
+    // künftige, neue Fälligkeiten bleibt dadurch unangetastet.
+    if(page === "impulse" && p === "dashboard") autoImpulsNavDone.current = true;
     setPage(p); setMobileChatOpen(false);
   };
   const totalUnreadVal = chatUnreadCount;
