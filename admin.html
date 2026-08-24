@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-24 10:14 admin -->
+<!-- Version: 2026-08-24 10:28 admin -->
 <!DOCTYPE html>
 <!-- Version: 2026-08-12 17:47 admin -->
 <head>
@@ -1986,18 +1986,17 @@ function AdminApp({user}) {
   }, []);
 
   // ── Unread-Listener: pro Coachee letzte Nachricht beobachten ──
-  // localStorage statt sessionStorage: sessionStorage wird bei jedem neuen Tab/Browser-Neustart
-  // gelöscht, wodurch die Baseline fälschlich auf "alles gilt als gelesen" zurückgesetzt wurde,
-  // sobald Diana/Rico die Admin-App neu öffneten — unabhängig davon, ob sie den jeweiligen
-  // Chat tatsächlich angeschaut hatten.
-  // Fix (11.08.2026, Rico-Meldung "Push zeigt keine Liste mit offenen Nachrichten"): die bisherige
-  // Baseline hing an "der gerade neuesten Nachricht" beim ersten Kontakt mit einem Strang — ist
-  // diese neueste Nachricht ausgerechnet die Push-auslösende (z.B. nach frischem Reset/Neuinstall,
-  // kein lastRead vorhanden), wurde sie fälschlich sofort als gelesen markiert statt als ungelesen
-  // gezählt. Fix: Baseline an einen festen, EINMALIGEN Erstöffnungs-Zeitpunkt dieses Geräts koppeln
-  // (adminFirstOpenTs) statt an den Inhalt des jeweils ersten Snapshots — Nachrichten, die NACH
-  // diesem Zeitpunkt eintreffen, zählen immer als ungelesen, unabhängig davon, ob sie zufällig die
-  // erste sind, die dieser Listener zu Gesicht bekommt.
+  // Fix (24.08.2026, Rico-Meldung "Nachricht auf Ricos Gerät bearbeitet, bleibt auf Dianas
+  // Gerät trotzdem ungelesen"): lastRead/manualUnread lagen bisher NUR in localStorage — das ist
+  // je Gerät getrennter Speicher. Zwei Admin-Geräte (Ricos und Dianas), die dieselben Firestore-
+  // Chats anzeigen, hatten dadurch zwangsläufig zwei unabhängige "gelesen"-Zustände, die nie
+  // synchronisierten. Fix: lastRead/manualUnread liegen jetzt geräteübergreifend in Firestore,
+  // unter chats/{coacheeId}/adminMeta/read (Felder lastReadDiana/lastReadRico/manualUnreadDiana/
+  // manualUnreadRico) — jedes Gerät liest UND schreibt denselben Dokument, ein "gelesen" auf
+  // einem Gerät ist dadurch sofort per Snapshot-Listener auch auf dem anderen sichtbar.
+  // adminFirstOpenTs dient nur noch als Einmal-Startwert, falls für einen Coachee überhaupt noch
+  // kein adminMeta-Dokument existiert (allererster Kontakt) — danach ist der Firestore-Wert
+  // massgeblich, nicht mehr das lokale Gerät.
   const adminFirstOpenTsRef = useRef(null);
   if(adminFirstOpenTsRef.current===null) {
     let stored = parseInt(localStorage.getItem('adminFirstOpenTs')||'0');
@@ -2005,64 +2004,56 @@ function AdminApp({user}) {
     adminFirstOpenTsRef.current = stored;
   }
   const unreadUnsubsRef = useRef({});
+  const adminMetaCacheRef = useRef({});
+  const messagesCacheRef = useRef({});
   useEffect(() => {
     const firestore = db();
     if(!firestore) return;
     // Alte Listener aufräumen
-    Object.values(unreadUnsubsRef.current).forEach(u=>u&&u());
+    Object.values(unreadUnsubsRef.current).forEach(pair=>pair.forEach(u=>u&&u()));
     unreadUnsubsRef.current = {};
     coachees.forEach(c => {
-      // Fix (10.08.2026, Rico-Meldung "Nachrichten bleiben in Admin dauerhaft bei 0 —
-      // auch nach Neuladen"): Der bisherige "initialized"-Skip überging IMMER den ersten
-      // Snapshot nach jedem Mount/Reload, unabhängig davon, ob bereits ein lastRead-Wert
-      // aus einem früheren Besuch existierte — dadurch wurde die tatsächliche Unread-Zahl
-      // bei jedem Neuladen der Admin-App einmalig verschluckt und blieb bei 0 hängen, bis
-      // zufällig eine weitere neue Nachricht eintraf. Fix: nur beim allerersten Kontakt mit
-      // einem Coachee (noch KEIN lastRead gespeichert) wird adminFirstOpenTs als Baseline
-      // gesetzt statt rückwirkend die ganze Historie als ungelesen zu zählen — in allen
-      // anderen Fällen (auch beim allerersten Snapshot nach einem Reload) wird sofort
-      // regulär anhand des vorhandenen lastRead-Werts gezählt.
-      let baselineSetDiana = false;
-      let baselineSetRico = false;
-      const unsub = firestore.collection('chats').doc(c.id).collection('messages')
+      const readRef = firestore.collection('chats').doc(c.id).collection('adminMeta').doc('read');
+      const recompute = () => {
+        const meta = adminMetaCacheRef.current[c.id] || {};
+        const msgs = messagesCacheRef.current[c.id] || [];
+        const result = {};
+        [["Diana","unreadDiana"],["Rico","unreadRico"]].forEach(([who,field])=>{
+          const lastRead = meta['lastRead'+who] != null ? meta['lastRead'+who] : adminFirstOpenTsRef.current;
+          const unreadDocs = msgs.filter(m => m.from==='coachee' && (m.recipient||"Diana")===who && (m.ts||0) > lastRead);
+          result[field] = unreadDocs.length;
+          result[field+"OldestTs"] = unreadDocs.length ? Math.min(...unreadDocs.map(m=>m.ts||0)) : null;
+          // Manuelle Markierung ("als ungelesen markieren"): überstimmt nur, wenn der reguläre
+          // Zeitstempel-Vergleich 0 ergibt — lastRead{Diana|Rico} bleibt dabei unangetastet.
+          const manualTs = meta['manualUnread'+who];
+          if(manualTs && !result[field]) {
+            result[field] = 1;
+            result[field+"OldestTs"] = manualTs;
+          }
+        });
+        setCoachees(cs=>cs.map(x=>x.id===c.id?{...x,unreadDiana:result.unreadDiana,unreadRico:result.unreadRico,unreadDianaOldestTs:result.unreadDianaOldestTs,unreadRicoOldestTs:result.unreadRicoOldestTs,unread:result.unreadDiana+result.unreadRico}:x));
+      };
+      const msgUnsub = firestore.collection('chats').doc(c.id).collection('messages')
         .orderBy('ts','desc').limit(5)
         .onSnapshot(snap => {
-          const result = {};
-          [["Diana","unreadDiana"],["Rico","unreadRico"]].forEach(([who,field])=>{
-            const key = 'lastRead_'+c.id+'_'+who;
-            const storedRead = parseInt(localStorage.getItem(key)||'0');
-            const baselineFlag = who==="Diana" ? baselineSetDiana : baselineSetRico;
-            if(!storedRead && !baselineFlag) {
-              if(who==="Diana") baselineSetDiana=true; else baselineSetRico=true;
-              localStorage.setItem(key, adminFirstOpenTsRef.current);
-              const unreadDocs = snap.docs.filter(d=>{
-                const m=d.data();
-                return m.from==='coachee' && (m.recipient||"Diana")===who && (m.ts||0) > adminFirstOpenTsRef.current;
-              });
-              result[field] = unreadDocs.length;
-              result[field+"OldestTs"] = unreadDocs.length ? Math.min(...unreadDocs.map(d=>d.data().ts||0)) : null;
-            } else {
-              const lastRead = parseInt(localStorage.getItem(key)||'0');
-              const unreadDocs = snap.docs.filter(d=>{
-                const m=d.data();
-                return m.from==='coachee' && (m.recipient||"Diana")===who && (m.ts||0) > lastRead;
-              });
-              result[field] = unreadDocs.length;
-              result[field+"OldestTs"] = unreadDocs.length ? Math.min(...unreadDocs.map(d=>d.data().ts||0)) : null;
-            }
-            // Manuelle Markierung ("als ungelesen markieren"): überstimmt nur, wenn der reguläre
-            // Zeitstempel-Vergleich 0 ergibt — lastRead_<id>_<wer> bleibt dabei unangetastet.
-            const manualTs = parseInt(localStorage.getItem(manualUnreadKey(c.id, who))||'0');
-            if(manualTs && !result[field]) {
-              result[field] = 1;
-              result[field+"OldestTs"] = manualTs;
-            }
-          });
-          setCoachees(cs=>cs.map(x=>x.id===c.id?{...x,unreadDiana:result.unreadDiana,unreadRico:result.unreadRico,unreadDianaOldestTs:result.unreadDianaOldestTs,unreadRicoOldestTs:result.unreadRicoOldestTs,unread:result.unreadDiana+result.unreadRico}:x));
+          messagesCacheRef.current[c.id] = snap.docs.map(d=>d.data());
+          recompute();
         }, ()=>{});
-      unreadUnsubsRef.current[c.id] = unsub;
+      const metaUnsub = readRef.onSnapshot(snap => {
+        if(!snap.exists) {
+          // Allererster Kontakt mit diesem Coachee auf irgendeinem Admin-Gerät: einmalige,
+          // geräteübergreifend geteilte Baseline anlegen, damit nicht die komplette bisherige
+          // Historie rückwirkend als ungelesen zählt.
+          readRef.set({lastReadDiana:adminFirstOpenTsRef.current, lastReadRico:adminFirstOpenTsRef.current}, {merge:true}).catch(()=>{});
+          adminMetaCacheRef.current[c.id] = {lastReadDiana:adminFirstOpenTsRef.current, lastReadRico:adminFirstOpenTsRef.current};
+        } else {
+          adminMetaCacheRef.current[c.id] = snap.data();
+        }
+        recompute();
+      }, ()=>{});
+      unreadUnsubsRef.current[c.id] = [msgUnsub, metaUnsub];
     });
-    return () => Object.values(unreadUnsubsRef.current).forEach(u=>u&&u());
+    return () => Object.values(unreadUnsubsRef.current).forEach(pair=>pair.forEach(u=>u&&u()));
   }, [coachees.length]);
 
   // ── Pending Coachees Sync ──
@@ -2301,7 +2292,7 @@ function DashboardPage({coachees,library,doodles,setPage,user,openSenderFilter,o
       </div>
       <div style=${{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginTop:14,paddingTop:10,paddingBottom:16,borderTop:"1px solid var(--border2)",borderBottom:"1px solid var(--border2)",marginBottom:16,gap:10}}>
         <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.7,lineHeight:1.5}}>
-          <div>App v2026-08-24 10:14 · Doku v3.202</div>
+          <div>App v2026-08-24 10:28 · Doku v3.203</div>
           <div>2026-08-20 12:23</div>
         </div>
         <div style=${{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
@@ -2549,14 +2540,14 @@ function ChatPage({coachees,setCoachees,openId,clearOpenId,presetSender,clearPre
     setActiveId(id);
     setChatMessages([]);
     setMobileOpen(true);
+    const firestore = db();
     // lastRead nur für den aktuell aktiven Strang (Diana/Rico) setzen — der jeweils andere
     // Strang desselben Coachees bleibt unberührt, siehe Kapitel zu getrennten Unread-Zählern.
-    localStorage.setItem('lastRead_'+id+'_'+activeWho, Date.now());
-    // Ein bewusst geöffneter Strang gilt wieder als gelesen — auch eine manuelle
-    // "als ungelesen markieren"-Markierung wird hier mit aufgeräumt.
-    localStorage.removeItem(manualUnreadKey(id, activeWho));
+    // Fix 24.08.2026 (geräteübergreifende Sync): landet jetzt in Firestore statt localStorage,
+    // siehe Kommentar beim Unread-Listener weiter oben.
+    if(firestore) firestore.collection("chats").doc(id).collection("adminMeta").doc("read")
+      .set({['lastRead'+activeWho]:Date.now(), ['manualUnread'+activeWho]:null}, {merge:true}).catch(()=>{});
     if(chatUnsubRef.current) { chatUnsubRef.current(); chatUnsubRef.current=null; }
-    const firestore = db();
     if(firestore && id) {
       const ref = firestore.collection("chats").doc(id).collection("messages").orderBy("ts","asc").limitToLast(80);
       chatUnsubRef.current = ref.onSnapshot(snap=>{
@@ -2566,7 +2557,8 @@ function ChatPage({coachees,setCoachees,openId,clearOpenId,presetSender,clearPre
         const threadMsgs = msgs.filter(m=>(m.from==="admin"?(m.sender||"Diana"):(m.recipient||"Diana"))===activeWho);
         if(threadMsgs.length) {
           const maxTs = Math.max(...threadMsgs.map(m=>m.ts||0));
-          localStorage.setItem('lastRead_'+id+'_'+activeWho, maxTs);
+          firestore.collection("chats").doc(id).collection("adminMeta").doc("read")
+            .set({['lastRead'+activeWho]:maxTs}, {merge:true}).catch(()=>{});
         }
         const field = activeWho==="Rico" ? "unreadRico" : "unreadDiana";
         const oldestField = activeWho==="Rico" ? "unreadRicoOldestTs" : "unreadDianaOldestTs";
@@ -2581,12 +2573,16 @@ function ChatPage({coachees,setCoachees,openId,clearOpenId,presetSender,clearPre
   };
 
   // "Als ungelesen markieren" — Kontaktliste (Toggle) und Chat-Button (siehe ChatWindow) rufen
-  // beides dieselbe Funktion. Rührt lastRead nicht an, siehe manualUnreadKey() ganz unten im File.
+  // beides dieselbe Funktion. Rührt lastRead nicht an. Fix 24.08.2026: landet jetzt in Firestore
+  // (chats/{id}/adminMeta/read) statt localStorage, damit die Markierung auf allen Admin-Geräten
+  // gleichzeitig sichtbar ist, siehe Kommentar beim Unread-Listener weiter oben.
   // Der Toggle wird ausschliesslich für Stränge angeboten, die aktuell 0 ungelesen zeigen (Kapitel
   // "Kontakte"-Liste) — daher hier bewusst kein Un-Markieren-Zweig: Aufräumen passiert wie bei
   // echtem Unread nur durch Öffnen des Chats (siehe selectCoachee()/sender-Effect oben).
   const markManualUnread = (id, who, name) => {
-    localStorage.setItem(manualUnreadKey(id, who), Date.now());
+    const firestore = db();
+    if(firestore) firestore.collection("chats").doc(id).collection("adminMeta").doc("read")
+      .set({['manualUnread'+who]:Date.now()}, {merge:true}).catch(()=>{});
     const field = who==="Rico" ? "unreadRico" : "unreadDiana";
     const oldestField = who==="Rico" ? "unreadRicoOldestTs" : "unreadDianaOldestTs";
     setCoachees(cs=>cs.map(c=>{
@@ -2603,14 +2599,11 @@ function ChatPage({coachees,setCoachees,openId,clearOpenId,presetSender,clearPre
   // selectCoachee() hält sonst den `sender`-Wert vom Zeitpunkt des Öffnens fest (Closure).
   useEffect(() => {
     if(!activeId || !chatMessages.length) return;
+    const firestore = db();
     const threadMsgs = chatMessages.filter(m=>(m.from==="admin"?(m.sender||"Diana"):(m.recipient||"Diana"))===sender);
-    if(threadMsgs.length) {
-      const maxTs = Math.max(...threadMsgs.map(m=>m.ts||0));
-      localStorage.setItem('lastRead_'+activeId+'_'+sender, maxTs);
-    } else {
-      localStorage.setItem('lastRead_'+activeId+'_'+sender, Date.now());
-    }
-    localStorage.removeItem(manualUnreadKey(activeId, sender));
+    const maxTs = threadMsgs.length ? Math.max(...threadMsgs.map(m=>m.ts||0)) : Date.now();
+    if(firestore) firestore.collection("chats").doc(activeId).collection("adminMeta").doc("read")
+      .set({['lastRead'+sender]:maxTs, ['manualUnread'+sender]:null}, {merge:true}).catch(()=>{});
     const field = sender==="Rico" ? "unreadRico" : "unreadDiana";
     const oldestField = sender==="Rico" ? "unreadRicoOldestTs" : "unreadDianaOldestTs";
     setCoachees(cs=>cs.map(c=>{
@@ -5352,10 +5345,6 @@ function DoodlePage({doodles,setDoodles,coachees,adminUid}) {
 
 // Datum-Hilfsfunktionen — cross-browser sicher
 const dateKeyFromTs = ts => { const d=new Date(ts); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); };
-// Manuelle Ungelesen-Markierung ("gelesen, aber noch nicht beantwortet") — läuft neben
-// lastRead_<id>_<wer> her, ohne es zu verändern. Siehe unread-Listener in AdminApp und
-// die Toggle-/Button-Handler in ChatPage.
-const manualUnreadKey = (id,who) => 'manualUnread_'+id+'_'+who;
 const formatDateKey = key => { try { const p=key.split('-'); const d=new Date(parseInt(p[0]),parseInt(p[1])-1,parseInt(p[2])); const months=['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember']; return d.getDate()+'. '+months[d.getMonth()]+' '+d.getFullYear(); } catch(e){return key;} };
 function Root() {
   const [user,setUser]     = useState(null);
