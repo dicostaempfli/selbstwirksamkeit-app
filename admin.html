@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-20 20:57 admin -->
+<!-- Version: 2026-08-24 10:14 admin -->
 <!DOCTYPE html>
 <!-- Version: 2026-08-12 17:47 admin -->
 <head>
@@ -2041,15 +2041,22 @@ function AdminApp({user}) {
               });
               result[field] = unreadDocs.length;
               result[field+"OldestTs"] = unreadDocs.length ? Math.min(...unreadDocs.map(d=>d.data().ts||0)) : null;
-              return;
+            } else {
+              const lastRead = parseInt(localStorage.getItem(key)||'0');
+              const unreadDocs = snap.docs.filter(d=>{
+                const m=d.data();
+                return m.from==='coachee' && (m.recipient||"Diana")===who && (m.ts||0) > lastRead;
+              });
+              result[field] = unreadDocs.length;
+              result[field+"OldestTs"] = unreadDocs.length ? Math.min(...unreadDocs.map(d=>d.data().ts||0)) : null;
             }
-            const lastRead = parseInt(localStorage.getItem(key)||'0');
-            const unreadDocs = snap.docs.filter(d=>{
-              const m=d.data();
-              return m.from==='coachee' && (m.recipient||"Diana")===who && (m.ts||0) > lastRead;
-            });
-            result[field] = unreadDocs.length;
-            result[field+"OldestTs"] = unreadDocs.length ? Math.min(...unreadDocs.map(d=>d.data().ts||0)) : null;
+            // Manuelle Markierung ("als ungelesen markieren"): überstimmt nur, wenn der reguläre
+            // Zeitstempel-Vergleich 0 ergibt — lastRead_<id>_<wer> bleibt dabei unangetastet.
+            const manualTs = parseInt(localStorage.getItem(manualUnreadKey(c.id, who))||'0');
+            if(manualTs && !result[field]) {
+              result[field] = 1;
+              result[field+"OldestTs"] = manualTs;
+            }
           });
           setCoachees(cs=>cs.map(x=>x.id===c.id?{...x,unreadDiana:result.unreadDiana,unreadRico:result.unreadRico,unreadDianaOldestTs:result.unreadDianaOldestTs,unreadRicoOldestTs:result.unreadRicoOldestTs,unread:result.unreadDiana+result.unreadRico}:x));
         }, ()=>{});
@@ -2294,7 +2301,7 @@ function DashboardPage({coachees,library,doodles,setPage,user,openSenderFilter,o
       </div>
       <div style=${{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginTop:14,paddingTop:10,paddingBottom:16,borderTop:"1px solid var(--border2)",borderBottom:"1px solid var(--border2)",marginBottom:16,gap:10}}>
         <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.7,lineHeight:1.5}}>
-          <div>App v2026-08-20 10:37 · Doku v3.185</div>
+          <div>App v2026-08-24 10:14 · Doku v3.202</div>
           <div>2026-08-20 12:23</div>
         </div>
         <div style=${{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
@@ -2545,6 +2552,9 @@ function ChatPage({coachees,setCoachees,openId,clearOpenId,presetSender,clearPre
     // lastRead nur für den aktuell aktiven Strang (Diana/Rico) setzen — der jeweils andere
     // Strang desselben Coachees bleibt unberührt, siehe Kapitel zu getrennten Unread-Zählern.
     localStorage.setItem('lastRead_'+id+'_'+activeWho, Date.now());
+    // Ein bewusst geöffneter Strang gilt wieder als gelesen — auch eine manuelle
+    // "als ungelesen markieren"-Markierung wird hier mit aufgeräumt.
+    localStorage.removeItem(manualUnreadKey(id, activeWho));
     if(chatUnsubRef.current) { chatUnsubRef.current(); chatUnsubRef.current=null; }
     const firestore = db();
     if(firestore && id) {
@@ -2570,6 +2580,24 @@ function ChatPage({coachees,setCoachees,openId,clearOpenId,presetSender,clearPre
     }
   };
 
+  // "Als ungelesen markieren" — Kontaktliste (Toggle) und Chat-Button (siehe ChatWindow) rufen
+  // beides dieselbe Funktion. Rührt lastRead nicht an, siehe manualUnreadKey() ganz unten im File.
+  // Der Toggle wird ausschliesslich für Stränge angeboten, die aktuell 0 ungelesen zeigen (Kapitel
+  // "Kontakte"-Liste) — daher hier bewusst kein Un-Markieren-Zweig: Aufräumen passiert wie bei
+  // echtem Unread nur durch Öffnen des Chats (siehe selectCoachee()/sender-Effect oben).
+  const markManualUnread = (id, who, name) => {
+    localStorage.setItem(manualUnreadKey(id, who), Date.now());
+    const field = who==="Rico" ? "unreadRico" : "unreadDiana";
+    const oldestField = who==="Rico" ? "unreadRicoOldestTs" : "unreadDianaOldestTs";
+    setCoachees(cs=>cs.map(c=>{
+      if(c.id!==id) return c;
+      const updated = {...c,[field]:Math.max(c[field]||0,1),[oldestField]:c[oldestField]||Date.now()};
+      updated.unread = (updated.unreadDiana||0)+(updated.unreadRico||0);
+      return updated;
+    }));
+    showToast("✓ \""+name+"\" liegt jetzt bei \"An "+who+"\"");
+  };
+
   // Schaltet man innerhalb eines bereits geöffneten Chats zwischen Diana/Rico um, muss der neu
   // aktive Strang ebenfalls als gelesen markiert werden — der obige onSnapshot-Listener in
   // selectCoachee() hält sonst den `sender`-Wert vom Zeitpunkt des Öffnens fest (Closure).
@@ -2582,6 +2610,7 @@ function ChatPage({coachees,setCoachees,openId,clearOpenId,presetSender,clearPre
     } else {
       localStorage.setItem('lastRead_'+activeId+'_'+sender, Date.now());
     }
+    localStorage.removeItem(manualUnreadKey(activeId, sender));
     const field = sender==="Rico" ? "unreadRico" : "unreadDiana";
     const oldestField = sender==="Rico" ? "unreadRicoOldestTs" : "unreadDianaOldestTs";
     setCoachees(cs=>cs.map(c=>{
@@ -2766,6 +2795,18 @@ function ChatPage({coachees,setCoachees,openId,clearOpenId,presetSender,clearPre
                     <div class="conv-name">${c.name}</div>
                     <div class="conv-preview">${c.topic}</div>
                   </div>
+                  <div style=${{display:"flex",gap:5,flexShrink:0}}>
+                    ${["Diana","Rico"].map(who=>h("button",{
+                      key:who,
+                      onClick:e=>{e.stopPropagation();markManualUnread(c.id,who,c.name);},
+                      "aria-label":"Für "+who+" als ungelesen markieren",
+                      style:{width:24,height:24,borderRadius:"50%",flexShrink:0,cursor:"pointer",padding:0,
+                        background:"transparent",
+                        border:"1.5px solid "+(who==="Rico"?"#3b6d11":"#1d5a8f"),
+                        color:who==="Rico"?"#3b6d11":"#1d5a8f",
+                        fontFamily:"'Exo 2',sans-serif",fontSize:".64rem",fontWeight:700}
+                    }, who[0]))}
+                  </div>
                 </div>`;
               })}
             </div>
@@ -2773,7 +2814,7 @@ function ChatPage({coachees,setCoachees,openId,clearOpenId,presetSender,clearPre
         : html`
           <div style=${{display:"flex",flexDirection:"column",width:"100%",flex:1,minHeight:0,overflow:"hidden"}}>
             ${active
-              ? html`<${ChatWindow} coachee=${{...active,messages:chatMessages}} sender=${sender} setSender=${setSender} onSend=${sendMsg} onSendImg=${sendImg} onSendFile=${sendFile} onDeleteMsg=${async id=>{ const fs=db(); if(fs&&activeId) await fs.collection("chats").doc(activeId).collection("messages").doc(id).delete().catch(()=>{}); }} setLightbox=${()=>{}} onBack=${()=>{ if(chatUnsubRef.current){ chatUnsubRef.current(); chatUnsubRef.current=null; } setMobileOpen(false); }} mobileOpen=${true}/>`
+              ? html`<${ChatWindow} coachee=${{...active,messages:chatMessages}} sender=${sender} setSender=${setSender} onSend=${sendMsg} onSendImg=${sendImg} onSendFile=${sendFile} onDeleteMsg=${async id=>{ const fs=db(); if(fs&&activeId) await fs.collection("chats").doc(activeId).collection("messages").doc(id).delete().catch(()=>{}); }} setLightbox=${()=>{}} onBack=${()=>{ if(chatUnsubRef.current){ chatUnsubRef.current(); chatUnsubRef.current=null; } setMobileOpen(false); }} onMarkUnread=${()=>{ markManualUnread(activeId,sender,active.name); if(chatUnsubRef.current){ chatUnsubRef.current(); chatUnsubRef.current=null; } setMobileOpen(false); }} mobileOpen=${true}/>`
               : html`<div style=${{display:"flex",alignItems:"center",justifyContent:"center",flex:1,flexDirection:"column",gap:12,color:"var(--muted)"}}>
                   <${Logo} size=${60}/>
                   <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.1rem"}}>Wähle ein Gespräch</div>
@@ -2783,7 +2824,7 @@ function ChatPage({coachees,setCoachees,openId,clearOpenId,presetSender,clearPre
   `
 }
 
-function ChatWindow({coachee,sender,setSender,onSend,onSendImg,onSendFile,onDeleteMsg,onBack,mobileOpen}) {
+function ChatWindow({coachee,sender,setSender,onSend,onSendImg,onSendFile,onDeleteMsg,onBack,onMarkUnread,mobileOpen}) {
   const [input,setInput]         = useState("");
   const [lightbox,setLightbox]   = useState(null);
   const [videoLightbox,setVideoLightbox] = useState(null);
@@ -2956,6 +2997,13 @@ function ChatWindow({coachee,sender,setSender,onSend,onSendImg,onSendFile,onDele
               cursor:"pointer",transition:"all .18s"}
           }, h(Ic,{name:"user",size:15}), " "+name))}
         </div>
+        <button onClick=${onMarkUnread} style=${{width:"100%",height:38,borderRadius:9,cursor:"pointer",
+          border:"1.5px solid "+(sender==="Rico"?"#3b6d11":"#1d5a8f"),
+          background:sender==="Rico"?"#e9f3dd":"#e0f5ee",
+          color:sender==="Rico"?"#3b6d11":"#1d5a8f",
+          fontFamily:"'Exo 2',sans-serif",fontSize:".78rem",fontWeight:700}}>
+          Als ungelesen markieren
+        </button>
       </div>
 
       <div class="messages">
@@ -5304,6 +5352,10 @@ function DoodlePage({doodles,setDoodles,coachees,adminUid}) {
 
 // Datum-Hilfsfunktionen — cross-browser sicher
 const dateKeyFromTs = ts => { const d=new Date(ts); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); };
+// Manuelle Ungelesen-Markierung ("gelesen, aber noch nicht beantwortet") — läuft neben
+// lastRead_<id>_<wer> her, ohne es zu verändern. Siehe unread-Listener in AdminApp und
+// die Toggle-/Button-Handler in ChatPage.
+const manualUnreadKey = (id,who) => 'manualUnread_'+id+'_'+who;
 const formatDateKey = key => { try { const p=key.split('-'); const d=new Date(parseInt(p[0]),parseInt(p[1])-1,parseInt(p[2])); const months=['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember']; return d.getDate()+'. '+months[d.getMonth()]+' '+d.getFullYear(); } catch(e){return key;} };
 function Root() {
   const [user,setUser]     = useState(null);
