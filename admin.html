@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-24 10:45 admin -->
+<!-- Version: 2026-08-24 21:15 admin -->
 <!DOCTYPE html>
 <!-- Version: 2026-08-12 17:47 admin -->
 <head>
@@ -2101,18 +2101,20 @@ function AdminApp({user}) {
   ];
 
   // ── Homescreen-App-Icon-Badge (Badging API) ──
-  // Analog zu index.html (selbes Konzept, 10.08.2026 auf Ricos Wunsch für beide Apps
-  // umgesetzt): summiert die bereits bestehenden Nav-Badges (Chat-Unread, offene Doodle-
-  // Stimmen, neue/gelöschte Coachees zur Prüfung) für die native App-Icon-Anzeige. Keine
-  // Custom-Farbe möglich (Betriebssystem entscheidet), Chrome für Android exponiert die
-  // API nicht — dank Feature-Detection dort ein harmloses No-Op.
+  // Summiert Chat-Unread, offene Doodle-Stimmen und gelöschte Coachees zur Prüfung für
+  // die native App-Icon-Anzeige. "Noch nicht registriert" (pending) bewusst NICHT
+  // eingerechnet (24.08.2026, Ricos Entscheid) — das ist im Coachees-Tab-Badge ohnehin
+  // dauerhaft sichtbar und würde den App-Icon-Badge quasi permanent triggern. Zeigt die
+  // echte Zahl statt fix "1" (24.08.2026) — abweichend von index.html, das weiterhin auf
+  // "1" gedeckelt bleibt (Rico-Entscheid 10.08.2026, Kapitel 66/67), hier bewusst NICHT
+  // angepasst. Keine Custom-Farbe möglich (Betriebssystem entscheidet), Chrome für
+  // Android exponiert die API nicht — dank Feature-Detection dort ein harmloses No-Op.
   useEffect(() => {
     if(!('setAppBadge' in navigator)) return;
-    const badgeTotal = totalUnread + doodleUnread + pending.length + deleted.length;
-    // Gedeckelt auf "1" (Rico-Entscheid 10.08.2026, Kapitel 66) — identisch zu index.html.
-    if(badgeTotal > 0) navigator.setAppBadge(1).catch(() => {});
+    const badgeTotal = totalUnread + doodleUnread + deleted.length;
+    if(badgeTotal > 0) navigator.setAppBadge(badgeTotal).catch(() => {});
     else navigator.clearAppBadge().catch(() => {});
-  }, [totalUnread, doodleUnread, pending.length, deleted.length]);
+  }, [totalUnread, doodleUnread, deleted.length]);
 
   const doLogout = () => { (window._fb?.auth||window.firebase?.auth())?.signOut().catch(()=>{}); };
 
@@ -2292,7 +2294,7 @@ function DashboardPage({coachees,library,doodles,setPage,user,openSenderFilter,o
       </div>
       <div style=${{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginTop:14,paddingTop:10,paddingBottom:16,borderTop:"1px solid var(--border2)",borderBottom:"1px solid var(--border2)",marginBottom:16,gap:10}}>
         <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.7,lineHeight:1.5}}>
-          <div>App v2026-08-24 10:45 · Doku v3.205</div>
+          <div>App v2026-08-24 21:15 · Doku v3.205</div>
           <div>2026-08-20 12:23</div>
         </div>
         <div style=${{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
