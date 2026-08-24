@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-24 10:28 admin -->
+<!-- Version: 2026-08-24 10:41 admin -->
 <!DOCTYPE html>
 <!-- Version: 2026-08-12 17:47 admin -->
 <head>
@@ -2292,7 +2292,7 @@ function DashboardPage({coachees,library,doodles,setPage,user,openSenderFilter,o
       </div>
       <div style=${{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginTop:14,paddingTop:10,paddingBottom:16,borderTop:"1px solid var(--border2)",borderBottom:"1px solid var(--border2)",marginBottom:16,gap:10}}>
         <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.7,lineHeight:1.5}}>
-          <div>App v2026-08-24 10:28 · Doku v3.203</div>
+          <div>App v2026-08-24 10:41 · Doku v3.205</div>
           <div>2026-08-20 12:23</div>
         </div>
         <div style=${{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
@@ -2572,13 +2572,11 @@ function ChatPage({coachees,setCoachees,openId,clearOpenId,presetSender,clearPre
     }
   };
 
-  // "Als ungelesen markieren" — Kontaktliste (Toggle) und Chat-Button (siehe ChatWindow) rufen
-  // beides dieselbe Funktion. Rührt lastRead nicht an. Fix 24.08.2026: landet jetzt in Firestore
-  // (chats/{id}/adminMeta/read) statt localStorage, damit die Markierung auf allen Admin-Geräten
-  // gleichzeitig sichtbar ist, siehe Kommentar beim Unread-Listener weiter oben.
-  // Der Toggle wird ausschliesslich für Stränge angeboten, die aktuell 0 ungelesen zeigen (Kapitel
-  // "Kontakte"-Liste) — daher hier bewusst kein Un-Markieren-Zweig: Aufräumen passiert wie bei
-  // echtem Unread nur durch Öffnen des Chats (siehe selectCoachee()/sender-Effect oben).
+  // "Als ungelesen markieren" — wird vom Button im offenen Chat aufgerufen (siehe ChatWindow).
+  // Rührt lastRead nicht an. Landet in Firestore (chats/{id}/adminMeta/read) statt localStorage,
+  // damit die Markierung auf allen Admin-Geräten gleichzeitig sichtbar ist (siehe Kommentar beim
+  // Unread-Listener weiter oben). Bewusst kein Un-Markieren-Zweig: Aufräumen passiert wie bei
+  // echtem Unread nur durch erneutes Öffnen des Strangs (siehe selectCoachee()/sender-Effect oben).
   const markManualUnread = (id, who, name) => {
     const firestore = db();
     if(firestore) firestore.collection("chats").doc(id).collection("adminMeta").doc("read")
@@ -2787,18 +2785,6 @@ function ChatPage({coachees,setCoachees,openId,clearOpenId,presetSender,clearPre
                   <div class="conv-info">
                     <div class="conv-name">${c.name}</div>
                     <div class="conv-preview">${c.topic}</div>
-                  </div>
-                  <div style=${{display:"flex",gap:5,flexShrink:0}}>
-                    ${["Diana","Rico"].map(who=>h("button",{
-                      key:who,
-                      onClick:e=>{e.stopPropagation();markManualUnread(c.id,who,c.name);},
-                      "aria-label":"Für "+who+" als ungelesen markieren",
-                      style:{width:24,height:24,borderRadius:"50%",flexShrink:0,cursor:"pointer",padding:0,
-                        background:"transparent",
-                        border:"1.5px solid "+(who==="Rico"?"#3b6d11":"#1d5a8f"),
-                        color:who==="Rico"?"#3b6d11":"#1d5a8f",
-                        fontFamily:"'Exo 2',sans-serif",fontSize:".64rem",fontWeight:700}
-                    }, who[0]))}
                   </div>
                 </div>`;
               })}
