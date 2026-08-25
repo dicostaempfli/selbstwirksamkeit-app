@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-25 14:16 coachee -->
+<!-- Version: 2026-08-25 15:20 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <!DOCTYPE html>
@@ -2554,9 +2554,22 @@ function App({ user, userDoc }) {
   // Parameter `skipAutoQueue` — wird von den beiden Home-Anker-Karten (Aktueller
   // Tages-Impuls / Meine Impulse, siehe DashboardPage) gesetzt, da diese ihr Ziel
   // bereits eindeutig kennen und die Auto-Queue-Priorisierung hier nicht greifen darf.
-  // Der bottom-nav-Impulse-Icon-Tap (kennt kein spezifisches Ziel) ruft navTo() weiterhin
-  // ohne dieses Flag auf — dessen bestehende Queue-Technik (Tagesimpuls zuerst, dann
-  // fällige Reminder) bleibt dadurch unverändert erhalten.
+  // NACHTRAG (25.08.2026, Rückmeldung Rico "Meine Impulse werden nicht angezeigt, seit
+  // der Tagesimpuls aufgetaucht ist"): Aus demselben Grund jetzt auch für den
+  // bottom-nav- und Sidebar-Impulse-Icon-Tap gesetzt (`navTo(i.id, i.id==="impulse")`).
+  // Diese Auto-Queue-Technik (Tagesimpuls zuerst, dann fällige Reminder als Popup) war
+  // ursprünglich bewusst so gewünscht (Kapitel 146, 19.08.2026), sorgte aber bei JEDEM
+  // manuellen Tippen auf das Impulse-Icon für dieselbe Kollision wie bei den
+  // Home-Karten: Tagesimpuls verdrängte "Meine Impulse" zuverlässig, sobald einer
+  // fällig war — der Coachee kam ohne den (nicht offensichtlichen) Subtab-Umschalter
+  // oben in der Impulse-Seite nicht mehr an seine Reminder-Liste. Tippen auf das
+  // Impulse-Icon öffnet die Impulse-Seite jetzt schlicht auf dem zuletzt aktiven Subtab
+  // (Default "Meine Impulse", siehe impulseDefaultTab-State) — beide Subtabs bleiben
+  // über die Umschalter-Buttons oben jederzeit erreichbar, die beiden Home-Karten
+  // bleiben der gezielte, zuverlässige Weg zu je einem bestimmten Subtab. Echte
+  // Push-Benachrichtigungen (routeHash(), ganz oben) sind davon komplett unberührt —
+  // sie zeigen weiterhin sofort ihr jeweiliges Ziel als Popup, unabhängig von dieser
+  // Auto-Queue-Technik.
   const navTo = (p, skipAutoQueue) => {
     // Manuelle Auto-Popup-Queue nur auslösen, wenn kein echter Push-Deep-Link gerade
     // ohnehin schon eine pending-ID gesetzt hat (Push hat immer Vorrang, kein Duplikat).
@@ -2803,7 +2816,7 @@ function App({ user, userDoc }) {
     </div>
     <nav class="bottom-nav">
       ${NAV_ITEMS.map(i=>html`
-        <div key=${i.id} class=${"bottom-nav-item"+(page===i.id?" active":"")} onClick=${()=>navTo(i.id)}>
+        <div key=${i.id} class=${"bottom-nav-item"+(page===i.id?" active":"")} onClick=${()=>navTo(i.id, i.id==="impulse")}>
           <${Ic} name=${i.icon} size=${24}/>
           <span class="bottom-nav-label">${i.label}</span>
           ${(i.badge||0)>0&&html`<span class="bottom-nav-badge">${i.badge}</span>`}
@@ -2926,7 +2939,7 @@ function Sidebar({page,setPage,totalUnread,impulseUnread,libraryUnread,doodleUnr
       <div class="sb-nav">
         ${items.map(i=>html`
           <div key=${i.id} class=${"sb-item"+(page===i.id?" active":"")}
-            onClick=${()=>setPage(i.id)} title=${i.tip}>
+            onClick=${()=>setPage(i.id, i.id==="impulse")} title=${i.tip}>
             <${Ic} name=${i.icon} size=${18}/>
             <span class="sb-item-label">${i.label||i.tip}</span>
             ${(i.badge||0)>0 && html`<span class="badge">${i.badge}</span>`}
