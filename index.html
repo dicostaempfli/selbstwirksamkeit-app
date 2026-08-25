@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-25 13:56 coachee -->
+<!-- Version: 2026-08-25 14:08 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <!DOCTYPE html>
@@ -2541,10 +2541,26 @@ function App({ user, userDoc }) {
     });
   };
 
-  const navTo = (p) => {
+  // NEU (25.08.2026, Rückmeldung Rico "offene Meine Impulse sind in Menü aber werden
+  // nicht angezeigt"): navTo() wird als "setPage"-Prop 1:1 an DashboardPage durchgereicht
+  // (Zeile ~2803 unten). Tippte der Coachee gezielt auf die "Meine Impulse"-Karte auf
+  // Home, setzte diese VORHER explizit setImpulseDefaultTab("meine") — navTo() selbst
+  // rief bei fälligem Tagesimpuls aber IMMER zusätzlich showQueueItem({type:"tagesimpuls"})
+  // auf, was intern erneut setImpulseDefaultTab(...), diesmal auf "tagesimpuls", aufruft.
+  // Beide Aufrufe landen im selben synchronen Klick-Handler und werden gemeinsam
+  // gebatcht — der zweite (spätere) Aufruf gewinnt, die bewusste Wahl der Home-Karte
+  // wurde dadurch unbemerkt wieder auf Tagesimpuls überschrieben, unabhängig davon,
+  // welche der beiden Karten tatsächlich angetippt wurde. Fix: optionaler zweiter
+  // Parameter `skipAutoQueue` — wird von den beiden Home-Anker-Karten (Aktueller
+  // Tages-Impuls / Meine Impulse, siehe DashboardPage) gesetzt, da diese ihr Ziel
+  // bereits eindeutig kennen und die Auto-Queue-Priorisierung hier nicht greifen darf.
+  // Der bottom-nav-Impulse-Icon-Tap (kennt kein spezifisches Ziel) ruft navTo() weiterhin
+  // ohne dieses Flag auf — dessen bestehende Queue-Technik (Tagesimpuls zuerst, dann
+  // fällige Reminder) bleibt dadurch unverändert erhalten.
+  const navTo = (p, skipAutoQueue) => {
     // Manuelle Auto-Popup-Queue nur auslösen, wenn kein echter Push-Deep-Link gerade
     // ohnehin schon eine pending-ID gesetzt hat (Push hat immer Vorrang, kein Duplikat).
-    if(p === "impulse" && page !== "impulse" && !pendingImpulsPopup && !pendingReminderId) {
+    if(!skipAutoQueue && p === "impulse" && page !== "impulse" && !pendingImpulsPopup && !pendingReminderId) {
       const queue = [];
       if(getTagesimpulsPending()) queue.push({type:"tagesimpuls"});
       getDueUnseenReminderOccurrences().forEach(occ => queue.push({type:"reminder", id:occ.id, time:occ.time}));
@@ -3515,7 +3531,10 @@ function DashboardPage({coachees,library,reminders,remindersReady,libraryReady,l
       </div>
       ${activeImpuls && h("div", {
         class:"impuls-anker", style:{marginBottom:14},
-        onClick:()=>{ setImpulseDefaultTab("tagesimpuls"); setPage("impulse"); }
+        // Fix (25.08.2026, siehe Kapitel-169.1-Nachtrag): skipAutoQueue=true, damit
+        // navTo() das hier bewusst gewählte Ziel (Tagesimpuls) nicht durch die
+        // Auto-Queue-Priorisierung wieder überschreiben kann.
+        onClick:()=>{ setImpulseDefaultTab("tagesimpuls"); setPage("impulse", true); }
       },
         h("div",{class:"impuls-anker-dot"}),
         h("div",{style:{flex:1}},
@@ -3527,7 +3546,7 @@ function DashboardPage({coachees,library,reminders,remindersReady,libraryReady,l
         )
       )}
       <div class="stat-grid">
-        <div class="stat-card" onClick=${()=>{ setImpulseDefaultTab("meine"); setPage("impulse"); }} style=${{cursor:"pointer",borderLeft:"4px solid var(--teal)",padding:"16px 20px"}}>
+        <div class="stat-card" onClick=${()=>{ setImpulseDefaultTab("meine"); setPage("impulse", true); }} style=${{cursor:"pointer",borderLeft:"4px solid var(--teal)",padding:"16px 20px"}}>
           <div style=${{display:"flex",alignItems:"center",gap:14}}>
             <div style=${{width:42,height:42,borderRadius:12,background:"var(--teal-pale)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><${Ic} name="impuls" size=${22} style=${{color:"var(--teal-dark)"}}/></div>
             <div style=${{flex:1}}>
