@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-25 14:08 coachee -->
+<!-- Version: 2026-08-25 14:16 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <!DOCTYPE html>
@@ -2570,17 +2570,13 @@ function App({ user, userDoc }) {
         showQueueItem(first);
       }
     }
-    // Fix (21.08.2026, Fund "Tages-Impuls bleibt hängen — X-Button und Home-Tab reagieren
-    // nicht"): Verlässt der Coachee den Tages-Impuls bewusst über X oder den Home-Tab
-    // (Ziel "dashboard"), während der Tagesimpuls noch unentschieden/fällig ist, feuerte
-    // der Auto-Redirect-Effect weiter unten (autoImpulsNavDone, Kapitel ~143/19.08.2026)
-    // im selben Zyklus sofort erneut und schickte sofort wieder zurück zu Impulse — der
-    // Coachee kam vom Tages-Impuls dadurch nie mehr weg. autoImpulsNavDone hier vorab auf
-    // true setzen unterdrückt genau diesen einen Redirect. Der Reset-Effect (siehe unten,
-    // "Sobald Home verlassen wird, wieder scharf schalten") setzt das Flag beim nächsten
-    // Verlassen von Dashboard ganz normal wieder zurück — die eigentliche Automatik für
-    // künftige, neue Fälligkeiten bleibt dadurch unangetastet.
-    if(page === "impulse" && p === "dashboard") autoImpulsNavDone.current = true;
+    // Hinweis (25.08.2026, Aufräumen): Der frühere autoImpulsNavDone-Ref-Schutz an dieser
+    // Stelle (Fix 21.08.2026, Kapitel ~143/19.08.2026) diente ausschliesslich dazu, den
+    // Kaltstart-Auto-Redirect-Effect zu unterdrücken, der beim bewussten Verlassen des
+    // Tages-Impuls sofort wieder zurück navigierte. Dieser Auto-Redirect-Effect wurde in
+    // Kapitel 169 deaktiviert — der Schutz hier hatte dadurch keine Wirkung mehr und
+    // wurde entfernt (samt Ref-Deklaration und Reset-Effect weiter unten). Rein
+    // aufräumend, keine Verhaltensänderung.
     setPage(p); setMobileChatOpen(false);
   };
   const totalUnreadVal = chatUnreadCount;
@@ -2624,7 +2620,6 @@ function App({ user, userDoc }) {
   // sobald feststeht, dass ein Tagesimpuls oder mindestens ein Reminder fällig&ungesehen ist —
   // unabhängig davon, ob je ein Push angetippt wurde. Ein echter Push-Deep-Link sowie eine
   // anstehende Willkommensnachricht haben weiterhin Vorrang (return oben/unten).
-  const autoImpulsNavDone = useRef(false);
   // Fix (19.08.2026, Rückmeldung "Impuls wird beim direkten App-Öffnen weiterhin häufig
   // verschluckt, kein Badge in der Menüleiste"): Zwei unabhängige Bugs im Kapitel-143-Fix
   // oben gefunden, beide gemeinsam verantwortlich für das gemeldete Muster.
@@ -2670,39 +2665,22 @@ function App({ user, userDoc }) {
     // DEAKTIVIERT (25.08.2026, Rückmeldung Rico "Tages-Impuls öffnet jedesmal beim
     // App-Öffnen automatisch — nicht die Idee, da bereits als sichtbarer Anker auf Home
     // gezeigt wird; verschluckt dabei zugleich Meine Impulse"): Der komplette
-    // Kaltstart-Auto-Redirect ohne echten Push-Tap (Kapitel 143/146) wird hiermit
-    // abgeschaltet. Grund: Tages-Impuls stand in der Queue IMMER an erster Stelle vor
-    // fälligen Meine-Impulse-Remindern — der Coachee landete dadurch beim reinen
-    // App-Öffnen zuverlässig sofort auf dem Tages-Impuls-Vollbild, weg von Home, und
-    // die Meine-Impulse-Reminder kamen (falls überhaupt) erst NACH bewusstem Schliessen
-    // des Tages-Impuls dran. Home zeigt beide Zustände ohnehin bereits als eigene,
-    // klar antippbare Anker-Karten ("Aktueller Tages-Impuls" / "Meine Impulse") plus
-    // Badge in der Menüleiste — die automatische Vollbild-Navigation ist damit
-    // redundant und war die Ursache der gemeldeten Kollision. Bewusst NUR dieser
-    // Effect-Teil entfernt, nicht angetastet: (1) echte Push-Deep-Links (routeHash(),
-    // ganz oben) funktionieren unverändert weiter, (2) die manuelle Popup-Queue bei
-    // aktivem Antippen des Impulse-Icons/der Home-Karten (navTo(), showQueueItem())
-    // bleibt unverändert bestehen, (3) die Willkommensnachricht-Auto-Navigation direkt
-    // oberhalb dieses Blocks ist ein eigenständiges Feature und bleibt unverändert.
-    // Auskommentiert statt gelöscht, falls die alte Logik je wieder gebraucht wird:
-    // if(autoImpulsNavDone.current || page !== "dashboard") return;
-    // const queue = [];
-    // if(getTagesimpulsPending()) queue.push({type:"tagesimpuls"});
-    // getDueUnseenReminderOccurrences().forEach(occ => queue.push({type:"reminder", id:occ.id, time:occ.time}));
-    // if(queue.length > 0) {
-    //   autoImpulsNavDone.current = true;
-    //   const first = queue.shift();
-    //   manualPopupQueueRef.current = queue;
-    //   showQueueItem(first);
-    //   setPage("impulse");
-    // }
+    // Kaltstart-Auto-Redirect ohne echten Push-Tap (Kapitel 143/146) ist hiermit
+    // abgeschaltet — Details und Original-Code siehe Projektdokumentation Kapitel 169.
+    // Grund: Tages-Impuls stand in der Queue IMMER an erster Stelle vor fälligen
+    // Meine-Impulse-Remindern — der Coachee landete dadurch beim reinen App-Öffnen
+    // zuverlässig sofort auf dem Tages-Impuls-Vollbild, weg von Home, und die
+    // Meine-Impulse-Reminder kamen (falls überhaupt) erst NACH bewusstem Schliessen des
+    // Tages-Impuls dran. Home zeigt beide Zustände ohnehin bereits als eigene, klar
+    // antippbare Anker-Karten ("Aktueller Tages-Impuls" / "Meine Impulse") plus Badge in
+    // der Menüleiste — die automatische Vollbild-Navigation war damit redundant und die
+    // Ursache der gemeldeten Kollision. Bewusst NICHT angetastet: (1) echte
+    // Push-Deep-Links (routeHash(), ganz oben) funktionieren unverändert weiter, (2) die
+    // manuelle Popup-Queue bei aktivem Antippen des Impulse-Icons/der Home-Karten
+    // (navTo(), showQueueItem()) bleibt unverändert bestehen, (3) die
+    // Willkommensnachricht-Auto-Navigation direkt oberhalb dieses Blocks ist ein
+    // eigenständiges Feature und bleibt unverändert.
   }, [impulseFlagData, impulseFlagLoaded, user?.uid, pendingImpulsPopup, pendingReminderId, pendingLibraryId, dailyReminderQueue, impulsTick, page]);
-  // Reset (19.08.2026, siehe Fund (2) oben): Sobald Home verlassen wird, wieder
-  // "scharf" schalten — die nächste Rückkehr auf Home prüft erneut auf offene, noch
-  // nicht gezeigte Punkte, statt für den Rest der Sitzung stumm zu bleiben.
-  useEffect(() => {
-    if(page !== "dashboard") autoImpulsNavDone.current = false;
-  }, [page]);
 
 
   const NAV_ITEMS = [
