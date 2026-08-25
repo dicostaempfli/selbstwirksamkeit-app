@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-25 15:20 coachee -->
+<!-- Version: 2026-08-25 15:28 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <!DOCTYPE html>
@@ -2550,33 +2550,29 @@ function App({ user, userDoc }) {
   // Beide Aufrufe landen im selben synchronen Klick-Handler und werden gemeinsam
   // gebatcht — der zweite (spätere) Aufruf gewinnt, die bewusste Wahl der Home-Karte
   // wurde dadurch unbemerkt wieder auf Tagesimpuls überschrieben, unabhängig davon,
-  // welche der beiden Karten tatsächlich angetippt wurde. Fix: optionaler zweiter
-  // Parameter `skipAutoQueue` — wird von den beiden Home-Anker-Karten (Aktueller
-  // Tages-Impuls / Meine Impulse, siehe DashboardPage) gesetzt, da diese ihr Ziel
-  // bereits eindeutig kennen und die Auto-Queue-Priorisierung hier nicht greifen darf.
-  // NACHTRAG (25.08.2026, Rückmeldung Rico "Meine Impulse werden nicht angezeigt, seit
-  // der Tagesimpuls aufgetaucht ist"): Aus demselben Grund jetzt auch für den
-  // bottom-nav- und Sidebar-Impulse-Icon-Tap gesetzt (`navTo(i.id, i.id==="impulse")`).
-  // Diese Auto-Queue-Technik (Tagesimpuls zuerst, dann fällige Reminder als Popup) war
-  // ursprünglich bewusst so gewünscht (Kapitel 146, 19.08.2026), sorgte aber bei JEDEM
-  // manuellen Tippen auf das Impulse-Icon für dieselbe Kollision wie bei den
-  // Home-Karten: Tagesimpuls verdrängte "Meine Impulse" zuverlässig, sobald einer
-  // fällig war — der Coachee kam ohne den (nicht offensichtlichen) Subtab-Umschalter
-  // oben in der Impulse-Seite nicht mehr an seine Reminder-Liste. Tippen auf das
-  // Impulse-Icon öffnet die Impulse-Seite jetzt schlicht auf dem zuletzt aktiven Subtab
-  // (Default "Meine Impulse", siehe impulseDefaultTab-State) — beide Subtabs bleiben
-  // über die Umschalter-Buttons oben jederzeit erreichbar, die beiden Home-Karten
-  // bleiben der gezielte, zuverlässige Weg zu je einem bestimmten Subtab. Echte
-  // Push-Benachrichtigungen (routeHash(), ganz oben) sind davon komplett unberührt —
-  // sie zeigen weiterhin sofort ihr jeweiliges Ziel als Popup, unabhängig von dieser
-  // Auto-Queue-Technik.
+  // welche der beiden Karten tatsächlich angetippt wurde.
+  // NACHTRAG 1 (25.08.2026, "Meine Impulse werden nicht angezeigt, seit der Tagesimpuls
+  // aufgetaucht ist"): dasselbe Problem trat auch beim bottom-nav-/Sidebar-Impulse-
+  // Icon-Tap auf — Tagesimpuls verdrängte "Meine Impulse" zuverlässig, sobald einer
+  // fällig war.
+  // NACHTRAG 2 (25.08.2026, Klarstellung Rico anhand Screenshot): Das automatische
+  // Aufpoppen einzelner fälliger "Meine Impulse"-Reminder als Karten-Popup (siehe
+  // ReminderViewPopup) ist AUSDRÜCKLICH GEWÜNSCHT und keine Kollision — nur das
+  // Voranstellen/Verdrängen durch den Tagesimpuls war das eigentliche Problem. Fix:
+  // Tagesimpuls wird ab jetzt NIE MEHR automatisch in diese Queue aufgenommen (er hat
+  // mit der "Aktueller Tages-Impuls"-Karte auf Home sowie echten Push-Benachrichtigungen
+  // bereits zwei eigene, dedizierte Wege) — nur noch fällige Reminder werden automatisch
+  // als Popup-Kette gezeigt, unabhängig davon, ob gleichzeitig ein Tagesimpuls offen ist.
+  // Optionaler Parameter `skipAutoQueue` (weiterhin von der "Aktueller Tages-Impuls"-Karte
+  // gesetzt, siehe DashboardPage): verhindert dort gezielt, dass zusätzlich zum bewusst
+  // geöffneten Tagesimpuls sofort ein Reminder-Popup obendrauf erscheint.
   const navTo = (p, skipAutoQueue) => {
     // Manuelle Auto-Popup-Queue nur auslösen, wenn kein echter Push-Deep-Link gerade
     // ohnehin schon eine pending-ID gesetzt hat (Push hat immer Vorrang, kein Duplikat).
+    // Bewusst NUR Reminder — Tagesimpuls wird hier nicht mehr eingereiht (siehe Nachtrag 2
+    // oben), damit er "Meine Impulse" nie mehr verdrängen kann.
     if(!skipAutoQueue && p === "impulse" && page !== "impulse" && !pendingImpulsPopup && !pendingReminderId) {
-      const queue = [];
-      if(getTagesimpulsPending()) queue.push({type:"tagesimpuls"});
-      getDueUnseenReminderOccurrences().forEach(occ => queue.push({type:"reminder", id:occ.id, time:occ.time}));
+      const queue = getDueUnseenReminderOccurrences().map(occ => ({type:"reminder", id:occ.id, time:occ.time}));
       if(queue.length > 0) {
         const first = queue.shift();
         manualPopupQueueRef.current = queue;
@@ -2816,7 +2812,7 @@ function App({ user, userDoc }) {
     </div>
     <nav class="bottom-nav">
       ${NAV_ITEMS.map(i=>html`
-        <div key=${i.id} class=${"bottom-nav-item"+(page===i.id?" active":"")} onClick=${()=>navTo(i.id, i.id==="impulse")}>
+        <div key=${i.id} class=${"bottom-nav-item"+(page===i.id?" active":"")} onClick=${()=>navTo(i.id)}>
           <${Ic} name=${i.icon} size=${24}/>
           <span class="bottom-nav-label">${i.label}</span>
           ${(i.badge||0)>0&&html`<span class="bottom-nav-badge">${i.badge}</span>`}
@@ -2939,7 +2935,7 @@ function Sidebar({page,setPage,totalUnread,impulseUnread,libraryUnread,doodleUnr
       <div class="sb-nav">
         ${items.map(i=>html`
           <div key=${i.id} class=${"sb-item"+(page===i.id?" active":"")}
-            onClick=${()=>setPage(i.id, i.id==="impulse")} title=${i.tip}>
+            onClick=${()=>setPage(i.id)} title=${i.tip}>
             <${Ic} name=${i.icon} size=${18}/>
             <span class="sb-item-label">${i.label||i.tip}</span>
             ${(i.badge||0)>0 && html`<span class="badge">${i.badge}</span>`}
@@ -3510,6 +3506,12 @@ function DashboardPage({coachees,library,reminders,remindersReady,libraryReady,l
       }, ()=>{});
     return unsub;
   },[user]);
+  // Hinweis zur "Meine Impulse"-Karte weiter unten (stat-card, Klick setzt
+  // impulseDefaultTab auf "meine"): bewusst OHNE skipAutoQueue-Flag — fällige
+  // "Meine Impulse"-Reminder sollen beim Öffnen weiterhin automatisch als Popup-Kette
+  // erscheinen (siehe navTo()-Kommentar, Nachtrag 2, 25.08.2026). Tagesimpuls wird dort
+  // nie mehr automatisch eingereiht, daher unproblematisch — im Unterschied zur
+  // "Aktueller Tages-Impuls"-Karte direkt darüber, die bewusst skipAutoQueue=true setzt.
   return html`
     <div class="content-main">
       <div style=${{marginBottom:24,textAlign:"center",display:"flex",flexDirection:"column",alignItems:"center",paddingTop:8}}>
@@ -3523,8 +3525,8 @@ function DashboardPage({coachees,library,reminders,remindersReady,libraryReady,l
       ${activeImpuls && h("div", {
         class:"impuls-anker", style:{marginBottom:14},
         // Fix (25.08.2026, siehe Kapitel-169.1-Nachtrag): skipAutoQueue=true, damit
-        // navTo() das hier bewusst gewählte Ziel (Tagesimpuls) nicht durch die
-        // Auto-Queue-Priorisierung wieder überschreiben kann.
+        // navTo() das hier bewusst gewählte Ziel (Tagesimpuls) nicht überschreiben und
+        // nicht zusätzlich sofort ein Reminder-Popup obendrauf zeigen kann.
         onClick:()=>{ setImpulseDefaultTab("tagesimpuls"); setPage("impulse", true); }
       },
         h("div",{class:"impuls-anker-dot"}),
@@ -3537,7 +3539,7 @@ function DashboardPage({coachees,library,reminders,remindersReady,libraryReady,l
         )
       )}
       <div class="stat-grid">
-        <div class="stat-card" onClick=${()=>{ setImpulseDefaultTab("meine"); setPage("impulse", true); }} style=${{cursor:"pointer",borderLeft:"4px solid var(--teal)",padding:"16px 20px"}}>
+        <div class="stat-card" onClick=${()=>{ setImpulseDefaultTab("meine"); setPage("impulse"); }} style=${{cursor:"pointer",borderLeft:"4px solid var(--teal)",padding:"16px 20px"}}>
           <div style=${{display:"flex",alignItems:"center",gap:14}}>
             <div style=${{width:42,height:42,borderRadius:12,background:"var(--teal-pale)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}><${Ic} name="impuls" size=${22} style=${{color:"var(--teal-dark)"}}/></div>
             <div style=${{flex:1}}>
