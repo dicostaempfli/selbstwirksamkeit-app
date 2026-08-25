@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-25 20:49 admin -->
+<!-- Version: 2026-08-25 21:02 admin -->
 <!DOCTYPE html>
 <!-- Version: 2026-08-12 17:47 admin -->
 <head>
@@ -2295,8 +2295,8 @@ function DashboardPage({coachees,library,doodles,setPage,user,openSenderFilter,o
       </div>
       <div style=${{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginTop:14,paddingTop:10,paddingBottom:16,borderTop:"1px solid var(--border2)",borderBottom:"1px solid var(--border2)",marginBottom:16,gap:10}}>
         <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.7,lineHeight:1.5}}>
-          <div>App v2026-08-25 20:49 · Doku v3.216</div>
-          <div>2026-08-25 20:49</div>
+          <div>App v2026-08-25 21:02 · Doku v3.218</div>
+          <div>2026-08-25 21:02</div>
         </div>
         <div style=${{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
           <button class="dash-reload-btn" title="Fehler-Log" onClick=${()=>setPage("errors")} style=${{position:"relative",color:openErrorCount>0?"#993C1D":"var(--muted)"}}>
@@ -4233,10 +4233,13 @@ function LibraryPage({library,setLibrary}) {
                         </div>`}
                     </div>
                     <div style=${{padding:'9px 11px 8px',cursor:'pointer'}} onClick=${onCardTap}>
-                      <div style=${{fontSize:'.82rem',fontWeight:700,color:'var(--text)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>${item.title}</div>
-                      ${/* GEÄNDERT (20.08.2026, Rico-Wunsch): in der Übersicht (geschlossen) nur 2 Zeilen der Beschreibung per line-clamp, Rest per "…" angedeutet, statt wie bisher nach der ersten Zeile abzuschneiden. Ist die Karte aufgeklappt (isOpen), wird die Beschreibung stattdessen vollständig gezeigt und wächst mit der Textlänge — bei sehr langem Text ab max. ~5 Zeilen intern scrollbar, damit das Grid-Layout nicht gesprengt wird. */null}
                       <div style=${isOpen
-                        ? {fontSize:'.82rem',color:'var(--muted)',marginTop:2,maxHeight:120,overflowY:'auto',whiteSpace:'pre-wrap',lineHeight:1.45}
+                        ? {fontSize:'.9rem',fontWeight:700,color:'var(--text)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}
+                        : {fontSize:'.82rem',fontWeight:700,color:'var(--text)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}
+                      }>${item.title}</div>
+                      ${/* GEÄNDERT (20.08.2026, Rico-Wunsch): in der Übersicht (geschlossen) nur 2 Zeilen der Beschreibung per line-clamp, Rest per "…" angedeutet, statt wie bisher nach der ersten Zeile abzuschneiden. Ist die Karte aufgeklappt (isOpen), wird die Beschreibung stattdessen vollständig gezeigt und wächst mit der Textlänge — bei sehr langem Text ab max. ~5 Zeilen intern scrollbar, damit das Grid-Layout nicht gesprengt wird. NACHTRAG (25.08.2026, Kapitel 173/174): im aufgeklappten Zustand sind Titel UND Beschreibung zusätzlich vergrössert (finale Grösse .9rem, Zwischenschritt 1rem war Rico zu gross), da beide bei voller Kartenbreite mehr Platz haben und Rico sie dort bewusst grösser/lesbarer wollte als in der 2-Spalten-Übersicht. */null}
+                      <div style=${isOpen
+                        ? {fontSize:'.9rem',color:'var(--muted)',marginTop:2,maxHeight:120,overflowY:'auto',whiteSpace:'pre-wrap',lineHeight:1.45}
                         : {fontSize:'.82rem',color:'var(--muted)',marginTop:2,minHeight:15,display:'-webkit-box',WebkitLineClamp:'2',WebkitBoxOrient:'vertical',overflow:'hidden'}
                       }>${[item.desc,item.duration].filter(Boolean).join(' · ')}</div>
                     </div>
