@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-21 07:38 coachee -->
+<!-- Version: 2026-08-25 13:56 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <!DOCTYPE html>
@@ -2651,17 +2651,35 @@ function App({ user, userDoc }) {
         return;
       }
     }
-    if(autoImpulsNavDone.current || page !== "dashboard") return;
-    const queue = [];
-    if(getTagesimpulsPending()) queue.push({type:"tagesimpuls"});
-    getDueUnseenReminderOccurrences().forEach(occ => queue.push({type:"reminder", id:occ.id, time:occ.time}));
-    if(queue.length > 0) {
-      autoImpulsNavDone.current = true;
-      const first = queue.shift();
-      manualPopupQueueRef.current = queue;
-      showQueueItem(first);
-      setPage("impulse");
-    }
+    // DEAKTIVIERT (25.08.2026, Rückmeldung Rico "Tages-Impuls öffnet jedesmal beim
+    // App-Öffnen automatisch — nicht die Idee, da bereits als sichtbarer Anker auf Home
+    // gezeigt wird; verschluckt dabei zugleich Meine Impulse"): Der komplette
+    // Kaltstart-Auto-Redirect ohne echten Push-Tap (Kapitel 143/146) wird hiermit
+    // abgeschaltet. Grund: Tages-Impuls stand in der Queue IMMER an erster Stelle vor
+    // fälligen Meine-Impulse-Remindern — der Coachee landete dadurch beim reinen
+    // App-Öffnen zuverlässig sofort auf dem Tages-Impuls-Vollbild, weg von Home, und
+    // die Meine-Impulse-Reminder kamen (falls überhaupt) erst NACH bewusstem Schliessen
+    // des Tages-Impuls dran. Home zeigt beide Zustände ohnehin bereits als eigene,
+    // klar antippbare Anker-Karten ("Aktueller Tages-Impuls" / "Meine Impulse") plus
+    // Badge in der Menüleiste — die automatische Vollbild-Navigation ist damit
+    // redundant und war die Ursache der gemeldeten Kollision. Bewusst NUR dieser
+    // Effect-Teil entfernt, nicht angetastet: (1) echte Push-Deep-Links (routeHash(),
+    // ganz oben) funktionieren unverändert weiter, (2) die manuelle Popup-Queue bei
+    // aktivem Antippen des Impulse-Icons/der Home-Karten (navTo(), showQueueItem())
+    // bleibt unverändert bestehen, (3) die Willkommensnachricht-Auto-Navigation direkt
+    // oberhalb dieses Blocks ist ein eigenständiges Feature und bleibt unverändert.
+    // Auskommentiert statt gelöscht, falls die alte Logik je wieder gebraucht wird:
+    // if(autoImpulsNavDone.current || page !== "dashboard") return;
+    // const queue = [];
+    // if(getTagesimpulsPending()) queue.push({type:"tagesimpuls"});
+    // getDueUnseenReminderOccurrences().forEach(occ => queue.push({type:"reminder", id:occ.id, time:occ.time}));
+    // if(queue.length > 0) {
+    //   autoImpulsNavDone.current = true;
+    //   const first = queue.shift();
+    //   manualPopupQueueRef.current = queue;
+    //   showQueueItem(first);
+    //   setPage("impulse");
+    // }
   }, [impulseFlagData, impulseFlagLoaded, user?.uid, pendingImpulsPopup, pendingReminderId, pendingLibraryId, dailyReminderQueue, impulsTick, page]);
   // Reset (19.08.2026, siehe Fund (2) oben): Sobald Home verlassen wird, wieder
   // "scharf" schalten — die nächste Rückkehr auf Home prüft erneut auf offene, noch
