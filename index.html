@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-27 16:38 coachee -->
+<!-- Version: 2026-08-27 16:57 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <!DOCTYPE html>
@@ -2987,11 +2987,10 @@ function ChatWindow({coachee,recipient,setRecipient,onSend,onSendImg,onSendFile,
   const longPressRef = useRef(null);
 
   const startLongPress = (msg, e) => {
-    if(msg.from !== "coachee") return;
     const touch = e.touches?.[0] || e;
     const x = touch.clientX; const y = touch.clientY;
     longPressRef.current = setTimeout(() => {
-      setMsgMenu({id: msg.id, x, y});
+      setMsgMenu({id: msg.id, x, y, mine: msg.from==="coachee", text: msg.text||""});
       if(navigator.vibrate) navigator.vibrate(30);
     }, 500);
   };
@@ -3002,6 +3001,14 @@ function ChatWindow({coachee,recipient,setRecipient,onSend,onSendImg,onSendFile,
     const id = msgMenu.id;
     setMsgMenu(null);
     if(onDeleteMsg) await onDeleteMsg(id);
+  };
+
+  const handleCopyMsg = async () => {
+    if(!msgMenu) return;
+    const text = msgMenu.text || "";
+    setMsgMenu(null);
+    try { await navigator.clipboard.writeText(text); showToastMsg("✓ Text kopiert"); }
+    catch(e) { showToastMsg("✗ Kopieren nicht möglich"); }
   };
 
   // Beim ersten Öffnen des Chats sofort (ohne Animation) ans Ende springen — "smooth" allein
@@ -3147,6 +3154,7 @@ function ChatWindow({coachee,recipient,setRecipient,onSend,onSendImg,onSendFile,
             <div class="date-divider">${formatDateKey(date)}</div>
             ${msgs.map((msg,i)=>{
               const isOut = msg.from==="admin";
+              const isSelected = msgMenu?.id === msg.id;
               const sender = msg.sender||"Diana";
               const prevSame = i>0&&msgs[i-1].from===msg.from&&(msgs[i-1].sender||"Diana")===sender;
               const avatarColor = sender==="Rico" ? "#3b6d11" : "#1d5a8f";
@@ -3164,7 +3172,10 @@ function ChatWindow({coachee,recipient,setRecipient,onSend,onSendImg,onSendFile,
                   <div class="msg-bubble-wrap">
                     ${isOut&&!prevSame&&html`<div style=${{fontSize:".67rem",fontWeight:700,
                       color:avatarColor,marginBottom:2,marginLeft:2}}>${sender}</div>`}
-                    <div class="msg-bubble" style=${isOut?{background:bubbleBg,color:avatarColor}:{}}>
+                    <div class="msg-bubble" style=${{
+                        ...(isOut?{background:bubbleBg,color:avatarColor}:{}),
+                        ...(isSelected?{transform:"scale(1.035)",boxShadow:"0 6px 18px rgba(0,0,0,.18)",position:"relative",zIndex:99995}:{})
+                      }}>
                       ${msg.imgSrc&&!msg.isVideo&&html`<div class="msg-img-wrap"><img src=${msg.imgSrc} class="msg-img" alt="Foto" onClick=${()=>setLightbox(msg.imgSrc)}/></div>`}
                       ${msg.imgSrc&&msg.isVideo&&html`<div class="msg-img-wrap">
                         <div onClick=${()=>setVideoLightbox(msg.imgSrc)}
@@ -3270,16 +3281,26 @@ function ChatWindow({coachee,recipient,setRecipient,onSend,onSendImg,onSendFile,
             minWidth:140,
             zIndex:99997
           }} onClick=${e=>e.stopPropagation()}>
+            <button onClick=${handleCopyMsg}
+              style=${{display:"flex",alignItems:"center",gap:10,width:"100%",padding:"13px 16px",
+                border:"none",background:"none",cursor:"pointer",color:"var(--text)",
+                fontSize:".88rem",fontWeight:600,fontFamily:"'Exo 2',sans-serif"}}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
+              </svg>
+              Kopieren
+            </button>
+            ${msgMenu.mine&&html`
             <button onClick=${handleDeleteMsg}
               style=${{display:"flex",alignItems:"center",gap:10,width:"100%",padding:"13px 16px",
-                border:"none",background:"none",cursor:"pointer",color:"var(--danger)",
+                border:"none",borderTop:"1px solid var(--border)",background:"none",cursor:"pointer",color:"var(--danger)",
                 fontSize:".88rem",fontWeight:600,fontFamily:"'Exo 2',sans-serif"}}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
                 <path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
               </svg>
               Nachricht löschen
-            </button>
+            </button>`}
           </div>
         </div>`}
 

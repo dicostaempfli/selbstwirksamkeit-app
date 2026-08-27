@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-27 16:30 admin -->
+<!-- Version: 2026-08-27 16:57 admin -->
 <!DOCTYPE html>
 <!-- Version: 2026-08-12 17:47 admin -->
 <head>
@@ -2317,8 +2317,8 @@ function DashboardPage({coachees,library,doodles,setPage,user,openSenderFilter,o
       </div>
       <div style=${{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginTop:14,paddingTop:10,paddingBottom:16,borderTop:"1px solid var(--border2)",borderBottom:"1px solid var(--border2)",marginBottom:16,gap:10}}>
         <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.7,lineHeight:1.5}}>
-          <div>App v2026-08-27 16:30 · Doku v3.227</div>
-          <div>2026-08-27 16:30</div>
+          <div>App v2026-08-27 16:57 · Doku v3.229</div>
+          <div>2026-08-27 16:57</div>
         </div>
         <div style=${{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
           <button class="dash-reload-btn" title="Fehler-Log" onClick=${()=>setPage("errors")} style=${{position:"relative",color:openErrorCount>0?"#993C1D":"var(--muted)"}}>
@@ -2845,11 +2845,10 @@ function ChatWindow({coachee,sender,setSender,onSend,onSendImg,onSendFile,onDele
   const longPressRef = useRef(null);
 
   const startLongPress = (msg, e) => {
-    if(msg.from !== "admin") return;
     const touch = e.touches?.[0] || e;
     const x = touch.clientX; const y = touch.clientY;
     longPressRef.current = setTimeout(() => {
-      setMsgMenu({id: msg.id, x, y});
+      setMsgMenu({id: msg.id, x, y, mine: msg.from==="admin", text: msg.text||""});
       if(navigator.vibrate) navigator.vibrate(30);
     }, 500);
   };
@@ -2859,6 +2858,13 @@ function ChatWindow({coachee,sender,setSender,onSend,onSendImg,onSendFile,onDele
     const id = msgMenu.id;
     setMsgMenu(null);
     if(onDeleteMsg) await onDeleteMsg(id);
+  };
+  const handleCopyMsg = async () => {
+    if(!msgMenu) return;
+    const text = msgMenu.text || "";
+    setMsgMenu(null);
+    try { await navigator.clipboard.writeText(text); showToast("✓ Text kopiert"); }
+    catch(e) { showToast("✗ Kopieren nicht möglich"); }
   };
 
   // Beim Öffnen eines Coachee-Chats (auch beim Wechsel zwischen Coachees) sofort ohne
@@ -3017,6 +3023,7 @@ function ChatWindow({coachee,sender,setSender,onSend,onSendImg,onSendFile,onDele
             <div class="date-divider">${formatDateKey(date)}</div>
             ${msgs.map((msg,i)=>{
               const isOut = msg.from==="admin";
+              const isSelected = msgMenu?.id === msg.id;
               // Coachee-Nachrichten: sender=uid → coachee.name verwenden
               const rawSender = msg.sender||(isOut?"Diana":"");
               const prevSame = i>0&&msgs[i-1].from===msg.from&&((msgs[i-1].sender||(msgs[i-1].from==="admin"?"Diana":"")))===(msg.sender||(isOut?"Diana":""));
@@ -3032,7 +3039,10 @@ function ChatWindow({coachee,sender,setSender,onSend,onSendImg,onSendFile,onDele
                   onMouseUp=${cancelLongPress}
                   onMouseLeave=${cancelLongPress}>
                   <div class="msg-bubble-wrap">
-                    <div class="msg-bubble" style=${isOut?{background:bubbleBg,color:avatarColor,border:"none"}:{}}>
+                    <div class="msg-bubble" style=${{
+                        ...(isOut?{background:bubbleBg,color:avatarColor,border:"none"}:{}),
+                        ...(isSelected?{transform:"scale(1.035)",boxShadow:"0 6px 18px rgba(0,0,0,.18)",position:"relative",zIndex:99995}:{})
+                      }}>
                       ${msg.imgSrc&&!msg.isVideo&&html`<div class="msg-img-wrap"><img src=${msg.imgSrc} class="msg-img" alt="Foto" onClick=${()=>setLightbox(msg.imgSrc)}/></div>`}
                       ${msg.imgSrc&&msg.isVideo&&html`<div class="msg-img-wrap">
                         <div onClick=${()=>setVideoLightbox(msg.imgSrc)}
@@ -3139,16 +3149,26 @@ function ChatWindow({coachee,sender,setSender,onSend,onSendImg,onSendFile,onDele
             minWidth:140,
             zIndex:99997
           }} onClick=${e=>e.stopPropagation()}>
+            <button onClick=${handleCopyMsg}
+              style=${{display:"flex",alignItems:"center",gap:10,width:"100%",padding:"13px 16px",
+                border:"none",background:"none",cursor:"pointer",color:"var(--text)",
+                fontSize:".88rem",fontWeight:600,fontFamily:"'Exo 2',sans-serif"}}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
+              </svg>
+              Kopieren
+            </button>
+            ${msgMenu.mine&&html`
             <button onClick=${handleDeleteMsg}
               style=${{display:"flex",alignItems:"center",gap:10,width:"100%",padding:"13px 16px",
-                border:"none",background:"none",cursor:"pointer",color:"var(--danger)",
+                border:"none",borderTop:"1px solid var(--border)",background:"none",cursor:"pointer",color:"var(--danger)",
                 fontSize:".88rem",fontWeight:600,fontFamily:"'Exo 2',sans-serif"}}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
                 <path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
               </svg>
               Nachricht löschen
-            </button>
+            </button>`}
           </div>
         </div>`}
 
