@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-27 14:53 coachee -->
+<!-- Version: 2026-08-27 15:08 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <!DOCTYPE html>
@@ -376,7 +376,7 @@
   .chat-topbar {
     background:var(--surface); border-bottom:1px solid var(--border);
     padding:0 16px; height:64px; display:flex; align-items:center; gap:12px;
-    flex-shrink:0; box-shadow:0 1px 6px rgba(62,122,74,.07);
+    flex-shrink:0; box-shadow:0 1px 6px rgba(62,122,74,.07); position:relative; z-index:2;
   }
   @media (max-width: 768px) {
     .chat-topbar {
@@ -454,6 +454,8 @@
     gap: 12px;
     flex-shrink: 0;
     box-shadow: 0 1px 6px rgba(62,122,74,.07);
+    position: relative;
+    z-index: 2;
   }
   .messages {
     flex: 1;
@@ -464,6 +466,8 @@
     display: flex;
     flex-direction: column;
     gap: 2px;
+    position: relative;
+    z-index: 1;
   }
   .chat-input-area {
     flex-shrink: 0;
