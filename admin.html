@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-25 21:02 admin -->
+<!-- Version: 2026-08-27 14:31 admin -->
 <!DOCTYPE html>
 <!-- Version: 2026-08-12 17:47 admin -->
 <head>
@@ -1856,6 +1856,16 @@ function AdminApp({user}) {
   const [deleted,setDeleted]   = useState([]);
   const totalUnread = coachees.reduce((a,c)=>a+(c.unread||0),0);
 
+  // ── Sync-Fehler-Banner (NEU, Kapitel 175) ──
+  // Rico meldete: Desktop-Admin zeigte Coachees/Nachrichten/Termine durchgehend als 0,
+  // während dasselbe Konto auf dem Handy korrekte Werte zeigte. Root Cause: alle
+  // onSnapshot-Listener unten schluckten Fehler (z.B. "permission-denied" bei
+  // ungültiger/abgelaufener Session, oder Netzwerk-/VPN-Blockade Richtung
+  // firestore.googleapis.com) bisher komplett lautlos (Error-Callback war `()=>{}`) —
+  // weder Konsole noch Fehler-Log zeigten je etwas an. Jetzt: jeder fehlschlagende
+  // Kern-Listener setzt syncError, ein Banner erscheint sichtbar auf jeder Seite.
+  const [syncError,setSyncError] = useState(null);
+
   // ── Push-Notification-Setup: Service Worker registrieren automatisch, Erlaubnis aber
   // NUR per explizitem Button-Tap anfragen (siehe showAdminNotifBanner unten).
   // WICHTIG (Fund 30.06.2026): Auf iOS/iPadOS Safari kann ein normaler Browser-Tab
@@ -1913,7 +1923,8 @@ function AdminApp({user}) {
       unsub = col.orderBy("createdAt","desc").onSnapshot(snap => {
         const items = snap.docs.map(d => ({id: d.id, ...d.data()}));
         setLibrary(items.length > 0 ? items : INIT_LIBRARY);
-      }, () => { setLibrary(INIT_LIBRARY); });
+        setSyncError(null);
+      }, (err) => { setLibrary(INIT_LIBRARY); setSyncError(err?.code||err?.message||"library"); });
     } catch(e) { setLibrary(INIT_LIBRARY); }
     return () => { if(unsub) unsub(); };
   }, []);
@@ -1924,7 +1935,8 @@ function AdminApp({user}) {
     if(!firestore) return;
     const unsub = firestore.collection("doodles").onSnapshot(snap => {
       setDoodles(snap.docs.map(d => ({...d.data(), id: d.id})));
-    }, () => {});
+      setSyncError(null);
+    }, (err) => { setSyncError(err?.code||err?.message||"doodles"); });
     return () => unsub();
   }, []);
 
@@ -1982,7 +1994,8 @@ function AdminApp({user}) {
           return old ? { ...c, unread: old.unread || 0, messages: old.messages || [] } : c;
         });
       });
-    }, () => {});
+      setSyncError(null);
+    }, (err) => { setSyncError(err?.code||err?.message||"users"); });
     return () => unsub();
   }, []);
 
@@ -2039,7 +2052,7 @@ function AdminApp({user}) {
         .onSnapshot(snap => {
           messagesCacheRef.current[c.id] = snap.docs.map(d=>d.data());
           recompute();
-        }, ()=>{});
+        }, (err)=>{ setSyncError(err?.code||err?.message||"messages"); });
       const metaUnsub = readRef.onSnapshot(snap => {
         if(!snap.exists) {
           // Allererster Kontakt mit diesem Coachee auf irgendeinem Admin-Gerät: einmalige,
@@ -2051,7 +2064,7 @@ function AdminApp({user}) {
           adminMetaCacheRef.current[c.id] = snap.data();
         }
         recompute();
-      }, ()=>{});
+      }, (err)=>{ setSyncError(err?.code||err?.message||"adminMeta"); });
       unreadUnsubsRef.current[c.id] = [msgUnsub, metaUnsub];
     });
     return () => Object.values(unreadUnsubsRef.current).forEach(pair=>pair.forEach(u=>u&&u()));
@@ -2223,6 +2236,11 @@ function AdminApp({user}) {
 
       <!-- Main content -->
       <div class="main-content">
+        ${syncError&&html`
+          <div style=${{background:"#FBEAE3",border:"1px solid #E8B4A0",borderRadius:10,padding:"10px 14px",margin:"0 0 14px",fontSize:".82rem",color:"#993C1D",display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,flexWrap:"wrap"}}>
+            <span>⚠️ Daten konnten nicht geladen werden (Firestore: ${syncError}). Zahlen sind evtl. veraltet oder falsch — bitte neu laden oder Login prüfen.</span>
+            <button onClick=${()=>window.location.reload()} style=${{background:"#993C1D",color:"#fff",border:"none",borderRadius:6,padding:"5px 10px",fontSize:".76rem",fontWeight:600,cursor:"pointer",flexShrink:0}}>Neu laden</button>
+          </div>`}
         ${page==="dashboard"&&html`<${DashboardPage} coachees=${coachees} library=${library} doodles=${doodles} setPage=${setPage} user=${user} openSenderFilter=${name=>{setPendingSenderFilter(name);setPage("chat");}} openErrorCount=${openErrorCount}/>`}
         ${page==="chat"&&html`<${ChatPage} coachees=${coachees} setCoachees=${setCoachees} openId=${pendingChatId} clearOpenId=${()=>setPendingChatId(null)} presetSender=${pendingSenderFilter} clearPresetSender=${()=>setPendingSenderFilter(null)} forceListToken=${forceListToken}/>`}
         ${page==="coachees"&&html`<${CoacheesPage} coachees=${coachees} setCoachees=${setCoachees} setPage=${setPage} pending=${pending} setPending=${setPending} deleted=${deleted} setDeleted=${setDeleted}/>`}
@@ -2295,8 +2313,8 @@ function DashboardPage({coachees,library,doodles,setPage,user,openSenderFilter,o
       </div>
       <div style=${{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginTop:14,paddingTop:10,paddingBottom:16,borderTop:"1px solid var(--border2)",borderBottom:"1px solid var(--border2)",marginBottom:16,gap:10}}>
         <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.7,lineHeight:1.5}}>
-          <div>App v2026-08-25 21:02 · Doku v3.218</div>
-          <div>2026-08-25 21:02</div>
+          <div>App v2026-08-27 14:31 · Doku v3.219</div>
+          <div>2026-08-27 14:31</div>
         </div>
         <div style=${{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
           <button class="dash-reload-btn" title="Fehler-Log" onClick=${()=>setPage("errors")} style=${{position:"relative",color:openErrorCount>0?"#993C1D":"var(--muted)"}}>
