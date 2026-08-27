@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-27 15:08 coachee -->
+<!-- Version: 2026-08-27 16:09 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <!DOCTYPE html>
@@ -2131,15 +2131,23 @@ function App({ user, userDoc }) {
           // Fix (17.08.2026, Kapitel 135): uid NICHT mehr ins Dokument geschrieben — admin-erstellte
           // Doodles besitzen kein uid-Feld, und jedes Hinzufügen eines neuen Felds bei einem Coachee-
           // Update verstösst gegen die Firestore-Rule hasOnly(["slots","dismissed"]) → PERMISSION_DENIED.
-          const fsDoc = {
-            ...d,
-            slots: toSlotsArray(d.slots).filter(Boolean).map(s=>({
-              ...s,
-              votes: Object.fromEntries(Object.entries(s.votes||{}).map(([k,v])=>[String(k),v])),
-              coacheeNotes: Object.fromEntries(Object.entries(s.coacheeNotes||{}).map(([k,v])=>[String(k),v]))
-            }))
-          };
-          fbDb.collection("doodles").doc(String(d.id)).set(fsDoc).catch(e=>_logClientError('FIRESTORE_WRITE_FAIL','saveDoodles: '+(e&&e.message),'Termine'));
+          // Fix (27.08.2026, Kapitel 180): Kapitel 135 hat nur das uid-Symptom gepatcht — der volle
+          // ...d-Spread (title, note, audience, recipients, dt, status, uid, …) blieb im .set() bestehen.
+          // Sobald irgendein Feld lokal fehlt/abweicht, das serverseitig existiert (z.B. ein von Diana/Rico
+          // nachträglich ergänztes Feld, oder Serialisierungs-Unterschiede bei dt/recipients), wertet
+          // Firestore das als "Feld entfernt/geändert" → verstösst gegen hasOnly(["slots","dismissed"])
+          // → PERMISSION_DENIED (Rico-Fund 27.08.2026: "Termine: saveDoodles: Missing or insufficient
+          // permissions" im Fehler-Log). Ein Coachee darf ohnehin nie mehr als slots/dismissed ändern —
+          // .set(...,{merge:true}) MIT NUR DIESEN BEIDEN FELDERN schreibt exakt das, was die Rule erlaubt,
+          // und lässt alle Admin-Felder unangetastet (kein Datenverlust-Risiko mehr, das der volle Spread
+          // ursprünglich vermeiden sollte — merge:true erreicht dasselbe Ziel robust statt fragil).
+          const slots = toSlotsArray(d.slots).filter(Boolean).map(s=>({
+            ...s,
+            votes: Object.fromEntries(Object.entries(s.votes||{}).map(([k,v])=>[String(k),v])),
+            coacheeNotes: Object.fromEntries(Object.entries(s.coacheeNotes||{}).map(([k,v])=>[String(k),v]))
+          }));
+          fbDb.collection("doodles").doc(String(d.id)).set({slots, dismissed: d.dismissed||[]}, {merge:true})
+            .catch(e=>_logClientError('FIRESTORE_WRITE_FAIL','saveDoodles: '+(e&&e.message),'Termine'));
         });
         // Fix (17.08.2026, gleiches Muster wie saveReminders oben): Cleanup-Query war
         // unbefiltert — für echte Coachees PERMISSION_DENIED (verschluckt), zusätzlich
