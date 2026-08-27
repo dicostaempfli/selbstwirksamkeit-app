@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-27 15:58 admin -->
+<!-- Version: 2026-08-27 16:30 admin -->
 <!DOCTYPE html>
 <!-- Version: 2026-08-12 17:47 admin -->
 <head>
@@ -363,7 +363,7 @@ window.addEventListener('orientationchange', ()=>setTimeout(setVH,150));
   }
   .chat-topbar {
     background:var(--surface); border-bottom:1px solid var(--border);
-    padding:10px 16px; height:auto; min-height:112px; display:flex; align-items:center; gap:12px;
+    padding:10px 16px; height:auto; min-height:180px; display:flex; align-items:center; gap:12px;
     flex-shrink:0; box-shadow:0 1px 6px rgba(62,122,74,.07); position:relative; z-index:2;
   }
   .ct-avatar {
@@ -437,7 +437,7 @@ window.addEventListener('orientationchange', ()=>setTimeout(setVH,150));
     border-bottom: 1px solid var(--border);
     padding: 10px 16px;
     height: auto;
-    min-height: 112px;
+    min-height: 180px;
     display: flex;
     align-items: center;
     gap: 12px;
@@ -2317,8 +2317,8 @@ function DashboardPage({coachees,library,doodles,setPage,user,openSenderFilter,o
       </div>
       <div style=${{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginTop:14,paddingTop:10,paddingBottom:16,borderTop:"1px solid var(--border2)",borderBottom:"1px solid var(--border2)",marginBottom:16,gap:10}}>
         <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.7,lineHeight:1.5}}>
-          <div>App v2026-08-27 15:58 · Doku v3.224</div>
-          <div>2026-08-27 15:58</div>
+          <div>App v2026-08-27 16:30 · Doku v3.227</div>
+          <div>2026-08-27 16:30</div>
         </div>
         <div style=${{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
           <button class="dash-reload-btn" title="Fehler-Log" onClick=${()=>setPage("errors")} style=${{position:"relative",color:openErrorCount>0?"#993C1D":"var(--muted)"}}>
@@ -2973,7 +2973,7 @@ function ChatWindow({coachee,sender,setSender,onSend,onSendImg,onSendFile,onDele
 
   return html`
     <div class="chat-area">
-      <div class="chat-topbar" style=${{padding:"10px 14px",display:"flex",flexDirection:"column",alignItems:"stretch",gap:8}}>
+      <div class="chat-topbar" style=${{padding:"18px 14px 22px",display:"flex",flexDirection:"column",alignItems:"stretch",gap:8}}>
         <div style=${{display:"flex",alignItems:"center",gap:10,width:"100%",flexShrink:"0"}}>
           <button onClick=${onBack} style=${{background:"none",border:"none",cursor:"pointer",
             display:"flex",alignItems:"center",justifyContent:"center",padding:"0 4px 0 0",color:"var(--text)"}}>
