@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-25 21:02 coachee -->
+<!-- Version: 2026-08-27 14:53 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <!DOCTYPE html>
@@ -5273,6 +5273,19 @@ function icsDataUrl(dt, title, details, durationMin=120) {
     return "data:text/calendar;charset=utf-8,"+encodeURIComponent(ics);
   } catch(e){ return "#"; }
 }
+// Google-Calendar-Quicklink (identisch zu admin.html, Kapitel 46) — öffnet vorausgefülltes Event zum
+// manuellen Speichern, ohne Datei-Download/Import. Ergänzung zu icsDataUrl (Kapitel 178): Coachees, deren
+// "Internetkalender" kein .ics-Datei-Handling unterstützt (z.B. webbasierte Kalender ohne registrierten
+// Dateityp), können darüber trotzdem direkt einen Termin anlegen, sofern es sich um Google Calendar handelt.
+function gcalLink(dt, title, details, durationMin=120) {
+  try {
+    const start = new Date(dt);
+    const end = new Date(start.getTime() + durationMin*60000);
+    const fmt = d => d.getFullYear()+String(d.getMonth()+1).padStart(2,"0")+String(d.getDate()).padStart(2,"0")+"T"+String(d.getHours()).padStart(2,"0")+String(d.getMinutes()).padStart(2,"0")+"00";
+    const params = new URLSearchParams({action:"TEMPLATE",text:title||"Coaching-Termin",dates:fmt(start)+"/"+fmt(end),details:details||""});
+    return "https://calendar.google.com/calendar/render?"+params.toString();
+  } catch(e){ return "https://calendar.google.com/"; }
+}
 function bestSlotIdx(doodle) {
   let best=-1,bestCount=-1;
   toSlotsArray(doodle.slots).forEach((s,i)=>{
@@ -5443,10 +5456,17 @@ function DoodlePage({user,doodles,setDoodles,coachees,events}) {
                                 return html`<div key=${ci} style=${{background:"#fff",border:"1px solid var(--border2)",borderRadius:10,padding:12,marginBottom:10,textAlign:"left"}}>
                                   ${best.title&&best.title.trim()&&html`<div style=${{fontFamily:"'Manuale',serif",fontSize:".92rem",fontWeight:700,color:"var(--text)",marginBottom:5}}>${best.title}</div>`}
                                   <div style=${{fontSize:".85rem",fontWeight:600,color:"var(--text)",marginBottom:10}}>${fmtDt(best.dt)}</div>
-                                  <a href=${icsDataUrl(best.dt, (best.title||d.title+" — "+g.label), d.desc, 120)} download=${"Termin_"+d.title.replace(/[^a-zA-Z0-9]/g,"_")+"_"+g.key.replace(/[^a-zA-Z0-9]/g,"_")+"_"+ci+".ics"}
-                                    style=${{display:"inline-flex",alignItems:"center",gap:6,color:"var(--teal)",fontWeight:700,fontSize:".76rem",textDecoration:"none"}}>
-                                    <${Ic} name="calendar" size=${13}/> Zum Kalender hinzufügen
-                                  </a>
+                                  <div style=${{display:"flex",gap:16,flexWrap:"wrap"}}>
+                                    <a href=${icsDataUrl(best.dt, (best.title||d.title+" — "+g.label), d.desc, 120)} download=${"Termin_"+d.title.replace(/[^a-zA-Z0-9]/g,"_")+"_"+g.key.replace(/[^a-zA-Z0-9]/g,"_")+"_"+ci+".ics"}
+                                      style=${{display:"inline-flex",alignItems:"center",gap:6,color:"var(--teal)",fontWeight:700,fontSize:".76rem",textDecoration:"none"}}>
+                                      <${Ic} name="calendar" size=${13}/> Kalender-Datei
+                                    </a>
+                                    <a href=${gcalLink(best.dt, (best.title||d.title+" — "+g.label), d.desc, 120)} target="_blank" rel="noopener"
+                                      style=${{display:"inline-flex",alignItems:"center",gap:6,color:"var(--teal)",fontWeight:700,fontSize:".76rem",textDecoration:"none"}}>
+                                      <${Ic} name="calendar" size=${13}/> Google Kalender
+                                    </a>
+                                  </div>
+                                  <div style=${{fontSize:".72rem",color:"var(--muted)",marginTop:8}}>Funktioniert keiner der beiden Links? Trage Datum/Uhrzeit oben einfach manuell in deinen Kalender ein.</div>
                                 </div>`;
                               })}
                             </div>`
@@ -5505,10 +5525,17 @@ function DoodlePage({user,doodles,setDoodles,coachees,events}) {
                         return html`<div key=${ci} style=${{background:"#fff",border:"1px solid var(--border2)",borderRadius:10,padding:14,marginBottom:12,textAlign:"left"}}>
                           ${best.title&&best.title.trim()&&html`<div style=${{fontFamily:"'Manuale',serif",fontSize:"1rem",fontWeight:700,color:"var(--text)",marginBottom:6}}>${best.title}</div>`}
                           <div style=${{fontSize:".9rem",fontWeight:600,color:"var(--text)",marginBottom:14}}>${fmtDt(best.dt)}</div>
-                          <a href=${icsDataUrl(best.dt, (best.title||d.title), d.desc, 120)} download=${"Termin_"+d.title.replace(/[^a-zA-Z0-9]/g,"_")+"_"+ci+".ics"}
-                            style=${{display:"inline-flex",alignItems:"center",gap:6,color:"var(--teal)",fontWeight:700,fontSize:".8rem",textDecoration:"none"}}>
-                            <${Ic} name="calendar" size=${14}/> Zum Kalender hinzufügen
-                          </a>
+                          <div style=${{display:"flex",gap:16,flexWrap:"wrap"}}>
+                            <a href=${icsDataUrl(best.dt, (best.title||d.title), d.desc, 120)} download=${"Termin_"+d.title.replace(/[^a-zA-Z0-9]/g,"_")+"_"+ci+".ics"}
+                              style=${{display:"inline-flex",alignItems:"center",gap:6,color:"var(--teal)",fontWeight:700,fontSize:".8rem",textDecoration:"none"}}>
+                              <${Ic} name="calendar" size=${14}/> Kalender-Datei
+                            </a>
+                            <a href=${gcalLink(best.dt, (best.title||d.title), d.desc, 120)} target="_blank" rel="noopener"
+                              style=${{display:"inline-flex",alignItems:"center",gap:6,color:"var(--teal)",fontWeight:700,fontSize:".8rem",textDecoration:"none"}}>
+                              <${Ic} name="calendar" size=${14}/> Google Kalender
+                            </a>
+                          </div>
+                          <div style=${{fontSize:".74rem",color:"var(--muted)",marginTop:10}}>Funktioniert keiner der beiden Links? Trage Datum/Uhrzeit oben einfach manuell in deinen Kalender ein.</div>
                         </div>`;
                       })}
                       <div style=${{marginTop:6,textAlign:"center"}}>
