@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-27 16:57 coachee -->
+<!-- Version: 2026-08-28 18:06 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <!DOCTYPE html>
@@ -4535,6 +4535,125 @@ function JournalPage({journal,setJournal}) {
     </div>`;
 }
 
+// Fix (28.08.2026, Rico-Meldung "Video bricht nach ca. 30 Sekunden ab"): ThumbSmall/ExpandedMedia
+// waren bisher INNERHALB von LibraryPage definiert. Preact identifiziert eine Komponente über die
+// Funktions-Referenz, nicht über den Namen — bei jedem Re-Render von LibraryPage (z.B. durch den
+// globalen 30s-Tick aus Kapitel 139, impulsTick, der in App auch dann läuft, wenn die Mediathek
+// offen ist) entstand dadurch jedes Mal eine NEUE Funktions-Identität für diese Komponenten. Das
+// zwang Preact, das gerade aufgeklappte Item komplett zu unmounten und neu zu mounten — ein
+// laufendes <video autoPlay> sprang dadurch alle 30s hart zurück auf 0, ein 1-Minuten-Video kam so
+// nie über ~30s hinaus. Fix: beide Komponenten auf Modulebene (ausserhalb LibraryPage) definiert,
+// damit ihre Identität über Re-Renders stabil bleibt; setPhotoOverlay wird dafür als Prop statt
+// als Closure übergeben. Siehe Pflichtregel 46.
+const urlHost = u => { try { return new URL(u).hostname.replace(/^www\./,''); } catch(e) { return null; } };
+
+const ThumbSmall = ({item, sec}) => {
+  if(item.type==='link'){
+    if(item.thumbData) return html`
+      <div style=${{width:'100%',height:'100%',position:'relative',overflow:'hidden'}}>
+        <img src=${item.thumbData} style=${{width:'100%',height:'100%',objectFit:'cover',display:'block',borderRadius:9}}/>
+        <div style=${{position:'absolute',bottom:2,right:3,background:'rgba(0,0,0,.6)',color:'white',borderRadius:5,width:16,height:16,display:'flex',alignItems:'center',justifyContent:'center'}}><${Ic} name="extlink" size=${9} style=${{color:'white'}}/></div>
+      </div>`;
+    const host = urlHost(item.fileUrl);
+    return html`
+      <div style=${{width:'100%',height:'100%',background:sec.bg,borderRadius:9,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:5}}>
+        ${host
+          ? html`<img src=${'https://www.google.com/s2/favicons?sz=64&domain='+host} width="26" height="26"
+              style=${{borderRadius:6}} onError=${e=>{e.target.style.display='none';e.target.nextSibling.style.display='flex';}}/>`
+          : null}
+        <div style=${{display:host?'none':'flex',width:26,height:26,alignItems:'center',justifyContent:'center'}}><${Ic} name="link" size=${18} style=${{color:sec.color}}/></div>
+        ${host&&html`<div style=${{fontSize:'6.5px',fontWeight:700,color:sec.color,maxWidth:'90%',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>${host}</div>`}
+      </div>`;
+  }
+  if((item.type==='video'||item.type==='foto') && item.thumbData) return html`
+    <div style=${{width:'100%',height:'100%',position:'relative',overflow:'hidden'}}>
+      <img src=${item.thumbData} style=${{width:'100%',height:'100%',objectFit:'cover',display:'block',borderRadius:9}}/>
+      ${item.type==='video'&&html`<div style=${{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center'}}>
+        <div style=${{width:22,height:22,borderRadius:'50%',background:'rgba(255,255,255,.88)',display:'flex',alignItems:'center',justifyContent:'center'}}>
+          <svg width="8" height="8" viewBox="0 0 24 24" fill="#156e6e"><path d="M5 3l14 9-14 9V3z"/></svg>
+        </div>
+      </div>`}
+      ${item.duration&&html`<div style=${{position:'absolute',bottom:2,right:3,background:'rgba(0,0,0,.6)',color:'white',fontSize:'6px',fontWeight:700,padding:'1px 3px',borderRadius:3}}>${item.duration}</div>`}
+    </div>`;
+  return html`
+    <div style=${{width:'100%',height:'100%',background:sec.bg,borderRadius:9,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:3}}>
+      ${item.type==='audio' ? html`
+        <div style=${{display:'flex',alignItems:'center',gap:1.5,height:20}}>
+          ${(item.thumbData?JSON.parse(item.thumbData):[.3,.6,.9,.5,.8,.4,.7,.5,.6,.4]).slice(0,10).map((h,i)=>html`
+            <div key=${i} style=${{width:2.5,height:Math.round(h*18)+'px',background:sec.color,borderRadius:2,opacity:.8}}/>
+          `)}
+        </div>` : html`<${Ic} name=${sec.icon} size=${20} style=${{color:sec.color}}/>`}
+      ${item.duration&&html`<div style=${{fontSize:'7px',fontWeight:700,color:sec.color}}>${item.duration}</div>`}
+    </div>`;
+};
+
+const ExpandedMedia = ({item, sec, setPhotoOverlay}) => {
+  if(item.type==='video') return html`
+    <div style=${{width:'100%',aspectRatio:'16/9',background:'#111',position:'relative'}}>
+      ${item.fileUrl&&html`<video controls autoPlay src=${item.fileUrl} poster=${item.thumbData||''} style=${{width:'100%',height:'100%',display:'block',objectFit:'contain'}}/>`}
+      ${item.duration&&html`<div style=${{position:'absolute',bottom:8,left:10,background:'rgba(0,0,0,.7)',color:'white',fontSize:'.65rem',fontWeight:700,padding:'2px 7px',borderRadius:4,pointerEvents:'none'}}>HD · ${item.duration}</div>`}
+    </div>`;
+
+  if(item.type==='foto') return html`
+    <div style=${{width:'100%',maxHeight:320,minHeight:180,background:'var(--surface)',display:'flex',alignItems:'center',justifyContent:'center'}}>
+      ${(item.fileUrl||item.thumbData)
+        ? html`<img src=${item.fileUrl||item.thumbData} style=${{maxWidth:'100%',maxHeight:320,objectFit:'contain',display:'block',cursor:'zoom-in'}}
+            onClick=${e=>{e.stopPropagation();setPhotoOverlay(item.fileUrl||item.thumbData);}}/>`
+        : html`<div style=${{padding:40,color:'var(--muted)',fontSize:'.85rem'}}>Kein Vorschaubild</div>`}
+    </div>`;
+
+  if(item.type==='audio') return html`
+    <div style=${{padding:'16px 20px',background:sec.bg}}>
+      <audio controls src=${item.fileUrl||''} style=${{width:'100%'}} onClick=${e=>e.stopPropagation()}/>
+    </div>`;
+
+  if(item.type==='link'){
+    const host = urlHost(item.fileUrl);
+    return html`
+      <div style=${{width:'100%',minHeight:150,background:'var(--surface)',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:10,padding:item.thumbData?0:'22px 16px'}}>
+        ${item.thumbData
+          ? html`<img src=${item.thumbData} style=${{width:'100%',maxHeight:220,objectFit:'cover',display:'block'}}/>`
+          : html`<div style=${{width:52,height:52,borderRadius:12,background:sec.bg,border:'0.5px solid '+sec.border,display:'flex',alignItems:'center',justifyContent:'center'}}>
+              ${host
+                ? html`<img src=${'https://www.google.com/s2/favicons?sz=64&domain='+host} width="30" height="30" style=${{borderRadius:6}}/>`
+                : html`<${Ic} name="link" size=${22} style=${{color:sec.color}}/>`}
+            </div>`}
+        <div style=${{textAlign:'center',padding:item.thumbData?'10px 16px 0':0}}>
+          <div style=${{fontSize:'.88rem',fontWeight:700,color:'var(--text)'}}>${item.title}</div>
+          ${host&&html`<div style=${{fontSize:'.75rem',color:'var(--muted)',marginTop:2}}>${host}</div>`}
+        </div>
+        ${item.fileUrl&&html`
+          <a href=${item.fileUrl} target="_blank" rel="noopener" onClick=${e=>e.stopPropagation()}
+            style=${{display:'flex',alignItems:'center',gap:6,padding:'8px 18px',background:'#156e6e',color:'white',borderRadius:8,fontFamily:"'Exo 2',sans-serif",fontWeight:700,fontSize:'.8rem',textDecoration:'none',marginTop:4,marginBottom:item.thumbData?16:0}}>
+            <${Ic} name="extlink" size=${13} style=${{color:'white'}}/> Öffnen
+          </a>`}
+      </div>`;
+  }
+
+  if(item.type==='dokus') return html`
+    <div>
+      ${item.fileUrl&&html`
+        <div style=${{width:'100%',overflow:'hidden',maxWidth:'100vw'}}>
+          <iframe
+            src=${'https://docs.google.com/viewer?url='+encodeURIComponent(item.fileUrl)+'&embedded=true'}
+            style=${{width:'100%',height:340,border:'none',display:'block',background:'#f5f5f5'}}
+            title=${item.title}/>
+        </div>`}
+      ${!item.fileUrl&&html`
+        <div style=${{padding:'24px 16px',textAlign:'center',color:'var(--muted)',fontSize:'.85rem'}}>Keine Datei verfügbar</div>`}
+      ${item.fileUrl&&html`
+        <div style=${{display:'flex',justifyContent:'flex-end',padding:'8px 12px',background:'var(--surface)'}}>
+          <a href=${item.fileUrl} target="_blank" rel="noopener" onClick=${e=>e.stopPropagation()}
+            style=${{display:'flex',alignItems:'center',gap:5,padding:'5px 11px',background:'#156e6e',color:'white',borderRadius:7,fontFamily:"'Exo 2',sans-serif",fontWeight:700,fontSize:'.75rem',textDecoration:'none'}}>
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Download
+          </a>
+        </div>`}
+    </div>`;
+
+  return null;
+};
+
 function LibraryPage({library, pendingLibraryId, clearPendingLibraryId, uid}) {
   const [openId, setOpenId] = useState(null);
   const [searchQ, setSearchQ] = useState('');
@@ -4607,122 +4726,12 @@ function LibraryPage({library, pendingLibraryId, clearPendingLibraryId, uid}) {
     {type:'link',  label:'Links',  icon:'link',   color:'#156e6e', bg:'#e0eded', border:'#b0d4d4'},
   ];
 
-  const urlHost = u => { try { return new URL(u).hostname.replace(/^www\./,''); } catch(e) { return null; } };
-
   const matches = item => !searchQ ||
     item.title?.toLowerCase().includes(searchQ.toLowerCase()) ||
     item.desc?.toLowerCase().includes(searchQ.toLowerCase()) ||
     item.keywords?.toLowerCase().includes(searchQ.toLowerCase());
 
   const toggle = id => setOpenId(v => v === id ? null : id);
-
-  const ThumbSmall = ({item, sec}) => {
-    if(item.type==='link'){
-      if(item.thumbData) return html`
-        <div style=${{width:'100%',height:'100%',position:'relative',overflow:'hidden'}}>
-          <img src=${item.thumbData} style=${{width:'100%',height:'100%',objectFit:'cover',display:'block',borderRadius:9}}/>
-          <div style=${{position:'absolute',bottom:2,right:3,background:'rgba(0,0,0,.6)',color:'white',borderRadius:5,width:16,height:16,display:'flex',alignItems:'center',justifyContent:'center'}}><${Ic} name="extlink" size=${9} style=${{color:'white'}}/></div>
-        </div>`;
-      const host = urlHost(item.fileUrl);
-      return html`
-        <div style=${{width:'100%',height:'100%',background:sec.bg,borderRadius:9,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:5}}>
-          ${host
-            ? html`<img src=${'https://www.google.com/s2/favicons?sz=64&domain='+host} width="26" height="26"
-                style=${{borderRadius:6}} onError=${e=>{e.target.style.display='none';e.target.nextSibling.style.display='flex';}}/>`
-            : null}
-          <div style=${{display:host?'none':'flex',width:26,height:26,alignItems:'center',justifyContent:'center'}}><${Ic} name="link" size=${18} style=${{color:sec.color}}/></div>
-          ${host&&html`<div style=${{fontSize:'6.5px',fontWeight:700,color:sec.color,maxWidth:'90%',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>${host}</div>`}
-        </div>`;
-    }
-    if((item.type==='video'||item.type==='foto') && item.thumbData) return html`
-      <div style=${{width:'100%',height:'100%',position:'relative',overflow:'hidden'}}>
-        <img src=${item.thumbData} style=${{width:'100%',height:'100%',objectFit:'cover',display:'block',borderRadius:9}}/>
-        ${item.type==='video'&&html`<div style=${{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center'}}>
-          <div style=${{width:22,height:22,borderRadius:'50%',background:'rgba(255,255,255,.88)',display:'flex',alignItems:'center',justifyContent:'center'}}>
-            <svg width="8" height="8" viewBox="0 0 24 24" fill="#156e6e"><path d="M5 3l14 9-14 9V3z"/></svg>
-          </div>
-        </div>`}
-        ${item.duration&&html`<div style=${{position:'absolute',bottom:2,right:3,background:'rgba(0,0,0,.6)',color:'white',fontSize:'6px',fontWeight:700,padding:'1px 3px',borderRadius:3}}>${item.duration}</div>`}
-      </div>`;
-    return html`
-      <div style=${{width:'100%',height:'100%',background:sec.bg,borderRadius:9,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:3}}>
-        ${item.type==='audio' ? html`
-          <div style=${{display:'flex',alignItems:'center',gap:1.5,height:20}}>
-            ${(item.thumbData?JSON.parse(item.thumbData):[.3,.6,.9,.5,.8,.4,.7,.5,.6,.4]).slice(0,10).map((h,i)=>html`
-              <div key=${i} style=${{width:2.5,height:Math.round(h*18)+'px',background:sec.color,borderRadius:2,opacity:.8}}/>
-            `)}
-          </div>` : html`<${Ic} name=${sec.icon} size=${20} style=${{color:sec.color}}/>`}
-        ${item.duration&&html`<div style=${{fontSize:'7px',fontWeight:700,color:sec.color}}>${item.duration}</div>`}
-      </div>`;
-  };
-
-  const ExpandedMedia = ({item, sec}) => {
-    if(item.type==='video') return html`
-      <div style=${{width:'100%',aspectRatio:'16/9',background:'#111',position:'relative'}}>
-        ${item.fileUrl&&html`<video controls autoPlay src=${item.fileUrl} poster=${item.thumbData||''} style=${{width:'100%',height:'100%',display:'block',objectFit:'contain'}}/>`}
-        ${item.duration&&html`<div style=${{position:'absolute',bottom:8,left:10,background:'rgba(0,0,0,.7)',color:'white',fontSize:'.65rem',fontWeight:700,padding:'2px 7px',borderRadius:4,pointerEvents:'none'}}>HD · ${item.duration}</div>`}
-      </div>`;
-
-    if(item.type==='foto') return html`
-      <div style=${{width:'100%',maxHeight:320,minHeight:180,background:'var(--surface)',display:'flex',alignItems:'center',justifyContent:'center'}}>
-        ${(item.fileUrl||item.thumbData)
-          ? html`<img src=${item.fileUrl||item.thumbData} style=${{maxWidth:'100%',maxHeight:320,objectFit:'contain',display:'block',cursor:'zoom-in'}}
-              onClick=${e=>{e.stopPropagation();setPhotoOverlay(item.fileUrl||item.thumbData);}}/>`
-          : html`<div style=${{padding:40,color:'var(--muted)',fontSize:'.85rem'}}>Kein Vorschaubild</div>`}
-      </div>`;
-
-    if(item.type==='audio') return html`
-      <div style=${{padding:'16px 20px',background:sec.bg}}>
-        <audio controls src=${item.fileUrl||''} style=${{width:'100%'}} onClick=${e=>e.stopPropagation()}/>
-      </div>`;
-
-    if(item.type==='link'){
-      const host = urlHost(item.fileUrl);
-      return html`
-        <div style=${{width:'100%',minHeight:150,background:'var(--surface)',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:10,padding:item.thumbData?0:'22px 16px'}}>
-          ${item.thumbData
-            ? html`<img src=${item.thumbData} style=${{width:'100%',maxHeight:220,objectFit:'cover',display:'block'}}/>`
-            : html`<div style=${{width:52,height:52,borderRadius:12,background:sec.bg,border:'0.5px solid '+sec.border,display:'flex',alignItems:'center',justifyContent:'center'}}>
-                ${host
-                  ? html`<img src=${'https://www.google.com/s2/favicons?sz=64&domain='+host} width="30" height="30" style=${{borderRadius:6}}/>`
-                  : html`<${Ic} name="link" size=${22} style=${{color:sec.color}}/>`}
-              </div>`}
-          <div style=${{textAlign:'center',padding:item.thumbData?'10px 16px 0':0}}>
-            <div style=${{fontSize:'.88rem',fontWeight:700,color:'var(--text)'}}>${item.title}</div>
-            ${host&&html`<div style=${{fontSize:'.75rem',color:'var(--muted)',marginTop:2}}>${host}</div>`}
-          </div>
-          ${item.fileUrl&&html`
-            <a href=${item.fileUrl} target="_blank" rel="noopener" onClick=${e=>e.stopPropagation()}
-              style=${{display:'flex',alignItems:'center',gap:6,padding:'8px 18px',background:'#156e6e',color:'white',borderRadius:8,fontFamily:"'Exo 2',sans-serif",fontWeight:700,fontSize:'.8rem',textDecoration:'none',marginTop:4,marginBottom:item.thumbData?16:0}}>
-              <${Ic} name="extlink" size=${13} style=${{color:'white'}}/> Öffnen
-            </a>`}
-        </div>`;
-    }
-
-    if(item.type==='dokus') return html`
-      <div>
-        ${item.fileUrl&&html`
-          <div style=${{width:'100%',overflow:'hidden',maxWidth:'100vw'}}>
-            <iframe
-              src=${'https://docs.google.com/viewer?url='+encodeURIComponent(item.fileUrl)+'&embedded=true'}
-              style=${{width:'100%',height:340,border:'none',display:'block',background:'#f5f5f5'}}
-              title=${item.title}/>
-          </div>`}
-        ${!item.fileUrl&&html`
-          <div style=${{padding:'24px 16px',textAlign:'center',color:'var(--muted)',fontSize:'.85rem'}}>Keine Datei verfügbar</div>`}
-        ${item.fileUrl&&html`
-          <div style=${{display:'flex',justifyContent:'flex-end',padding:'8px 12px',background:'var(--surface)'}}>
-            <a href=${item.fileUrl} target="_blank" rel="noopener" onClick=${e=>e.stopPropagation()}
-              style=${{display:'flex',alignItems:'center',gap:5,padding:'5px 11px',background:'#156e6e',color:'white',borderRadius:7,fontFamily:"'Exo 2',sans-serif",fontWeight:700,fontSize:'.75rem',textDecoration:'none'}}>
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-              Download
-            </a>
-          </div>`}
-      </div>`;
-
-    return null;
-  };
-
 
   const visibleSecTypes = SECTIONS.filter(sec => library.some(i=>i.type===sec.type && matches(i))).map(sec=>sec.type);
 
@@ -4770,7 +4779,7 @@ function LibraryPage({library, pendingLibraryId, clearPendingLibraryId, uid}) {
                       <div style=${{width:'100%',height:isOpen?'auto':110,overflow:'hidden',cursor:'pointer'}}
                         onClick=${()=>{if(isFoto){markSeen(item.id);openFoto();} else if(!isOpen){toggle(item.id);markSeen(item.id);}}}>
                         ${isOpen
-                          ? html`<${ExpandedMedia} item=${item} sec=${sec}/>`
+                          ? html`<${ExpandedMedia} item=${item} sec=${sec} setPhotoOverlay=${setPhotoOverlay}/>`
                           : html`<${ThumbSmall} item=${item} sec=${sec}/>`}
                       </div>
                       ${isOpen&&html`
