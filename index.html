@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-28 18:06 coachee -->
+<!-- Version: 2026-08-31 21:54 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <!DOCTYPE html>
@@ -1370,6 +1370,16 @@ function _logClientError(code, message, context) {
 // Global error handler to catch and display runtime errors
 window.onerror = (msg, src, line, col, err) => {
   if(line === 0 && !src) return true; // Cross-Origin-Fehler ignorieren
+
+  // Fix (31.08.2026, Fehler-Log-Fund Julia Gadient, Mediathek): "Can't find variable:
+  // EmptyRanges" ist kein App-Fehler — "played"/"syncControl"/"handleEvent" im Stack sind
+  // WebKit-eigene Funktionsnamen, Quelle "undefined" statt einer echten Datei. Bekannter,
+  // harmloser interner Safari-Bug in den nativen Video-/Audio-Controls (<video controls>/
+  // <audio controls>, z.B. Mediathek ExpandedMedia Kapitel 185 oder Chat-Anhänge), tritt
+  // sporadisch beim Sync der nativen Scrubber-UI auf — Wiedergabe läuft danach unbeeinträchtigt
+  // weiter. Analog zu Pitfall 70 (IDB-Filter unten) gezielt gefiltert, damit dieser bekannte
+  // Fehlalarm nicht mehr unnötig den vollen Crash-Screen auslöst.
+  if(/Can't find variable:\s*EmptyRanges/i.test(String(msg))) { console.warn('[Media] bekannter WebKit-Controls-Fehler ignoriert:', msg); return true; }
 
   var info = msg + '\n' + (src||'?') + ':' + line + ':' + col + (err&&err.stack ? '\n' + String(err.stack).split('\n').slice(0,4).join('\n') : '');
   _logClientError('JS_UNCAUGHT', info);

@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-28 18:06 admin -->
+<!-- Version: 2026-08-31 21:54 admin -->
 <!DOCTYPE html>
 <!-- Version: 2026-08-12 17:47 admin -->
 <head>
@@ -1385,6 +1385,9 @@ setTimeout(function() {
 // Fehlermeldung geliefert, z.B. Pitfall 62).
 window.onerror = (msg, src, line, col, err) => {
   if(line === 0 && !src) return true; // Cross-Origin-Fehler ignorieren
+  // Fix (31.08.2026): 1:1 identischer Filter wie in index.html — siehe dortiger Kommentar.
+  // Bekannter, harmloser interner Safari-Bug in den nativen Video-/Audio-Controls.
+  if(/Can't find variable:\s*EmptyRanges/i.test(String(msg))) { console.warn('[Media] bekannter WebKit-Controls-Fehler ignoriert:', msg); return true; }
   var info = msg + '\n' + (src||'?') + ':' + line + ':' + col + (err&&err.stack ? '\n' + String(err.stack).split('\n').slice(0,4).join('\n') : '');
   if(window._showAdminCrashScreen) window._showAdminCrashScreen(info);
   return true;
@@ -2317,8 +2320,8 @@ function DashboardPage({coachees,library,doodles,setPage,user,openSenderFilter,o
       </div>
       <div style=${{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginTop:14,paddingTop:10,paddingBottom:16,borderTop:"1px solid var(--border2)",borderBottom:"1px solid var(--border2)",marginBottom:16,gap:10}}>
         <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.7,lineHeight:1.5}}>
-          <div>App v2026-08-28 18:06 · Doku v3.230</div>
-          <div>2026-08-28 18:06</div>
+          <div>App v2026-08-31 21:54 · Doku v3.231</div>
+          <div>2026-08-31 21:54</div>
         </div>
         <div style=${{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
           <button class="dash-reload-btn" title="Fehler-Log" onClick=${()=>setPage("errors")} style=${{position:"relative",color:openErrorCount>0?"#993C1D":"var(--muted)"}}>
