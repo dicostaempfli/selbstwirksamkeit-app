@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-31 21:54 admin -->
+<!-- Version: 2026-08-31 22:46 admin -->
 <!DOCTYPE html>
 <!-- Version: 2026-08-12 17:47 admin -->
 <head>
@@ -2027,6 +2027,18 @@ function AdminApp({user}) {
   const unreadUnsubsRef = useRef({});
   const adminMetaCacheRef = useRef({});
   const messagesCacheRef = useRef({});
+  // Fix (31.08.2026, Rico-Meldung "zeigt ganz kurz offene Nachrichten an und
+  // verschwindet dann wieder"): msgUnsub und metaUnsub sind zwei unabhängige
+  // onSnapshot-Listener ohne garantierte Reihenfolge. Feuerte bisher msgUnsub
+  // zuerst (adminMetaCacheRef für diesen Coachee noch leer), rechnete recompute()
+  // mangels echtem lastRead-Wert gegen den viel älteren Fallback
+  // adminFirstOpenTsRef.current — eine längst gelesene Nachricht erschien dadurch
+  // kurz fälschlich als neu ungelesen, bis metaUnsub kurz danach mit dem echten,
+  // aktuelleren Firestore-Wert nachlieferte und auf 0 zurückrechnete. Fix:
+  // metaLoadedRef merkt sich pro Coachee, ob der echte adminMeta-Wert schon
+  // mindestens einmal geladen wurde — recompute() aus msgUnsub wird bis dahin
+  // unterdrückt, sodass nie mit dem veralteten Fallback gerechnet wird.
+  const metaLoadedRef = useRef({});
   useEffect(() => {
     const firestore = db();
     if(!firestore) return;
@@ -2058,7 +2070,9 @@ function AdminApp({user}) {
         .orderBy('ts','desc').limit(5)
         .onSnapshot(snap => {
           messagesCacheRef.current[c.id] = snap.docs.map(d=>d.data());
-          recompute();
+          // Vor dem ersten echten adminMeta-Snapshot nicht rechnen (siehe Fix-Kommentar
+          // oben) — sonst kurzes Flackern mit falschem "ungelesen"-Wert.
+          if(metaLoadedRef.current[c.id]) recompute();
         }, (err)=>{ setSyncError(err?.code||err?.message||"messages"); });
       const metaUnsub = readRef.onSnapshot(snap => {
         if(!snap.exists) {
@@ -2070,6 +2084,7 @@ function AdminApp({user}) {
         } else {
           adminMetaCacheRef.current[c.id] = snap.data();
         }
+        metaLoadedRef.current[c.id] = true;
         recompute();
       }, (err)=>{ setSyncError(err?.code||err?.message||"adminMeta"); });
       unreadUnsubsRef.current[c.id] = [msgUnsub, metaUnsub];
@@ -2320,7 +2335,7 @@ function DashboardPage({coachees,library,doodles,setPage,user,openSenderFilter,o
       </div>
       <div style=${{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginTop:14,paddingTop:10,paddingBottom:16,borderTop:"1px solid var(--border2)",borderBottom:"1px solid var(--border2)",marginBottom:16,gap:10}}>
         <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.7,lineHeight:1.5}}>
-          <div>App v2026-08-31 21:54 · Doku v3.231</div>
+          <div>App v2026-08-31 22:46 · Doku v3.233</div>
           <div>2026-08-31 21:54</div>
         </div>
         <div style=${{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
@@ -3971,7 +3986,7 @@ const ExpandedMedia = ({item, sec, setPhotoOverlay}) => {
           ${host&&html`<div style=${{fontSize:'.75rem',color:'var(--muted)',marginTop:2}}>${host}</div>`}
         </div>
         ${item.fileUrl&&html`
-          <a href=${item.fileUrl} target="_blank" rel="noopener" onClick=${e=>e.stopPropagation()}
+          <a href=${item.fileUrl} target=${(isAdminIOS()&&isAdminPWA())?'_top':'_blank'} rel="noopener" onClick=${e=>e.stopPropagation()}
             style=${{display:'flex',alignItems:'center',gap:6,padding:'8px 18px',background:'#156e6e',color:'white',borderRadius:8,fontFamily:"'Exo 2',sans-serif",fontWeight:700,fontSize:'.8rem',textDecoration:'none',marginTop:4,marginBottom:item.thumbData?16:0}}>
             <${Ic} name="extlink" size=${13} style=${{color:'white'}}/> Öffnen
           </a>`}
