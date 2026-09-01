@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-31 22:46 admin -->
+<!-- Version: 2026-09-01 11:14 admin -->
 <!DOCTYPE html>
 <!-- Version: 2026-08-12 17:47 admin -->
 <head>
@@ -1397,7 +1397,9 @@ window.addEventListener('unhandledrejection', e => {
   var msg = (r&&r.message) ? r.message : String(r);
   // Fix (10.08.2026, Pitfall 70): 1:1 identischer Filter wie in index.html — siehe dortiger
   // Kommentar. Bekannter, harmloser Safari-IndexedDB-Bug in der Firebase-SDK-Persistenz.
-  if(/in-progress transaction/i.test(msg)) { console.warn('[IDB] transienter Safari-Fehler ignoriert:', msg); return; }
+  // Fix (01.09.2026, Pitfall 75): 1:1 identische Ergänzung wie in index.html — Firefox-
+  // Äquivalent derselben transienten IndexedDB-Störung.
+  if(/in-progress transaction|internal error was encountered in the indexed database/i.test(msg)) { console.warn('[IDB] transienter Browser-Fehler ignoriert:', msg); return; }
   var info = 'Unhandled Promise Rejection: ' + msg + (r&&r.stack ? '\n' + String(r.stack).split('\n').slice(0,4).join('\n') : '');
   if(window._showAdminCrashScreen) window._showAdminCrashScreen(info);
 });
@@ -2335,7 +2337,7 @@ function DashboardPage({coachees,library,doodles,setPage,user,openSenderFilter,o
       </div>
       <div style=${{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginTop:14,paddingTop:10,paddingBottom:16,borderTop:"1px solid var(--border2)",borderBottom:"1px solid var(--border2)",marginBottom:16,gap:10}}>
         <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.7,lineHeight:1.5}}>
-          <div>App v2026-08-31 22:46 · Doku v3.233</div>
+          <div>App v2026-09-01 11:14 · Doku v3.234</div>
           <div>2026-08-31 21:54</div>
         </div>
         <div style=${{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>

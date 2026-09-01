@@ -1,4 +1,4 @@
-<!-- Version: 2026-08-31 21:54 coachee -->
+<!-- Version: 2026-09-01 11:14 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <!DOCTYPE html>
@@ -1399,7 +1399,13 @@ window.addEventListener('unhandledrejection', e => {
   // Fehlalarm-Überreaktion, die die Nutzung unnötig unterbricht. Nur dieser eine, sehr
   // spezifische Fehlertext wird gefiltert; alle anderen unhandledrejections lösen weiterhin
   // normal den Crashscreen aus.
-  if(/in-progress transaction/i.test(msg)) { console.warn('[IDB] transienter Safari-Fehler ignoriert:', msg); return; }
+  // Fix (01.09.2026, Pitfall 75, Fehler-Log-Fund Domenika Marzo): Firefox-Äquivalent zu
+  // Pitfall 70 — "An internal error was encountered in the Indexed Database server" ist die
+  // Firefox-eigene Formulierung für denselben Bug-Typ (transiente, sich selbst erholende
+  // IndexedDB-Störung in der Firebase-SDK-Persistenz, gleiche Ursache/gleiches Verhalten wie
+  // oben, nur browserspezifisch andere Fehlermeldung). Ebenfalls gezielt gefiltert statt den
+  // Crashscreen auszulösen.
+  if(/in-progress transaction|internal error was encountered in the indexed database/i.test(msg)) { console.warn('[IDB] transienter Browser-Fehler ignoriert:', msg); return; }
   var info = 'Unhandled Promise Rejection: ' + msg + (r&&r.stack ? '\n' + String(r.stack).split('\n').slice(0,4).join('\n') : '');
   _logClientError('UNHANDLED_REJECTION', info);
   if(window._showCrashScreen) window._showCrashScreen(info);
@@ -4633,7 +4639,7 @@ const ExpandedMedia = ({item, sec, setPhotoOverlay}) => {
           ${host&&html`<div style=${{fontSize:'.75rem',color:'var(--muted)',marginTop:2}}>${host}</div>`}
         </div>
         ${item.fileUrl&&html`
-          <a href=${item.fileUrl} target="_blank" rel="noopener" onClick=${e=>e.stopPropagation()}
+          <a href=${item.fileUrl} target=${(isIOS()&&isPWA())?'_top':'_blank'} rel="noopener" onClick=${e=>e.stopPropagation()}
             style=${{display:'flex',alignItems:'center',gap:6,padding:'8px 18px',background:'#156e6e',color:'white',borderRadius:8,fontFamily:"'Exo 2',sans-serif",fontWeight:700,fontSize:'.8rem',textDecoration:'none',marginTop:4,marginBottom:item.thumbData?16:0}}>
             <${Ic} name="extlink" size=${13} style=${{color:'white'}}/> Öffnen
           </a>`}
