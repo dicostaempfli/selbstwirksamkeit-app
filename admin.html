@@ -1,4 +1,4 @@
-<!-- Version: 2026-09-03 10:32 admin -->
+<!-- Version: 2026-09-03 10:48 admin -->
 <!DOCTYPE html>
 <!-- Version: 2026-08-12 17:47 admin -->
 <head>
@@ -1516,10 +1516,13 @@ const parseGCalPaste = raw => {
 
   // 4) Titel: erste Zeile ohne Wochentag-/Datum-/Uhrzeit-Reste
   let title = "";
-  const dateTimeStrip = /\b\d{1,2}:\d{2}\b|\b\d{1,2}\.\d{1,2}\.(\d{2,4})?\b|\b\d{1,2}\.?\s*(januar|februar|märz|maerz|april|mai|juni|juli|august|september|oktober|november|dezember|jan|feb|mär|mrz|apr|jun|jul|aug|sep|sept|okt|nov|dez)\.?\s*(\d{4})?\b/gi;
+  const dateTimeStrip = /\b\d{1,2}:\d{2}\b|\b\d{1,2}\.\d{1,2}\.(\d{2,4})?\b|\b\d{1,2}\.?\s*(januar|februar|märz|maerz|april|mai|juni|juli|august|september|oktober|november|dezember|jan|feb|mär|mrz|apr|jun|jul|aug|sep|sept|okt|nov|dez)\.?\s*(\d{4})?\b|\b(montag|dienstag|mittwoch|donnerstag|freitag|samstag|sonntag)\.?,?\b|\b(mo|di|mi|do|fr|sa|so)\.,?/gi;
   const lines = text.split(/\n+/).map(l=>l.trim()).filter(Boolean);
   for(const line of lines){
-    const stripped = line.replace(dateTimeStrip,"").replace(/[,·•⋅\-–—]+/g," ").replace(/\s+/g," ").trim();
+    // Wochentagsnamen (auch mitten in der Zeile, z.B. bei aus Google Calendar kopierten Zeilen ohne
+    // saubere Zeilenumbrüche) werden jetzt Teil von dateTimeStrip mitentfernt (Kapitel 190.9) —
+    // Punkt-Bereinigung um "." erweitert, da nach dem Entfernen oft ein einzelnes Reststrichzeichen bleibt.
+    const stripped = line.replace(dateTimeStrip,"").replace(/[,.·•⋅\-–—]+/g," ").replace(/\s+/g," ").trim();
     if(!stripped) continue;
     if(GCAL_WEEKDAY_RE.test(stripped)) continue;
     title = stripped.length < line.length ? stripped : line;
@@ -2411,7 +2414,7 @@ function DashboardPage({coachees,library,doodles,setPage,user,openSenderFilter,o
       </div>
       <div style=${{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginTop:14,paddingTop:10,paddingBottom:16,borderTop:"1px solid var(--border2)",borderBottom:"1px solid var(--border2)",marginBottom:16,gap:10}}>
         <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.7,lineHeight:1.5}}>
-          <div>App v2026-09-03 10:32 · Doku v3.235</div>
+          <div>App v2026-09-03 10:48 · Doku v3.236</div>
           <div>2026-08-31 21:54</div>
         </div>
         <div style=${{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
