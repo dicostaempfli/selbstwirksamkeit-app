@@ -1,4 +1,4 @@
-<!-- Version: 2026-09-01 11:14 admin -->
+<!-- Version: 2026-09-03 10:32 admin -->
 <!DOCTYPE html>
 <!-- Version: 2026-08-12 17:47 admin -->
 <head>
@@ -1463,6 +1463,80 @@ const gcalLink = (dt, title, details, durationMin=120) => {
     return "https://calendar.google.com/calendar/render?"+params.toString();
   } catch(e){ return "https://calendar.google.com/"; }
 };
+// Google-Calendar-Text-Einfügen (Google → App, Kapitel 190): erkennt Datum/Uhrzeit/Titel aus per Hand
+// aus Google Calendar kopiertem Text — reine Text-Heuristik, kein Login/API nötig. Erkennt deutsche
+// Datumsformate ("4. September 2026", "04.09.2026") sowie Uhrzeiten ("10:00" / "10:00 – 11:00").
+// Fehlender Jahres-Angabe wird das laufende Jahr angenommen, bei bereits vergangenem Datum das nächste.
+const GCAL_MONTHS = {januar:1,jan:1,februar:2,feb:2,"märz":3,maerz:3,"mär":3,mrz:3,april:4,apr:4,mai:5,juni:6,jun:6,juli:7,jul:7,august:8,aug:8,september:9,sept:9,sep:9,oktober:10,okt:10,november:11,nov:11,dezember:12,dez:12};
+const GCAL_WEEKDAY_RE = /^(mo|di|mi|do|fr|sa|so|montag|dienstag|mittwoch|donnerstag|freitag|samstag|sonntag)\.?,?$/i;
+const parseGCalPaste = raw => {
+  const text = (raw||"").trim();
+  if(!text) return null;
+  const now = new Date();
+  const todayMid = new Date(now.getFullYear(),now.getMonth(),now.getDate());
+  let date = null;
+
+  // 1) Numerisches Datum: 4.9.2026 / 04.09.26 / 4.9.
+  let m = text.match(/\b(\d{1,2})\.(\d{1,2})\.(\d{2,4})?\b/);
+  if(m){
+    const day=+m[1], mon=+m[2];
+    if(day>=1&&day<=31&&mon>=1&&mon<=12){
+      let year = m[3] ? (m[3].length===2 ? 2000+ +m[3] : +m[3]) : now.getFullYear();
+      const cand = new Date(year,mon-1,day);
+      if(!isNaN(cand.getTime())){
+        if(!m[3] && cand < todayMid) cand.setFullYear(year+1);
+        date = cand;
+      }
+    }
+  }
+  // 2) "4. September 2026" / "4. Sept."
+  if(!date){
+    const m2 = text.match(/\b(\d{1,2})\.?\s*([A-Za-zÄÖÜäöüß]+)\.?\s*(\d{4})?\b/);
+    if(m2){
+      const mon = GCAL_MONTHS[m2[2].toLowerCase()];
+      if(mon){
+        const day=+m2[1];
+        let year = m2[3] ? +m2[3] : now.getFullYear();
+        const cand = new Date(year,mon-1,day);
+        if(!isNaN(cand.getTime())){
+          if(!m2[3] && cand < todayMid) cand.setFullYear(year+1);
+          date = cand;
+        }
+      }
+    }
+  }
+
+  // 3) Uhrzeit (erste gefundene "HH:MM", bei Zeitspanne wird der Start genommen)
+  let hour=null, minute=null;
+  const mt = text.match(/\b(\d{1,2}):(\d{2})\b/);
+  if(mt){
+    const h=+mt[1], mi=+mt[2];
+    if(h>=0&&h<=23&&mi>=0&&mi<=59){ hour=h; minute=mi; }
+  }
+
+  // 4) Titel: erste Zeile ohne Wochentag-/Datum-/Uhrzeit-Reste
+  let title = "";
+  const dateTimeStrip = /\b\d{1,2}:\d{2}\b|\b\d{1,2}\.\d{1,2}\.(\d{2,4})?\b|\b\d{1,2}\.?\s*(januar|februar|märz|maerz|april|mai|juni|juli|august|september|oktober|november|dezember|jan|feb|mär|mrz|apr|jun|jul|aug|sep|sept|okt|nov|dez)\.?\s*(\d{4})?\b/gi;
+  const lines = text.split(/\n+/).map(l=>l.trim()).filter(Boolean);
+  for(const line of lines){
+    const stripped = line.replace(dateTimeStrip,"").replace(/[,·•⋅\-–—]+/g," ").replace(/\s+/g," ").trim();
+    if(!stripped) continue;
+    if(GCAL_WEEKDAY_RE.test(stripped)) continue;
+    title = stripped.length < line.length ? stripped : line;
+    break;
+  }
+
+  if(!date && hour===null && !title) return null;
+  let minRounded = minute!==null ? Math.round(minute/5)*5 : null;
+  let hourFinal = hour;
+  if(minRounded===60){ minRounded=0; hourFinal = hour!==null ? (hour+1)%24 : null; }
+  return {
+    date: date ? (date.getFullYear()+"-"+String(date.getMonth()+1).padStart(2,"0")+"-"+String(date.getDate()).padStart(2,"0")) : null,
+    hour: hourFinal!==null ? String(hourFinal).padStart(2,"0") : null,
+    minute: minRounded!==null ? String(minRounded).padStart(2,"0") : null,
+    title: title || null,
+  };
+};
 // Pitfall 36: Admin-Sprachmemos wurden hart als "audio/webm" verschickt, unabhängig vom
 // tatsächlich aufgenommenen Container (Diana/Rico nehmen meist auf Desktop/Firefox auf).
 // iOS-Safari-Coachees können WebM-Audio grundsätzlich NICHT abspielen (nativer <audio>-Tag
@@ -2337,7 +2411,7 @@ function DashboardPage({coachees,library,doodles,setPage,user,openSenderFilter,o
       </div>
       <div style=${{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginTop:14,paddingTop:10,paddingBottom:16,borderTop:"1px solid var(--border2)",borderBottom:"1px solid var(--border2)",marginBottom:16,gap:10}}>
         <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.7,lineHeight:1.5}}>
-          <div>App v2026-09-01 11:14 · Doku v3.234</div>
+          <div>App v2026-09-03 10:32 · Doku v3.235</div>
           <div>2026-08-31 21:54</div>
         </div>
         <div style=${{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
@@ -5057,6 +5131,7 @@ function DoodlePage({doodles,setDoodles,coachees,adminUid}) {
   const [blockDt,setBlockDt] = useState({}); // Entwurfs-Datum pro Block ("all"|"gemeinsam"|uid)
   const [blockTitle,setBlockTitle] = useState({}); // Entwurfs-Titel pro Block (Kapitel 98.3)
   const [blockNote,setBlockNote] = useState({}); // Entwurfs-Bemerkung pro Block (Kapitel 98.4)
+  const [blockPaste,setBlockPaste] = useState({}); // Entwurfs-Einfügetext pro Block (Google-Calendar-Einfügen, Kapitel 190)
   const [selRecip,setSelRecip] = useState([]);
   const [doodleCat,setDoodleCat] = useState([]);
   const [catModeActive,setCatModeActive] = useState(false);
@@ -5087,6 +5162,26 @@ function DoodlePage({doodles,setDoodles,coachees,adminUid}) {
     setBlockNote(bn=>({...bn,[block.key]:""}));
   };
 
+  // Google-Calendar-Einfügen (Kapitel 190): Text aus Google Calendar kopiert → Datum/Uhrzeit/Titel
+  // per Heuristik erkannt und in den Entwurf des jeweiligen Blocks übernommen (nicht direkt als Slot
+  // hinzugefügt — Admin sieht/prüft die erkannten Werte in den bestehenden Feldern vor "+ Hinzufügen").
+  const applyGCalPaste = (block) => {
+    const parsed = parseGCalPaste(blockPaste[block.key]||"");
+    if(!parsed){ showToast("✗ Konnte keinen Termin erkennen — bitte Datum/Uhrzeit manuell eintragen"); return; }
+    const cur = blockDt[block.key] || defaultDt();
+    const curParts = cur.split("T");
+    const curDate = curParts[0]||"";
+    const curTime = (curParts[1]||"10:00").split(":");
+    const newDate = parsed.date || curDate;
+    const newHour = parsed.hour!==null ? parsed.hour : curTime[0];
+    const newMin = parsed.minute!==null ? parsed.minute : curTime[1];
+    setBlockDt(bd=>({...bd,[block.key]:newDate+"T"+newHour+":"+newMin}));
+    if(parsed.title) setBlockTitle(bt=>({...bt,[block.key]:parsed.title}));
+    setBlockPaste(bp=>({...bp,[block.key]:""}));
+    const recognized = [parsed.date?"Datum":null,parsed.hour!==null?"Uhrzeit":null,parsed.title?"Titel":null].filter(Boolean).join(", ");
+    showToast("✓ Erkannt: "+recognized+" — bitte prüfen");
+  };
+
   const getCoacheeCats = c => [...(Array.isArray(c.coaching)?c.coaching:(c.coaching?[c.coaching]:[])), ...(Array.isArray(c.gender)?c.gender:(c.gender?[c.gender]:[])), ...(c.categories||[])];
 
   const toggleDoodleCat = cat => {
@@ -5110,7 +5205,7 @@ function DoodlePage({doodles,setDoodles,coachees,adminUid}) {
     if(!newTitle.trim()||newSlots.length<1||selRecip.length<1) return;
     const nd={id:"d"+Date.now(),title:newTitle.trim(),desc:newDesc.trim()||"Wähle alle möglichen Termine aus.",status:"open",recipients:[...selRecip],
       slots:newSlots.map(s=>({dt:s.dt,votes:{},note:(s.note||"").trim(),...(s.title&&s.title.trim()?{title:s.title.trim()}:{}),...(s.audience?{audience:s.audience}:{})}))};
-    setShowCreate(false);setNewTitle("");setNewDesc("");setNewSlots([]);setBlockDt({});setBlockTitle({});setBlockNote({});setSelRecip([]);setDoodleCat([]);setCatModeActive(false);setRecipSearch("");
+    setShowCreate(false);setNewTitle("");setNewDesc("");setNewSlots([]);setBlockDt({});setBlockTitle({});setBlockNote({});setBlockPaste({});setSelRecip([]);setDoodleCat([]);setCatModeActive(false);setRecipSearch("");
     setDoodles(ds=>[nd,...ds]);
     const firestore = db();
     if(firestore){
@@ -5162,7 +5257,7 @@ function DoodlePage({doodles,setDoodles,coachees,adminUid}) {
           </div>
         </div>
         <div class="doodle-header-btn-wrap">
-          <button style=${{background:"var(--teal)",color:"#fff",border:"none",borderRadius:10,padding:"9px 12px",fontSize:".75rem",fontWeight:600,cursor:"pointer",whiteSpace:"nowrap",display:"flex",alignItems:"center",gap:5,flexShrink:0}} onClick=${()=>{setBlockDt({all:defaultDt()});setShowCreate(true);}}><${Ic} name="plus" size=${13}/> Neuer Doodle</button>
+          <button style=${{background:"var(--teal)",color:"#fff",border:"none",borderRadius:10,padding:"9px 12px",fontSize:".75rem",fontWeight:600,cursor:"pointer",whiteSpace:"nowrap",display:"flex",alignItems:"center",gap:5,flexShrink:0}} onClick=${()=>{setBlockDt({all:defaultDt()});setBlockPaste({});setShowCreate(true);}}><${Ic} name="plus" size=${13}/> Neuer Doodle</button>
         </div>
       </div>
 
@@ -5250,6 +5345,11 @@ function DoodlePage({doodles,setDoodles,coachees,adminUid}) {
                     })}
                     <div style=${{marginTop:8,paddingTop:10}}>
                       <label class="label" style=${{fontSize:".72rem",marginBottom:6}}>Neuer Termin</label>
+                      <label class="label" style=${{fontSize:".68rem",fontWeight:400,opacity:.75,marginBottom:4}}>Aus Google Calendar einfügen <span style=${{opacity:.8}}>(Termin dort markieren, kopieren, hier einfügen)</span></label>
+                      <div style=${{display:"flex",gap:8,marginBottom:8}}>
+                        <input class="input" type="text" value=${blockPaste[block.key]||""} onInput=${e=>setBlockPaste(bp=>({...bp,[block.key]:e.target.value}))} onKeyDown=${e=>{if(e.key==="Enter"){e.preventDefault();applyGCalPaste(block);}}} placeholder="z.B. Fr., 4. September ⋅ 10:00 – 11:00" style=${{flex:1,minWidth:0,boxSizing:"border-box",fontSize:".82rem"}}/>
+                        <button class="btn btn-ghost btn-sm" style=${{flexShrink:0}} onClick=${()=>applyGCalPaste(block)}>Übernehmen</button>
+                      </div>
                       ${(()=>{
                         const cur = blockDt[block.key]||defaultDt();
                         const parts = cur.split("T");
