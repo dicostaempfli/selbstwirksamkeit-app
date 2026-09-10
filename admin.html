@@ -1,4 +1,4 @@
-<!-- Version: 2026-09-03 11:00 admin -->
+<!-- Version: 2026-09-10 12:27 admin -->
 <!DOCTYPE html>
 <!-- Version: 2026-08-12 17:47 admin -->
 <head>
@@ -4704,18 +4704,48 @@ function ImpulsPhasenTab() {
   // identisch für Transformationsphase 1–4 wie für Integrationsphase/Phase 5). Bewusst als
   // h()-Aufruf statt html`` (Pre-Output-Checkliste, Punkt 1: kein nested html`` innerhalb
   // eines &&-Ausdrucks) — wird unten unconditional (für beide Phasenarten) eingebunden.
-  const phaseStatusLine = (prog, fmt) => {
+  // GEÄNDERT (10.09.2026, Fehleranalyse "Tagesimpulse in der Integrationsphase funktionieren
+  // nicht"): "Noch kein Impuls ausgelöst" verdeckte bisher zwei völlig unterschiedliche
+  // Situationen — (1) ein technisches Zustellproblem (genau das, was wochenlang unbemerkt
+  // blieb) und (2) der ganz normale Fall, dass der Impuls erfolgreich gesendet wurde, der
+  // Coachee ihn aber einfach noch nicht geöffnet/abgeschlossen hat. Nutzt jetzt zusätzlich
+  // nextImpulseAt/pushedForImpulseAt (kommen bereits unverändert aus dem users-Dokument, s.
+  // coachees-Aufbau oben) — dieselben Felder, die checkDailyImpulse (functions/index.js)
+  // serverseitig für die Zustellung führt — um zwischen "noch nicht fällig", "gesendet, noch
+  // nicht geöffnet" (normal, kein Handlungsbedarf) und "seit über 36h fällig, aber nicht
+  // zugestellt" (technisches Problem, gleicher Schwellenwert wie audit-tagesimpulse.js) zu
+  // unterscheiden. Der Warnfall nutzt bewusst dieselbe Warnfarbe (#993C1D) wie der Fehler-Log-
+  // Tab, damit die Verbindung dorthin optisch erkennbar ist.
+  const phaseStatusLine = (prog, fmt, nextImpulseAt, pushedForImpulseAt) => {
     let text = "Noch kein Impuls ausgelöst";
-    let done = false;
+    let color = "var(--muted)";
     if (prog && prog.total && prog.count) {
       if (prog.count >= prog.total) {
         text = "Alle " + prog.total + " Impulse abgeschlossen am " + fmt(prog.lastAt);
-        done = true;
+        color = "var(--forest)";
       } else {
         text = "Impuls " + prog.count + " von " + prog.total + " · zuletzt ausgelöst am " + fmt(prog.lastAt);
       }
+    } else {
+      // Noch kein passender impulse_entries-Eintrag vorhanden — WARUM, unterscheiden anhand
+      // der serverseitigen Zustell-Felder. "Pausiert bis Phasenwechsel"-Sentinel (+100 Jahre,
+      // siehe onActivePhaseChanged) bewusst ausgenommen, dort bleibt der Default-Text korrekt.
+      const now = Date.now();
+      const isPaused = nextImpulseAt && nextImpulseAt > now + 50 * 365 * 24 * 60 * 60 * 1000;
+      if (nextImpulseAt && !isPaused) {
+        if (nextImpulseAt > now) {
+          text = "Nächster Impuls fällig am " + fmt(nextImpulseAt);
+        } else if (pushedForImpulseAt === nextImpulseAt) {
+          text = "Impuls gesendet am " + fmt(nextImpulseAt) + " · von Coachee noch nicht geöffnet";
+        } else if (now - nextImpulseAt > 36 * 60 * 60 * 1000) {
+          text = "Impuls fällig seit " + fmt(nextImpulseAt) + " · nicht zugestellt (siehe Fehler-Log)";
+          color = "#993C1D";
+        } else {
+          text = "Impuls fällig seit " + fmt(nextImpulseAt) + " · Zustellung läuft";
+        }
+      }
     }
-    return h("div", {style:{marginTop:6,fontSize:".76rem",color: done ? "var(--forest)" : "var(--muted)"}}, text);
+    return h("div", {style:{marginTop:6,fontSize:".76rem",color}}, text);
   };
 
   useEffect(() => {
@@ -5068,7 +5098,7 @@ function ImpulsPhasenTab() {
                     <span style=${{fontSize:".78rem",color:"var(--forest)"}}>Tagesimpuls-Plan: aktiv seit ${fmtDateAbs(c.impulsPlanStartedAt)}</span>
                     ${h(Ic,{name:"check",size:15,style:{color:"var(--forest)"}})}
                   </div>
-                  ${phaseStatusLine(phaseProgress[c.uid], fmtDateAbs)}`}
+                  ${phaseStatusLine(phaseProgress[c.uid], fmtDateAbs, c.nextImpulseAt, c.pushedForImpulseAt)}`}
                 ${!c.impulsPlanStartedAt && html`
                   <button onClick=${() => startImpulsPlan(c.uid)} disabled=${isStarting}
                     style=${{
