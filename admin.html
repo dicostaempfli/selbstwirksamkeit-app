@@ -1,4 +1,4 @@
-<!-- Version: 2026-09-10 12:27 admin -->
+<!-- Version: 2026-09-10 13:12 admin -->
 <!DOCTYPE html>
 <!-- Version: 2026-08-12 17:47 admin -->
 <head>
@@ -2435,8 +2435,8 @@ function DashboardPage({coachees,library,doodles,setPage,user,openSenderFilter,o
       </div>
       <div style=${{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginTop:14,paddingTop:10,paddingBottom:16,borderTop:"1px solid var(--border2)",borderBottom:"1px solid var(--border2)",marginBottom:16,gap:10}}>
         <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.7,lineHeight:1.5}}>
-          <div>App v2026-09-03 11:00 · Doku v3.237</div>
-          <div>2026-08-31 21:54</div>
+          <div>App v2026-09-10 13:12 · Doku v3.244</div>
+          <div>2026-09-10 13:12</div>
         </div>
         <div style=${{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
           <button class="dash-reload-btn" title="Fehler-Log" onClick=${()=>setPage("errors")} style=${{position:"relative",color:openErrorCount>0?"#993C1D":"var(--muted)"}}>
@@ -2775,9 +2775,20 @@ function ChatPage({coachees,setCoachees,openId,clearOpenId,presetSender,clearPre
     const msg={from:"admin",sender,recipient:activeId,text:text.trim(),time:t,date:d,ts:Date.now(),seen:false};
     if(firestore) {
       firestore.collection("chats").doc(activeId).collection("messages").add(msg).catch(()=>{});
-      // Signal für Coachee-Push (wird von SW abgeholt wenn App im Hintergrund)
-      firestore.collection("users").doc(activeId).update({ pushNeeded: true, pushMsg: text.trim().slice(0,80), pushTs: Date.now() }).catch(()=>{});
     }
+    // ENTFERNT (10.09.2026, Pendenz aus Fehleranalyse "Tagesimpulse..."): schrieb bisher
+    // zusätzlich pushNeeded/pushMsg/pushTs auf users/{activeId} — Fund bei Regula Eisenhut
+    // (diese drei Felder standen auf ihrem Dokument, ohne erkennbaren Zweck). Geprüft: KEINE
+    // Stelle im gesamten Code (index.html, admin.html, sw.js, functions/index.js) liest je
+    // eines dieser drei Felder — der Kommentar "wird von SW abgeholt" traf schon länger nicht
+    // mehr zu, sw.js macht reines Cache-Handling, keine Firestore-Reads. Der eigentliche
+    // Coachee-Push für admin-gesendete Chat-Nachrichten läuft bereits zuverlässig über den
+    // Cloud-Function-Trigger onChatMessageCreated (chats/{uid}/messages/{msgId}), der bei
+    // jeder neuen Nachricht mit from:"admin" automatisch sendPushToUid(uid,"chat","#chat")
+    // auslöst — sendImg()/sendFile() unten schreiben diese drei Felder konsequenterweise auch
+    // nie. Reine Bereinigung von totem Code aus einer offenbar älteren, längst abgelösten
+    // Push-Variante; kein Verhaltensunterschied für Coachees, ein unnötiger Firestore-Write
+    // pro gesendeter Text-Nachricht entfällt.
   };
 
   const sendImg = (dataUrl, isVideo=false, sender="Diana") => {
