@@ -7,7 +7,21 @@
 // Admin bei Kaltstart noch stärker von externer Netzwerk-Erreichbarkeit abhängig als
 // Coachee (sw.js). Zwei gezielte Cache-Strategien ergänzt, sonst bleibt dieser SW bewusst
 // minimal (kein Network-first für admin.html selbst, kein controllerchange-Mechanismus).
-// Version: 2026-08-10 09:56
+// GEÄNDERT (10.09.2026, Fund "Admin-Sidebar zeigt nach Push/Deploy 10 Tage alten Stand,
+// auf installiertem iOS-Homescreen-Icon"): Root Cause identifiziert — die `_headers`-Datei
+// im Repo (setzt vermeintlich `Cache-Control: no-store` für admin.html/index.html/sw.js)
+// ist eine Netlify-Konvention, die GitHub Pages (Fastly-CDN) komplett ignoriert. Sie hat
+// auf diesem Hosting NIE gewirkt — reine tote Konfiguration. `sw.js` (Coachee) kompensiert
+// exakt diese Lücke bereits selbst mit eigenem Network-first-Fetch für index.html
+// (`{cache:'no-store'}`, umgeht damit jede Server-/CDN-/Browser-Cache-Antwort); `sw-admin.js`
+// hatte das nie, da bewusst minimal gehalten — dadurch konnte admin.html (insbesondere auf
+// einem installierten iOS-Homescreen-Icon, dort historisch am hartnäckigsten cachend) auf
+// beliebig altem Stand hängen bleiben. Fix: identisches Network-first-Handling wie in sw.js
+// jetzt auch hier für admin.html ergänzt (siehe Fetch-Handler unten) — admin.html lädt ab
+// sofort bei jedem Öffnen garantiert frisch vom Netz, mit Cache-Fallback nur bei echtem
+// Offline-Zustand. Betrifft ausschliesslich admin.html selbst, alle anderen Strategien
+// (lib/-Module, Firebase-CDN) unverändert.
+// Version: 2026-09-10 13:57
 
 self.addEventListener('install', e => {
   self.skipWaiting();
@@ -23,6 +37,16 @@ self.addEventListener('activate', e => {
 // halten. Sofort aus Cache servieren falls vorhanden, im Hintergrund auffrischen.
 self.addEventListener('fetch', e => {
   const url = e.request.url.split('?')[0].split('#')[0];
+  // NEU (10.09.2026): admin.html (und der nackte App-Root, falls je direkt aufgerufen)
+  // immer Network-first — identisches Muster wie sw.js Zeile ~34/isHTML. Grund siehe
+  // Kommentar oben am Dateianfang (Fund: `_headers`-Datei wirkt auf GitHub Pages nicht).
+  const isHTML = url.endsWith('/admin.html') || url.endsWith('/') || url.endsWith('selbstwirksamkeit-app/');
+  if(isHTML) {
+    e.respondWith(
+      fetch(e.request, { cache: 'no-store' }).catch(() => caches.match(e.request))
+    );
+    return;
+  }
   const isLocalLib = url.includes('/lib/') && url.endsWith('.js');
   const isFirebaseCdn = url.startsWith('https://www.gstatic.com/firebasejs/');
   if(isLocalLib || isFirebaseCdn) {
@@ -38,8 +62,8 @@ self.addEventListener('fetch', e => {
       })
     );
   }
-  // Alle anderen Requests (insbesondere admin.html selbst): weiterhin normal durchlassen,
-  // bewusst kein Network-first-Handling hier (Admin bleibt in diesem Punkt minimal).
+  // Alle anderen Requests: normal durchlassen (kein Caching) — admin.html selbst wird
+  // jetzt oben (isHTML) separat behandelt, siehe Kommentar dort.
 });
 
 // ── Homescreen-App-Icon-Badge (Badging API) bei geschlossener App ──
