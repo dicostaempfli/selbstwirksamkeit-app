@@ -1,4 +1,4 @@
-<!-- Version: 2026-09-01 11:14 coachee -->
+<!-- Version: 2026-09-22 20:23 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <!DOCTYPE html>
@@ -436,6 +436,8 @@
   }
   .msg-row.in  .msg-bubble { background:#ffffff; color:var(--text); border:1px solid rgba(0,0,0,.08); box-shadow:0 1px 4px rgba(0,0,0,.08); }
   .msg-row.out .msg-bubble { background:var(--teal); color:#fff; }
+  /* Klickbare Links in Chat-Nachrichten (Kapitel 199) — erbt Bubble-Farbe, lange URLs umbrechen */
+  .msg-link { color: inherit; text-decoration: underline; text-underline-offset: 2px; word-break: break-all; font-weight: 600; }
   .msg-meta { display:flex; align-items:center; gap:4px; margin-top:3px; justify-content:flex-end; }
   .msg-time-small { font-size:.68rem; color:var(--muted); }
 
@@ -1626,6 +1628,29 @@ async function requestPushPermission() {
   } catch(e) { return false; }
 }
 
+// Kapitel 199: URLs in Chat-Texten klickbar machen (z.B. Links aus Zielgruppen-Nachrichten
+// von Diana/Rico). Array aus Strings + <a>-VNodes via h() (kein verschachteltes html``).
+// iOS-Standalone-PWA öffnet mit target="_top" wie die Mediathek (Kapitel 187).
+const CHAT_URL_RE = /(https?:\/\/[^\s<>"]+|www\.[^\s<>"]+)/gi;
+const linkifyChat = text => {
+  if(!text) return text;
+  const out = []; let last = 0; let m;
+  CHAT_URL_RE.lastIndex = 0;
+  while((m = CHAT_URL_RE.exec(text)) !== null) {
+    let raw = m[0];
+    const trail = raw.match(/[.,;:!?)\]}'»"]+$/);
+    if(trail) raw = raw.slice(0, raw.length - trail[0].length);
+    if(!raw) continue;
+    if(m.index > last) out.push(text.slice(last, m.index));
+    const href = /^https?:\/\//i.test(raw) ? raw : "https://"+raw;
+    out.push(h("a",{key:"l"+m.index,href,class:"msg-link",rel:"noopener noreferrer",
+      target:(isIOS()&&isPWA())?"_top":"_blank",
+      onClick:e=>e.stopPropagation(),onMouseDown:e=>e.stopPropagation(),onTouchStart:e=>e.stopPropagation()},raw));
+    last = m.index + raw.length;
+  }
+  if(last < text.length) out.push(text.slice(last));
+  return out.length ? out : text;
+};
 function isPWA() {
   try {
     return window.matchMedia('(display-mode: standalone)').matches
@@ -2935,6 +2960,30 @@ function ChatPage({user,coachees,setCoachees,mobileChatOpen,setMobileChatOpen,re
     } catch(e) { console.error("sendFile error:", e); }
   };
 
+  // Kapitel 200: Videos im Chat werden jetzt nach Firebase Storage hochgeladen (chats/{uid}/…,
+  // von den Storage-Rules bereits erlaubt) und als Download-URL gesendet. Vorher wurde eine
+  // blob:-URL gespeichert — die gilt nur im Browser des Absenders, Diana/Rico konnten das
+  // Video dadurch nie abspielen. Fotos laufen unverändert über sendImg().
+  const sendVideo = async f => {
+    if(!uid||!fbDb||!f) return;
+    const fbStorage = window._fb?.storage;
+    if(!fbStorage){ showToastMsg("✗ Video konnte nicht gesendet werden"); return; }
+    const t = new Date().toLocaleTimeString('de-CH',{hour:'2-digit',minute:'2-digit'});
+    const d = dateKeyFromTs(Date.now());
+    showToastMsg("Video wird hochgeladen…");
+    try {
+      const safeName = (f.name||'Video.mp4').replace(/[^a-zA-Z0-9._-]/g,'_');
+      const path = 'chats/'+uid+'/'+Date.now()+'_'+safeName;
+      const ref  = fbStorage.ref(path);
+      await ref.put(f, {contentType: f.type || 'video/mp4'});
+      const downloadUrl = await ref.getDownloadURL();
+      await fbDb.collection("chats").doc(uid).collection("messages").add({from:"coachee",sender:uid,recipient,imgSrc:downloadUrl,isVideo:true,text:"",time:t,date:d,ts:Date.now()});
+    } catch(e) {
+      _logClientError('FIRESTORE_WRITE_FAIL','sendVideo: '+(e&&e.message),'Chat');
+      showToastMsg("✗ Video konnte nicht gesendet werden");
+    }
+  };
+
   const deleteMsg = async msgId => {
     if(!uid||!fbDb) return;
     try { await fbDb.collection("chats").doc(uid).collection("messages").doc(msgId).delete(); } catch(e){}
@@ -2942,7 +2991,7 @@ function ChatPage({user,coachees,setCoachees,mobileChatOpen,setMobileChatOpen,re
 
   return html`
     <div style=${{flex:1,display:"flex",flexDirection:"column",overflow:"hidden",minWidth:0,background:"var(--bg)"}}>
-      <${ChatWindow} coachee=${coacheeWithMsgs} recipient=${recipient} setRecipient=${setRecipient} onSend=${sendMsg} onSendImg=${sendImg} onSendFile=${sendFile} onDeleteMsg=${deleteMsg} onBack=${()=>setMobileChatOpen&&setMobileChatOpen(false)}/>
+      <${ChatWindow} coachee=${coacheeWithMsgs} recipient=${recipient} setRecipient=${setRecipient} onSend=${sendMsg} onSendImg=${sendImg} onSendVideo=${sendVideo} onSendFile=${sendFile} onDeleteMsg=${deleteMsg} onBack=${()=>setMobileChatOpen&&setMobileChatOpen(false)}/>
     </div>`;
 }
 
@@ -2986,7 +3035,7 @@ function Sidebar({page,setPage,totalUnread,impulseUnread,libraryUnread,doodleUnr
     </div>`;
 }
 
-function ChatWindow({coachee,recipient,setRecipient,onSend,onSendImg,onSendFile,onDeleteMsg,onUpdate,onBack}) {
+function ChatWindow({coachee,recipient,setRecipient,onSend,onSendImg,onSendVideo,onSendFile,onDeleteMsg,onUpdate,onBack}) {
   const [input,setInput]         = useState("");
   const [lightbox,setLightbox]   = useState(null);
   const [videoLightbox,setVideoLightbox] = useState(null);
@@ -3076,9 +3125,10 @@ function ChatWindow({coachee,recipient,setRecipient,onSend,onSendImg,onSendFile,
     for(let i=0;i<files.length;i++){
       const f=files[i];
       if(f.type.startsWith("video/")) {
-        // For video: store blob URL directly (iOS can play blob URLs)
-        const blobUrl = URL.createObjectURL(f);
-        onSendImg(blobUrl, true);
+        // Kapitel 200: Upload nach Storage statt blob:-URL (war beim Empfänger nie abspielbar).
+        // Fallback auf alten Weg nur, falls onSendVideo fehlt.
+        if(onSendVideo) onSendVideo(f);
+        else onSendImg(URL.createObjectURL(f), true);
       } else {
         onSendImg(await readFile(f), false);
       }
@@ -3234,7 +3284,7 @@ function ChatWindow({coachee,recipient,setRecipient,onSend,onSendImg,onSendFile,
                           </div>
                           <${Ic} name="chevron" size=${14} style=${{flexShrink:0,opacity:.6}}/>
                         </div>`}
-                      ${msg.text&&html`<span>${msg.text}</span>`}
+                      ${msg.text&&html`<span>${linkifyChat(msg.text)}</span>`}
                     </div>
                     <div class="msg-meta" style=${{justifyContent:isOut?"flex-end":"flex-start"}}>
                       <span class="msg-time-small">${msg.time}</span>
