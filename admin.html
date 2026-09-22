@@ -1,4 +1,4 @@
-<!-- Version: 2026-09-22 21:30 admin -->
+<!-- Version: 2026-09-22 21:52 admin -->
 <!DOCTYPE html>
 <!-- Version: 2026-08-12 17:47 admin -->
 <head>
@@ -2477,7 +2477,7 @@ function DashboardPage({coachees,library,doodles,setPage,user,openSenderFilter,o
       </div>
       <div style=${{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginTop:14,paddingTop:10,paddingBottom:16,borderTop:"1px solid var(--border2)",borderBottom:"1px solid var(--border2)",marginBottom:16,gap:10}}>
         <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.7,lineHeight:1.5}}>
-          <div>App v2026-09-22 21:30 · Doku v3.251</div>
+          <div>App v2026-09-22 21:52 · Doku v3.252</div>
           <div>2026-09-10 13:12</div>
         </div>
         <div style=${{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
@@ -4969,36 +4969,66 @@ function ImpulsPhasenTab() {
   // zugestellt" (technisches Problem, gleicher Schwellenwert wie audit-tagesimpulse.js) zu
   // unterscheiden. Der Warnfall nutzt bewusst dieselbe Warnfarbe (#993C1D) wie der Fehler-Log-
   // Tab, damit die Verbindung dorthin optisch erkennbar ist.
-  const phaseStatusLine = (prog, fmt, nextImpulseAt, pushedForImpulseAt) => {
-    let text = "Noch kein Impuls ausgelöst";
-    let color = "var(--muted)";
+  // GEÄNDERT (22.09.2026, Kapitel 205, Fund Rico "Tagesimpulse seit einem Monat nicht mehr
+  // ausgelöst, ein Datum zeigt 1970"): Bisher verdeckte die Fortschrittszeile ("Impuls X von Y ·
+  // zuletzt ausgelöst am ...") den Push-Zustand komplett, sobald ein impulse_entries-Eintrag
+  // existierte — ein stehender Rhythmus war dadurch unsichtbar. "zuletzt ausgelöst" meinte
+  // zudem das Annahmedatum des Coachees, nicht den letzten Push, und "gesendet am" zeigte
+  // nextImpulseAt statt des echten Sendedatums. Jetzt zwei Zeilen:
+  //   1. Fortschritt: "Impuls X von Y" (inkl. nicht geöffneter, status "missed", die
+  //      checkDailyImpulse seit Kapitel 205 selbst einträgt) · "N nicht geöffnet" ·
+  //      "zuletzt angenommen am ..." (nur echte Coachee-Reaktionen).
+  //   2. Zustellung (immer, sofern nicht pausiert): letzter echter Push (lastImpulsPushAt) und
+  //      nächster Termin (followUpAt bzw. nextImpulseAt). Ungültige Werte (< 2020, z.B. 1970
+  //      aus einem Handeintrag) werden als solche benannt statt als Datum angezeigt.
+  // Weiterhin h()-Aufrufe statt html`` (Pre-Output-Checkliste Punkt 1).
+  const phaseStatusLine = (prog, fmt, c) => {
+    const lines = [];
+    const DAY = 24 * 60 * 60 * 1000;
+    const VALID_MIN = Date.UTC(2020, 0, 1);
+    const now = Date.now();
+    const nextImpulseAt = typeof c.nextImpulseAt === "number" ? c.nextImpulseAt : 0;
+    const isPaused = nextImpulseAt > now + 50 * 365 * DAY;
+    const finished = !!(prog && prog.total && prog.count >= prog.total);
+
+    // Zeile 1 — Fortschritt
+    let progText = "Noch kein Impuls ausgelöst";
+    let progColor = "var(--muted)";
     if (prog && prog.total && prog.count) {
-      if (prog.count >= prog.total) {
-        text = "Alle " + prog.total + " Impulse abgeschlossen am " + fmt(prog.lastAt);
-        color = "var(--forest)";
+      if (finished) {
+        progText = "Alle " + prog.total + " Impulse abgeschlossen am " + fmt(prog.lastAt);
+        progColor = "var(--forest)";
       } else {
-        text = "Impuls " + prog.count + " von " + prog.total + " · zuletzt ausgelöst am " + fmt(prog.lastAt);
+        progText = "Impuls " + prog.count + " von " + prog.total;
       }
-    } else {
-      // Noch kein passender impulse_entries-Eintrag vorhanden — WARUM, unterscheiden anhand
-      // der serverseitigen Zustell-Felder. "Pausiert bis Phasenwechsel"-Sentinel (+100 Jahre,
-      // siehe onActivePhaseChanged) bewusst ausgenommen, dort bleibt der Default-Text korrekt.
-      const now = Date.now();
-      const isPaused = nextImpulseAt && nextImpulseAt > now + 50 * 365 * 24 * 60 * 60 * 1000;
-      if (nextImpulseAt && !isPaused) {
-        if (nextImpulseAt > now) {
-          text = "Nächster Impuls fällig am " + fmt(nextImpulseAt);
-        } else if (pushedForImpulseAt === nextImpulseAt) {
-          text = "Impuls gesendet am " + fmt(nextImpulseAt) + " · von Coachee noch nicht geöffnet";
-        } else if (now - nextImpulseAt > 36 * 60 * 60 * 1000) {
-          text = "Impuls fällig seit " + fmt(nextImpulseAt) + " · nicht zugestellt (siehe Fehler-Log)";
-          color = "#993C1D";
-        } else {
-          text = "Impuls fällig seit " + fmt(nextImpulseAt) + " · Zustellung läuft";
-        }
-      }
+      if (prog.missed) progText += " · " + prog.missed + " nicht geöffnet";
+      if (!finished) progText += prog.lastAcceptedAt ? " · zuletzt angenommen am " + fmt(prog.lastAcceptedAt) : " · noch keiner angenommen";
     }
-    return h("div", {style:{marginTop:6,fontSize:".76rem",color}}, text);
+    lines.push(h("div", {style:{marginTop:6,fontSize:".76rem",color:progColor}}, progText));
+
+    // Zeile 2 — Zustellung
+    if (!isPaused && !finished) {
+      let text = null;
+      let color = "var(--muted)";
+      const lastPush = typeof c.lastImpulsPushAt === "number" && c.lastImpulsPushAt >= VALID_MIN ? c.lastImpulsPushAt : 0;
+      const followUp = (typeof c.followUpAt === "number" && c.followUpAt >= VALID_MIN && c.followUpForImpulseAt === nextImpulseAt) ? c.followUpAt : 0;
+      if (nextImpulseAt && nextImpulseAt < VALID_MIN) {
+        text = "Ungültiger Termin-Wert gespeichert · wird beim nächsten Lauf (06:30) automatisch korrigiert";
+        color = "#993C1D";
+      } else if (nextImpulseAt > now) {
+        text = (lastPush ? "Letzter Push am " + fmt(lastPush) + " · " : "") + "nächster Impuls am " + fmt(nextImpulseAt);
+      } else if (nextImpulseAt && c.pushedForImpulseAt === nextImpulseAt) {
+        text = "Letzter Push am " + (lastPush ? fmt(lastPush) : fmt(nextImpulseAt))
+          + (followUp && followUp > now ? " · nächster Impuls am " + fmt(followUp) : " · nächster Impuls beim nächsten Lauf (06:30)");
+      } else if (nextImpulseAt && now - nextImpulseAt > 36 * 60 * 60 * 1000) {
+        text = "Impuls fällig seit " + fmt(nextImpulseAt) + " · nicht zugestellt (siehe Fehler-Log)";
+        color = "#993C1D";
+      } else if (nextImpulseAt) {
+        text = "Impuls fällig seit " + fmt(nextImpulseAt) + " · Zustellung läuft";
+      }
+      if (text) lines.push(h("div", {style:{marginTop:2,fontSize:".76rem",color}}, text));
+    }
+    return h("div", null, ...lines);
   };
 
   useEffect(() => {
@@ -5076,12 +5106,17 @@ function ImpulsPhasenTab() {
           const matched = snap.docs.filter(d => info.ids.has(d.data().impulsId));
           const count = matched.length;
           const lastAt = count ? matched[0].data().createdAt : null; // desc sortiert, erster Treffer = jüngster
-          setPhaseProgress(p => ({...p, [c.uid]: { count, total: info.total, lastAt }}));
+          // NEU (22.09.2026, Kapitel 205): "missed" = von checkDailyImpulse eingetragener, nie
+          // geöffneter Impuls — zählt für den Fortschritt, aber nicht als Coachee-Reaktion.
+          const missed = matched.filter(d => d.data().status === "missed").length;
+          const accepted = matched.find(d => d.data().status !== "missed");
+          const lastAcceptedAt = accepted ? accepted.data().createdAt : null;
+          setPhaseProgress(p => ({...p, [c.uid]: { count, total: info.total, lastAt, missed, lastAcceptedAt }}));
         })
         .catch(() => {});
     });
     // eslint-disable-next-line
-  }, [libraryPhases, coachees.map(c => c.uid+"|"+c.activePhase+"|"+c.impulsPlanStartedAt).join(",")]);
+  }, [libraryPhases, coachees.map(c => c.uid+"|"+c.activePhase+"|"+c.impulsPlanStartedAt+"|"+c.nextImpulseAt+"|"+c.lastImpulsPushAt).join(",")]);
 
   // GEÄNDERT (06.08.2026, Kapitel 51): Bug gefunden — impulsPlanStartedAt blieb bei einem
   // Phasenwechsel von der VORHERIGEN Phase stehen, wodurch die Karte weiterhin "Tagesimpuls-
@@ -5351,7 +5386,7 @@ function ImpulsPhasenTab() {
                     <span style=${{fontSize:".78rem",color:"var(--forest)"}}>Tagesimpuls-Plan: aktiv seit ${fmtDateAbs(c.impulsPlanStartedAt)}</span>
                     ${h(Ic,{name:"check",size:15,style:{color:"var(--forest)"}})}
                   </div>
-                  ${phaseStatusLine(phaseProgress[c.uid], fmtDateAbs, c.nextImpulseAt, c.pushedForImpulseAt)}`}
+                  ${phaseStatusLine(phaseProgress[c.uid], fmtDateAbs, c)}`}
                 ${!c.impulsPlanStartedAt && html`
                   <button onClick=${() => startImpulsPlan(c.uid)} disabled=${isStarting}
                     style=${{
