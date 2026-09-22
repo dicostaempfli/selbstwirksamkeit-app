@@ -1,4 +1,4 @@
-<!-- Version: 2026-09-22 20:28 coachee -->
+<!-- Version: 2026-09-22 21:26 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <!DOCTYPE html>
@@ -2991,7 +2991,7 @@ function ChatPage({user,coachees,setCoachees,mobileChatOpen,setMobileChatOpen,re
 
   return html`
     <div style=${{flex:1,display:"flex",flexDirection:"column",overflow:"hidden",minWidth:0,background:"var(--bg)"}}>
-      <${ChatWindow} coachee=${coacheeWithMsgs} recipient=${recipient} setRecipient=${setRecipient} onSend=${sendMsg} onSendImg=${sendImg} onSendVideo=${sendVideo} onSendFile=${sendFile} onDeleteMsg=${deleteMsg} onBack=${()=>setMobileChatOpen&&setMobileChatOpen(false)}/>
+      <${ChatWindow} coachee=${coacheeWithMsgs} recipient=${recipient} setRecipient=${setRecipient} onSend=${sendMsg} onSendImg=${sendImg} onSendVideo=${sendVideo} onSendFile=${sendFile} onDeleteMsg=${deleteMsg} draftUid=${uid} onBack=${()=>setMobileChatOpen&&setMobileChatOpen(false)}/>
     </div>`;
 }
 
@@ -3184,7 +3184,15 @@ function ImageZoomLightbox({ src, onClose }) {
   );
 }
 
-function ChatWindow({coachee,recipient,setRecipient,onSend,onSendImg,onSendVideo,onSendFile,onDeleteMsg,onUpdate,onBack}) {
+// Kapitel 203: Chat-Entwurf überlebt Reload (analog admin.html, Kapitel 202). Der
+// visibilitychange-Handler lädt die App nach >60s im Hintergrund neu — angefangener Text ging
+// dabei verloren. Pro Coachee-uid + Empfänger (Diana/Rico) ein localStorage-Key, gelöscht beim
+// Senden oder Leeren des Felds. Alle Zugriffe try/catch (Private Mode / Quota).
+const chatDraftKey = (uid, who) => 'rsw_chatDraft_' + (uid || 'guest') + '_' + (who || 'Diana');
+const loadDraft = key => { try { return localStorage.getItem(key) || ""; } catch(e) { return ""; } };
+const saveDraft = (key, val) => { try { if(val && val.trim()) localStorage.setItem(key, val); else localStorage.removeItem(key); } catch(e) {} };
+
+function ChatWindow({coachee,recipient,setRecipient,onSend,onSendImg,onSendVideo,onSendFile,onDeleteMsg,onUpdate,onBack,draftUid}) {
   const [input,setInput]         = useState("");
   const [lightbox,setLightbox]   = useState(null);
   const [videoLightbox,setVideoLightbox] = useState(null);
@@ -3258,10 +3266,23 @@ function ChatWindow({coachee,recipient,setRecipient,onSend,onSendImg,onSendVideo
   },{});
   const groupsSorted = Object.entries(groups).sort((a,b)=>a[0].localeCompare(b[0]));
 
+  // Kapitel 203: Entwurf beim Öffnen und bei Diana/Rico-Wechsel laden
+  useEffect(()=>{
+    const d = loadDraft(chatDraftKey(draftUid, recipient));
+    setInput(d);
+    requestAnimationFrame(()=>{
+      const el = textRef.current; if(!el) return;
+      el.style.height='auto';
+      if(d){ el.style.height=Math.min(el.scrollHeight,156)+'px'; el.style.overflowY=el.scrollHeight>156?'auto':'hidden'; }
+      else el.style.overflowY='hidden';
+    });
+  },[draftUid, recipient]);
+
   const handleSend = () => {
     if(!input.trim())return;
     onSend(input);
     setInput("");
+    saveDraft(chatDraftKey(draftUid, recipient), "");
     if(textRef.current){ textRef.current.style.height='auto'; textRef.current.style.overflowY='hidden'; }
   };
   const handleKey  = e => {
@@ -3466,6 +3487,7 @@ function ChatWindow({coachee,recipient,setRecipient,onSend,onSendImg,onSendVideo
         <textarea ref=${textRef} class="input-box" rows=${1} value=${input}
           onInput=${e=>{
             setInput(e.target.value);
+            saveDraft(chatDraftKey(draftUid, recipient), e.target.value);
             const el=e.target;
             el.style.height='auto';
             el.style.height=Math.min(el.scrollHeight,156)+'px';
