@@ -1,4 +1,4 @@
-<!-- Version: 2026-09-22 20:23 coachee -->
+<!-- Version: 2026-09-22 20:28 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <!DOCTYPE html>
@@ -3035,6 +3035,155 @@ function Sidebar({page,setPage,totalUnread,impulseUnread,libraryUnread,doodleUnr
     </div>`;
 }
 
+// Kapitel 201: Chat-Fotos im Vollbild zoombar (Pinch mit zwei Fingern, Doppeltipp, Verschieben
+// mit einem Finger; Desktop: Mausrad, Doppelklick, Ziehen). Nötig, weil der Viewport
+// user-scalable=no setzt — iOS-Standalone-PWA lässt dadurch kein natives Zoomen zu.
+// Wird über <Portal> in #overlay-portal gerendert (Pitfall position:fixed in overflow:hidden).
+// Auf Modulebene deklariert (Pflichtregel 46), nur mit h() gebaut (htm-Pitfall).
+function ImageZoomLightbox({ src, onClose }) {
+  const boxRef = useRef(null);
+  const imgRef = useRef(null);
+  const tf = useRef({ s:1, x:0, y:0 });
+  const g = useRef(null);            // laufende Geste
+  const lastTap = useRef({ t:0, x:0, y:0 });
+  const lastTouchTs = useRef(0);
+  const [, force] = useState(0);
+  const [anim, setAnim] = useState(false);
+  const MAX = 5;
+
+  const center = () => { const r = boxRef.current.getBoundingClientRect(); return { cx:r.left+r.width/2, cy:r.top+r.height/2, W:r.width, H:r.height }; };
+  const clampT = t => {
+    const img = imgRef.current; if(!img) return t;
+    const { W, H } = center();
+    const mx = Math.max(0, (t.s*img.offsetWidth - W)/2);
+    const my = Math.max(0, (t.s*img.offsetHeight - H)/2);
+    return { s:t.s, x:Math.min(mx, Math.max(-mx, t.x)), y:Math.min(my, Math.max(-my, t.y)) };
+  };
+  const setTf = (t, animate) => { tf.current = t; setAnim(!!animate); force(n=>n+1); };
+  // Zoom auf Faktor s um den Bildschirmpunkt (fx,fy) — der Punkt unter dem Finger bleibt stehen
+  const zoomAt = (s, fx, fy, base) => {
+    const b = base || tf.current; const { cx, cy } = center();
+    const px = fx-cx, py = fy-cy;
+    const lx = (px-b.x)/b.s, ly = (py-b.y)/b.s;
+    return { s, x:px - s*lx, y:py - s*ly };
+  };
+  const toggleZoom = (fx, fy) => {
+    if(tf.current.s > 1.05) setTf({ s:1, x:0, y:0 }, true);
+    else setTf(clampT(zoomAt(2.5, fx, fy)), true);
+  };
+
+  useEffect(() => {
+    const el = boxRef.current; if(!el) return;
+    const dist = (a,b) => Math.hypot(a.clientX-b.clientX, a.clientY-b.clientY);
+    const mid  = (a,b) => ({ x:(a.clientX+b.clientX)/2, y:(a.clientY+b.clientY)/2 });
+    const onStart = e => {
+      lastTouchTs.current = Date.now();
+      if(e.touches.length === 2) {
+        const m = mid(e.touches[0], e.touches[1]);
+        g.current = { type:"pinch", d0:dist(e.touches[0], e.touches[1]), base:{...tf.current}, fx:m.x, fy:m.y, moved:true };
+      } else if(e.touches.length === 1) {
+        const p = e.touches[0];
+        g.current = { type:"pan", x0:p.clientX, y0:p.clientY, base:{...tf.current}, moved:false };
+      }
+    };
+    const onMove = e => {
+      if(!g.current) return;
+      e.preventDefault();
+      if(g.current.type === "pinch" && e.touches.length === 2) {
+        const G = g.current; const m = mid(e.touches[0], e.touches[1]);
+        const s = Math.min(MAX, Math.max(1, G.base.s * dist(e.touches[0], e.touches[1]) / G.d0));
+        const z = zoomAt(s, G.fx, G.fy, G.base);
+        setTf({ s, x:z.x + (m.x-G.fx), y:z.y + (m.y-G.fy) }, false);
+      } else if(g.current.type === "pan" && e.touches.length === 1) {
+        const G = g.current; const p = e.touches[0];
+        const dx = p.clientX-G.x0, dy = p.clientY-G.y0;
+        if(Math.abs(dx)+Math.abs(dy) > 8) G.moved = true;
+        if(tf.current.s > 1) setTf({ s:G.base.s, x:G.base.x+dx, y:G.base.y+dy }, false);
+      }
+    };
+    const onEnd = e => {
+      lastTouchTs.current = Date.now();
+      const G = g.current;
+      if(e.touches.length === 1 && G && G.type === "pinch") {
+        // ein Finger bleibt liegen → nahtlos ins Verschieben wechseln
+        const p = e.touches[0];
+        g.current = { type:"pan", x0:p.clientX, y0:p.clientY, base:{...tf.current}, moved:true };
+        return;
+      }
+      if(e.touches.length > 0) return;
+      g.current = null;
+      if(tf.current.s <= 1.02) { setTf({ s:1, x:0, y:0 }, true); }
+      else setTf(clampT(tf.current), true);
+      // Tipp-Erkennung (kein Verschieben): Doppeltipp = Zoom umschalten
+      if(G && G.type === "pan" && !G.moved) {
+        const now = Date.now();
+        const L = lastTap.current;
+        if(now - L.t < 300 && Math.abs(G.x0-L.x) < 30 && Math.abs(G.y0-L.y) < 30) {
+          lastTap.current = { t:0, x:0, y:0 };
+          toggleZoom(G.x0, G.y0);
+        } else {
+          lastTap.current = { t:now, x:G.x0, y:G.y0 };
+        }
+      }
+    };
+    const onWheel = e => {
+      e.preventDefault();
+      const s = Math.min(MAX, Math.max(1, tf.current.s * (e.deltaY < 0 ? 1.15 : 1/1.15)));
+      setTf(s <= 1.01 ? { s:1, x:0, y:0 } : clampT(zoomAt(s, e.clientX, e.clientY)), false);
+    };
+    el.addEventListener("touchstart", onStart, { passive:false });
+    el.addEventListener("touchmove", onMove, { passive:false });
+    el.addEventListener("touchend", onEnd, { passive:false });
+    el.addEventListener("touchcancel", onEnd, { passive:false });
+    el.addEventListener("wheel", onWheel, { passive:false });
+    const onKey = e => { if(e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      el.removeEventListener("touchstart", onStart); el.removeEventListener("touchmove", onMove);
+      el.removeEventListener("touchend", onEnd); el.removeEventListener("touchcancel", onEnd);
+      el.removeEventListener("wheel", onWheel); window.removeEventListener("keydown", onKey);
+    };
+  }, []);
+
+  // Desktop: Maus ziehen zum Verschieben, Doppelklick zum Zoomen
+  const mouse = useRef(null);
+  const onMouseDown = e => { if(tf.current.s > 1) { e.preventDefault(); mouse.current = { x0:e.clientX, y0:e.clientY, base:{...tf.current} }; } };
+  const onMouseMove = e => { const M = mouse.current; if(M) setTf({ s:M.base.s, x:M.base.x+e.clientX-M.x0, y:M.base.y+e.clientY-M.y0 }, false); };
+  const onMouseUp = () => { if(mouse.current) { mouse.current = null; setTf(clampT(tf.current), true); } };
+  const onDblClick = e => { if(Date.now() - lastTouchTs.current < 800) return; toggleZoom(e.clientX, e.clientY); };
+  // Tipp auf den dunklen Hintergrund schliesst (nur ungezoomt, damit Verschieben nicht versehentlich schliesst)
+  const onBgClick = e => { if(e.target === e.currentTarget && tf.current.s <= 1.02) onClose(); };
+
+  const t = tf.current;
+  const zoomed = t.s > 1.02;
+  return h("div", {
+      ref: boxRef, onClick: onBgClick, onMouseMove, onMouseUp, onMouseLeave: onMouseUp,
+      style: { position:"fixed", inset:0, zIndex:99999, background:"rgba(0,0,0,.94)", display:"flex",
+        alignItems:"center", justifyContent:"center", overflow:"hidden", touchAction:"none",
+        userSelect:"none", WebkitUserSelect:"none" }
+    },
+    h("img", {
+      ref: imgRef, src, alt: "Foto", draggable: false,
+      onMouseDown, onDblClick,
+      style: { maxWidth:"96vw", maxHeight:"86dvh", objectFit:"contain", display:"block",
+        borderRadius: zoomed ? 0 : 12,
+        transform: "translate("+t.x+"px,"+t.y+"px) scale("+t.s+")", transformOrigin:"center center",
+        transition: anim ? "transform .22s ease" : "none", willChange:"transform",
+        cursor: zoomed ? (mouse.current ? "grabbing" : "grab") : "zoom-in" }
+    }),
+    h("button", {
+      onClick: e => { e.stopPropagation(); onClose(); }, "aria-label": "Schliessen",
+      style: { position:"fixed", top:"calc(env(safe-area-inset-top, 0px) + 14px)", right:14, width:38, height:38,
+        borderRadius:"50%", background:"white", border:"none", cursor:"pointer", display:"flex",
+        alignItems:"center", justifyContent:"center", boxShadow:"0 2px 8px rgba(0,0,0,.3)", zIndex:2, color:"var(--text)" }
+    }, h(Ic, { name:"x", size:18 })),
+    !zoomed && h("div", {
+      style: { position:"fixed", left:0, right:0, bottom:"calc(env(safe-area-inset-bottom, 0px) + 18px)", textAlign:"center",
+        color:"rgba(255,255,255,.7)", fontSize:".78rem", pointerEvents:"none" }
+    }, "Zum Vergrössern zwei Finger auseinanderziehen oder doppelt tippen")
+  );
+}
+
 function ChatWindow({coachee,recipient,setRecipient,onSend,onSendImg,onSendVideo,onSendFile,onDeleteMsg,onUpdate,onBack}) {
   const [input,setInput]         = useState("");
   const [lightbox,setLightbox]   = useState(null);
@@ -3391,20 +3540,7 @@ function ChatWindow({coachee,recipient,setRecipient,onSend,onSendImg,onSendVideo
               </div>`)}
           </div>
         </div>`}
-      ${lightbox&&html`
-        <div class="lightbox" onClick=${e=>{if(e.target===e.currentTarget)setLightbox(null);}}>
-          <div style=${{position:"relative",display:"inline-block"}}>
-            <button onClick=${()=>setLightbox(null)}
-              style=${{position:"absolute",top:-14,right:-14,width:32,height:32,
-                borderRadius:"50%",background:"white",border:"none",cursor:"pointer",
-                display:"flex",alignItems:"center",justifyContent:"center",
-                boxShadow:"0 2px 8px rgba(0,0,0,.3)",zIndex:1,color:"var(--text)"}}>
-              <${Ic} name="x" size=${16}/>
-            </button>
-            <img src=${lightbox} alt="Foto"
-              style=${{maxWidth:"85vw",maxHeight:"75vh",borderRadius:12,display:"block"}}/>
-          </div>
-        </div>`}
+      ${lightbox&&h(Portal, null, h(ImageZoomLightbox, {src:lightbox, onClose:()=>setLightbox(null)}))}
       ${videoLightbox&&html`
         <div style=${{position:"fixed",inset:0,background:"rgba(0,0,0,.92)",
           zIndex:99999,display:"flex",alignItems:"center",justifyContent:"center"}}
