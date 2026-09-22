@@ -1,4 +1,4 @@
-<!-- Version: 2026-09-22 20:23 admin -->
+<!-- Version: 2026-09-22 21:23 admin -->
 <!DOCTYPE html>
 <!-- Version: 2026-08-12 17:47 admin -->
 <head>
@@ -1610,6 +1610,14 @@ const readFile = f => new Promise(res => {
   };
   r.readAsDataURL(f);
 });
+// Kapitel 202: Chat-Entwürfe überleben Reload (visibilitychange >60s → hardReload() hat
+// angefangene Nachrichten bisher gelöscht). Pro Coachee + Absender (Diana/Rico) bzw. für die
+// Zielgruppen-Nachricht ein eigener localStorage-Key; gelöscht erst nach erfolgreichem Senden
+// bzw. wenn das Textfeld geleert wird. Alle Zugriffe try/catch (Private Mode / Quota).
+const chatDraftKey = (id, who) => 'rsw_admin_chatDraft_' + id + '_' + (who || 'Diana');
+const BROADCAST_DRAFT_KEY = 'rsw_admin_chatDraft_broadcast';
+const loadDraft = key => { try { return localStorage.getItem(key) || ""; } catch(e) { return ""; } };
+const saveDraft = (key, val) => { try { if(val && val.trim()) localStorage.setItem(key, val); else localStorage.removeItem(key); } catch(e) {} };
 const showToast = msg => { const t=document.createElement('div'); t.className='toast'; t.textContent=msg; document.body.appendChild(t); setTimeout(()=>{t.style.opacity='0';setTimeout(()=>t.remove(),300);},3000); };
 // Kapitel 199: URLs in Chat-Texten klickbar machen (1:1-Chat + Zielgruppen-Nachricht).
 // Gibt ein Array aus Strings und <a>-VNodes zurück (h() statt verschachteltem html``, Pitfall htm).
@@ -2462,7 +2470,7 @@ function DashboardPage({coachees,library,doodles,setPage,user,openSenderFilter,o
       </div>
       <div style=${{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginTop:14,paddingTop:10,paddingBottom:16,borderTop:"1px solid var(--border2)",borderBottom:"1px solid var(--border2)",marginBottom:16,gap:10}}>
         <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.7,lineHeight:1.5}}>
-          <div>App v2026-09-22 20:23 · Doku v3.247</div>
+          <div>App v2026-09-22 21:23 · Doku v3.249</div>
           <div>2026-09-10 13:12</div>
         </div>
         <div style=${{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
@@ -2724,7 +2732,7 @@ function ChatPage({coachees,setCoachees,openId,clearOpenId,presetSender,clearPre
   const insertBroadcastLink = () => {
     const url = normalizeChatUrl(broadcastLinkUrl);
     if(!url) return;
-    setBroadcastMsg(m => (m && !/\s$/.test(m) ? m+"\n" : (m||"")) + url);
+    setBroadcastMsg(m => { const v = (m && !/\s$/.test(m) ? m+"\n" : (m||"")) + url; saveDraft(BROADCAST_DRAFT_KEY, v); return v; });
     setBroadcastLinkUrl(""); setBroadcastLinkOpen(false);
   };
   const filtered = coachees.filter(c=>{
@@ -2802,6 +2810,7 @@ function ChatPage({coachees,setCoachees,openId,clearOpenId,presetSender,clearPre
     const now = new Date();
     const t = now.toLocaleTimeString("de-CH",{hour:"2-digit",minute:"2-digit"});
     const d = dateKeyFromTs(now.getTime());
+    saveDraft(BROADCAST_DRAFT_KEY, "");
     resetBroadcast();
     const jobs = recipientsSnapshot.map(c=>{
       const msg={from:"admin",sender:"Diana",recipient:c.id,text:textToSend,...payload,time:t,date:d,ts:Date.now(),seen:false};
@@ -3005,7 +3014,7 @@ function ChatPage({coachees,setCoachees,openId,clearOpenId,presetSender,clearPre
                 <span class="search-icon"><${Ic} name="search" size=${14}/></span>
                 <input class="search-input" value=${search} onInput=${e=>setSearch(e.target.value)} placeholder="Coachee suchen…"/>
               </div>
-              <div onClick=${()=>{setShowBroadcast(true);setBroadcastRecip(coachees.map(c=>c.id));}} style=${{display:"flex",alignItems:"center",gap:10,marginTop:8,background:"var(--sage-pale)",border:"1px solid var(--border)",borderRadius:10,padding:"9px 12px",cursor:"pointer"}}>
+              <div onClick=${()=>{setShowBroadcast(true);setBroadcastRecip(coachees.map(c=>c.id));setBroadcastMsg(loadDraft(BROADCAST_DRAFT_KEY));}} style=${{display:"flex",alignItems:"center",gap:10,marginTop:8,background:"var(--sage-pale)",border:"1px solid var(--border)",borderRadius:10,padding:"9px 12px",cursor:"pointer"}}>
                 <div style=${{width:30,height:30,borderRadius:8,background:"var(--teal)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
                   <${Ic} name="send" size=${14} style=${{color:"#fff"}}/>
                 </div>
@@ -3057,7 +3066,7 @@ function ChatPage({coachees,setCoachees,openId,clearOpenId,presetSender,clearPre
                   broadcastSearch.trim()&&coachees.filter(c=>c.name.toLowerCase().includes(broadcastSearch.trim().toLowerCase())).length===0&&h("div",{style:{fontSize:".82rem",color:"var(--muted)",padding:"8px 2px"}},"Keine Coachees gefunden.")
                 ),
                 h("p",{style:{fontSize:".72rem",fontWeight:700,color:"var(--muted)",textTransform:"uppercase",letterSpacing:".06em",marginBottom:6}},"3 — Nachricht"),
-                h("textarea",{class:"textarea",rows:3,placeholder:"Nachricht verfassen…",value:broadcastMsg,onInput:e=>setBroadcastMsg(e.target.value),style:{width:"100%",marginBottom:6,boxSizing:"border-box",resize:"none"}}),
+                h("textarea",{class:"textarea",rows:3,placeholder:"Nachricht verfassen…",value:broadcastMsg,onInput:e=>{ setBroadcastMsg(e.target.value); saveDraft(BROADCAST_DRAFT_KEY, e.target.value); },style:{width:"100%",marginBottom:6,boxSizing:"border-box",resize:"none"}}),
                 // Kapitel 199: gleiche Werkzeuge wie im 1:1-Chat (Kamera/Mediathek, Datei, Sprachmemo) + Link
                 h("input",{ref:bcCamRef,type:"file",accept:"image/*,video/*",capture:"environment",style:{display:"none"},onChange:handleBroadcastMedia}),
                 h("input",{ref:bcLibRef,type:"file",accept:"image/*,video/*",style:{display:"none"},onChange:handleBroadcastMedia}),
@@ -3237,7 +3246,19 @@ function ChatWindow({coachee,sender,setSender,onSend,onSendImg,onSendVideo,onSen
   },{});
   const groupsSorted = Object.entries(groups).sort((a,b)=>a[0].localeCompare(b[0]));
 
-  const handleSend = () => { if(!input.trim())return; onSend(input,sender); setInput(""); if(textRef.current){textRef.current.style.height='auto'; textRef.current.style.overflowY='hidden';} };
+  // Kapitel 202: Entwurf pro Coachee+Absender laden (beim Öffnen, Coachee- oder Diana/Rico-Wechsel)
+  useEffect(()=>{
+    const d = loadDraft(chatDraftKey(coachee.id, sender));
+    setInput(d);
+    requestAnimationFrame(()=>{
+      const el = textRef.current; if(!el) return;
+      el.style.height='auto';
+      if(d){ el.style.height=Math.min(el.scrollHeight,156)+'px'; el.style.overflowY=el.scrollHeight>156?'auto':'hidden'; }
+      else el.style.overflowY='hidden';
+    });
+  },[coachee.id, sender]);
+
+  const handleSend = () => { if(!input.trim())return; onSend(input,sender); setInput(""); saveDraft(chatDraftKey(coachee.id, sender), ""); if(textRef.current){textRef.current.style.height='auto'; textRef.current.style.overflowY='hidden';} };
   const handleKey  = e => {
     const isTouchOnly = window.matchMedia && window.matchMedia('(hover: none) and (pointer: coarse)').matches;
     if(e.key==="Enter"&&!e.shiftKey&&!isTouchOnly){e.preventDefault();handleSend();}
@@ -3461,6 +3482,7 @@ function ChatWindow({coachee,sender,setSender,onSend,onSendImg,onSendVideo,onSen
         <textarea ref=${textRef} class="input-box" rows=${1} value=${input}
           onInput=${e=>{
             setInput(e.target.value);
+            saveDraft(chatDraftKey(coachee.id, sender), e.target.value);
             const el=e.target;
             el.style.height='auto';
             el.style.height=Math.min(el.scrollHeight,156)+'px';
