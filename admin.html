@@ -1,4 +1,4 @@
-<!-- Version: 2026-09-22 21:23 admin -->
+<!-- Version: 2026-09-22 21:30 admin -->
 <!DOCTYPE html>
 <!-- Version: 2026-08-12 17:47 admin -->
 <head>
@@ -2133,7 +2133,14 @@ function AdminApp({user}) {
         const prevMap = new Map(prev.map(c => [c.id, c]));
         return list.map(c => {
           const old = prevMap.get(c.id);
-          return old ? { ...c, unread: old.unread || 0, messages: old.messages || [] } : c;
+          // Kapitel 204: auch die Pro-Person-Felder übernehmen — Dashboard-Kachel ("x an
+          // Diana/Rico") und Chat-Liste ("wartet seit") lesen unreadDiana/unreadRico/
+          // *OldestTs, nicht unread. Diese gingen bisher bei jedem users-Snapshot verloren
+          // (z.B. lastSeen eines Coachees, oder Cache→Server-Snapshot beim App-Start) und
+          // kamen erst mit der nächsten Nachricht bzw. nach Reload zurück.
+          return old ? { ...c, unread: old.unread || 0, messages: old.messages || [],
+            unreadDiana: old.unreadDiana, unreadRico: old.unreadRico,
+            unreadDianaOldestTs: old.unreadDianaOldestTs, unreadRicoOldestTs: old.unreadRicoOldestTs } : c;
         });
       });
       setSyncError(null);
@@ -2470,7 +2477,7 @@ function DashboardPage({coachees,library,doodles,setPage,user,openSenderFilter,o
       </div>
       <div style=${{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginTop:14,paddingTop:10,paddingBottom:16,borderTop:"1px solid var(--border2)",borderBottom:"1px solid var(--border2)",marginBottom:16,gap:10}}>
         <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.7,lineHeight:1.5}}>
-          <div>App v2026-09-22 21:23 · Doku v3.249</div>
+          <div>App v2026-09-22 21:30 · Doku v3.251</div>
           <div>2026-09-10 13:12</div>
         </div>
         <div style=${{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
