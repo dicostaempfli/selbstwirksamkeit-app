@@ -1,4 +1,4 @@
-<!-- Version: 2026-10-14 17:29 admin -->
+<!-- Version: 2026-10-14 18:02 admin -->
 <!DOCTYPE html>
 <!-- Version: 2026-08-12 17:47 admin -->
 <head>
@@ -2268,6 +2268,16 @@ function AdminApp({user}) {
   }, []);
   const openErrorCount = errorLogs.filter(e => !e.resolved).length;
 
+  // NEU (14.10.2026, Kapitel 206.9): Tagesimpuls-Überwachung — 10 s nach dem Start (App ist
+  // dann geladen, Login steht) und danach alle 6 Stunden. Fehler des Prüflaufs selbst landen
+  // sichtbar in der Konsole, nicht still verschluckt (Pitfall 37).
+  useEffect(() => {
+    const run = () => runImpulsHealthCheck().catch(err => console.warn("[impuls-health] Lauf fehlgeschlagen:", err && err.message));
+    const t0 = setTimeout(run, 10000);
+    const iv = setInterval(run, 6 * 60 * 60 * 1000);
+    return () => { clearTimeout(t0); clearInterval(iv); };
+  }, []);
+
   const NAV = [
     {id:"dashboard",icon:"home",label:"Home"},
     {id:"chat",icon:"chat",label:"Chat",badge:totalUnread},
@@ -2477,7 +2487,7 @@ function DashboardPage({coachees,library,doodles,setPage,user,openSenderFilter,o
       </div>
       <div style=${{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginTop:14,paddingTop:10,paddingBottom:16,borderTop:"1px solid var(--border2)",borderBottom:"1px solid var(--border2)",marginBottom:16,gap:10}}>
         <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.7,lineHeight:1.5}}>
-          <div>App v2026-10-14 17:29 · Doku v3.253</div>
+          <div>App v2026-10-14 18:02 · Doku v3.255</div>
           <div>2026-09-10 13:12</div>
         </div>
         <div style=${{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
@@ -5447,6 +5457,102 @@ function ImpulsPhasenTab() {
           </div>`;
       })}
     </div>`;
+}
+
+// ── TAGESIMPULS-ÜBERWACHUNG (NEU 14.10.2026, Kapitel 206.9) ──
+// Rico-Wunsch: "Fehlermeldung im Fehler-Log, wenn Impulse nicht sauber funktionieren — die
+// Funktion ist elementar." Prüft alle Package-Coachees mit gestartetem Tagesimpuls-Plan mit
+// denselben Regeln wie das Live-Audit vom 14.10.2026 und schreibt jede Störung als eigenen
+// error_logs-Eintrag (context "Tagesimpuls", source "admin-healthcheck"). Behobene Störungen
+// werden beim nächsten Lauf automatisch als erledigt markiert. Die Dokument-ID enthält den
+// betroffenen Termin-Wert: dieselbe Störung erscheint nur einmal; manuell als erledigt
+// markiert, kommt sie nicht wieder, ein NEUER Ausfall desselben Coachees aber schon.
+// Läuft clientseitig (Admin hat volles Leserecht, Pflichtregel 42), beim App-Start und danach
+// alle 6 Stunden, solange die Admin-App offen ist. Zusätzlich läuft dieselbe Prüfung täglich
+// serverseitig nach checkDailyImpulse (functions/index.js impulsHealthCheck, Kapitel 206.11) —
+// identische Codes und Dokument-IDs, daher keine Duplikate.
+// Fehlercodes:
+//   IMPULS-PAUSE      Rhythmus pausiert, Phase aber noch nicht abgeschlossen
+//   IMPULS-TERMIN     kein/ungültiger nächster Termin (nextImpulseAt fehlt, 0 oder < 2020)
+//   IMPULS-ZUSTELLUNG Impuls seit > 36 h fällig, aber nie gesendet
+//   IMPULS-RHYTHMUS   gesendet, aber kein bzw. ein seit > 36 h überfälliger Folgetermin
+//   IMPULS-SERVER     seit > 48 h an niemanden ein Push, obwohl Impulse fällig sind
+//                     (checkDailyImpulse läuft vermutlich nicht)
+const IMPULS_HEALTH_SOURCE = "impuls-healthcheck"; // identisch zu functions/index.js impulsHealthCheck()
+const IMPULS_HEALTH_SOURCES = ["impuls-healthcheck", "admin-healthcheck"]; // inkl. Altname (Stand 17:55)
+async function runImpulsHealthCheck() {
+  const firestore = db();
+  if (!firestore) return;
+  const now = Date.now();
+  const DAY = 24 * 60 * 60 * 1000;
+  const H36 = 36 * 60 * 60 * 1000;
+  const VALID_MIN = Date.UTC(2020, 0, 1);
+  const SENTINEL_MIN = now + 50 * 365 * DAY;
+  const fmt = v => { try { return new Date(v).toLocaleDateString("de-CH", {day:"2-digit",month:"2-digit",year:"numeric"}); } catch(e) { return String(v); } };
+  const num = v => (typeof v === "number") ? v : (v && typeof v.toNumber === "function" ? v.toNumber() : (Number(v) || 0));
+
+  const [libDoc, usersSnap, openSnap] = await Promise.all([
+    firestore.collection("settings").doc("impulse_library").get(),
+    firestore.collection("users").get(),
+    firestore.collection("error_logs").where("source", "in", IMPULS_HEALTH_SOURCES).get()
+  ]);
+  const lib = {};
+  if (libDoc.exists) (libDoc.data().phases || []).forEach(p => { lib[num(p.id)] = (p.impulse || []).map(i => i.id); });
+
+  const findings = []; // {id, uid, name, code, message}
+  let maxLastPush = 0, anyDue = false;
+  const coachees = usersSnap.docs.map(d => ({uid: d.id, ...d.data()}))
+    .filter(c => c.modell === "Package" && num(c.activePhase) && c.impulsPlanStartedAt);
+
+  for (const c of coachees) {
+    try {
+      const ph = num(c.activePhase);
+      const ids = lib[ph] || [];
+      const next = num(c.nextImpulseAt), pushed = num(c.pushedForImpulseAt);
+      const fu = num(c.followUpAt), fuFor = num(c.followUpForImpulseAt), last = num(c.lastImpulsPushAt);
+      if (last > maxLastPush) maxLastPush = last;
+      const name = c.name || c.uid;
+      const add = (code, key, message) => findings.push({ id: "impuls_" + code + "_" + c.uid + "_" + key, uid: c.uid, name, code, message });
+      if (next > SENTINEL_MIN) {
+        if (!ids.length) continue;
+        const snap = await firestore.collection("impulse_entries").where("uid", "==", c.uid).get();
+        const seen = new Set(snap.docs.map(d => d.data().impulsId));
+        const done = ids.filter(i => seen.has(i)).length;
+        if (done < ids.length) add("IMPULS-PAUSE", next, "Rhythmus pausiert bei Impuls " + done + " von " + ids.length + " (Phase " + (ph === 5 ? "Integration" : ph) + ") — es kommen keine Impulse mehr. Impulse → Phasen → \"Rhythmus fortsetzen\".");
+      } else if (!next || next < VALID_MIN) {
+        add("IMPULS-TERMIN", next || 0, "Kein gültiger nächster Termin gespeichert (Wert " + (next || 0) + ") — es kommen keine Impulse. Impulse → Phasen → \"Rhythmus fortsetzen\".");
+      } else if (next <= now && pushed !== next) {
+        anyDue = true;
+        if (now - next > H36) add("IMPULS-ZUSTELLUNG", next, "Impuls seit " + fmt(next) + " fällig, aber nie gesendet. Push-Abonnement des Coachees und Cloud-Function-Logs (checkDailyImpulse) prüfen.");
+      } else if (next <= now && pushed === next) {
+        if (fuFor !== next) add("IMPULS-RHYTHMUS", next, "Impuls am " + fmt(last || next) + " gesendet, aber kein Folgetermin gespeichert — der nächste Impuls kommt nicht.");
+        else if (fu && fu <= now) { anyDue = true; if (now - fu > H36) add("IMPULS-RHYTHMUS", fu, "Folgetermin " + fmt(fu) + " seit über 36 h überfällig — der nächste Impuls wurde nicht ausgelöst."); }
+      }
+    } catch (err) {
+      // Einzelfehler dürfen den Lauf nicht abbrechen; sichtbar in der Konsole statt still verschluckt.
+      console.warn("[impuls-health]", c.uid, err && err.message);
+    }
+  }
+  if (anyDue && maxLastPush && now - maxLastPush > 2 * DAY) {
+    findings.push({ id: "impuls_IMPULS-SERVER_all_" + maxLastPush, uid: "", name: "Alle Coachees", code: "IMPULS-SERVER",
+      message: "Seit " + fmt(maxLastPush) + " wurde an niemanden ein Tagesimpuls gesendet, obwohl Impulse fällig sind — checkDailyImpulse (Cloud Function, 06:30) läuft vermutlich nicht. Firebase Console → Functions → Logs prüfen." });
+  }
+
+  const foundIds = new Set(findings.map(f => f.id));
+  const existing = {};
+  openSnap.docs.forEach(d => { existing[d.id] = d.data(); });
+  const writes = [];
+  findings.forEach(f => {
+    if (existing[f.id]) return; // schon gemeldet (offen oder bewusst als erledigt markiert)
+    writes.push(firestore.collection("error_logs").doc(f.id).set({
+      ts: now, uid: f.uid, name: f.name, errorCode: f.code, context: "Tagesimpuls",
+      message: f.message, resolved: false, source: IMPULS_HEALTH_SOURCE
+    }));
+  });
+  openSnap.docs.forEach(d => {
+    if (!d.data().resolved && !foundIds.has(d.id)) writes.push(d.ref.update({ resolved: true, resolvedAuto: true, resolvedAt: now }));
+  });
+  await Promise.all(writes);
 }
 
 // ── FEHLER-LOG (NEU 17.08.2026, Kapitel 128) ──
