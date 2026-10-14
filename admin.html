@@ -1,4 +1,4 @@
-<!-- Version: 2026-09-22 21:52 admin -->
+<!-- Version: 2026-10-14 17:29 admin -->
 <!DOCTYPE html>
 <!-- Version: 2026-08-12 17:47 admin -->
 <head>
@@ -2477,7 +2477,7 @@ function DashboardPage({coachees,library,doodles,setPage,user,openSenderFilter,o
       </div>
       <div style=${{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginTop:14,paddingTop:10,paddingBottom:16,borderTop:"1px solid var(--border2)",borderBottom:"1px solid var(--border2)",marginBottom:16,gap:10}}>
         <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.7,lineHeight:1.5}}>
-          <div>App v2026-09-22 21:52 · Doku v3.252</div>
+          <div>App v2026-10-14 17:29 · Doku v3.253</div>
           <div>2026-09-10 13:12</div>
         </div>
         <div style=${{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
@@ -5006,6 +5006,29 @@ function ImpulsPhasenTab() {
     }
     lines.push(h("div", {style:{marginTop:6,fontSize:".76rem",color:progColor}}, progText));
 
+    // NEU (14.10.2026, Kapitel 206): Bisher blendete ein pausierter Rhythmus (Sentinel +100 J.)
+    // ODER ein fehlender nextImpulseAt-Wert die Zustellzeile komplett aus — ein stehender
+    // Rhythmus war dadurch erneut unsichtbar (Patricia Wirth, Simone Meier u.a.). Jetzt:
+    // Warnzeile + Button "Rhythmus fortsetzen". "Pausiert" ist nur korrekt, wenn die Phase
+    // laut Fortschritt wirklich abgeschlossen ist. Ohne geladenen Fortschritt (prog fehlt)
+    // wird bewusst nichts behauptet.
+    const progLoaded = !!(prog && prog.total);
+    const pausedTooEarly = isPaused && progLoaded && !finished;
+    const missingValue = !isPaused && !nextImpulseAt && !!c.impulsPlanStartedAt && !finished;
+    if (pausedTooEarly || missingValue) {
+      const warn = pausedTooEarly
+        ? "Rhythmus pausiert, obwohl die Phase noch nicht abgeschlossen ist · es kommen keine Impulse mehr"
+        : "Kein nächster Termin gespeichert · es kommen keine Impulse";
+      lines.push(h("div", {style:{marginTop:2,fontSize:".76rem",color:"#993C1D"}}, warn));
+      lines.push(h("button", {
+        class: "btn btn-ghost btn-sm",
+        disabled: !!resuming[c.uid],
+        onClick: () => resumeRhythm(c.uid),
+        style: {marginTop:8}
+      }, resuming[c.uid] ? "…" : "Rhythmus fortsetzen"));
+      return h("div", null, ...lines);
+    }
+
     // Zeile 2 — Zustellung
     if (!isPaused && !finished) {
       let text = null;
@@ -5104,7 +5127,10 @@ function ImpulsPhasenTab() {
         .orderBy("createdAt","desc").limit(40).get()
         .then(snap => {
           const matched = snap.docs.filter(d => info.ids.has(d.data().impulsId));
-          const count = matched.length;
+          // GEÄNDERT (14.10.2026, Kapitel 206): eindeutige Impuls-IDs statt Einträge zählen —
+          // Mehrfacheinträge desselben Impulses (frühere Läufe, missed + später angenommen)
+          // blähten "Impuls X von Y" auf und konnten eine Phase fälschlich als fertig zeigen.
+          const count = new Set(matched.map(d => d.data().impulsId)).size;
           const lastAt = count ? matched[0].data().createdAt : null; // desc sortiert, erster Treffer = jüngster
           // NEU (22.09.2026, Kapitel 205): "missed" = von checkDailyImpulse eingetragener, nie
           // geöffneter Impuls — zählt für den Fortschritt, aber nicht als Coachee-Reaktion.
@@ -5210,6 +5236,27 @@ function ImpulsPhasenTab() {
       })
       .catch(() => {})
       .finally(() => setStarting(s => ({...s, [uid]: false})));
+  };
+
+  // NEU (14.10.2026, Kapitel 206): "Rhythmus fortsetzen" — für Coachees, deren nextImpulseAt
+  // fälschlich auf dem Pausiert-Sentinel (+100 Jahre) steht, obwohl die Phase noch nicht
+  // abgeschlossen ist (Off-by-one in index.html saveAndFinish, siehe Kapitel 206.2), oder
+  // bei denen gar kein Termin gespeichert ist. Setzt nextImpulseAt auf jetzt: die App zeigt
+  // den nächsten Impuls sofort, checkDailyImpulse pusht beim nächsten 06:30-Lauf (Zweig A).
+  // Fehler werden sichtbar gemeldet (Pitfall 37).
+  const [resuming, setResuming] = useState({});
+  const resumeRhythm = (uid) => {
+    const firestore = db();
+    if (!firestore) { showToast("✗ Keine Verbindung zur Datenbank"); return; }
+    setResuming(r => ({...r, [uid]: true}));
+    const ts = Date.now();
+    firestore.collection("users").doc(uid).set({ nextImpulseAt: ts }, { merge: true })
+      .then(() => {
+        setCoachees(cs => cs.map(c => c.uid === uid ? {...c, nextImpulseAt: ts} : c));
+        showToast("✓ Rhythmus fortgesetzt · Push beim nächsten Lauf (06:30)");
+      })
+      .catch(err => showToast("✗ " + (err && err.message ? err.message : "Speichern fehlgeschlagen")))
+      .finally(() => setResuming(r => ({...r, [uid]: false})));
   };
 
   const INTERVALS = {

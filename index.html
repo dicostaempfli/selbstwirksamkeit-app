@@ -1,4 +1,4 @@
-<!-- Version: 2026-09-22 21:26 coachee -->
+<!-- Version: 2026-10-14 17:29 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <!DOCTYPE html>
@@ -4043,7 +4043,7 @@ function ImpulsPage({ user, setPage, setActiveImpuls, activeImpuls, pendingImpul
   // (aus settings/impulse_library) — Grundlage für die Pause-Logik in saveAndFinish():
   // nach dem letzten Impuls der Phase wird kein neuer nextImpulseAt mehr gesetzt, die Phase
   // pausiert bis Diana/Rico manuell die nächste Phase setzen (onActivePhaseChanged).
-  const [phaseImpulseCount, setPhaseImpulseCount] = useState({done:0, total:0});
+  const [phaseImpulseCount, setPhaseImpulseCount] = useState({done:0, total:0, phaseIds:[], seenIds:[]});
   const [reflexion, setReflexion] = useState("");
   // Fix (02.07.2026, Kapitel 32): Multi-Select statt Single-Select — koerper ist jetzt ein
   // Array statt ein einzelner String, damit mehrere Körperregionen gleichzeitig gewählt
@@ -4204,7 +4204,10 @@ function ImpulsPage({ user, setPage, setActiveImpuls, activeImpuls, pendingImpul
               // NEU (12.08.2026): done nur auf die Impuls-IDs der AKTUELLEN Phase eingrenzen —
               // Grundlage für die Pause-Logik in saveAndFinish(), siehe phaseImpulseCount-State.
               const doneInPhase = done.filter(id => impulse.some(imp => imp.id === id)).length;
-              setPhaseImpulseCount({ done: doneInPhase, total: impulse.length });
+              // GEÄNDERT (14.10.2026, Kapitel 206): zusätzlich die eindeutigen Impuls-IDs der
+              // Phase und die bereits gesehenen IDs mitgeben — saveAndFinish() entscheidet das
+              // Phasenende jetzt über Mengen statt über "Zähler + 1" (siehe dort).
+              setPhaseImpulseCount({ done: doneInPhase, total: impulse.length, phaseIds: impulse.map(imp => imp.id), seenIds: done });
               // NEU (13.08.2026, Kapitel 88): Phase fertig = alle Impulse der aktuellen Phase
               // bereits absolviert. Direkt aus done/impulse berechnet statt aus dem
               // nextImpulseAt-Pausierungs-Sentinel (der nur den Push-Rhythmus steuert, siehe
@@ -4464,8 +4467,17 @@ function ImpulsPage({ user, setPage, setActiveImpuls, activeImpuls, pendingImpul
       // Gleicher "pausiert"-Sentinel-Wert (+100 Jahre) wie dort, damit checkDailyImpulse in der
       // Zwischenzeit sicher nichts auslöst.
       const PAUSED_UNTIL_PHASE_CHANGE = Date.now() + 100 * 365 * 24 * 60 * 60 * 1000;
-      const doneAfterThis = phaseImpulseCount.done + 1;
-      const phaseFinished = phaseImpulseCount.total > 0 && doneAfterThis >= phaseImpulseCount.total;
+      // GEÄNDERT (14.10.2026, Kapitel 206, Fund Rico "Tagesimpulse teilweise nicht oder
+      // unregelmässig ausgelöst"): Bisher "done + 1 >= total". done zählte aber EINTRÄGE statt
+      // eindeutiger Impulse und enthielt den heutigen Eintrag bereits, sobald die Reflexion
+      // nach einem App-Neustart erfolgte (typisch: morgens angenommen, abends reflektiert).
+      // Dazu kamen Einträge aus früheren Läufen derselben Phase und "missed"-Einträge. Folge:
+      // Pausiert-Sentinel schon bei "Impuls 3 von 4" (oder früher), Rhythmus stand still,
+      // der letzte Impuls kam nie. Jetzt: Phase ist nur fertig, wenn JEDE Impuls-ID der Phase
+      // in den gesehenen IDs (inkl. des gerade abgeschlossenen) vorkommt.
+      const seenNow = new Set([...(phaseImpulseCount.seenIds || []), impuls?.id].filter(Boolean));
+      const phaseIds = phaseImpulseCount.phaseIds || [];
+      const phaseFinished = phaseIds.length > 0 && phaseIds.every(id => seenNow.has(id));
       fbDb.collection("impulse_entries")
         .where("uid","==",user.uid).where("date","==",todayStr).where("status","==","active").limit(1).get()
         .then(snap => {
