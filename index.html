@@ -1,4 +1,4 @@
-<!-- Version: 2026-11-17 21:28 coachee -->
+<!-- Version: 2026-11-17 21:37 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <!DOCTYPE html>
@@ -2972,14 +2972,16 @@ function ChatPage({user,coachees,setCoachees,mobileChatOpen,setMobileChatOpen,re
         const resp = await fetch(file.url);
         const blob = await resp.blob();
         const ext  = file.name.split('.').pop() || 'bin';
-        const path = 'chats/'+uid+'/'+Date.now()+'_'+file.name;
+        // Sicherheitsbericht Befund 6: Dateiname im Speicherpfad bereinigen (wie sendVideo)
+        const safeName = (file.name||'Datei').replace(/[^a-zA-Z0-9._-]/g,'_');
+        const path = 'chats/'+uid+'/'+Date.now()+'_'+safeName;
         const ref  = fbStorage.ref(path);
         await ref.put(blob, {contentType: file.type || blob.type});
         const downloadUrl = await ref.getDownloadURL();
         fileData = {name: file.name, type: file.type, size: file.size||blob.size, isAudio: file.isAudio||false, url: downloadUrl, storagePath: path};
       }
       await fbDb.collection("chats").doc(uid).collection("messages").add({from:"coachee",sender:uid,recipient,file:fileData,text:"",time:t,date:d,ts:Date.now()});
-    } catch(e) { console.error("sendFile error:", e); }
+    } catch(e) { console.error("sendFile error:", e); showToastMsg("✗ Datei konnte nicht gesendet werden"); }
   };
 
   // Kapitel 200: Videos im Chat werden jetzt nach Firebase Storage hochgeladen (chats/{uid}/…,
@@ -3330,6 +3332,7 @@ function ChatWindow({coachee,recipient,setRecipient,onSend,onSendImg,onSendVideo
 
   const handleAttach = async e => {
     const f=e.target.files[0]; if(!f)return;
+    if(f.size > 25*1024*1024){ showToastMsg("✗ Datei zu gross (max. 25 MB)"); e.target.value=""; return; }
     const r=new FileReader();
     r.onload=ev=>{ onSendFile({url:ev.target.result,name:f.name,type:f.type,size:f.size,isAudio:false}); };
     r.readAsDataURL(f); e.target.value="";

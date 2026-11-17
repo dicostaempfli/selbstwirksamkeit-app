@@ -1,4 +1,4 @@
-<!-- Version: 2026-11-17 21:28 admin -->
+<!-- Version: 2026-11-17 21:37 admin -->
 <!DOCTYPE html>
 <!-- Version: 2026-08-12 17:47 admin -->
 <head>
@@ -2509,7 +2509,7 @@ function DashboardPage({coachees,library,doodles,setPage,user,openSenderFilter,o
       </div>
       <div style=${{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginTop:14,paddingTop:10,paddingBottom:16,borderTop:"1px solid var(--border2)",borderBottom:"1px solid var(--border2)",marginBottom:16,gap:10}}>
         <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.7,lineHeight:1.5}}>
-          <div>App v2026-11-17 21:28 · Doku v3.255</div>
+          <div>App v2026-11-17 21:37 · Doku v3.255</div>
           <div>2026-09-10 13:12</div>
         </div>
         <div style=${{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
@@ -3025,7 +3025,9 @@ function ChatPage({coachees,setCoachees,openId,clearOpenId,presetSender,clearPre
         // Base64 → Blob → Storage hochladen (analog Coachee-App)
         const resp = await fetch(file.url);
         const blob = await resp.blob();
-        const path = 'chats/'+activeId+'/'+Date.now()+'_'+file.name;
+        // Sicherheitsbericht Befund 6: Dateiname im Speicherpfad bereinigen (wie sendVideo)
+        const safeName = (file.name||'Datei').replace(/[^a-zA-Z0-9._-]/g,'_');
+        const path = 'chats/'+activeId+'/'+Date.now()+'_'+safeName;
         const ref  = fbStorage.ref(path);
         await ref.put(blob, {contentType: file.type || blob.type});
         const downloadUrl = await ref.getDownloadURL();
@@ -3321,6 +3323,7 @@ function ChatWindow({coachee,sender,setSender,onSend,onSendImg,onSendVideo,onSen
 
   const handleAttach = async e => {
     const f=e.target.files[0]; if(!f)return;
+    if(f.size > 25*1024*1024){ showToast("✗ Datei zu gross (max. 25 MB)"); e.target.value=""; return; }
     const r=new FileReader();
     r.onload=ev=>{ onSendFile({url:ev.target.result,name:f.name,type:f.type,size:f.size,isAudio:false},sender); };
     r.readAsDataURL(f); e.target.value="";
