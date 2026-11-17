@@ -1,4 +1,4 @@
-<!-- Version: 2026-11-17 22:24 coachee -->
+<!-- Version: 2026-11-17 22:30 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <!DOCTYPE html>
@@ -9,7 +9,7 @@
   <meta http-equiv="Expires" content="0">
   <meta charset="UTF-8"/>
   <!-- Content-Security-Policy (Sicherheitsbericht Befund 2, 17.11.2026): erlaubte Quellen fest vorgegeben. Neue externe Quelle = hier ergänzen. -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://firebasestorage.googleapis.com https://www.google.com https://*.gstatic.com https://*.googleusercontent.com; media-src 'self' data: blob: https://firebasestorage.googleapis.com; connect-src 'self' data: blob: https://firestore.googleapis.com https://firebasestorage.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src 'self' blob: https://docs.google.com; worker-src 'self'; manifest-src 'self' data: blob:; object-src 'none'; base-uri 'self'; form-action 'self'"/>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://firebasestorage.googleapis.com https://www.google.com https://*.gstatic.com https://*.googleusercontent.com; media-src 'self' data: blob: https://firebasestorage.googleapis.com; connect-src 'self' data: blob: https://firestore.googleapis.com https://firebasestorage.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src 'self' blob:; worker-src 'self'; manifest-src 'self' data: blob:; object-src 'none'; base-uri 'self'; form-action 'self'"/>
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
   <meta http-equiv="Pragma" content="no-cache"/>
   <meta http-equiv="Expires" content="0"/>
@@ -1649,6 +1649,12 @@ function ChatVideoThumb({src,onOpen}) {
     dur!=null && h("div",{style:{position:"absolute",right:8,bottom:8,background:"rgba(0,0,0,.55)",color:"white",
       fontSize:".68rem",padding:"2px 6px",borderRadius:6,pointerEvents:"none"}},fmt(dur)));
 }
+
+// Befund 5: Dateityp aus der Storage-Adresse ablesen (z.B. "PDF"), für die Mediathek-Dokumentkarte.
+const docTypeLabel = u => {
+  try { const n=decodeURIComponent(String(u).split('?')[0].split('/').pop()||''); const e=n.includes('.')?n.split('.').pop():''; return (e&&e.length<=5)?e.toUpperCase():'Dokument'; }
+  catch(e){ return 'Dokument'; }
+};
 
 const linkifyChat = text => {
   if(!text) return text;
@@ -4876,25 +4882,27 @@ const ExpandedMedia = ({item, sec, setPhotoOverlay}) => {
       </div>`;
   }
 
+  // Sicherheitsbericht Befund 5 (17.11.2026): kein Google-Docs-Viewer mehr — der Storage-Link
+  // mit Zugriffsschlüssel ging dabei an Google. Dokumente öffnen jetzt direkt im Viewer des Geräts.
   if(item.type==='dokus') return html`
     <div>
       ${item.fileUrl&&html`
-        <div style=${{width:'100%',overflow:'hidden',maxWidth:'100vw'}}>
-          <iframe
-            src=${'https://docs.google.com/viewer?url='+encodeURIComponent(item.fileUrl)+'&embedded=true'}
-            style=${{width:'100%',height:340,border:'none',display:'block',background:'#f5f5f5'}}
-            title=${item.title}/>
+        <div style=${{width:'100%',background:'var(--surface)',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:10,padding:'22px 16px'}}>
+          <div style=${{width:52,height:52,borderRadius:12,background:sec.bg,border:'0.5px solid '+sec.border,display:'flex',alignItems:'center',justifyContent:'center'}}>
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke=${sec.color} stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg>
+          </div>
+          <div style=${{textAlign:'center'}}>
+            <div style=${{fontSize:'.88rem',fontWeight:700,color:'var(--text)'}}>${item.title}</div>
+            <div style=${{fontSize:'.75rem',color:'var(--muted)',marginTop:2}}>${docTypeLabel(item.fileUrl)}</div>
+          </div>
+          <a href=${item.fileUrl} target="_blank" rel="noopener" onClick=${e=>e.stopPropagation()}
+            style=${{display:'flex',alignItems:'center',gap:6,padding:'8px 18px',background:'#156e6e',color:'white',borderRadius:8,fontFamily:"'Exo 2',sans-serif",fontWeight:700,fontSize:'.8rem',textDecoration:'none',marginTop:4}}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+            Öffnen
+          </a>
         </div>`}
       ${!item.fileUrl&&html`
         <div style=${{padding:'24px 16px',textAlign:'center',color:'var(--muted)',fontSize:'.85rem'}}>Keine Datei verfügbar</div>`}
-      ${item.fileUrl&&html`
-        <div style=${{display:'flex',justifyContent:'flex-end',padding:'8px 12px',background:'var(--surface)'}}>
-          <a href=${item.fileUrl} target="_blank" rel="noopener" onClick=${e=>e.stopPropagation()}
-            style=${{display:'flex',alignItems:'center',gap:5,padding:'5px 11px',background:'#156e6e',color:'white',borderRadius:7,fontFamily:"'Exo 2',sans-serif",fontWeight:700,fontSize:'.75rem',textDecoration:'none'}}>
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-            Download
-          </a>
-        </div>`}
     </div>`;
 
   return null;
