@@ -1,4 +1,4 @@
-<!-- Version: 2026-10-14 17:29 coachee -->
+<!-- Version: 2026-11-17 20:55 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <!DOCTYPE html>
@@ -3343,17 +3343,28 @@ function ChatWindow({coachee,recipient,setRecipient,onSend,onSendImg,onSendVideo
     if(mediaRecRef.current&&recording){ mediaRecRef.current.stop(); setRecording(false); }
   };
 
+  // Sicherheitsbericht Befund 1: nur erlaubte Typen öffnen, alles andere nur als Download;
+  // Adressen ausserhalb von Firebase Storage werden nicht geöffnet.
   const openFile = file => {
-    try {
-      const arr=file.url.split(","); const mime=arr[0].match(/:(.*?);/)[1];
-      const bstr=atob(arr[1]); let n=bstr.length; const u8=new Uint8Array(n);
-      while(n--)u8[n]=bstr.charCodeAt(n);
-      const blob=new Blob([u8],{type:mime});
-      const blobUrl=URL.createObjectURL(blob);
-      const a=document.createElement("a"); a.href=blobUrl; a.target="_blank"; a.rel="noopener";
-      document.body.appendChild(a); a.click(); document.body.removeChild(a);
-      setTimeout(()=>URL.revokeObjectURL(blobUrl),30000);
-    } catch(e){ window.open(file.url,"_blank"); }
+    const OPEN_OK=/^(application\/pdf|image\/(png|jpe?g|gif|webp|heic|heif)|text\/plain|application\/(msword|vnd\.ms-(excel|powerpoint)|vnd\.openxmlformats-officedocument\.[a-z.]+|vnd\.oasis\.opendocument\.[a-z.]+))$/;
+    const url=(file&&file.url)||"";
+    if(url.startsWith("data:")){
+      try {
+        const arr=url.split(","); const mime=((arr[0].match(/^data:([^;,]*)/)||[])[1]||"").toLowerCase();
+        const ok=OPEN_OK.test(mime);
+        const bstr=atob(arr[1]); let n=bstr.length; const u8=new Uint8Array(n);
+        while(n--)u8[n]=bstr.charCodeAt(n);
+        const blob=new Blob([u8],{type:ok?mime:"application/octet-stream"});
+        const blobUrl=URL.createObjectURL(blob);
+        const a=document.createElement("a"); a.href=blobUrl; a.rel="noopener";
+        if(ok) a.target="_blank"; else a.download=(file.name||"Datei").replace(/[^a-zA-Z0-9._-]/g,"_");
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        setTimeout(()=>URL.revokeObjectURL(blobUrl),30000);
+      } catch(e){ alert("Datei konnte nicht geöffnet werden."); }
+      return;
+    }
+    if(url.startsWith("https://firebasestorage.googleapis.com/")){ window.open(url,"_blank","noopener"); return; }
+    alert("Diese Datei kann aus Sicherheitsgründen nicht geöffnet werden.");
   };
 
   return html`
