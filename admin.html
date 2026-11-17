@@ -1,4 +1,4 @@
-<!-- Version: 2026-11-17 20:55 admin -->
+<!-- Version: 2026-11-17 21:28 admin -->
 <!DOCTYPE html>
 <!-- Version: 2026-08-12 17:47 admin -->
 <head>
@@ -1624,6 +1624,28 @@ const showToast = msg => { const t=document.createElement('div'); t.className='t
 // Satzzeichen am Ende ("Schau mal: https://x.ch.") gehören nicht zum Link. iOS-Standalone-PWA
 // öffnet mit target="_top" wie die Mediathek (Kapitel 187), sonst "_blank".
 const CHAT_URL_RE = /(https?:\/\/[^\s<>"]+|www\.[^\s<>"]+)/gi;
+// Video-Vorschau im Chat (17.11.2026): erstes Bild direkt aus dem Video (preload="metadata"),
+// Länge unten rechts, Play-Symbol in der Mitte. Liefert das Gerät kein Bild (z.B. alte blob:-URL),
+// bleibt die grüne Fläche mit Symbolen stehen. Tippen öffnet wie bisher den Video-Player.
+function ChatVideoThumb({src,onOpen}) {
+  const [dur,setDur] = useState(null);
+  const [fail,setFail] = useState(false);
+  const fmt = s => { s=Math.round(s); return Math.floor(s/60)+":"+String(s%60).padStart(2,"0"); };
+  const playIcon = h("svg",{width:20,height:20,viewBox:"0 0 24 24",fill:"white",stroke:"none"},h("polygon",{points:"6,3 20,12 6,21"}));
+  const camIcon = h("svg",{width:18,height:18,viewBox:"0 0 24 24",fill:"none",stroke:"white","stroke-width":"1.7"},
+    h("polygon",{points:"23 7 16 12 23 17 23 7"}),h("rect",{x:1,y:5,width:15,height:14,rx:2}));
+  return h("div",{onClick:onOpen,style:{position:"relative",width:220,height:150,borderRadius:12,overflow:"hidden",background:"var(--forest)",cursor:"pointer"}},
+    !fail && h("video",{src:src+(src.indexOf("#")<0?"#t=0.1":""),preload:"metadata",muted:true,playsInline:true,tabIndex:-1,
+      onLoadedMetadata:e=>{ const d=e.currentTarget.duration; if(isFinite(d)&&d>0) setDur(d); },
+      onError:()=>setFail(true),
+      style:{width:"100%",height:"100%",objectFit:"cover",display:"block",pointerEvents:"none"}}),
+    h("div",{style:{position:"absolute",top:"50%",left:"50%",transform:"translate(-50%,-50%)",width:46,height:46,borderRadius:"50%",
+      background:"rgba(0,0,0,.45)",display:"flex",alignItems:"center",justifyContent:"center",pointerEvents:"none"}},playIcon),
+    h("div",{style:{position:"absolute",left:8,bottom:8,display:"flex",pointerEvents:"none"}},camIcon),
+    dur!=null && h("div",{style:{position:"absolute",right:8,bottom:8,background:"rgba(0,0,0,.55)",color:"white",
+      fontSize:".68rem",padding:"2px 6px",borderRadius:6,pointerEvents:"none"}},fmt(dur)));
+}
+
 const linkifyChat = text => {
   if(!text) return text;
   const out = []; let last = 0; let m;
@@ -2487,7 +2509,7 @@ function DashboardPage({coachees,library,doodles,setPage,user,openSenderFilter,o
       </div>
       <div style=${{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginTop:14,paddingTop:10,paddingBottom:16,borderTop:"1px solid var(--border2)",borderBottom:"1px solid var(--border2)",marginBottom:16,gap:10}}>
         <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.7,lineHeight:1.5}}>
-          <div>App v2026-11-17 20:55 · Doku v3.255</div>
+          <div>App v2026-11-17 21:28 · Doku v3.255</div>
           <div>2026-09-10 13:12</div>
         </div>
         <div style=${{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
@@ -3435,29 +3457,7 @@ function ChatWindow({coachee,sender,setSender,onSend,onSendImg,onSendVideo,onSen
                         ...(isSelected?{transform:"scale(1.035)",boxShadow:"0 6px 18px rgba(0,0,0,.18)",position:"relative",zIndex:99995}:{})
                       }}>
                       ${msg.imgSrc&&!msg.isVideo&&html`<div class="msg-img-wrap"><img src=${msg.imgSrc} class="msg-img" alt="Foto" onClick=${()=>setLightbox(msg.imgSrc)}/></div>`}
-                      ${msg.imgSrc&&msg.isVideo&&html`<div class="msg-img-wrap">
-                        <div onClick=${()=>setVideoLightbox(msg.imgSrc)}
-                          style=${{width:220,borderRadius:12,overflow:"hidden",background:"var(--forest)",
-                            cursor:"pointer",display:"flex",alignItems:"center",gap:10,padding:"10px 12px"}}>
-                          <div style=${{width:44,height:44,borderRadius:8,background:"rgba(255,255,255,.12)",
-                            display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.7">
-                              <polygon points="23 7 16 12 23 17 23 7"/>
-                              <rect x="1" y="5" width="15" height="14" rx="2"/>
-                            </svg>
-                          </div>
-                          <div style=${{flex:1,minWidth:0}}>
-                            <div style=${{fontSize:".82rem",fontWeight:700,color:"white"}}>Video</div>
-                            <div style=${{fontSize:".72rem",color:"rgba(255,255,255,.55)"}}>Tippen zum Abspielen</div>
-                          </div>
-                          <div style=${{width:30,height:30,borderRadius:"50%",background:"rgba(255,255,255,.15)",
-                            display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="white" stroke="none">
-                              <polygon points="6,3 20,12 6,21"/>
-                            </svg>
-                          </div>
-                        </div>
-                      </div>`}
+                      ${msg.imgSrc&&msg.isVideo&&h("div",{class:"msg-img-wrap"},h(ChatVideoThumb,{src:msg.imgSrc,onOpen:()=>setVideoLightbox(msg.imgSrc)}))}
                       ${msg.file&&msg.file.isAudio&&html`
                         <div style=${{padding:"2px 0"}}>
                           <audio controls=${true} src=${msg.file.url}
