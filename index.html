@@ -1,4 +1,4 @@
-<!-- Version: 2026-11-17 21:37 coachee -->
+<!-- Version: 2026-11-17 21:46 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <!DOCTYPE html>
@@ -838,12 +838,6 @@
   .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--forest);color:white;padding:12px 20px;border-radius:10px;font-size:.85rem;font-weight:600;z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,.2);transition:opacity .3s;pointer-events:none}
 
 
-  /* ── CRISP POSITION FIX (mobile) ── */
-  @media (max-width: 768px) {
-    #crisp-chatbox, .crisp-client {
-      bottom: 70px !important;  /* above bottom nav */
-    }
-  }
 
   @media (max-width: 375px) {
     .grid-2, .form-grid { grid-template-columns: 1fr !important; }
@@ -6494,33 +6488,6 @@ render(h(BreathPortal, null), document.getElementById('breath-portal'));
     document.head.appendChild(link);
   </script>
 
-  <!-- Crisp Chat — widget hidden, runs in background -->
-  <script type="text/javascript">
-    window.$crisp=[];
-    window.CRISP_WEBSITE_ID="88e6f327-3170-4702-ad7c-d9009b7f79e9";
-    // Hide the chat bubble — all messages still reach Crisp dashboard
-    window.$crisp.push(["config", "hide:on:mobile", [true]]);
-    window.$crisp.push(["do", "chat:hide"]);
-    (function(){
-      var d=document;
-      var s=d.createElement("script");
-      s.src="https://client.crisp.chat/l.js";
-      s.async=1;
-      d.getElementsByTagName("head")[0].appendChild(s);
-    })();
-    // Keep widget hidden after load
-    window.addEventListener('load', function() {
-      setTimeout(function() {
-        if (window.$crisp) {
-          window.$crisp.push(["do", "chat:hide"]);
-        }
-        // Also hide via CSS as fallback
-        var style = document.createElement('style');
-        style.textContent = '.crisp-client { display: none !important; }';
-        document.head.appendChild(style);
-      }, 1000);
-    });
-  </script>
 
 </body>
 </html>
