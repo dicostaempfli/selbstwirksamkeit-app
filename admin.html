@@ -1,4 +1,4 @@
-<!-- Version: 2026-11-18 10:33 admin -->
+<!-- Version: 2026-11-18 12:11 admin -->
 <!DOCTYPE html>
 <!-- Version: 2026-08-12 17:47 admin -->
 <head>
@@ -2517,7 +2517,7 @@ function DashboardPage({coachees,library,doodles,setPage,user,openSenderFilter,o
       </div>
       <div style=${{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginTop:14,paddingTop:10,paddingBottom:16,borderTop:"1px solid var(--border2)",borderBottom:"1px solid var(--border2)",marginBottom:16,gap:10}}>
         <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.7,lineHeight:1.5}}>
-          <div>App v2026-11-18 10:33 · Doku v3.255</div>
+          <div>App v2026-11-18 12:11 · Doku v3.255</div>
           <div>2026-09-10 13:12</div>
         </div>
         <div style=${{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
@@ -2783,7 +2783,7 @@ function ChatPage({coachees,setCoachees,openId,clearOpenId,presetSender,clearPre
     setBroadcastLinkUrl(""); setBroadcastLinkOpen(false);
   };
   const filtered = coachees.filter(c=>{
-    const nameMatch = (c.name||"").toLowerCase().includes(search.toLowerCase())||(c.topic||"").toLowerCase().includes(search.toLowerCase());
+    const nameMatch = nameMatches(c.name,search)||(c.topic||"").toLowerCase().includes(search.toLowerCase());
     if(!filterCat||filterCat==="Alle") return nameMatch;
     const cats = [...(Array.isArray(c.coaching)?c.coaching:(c.coaching?[c.coaching]:[])), ...(Array.isArray(c.gender)?c.gender:(c.gender?[c.gender]:[])), ...(c.categories||[])];
     return nameMatch && catMatches(cats, filterCat);
@@ -2793,7 +2793,8 @@ function ChatPage({coachees,setCoachees,openId,clearOpenId,presetSender,clearPre
   // komplett aus dem Blick (Rico-Meldung 11.08.2026).
   const dianaWaiting = filtered.filter(c=>c.unreadDianaOldestTs).sort((a,b)=>a.unreadDianaOldestTs-b.unreadDianaOldestTs);
   const ricoWaiting = filtered.filter(c=>c.unreadRicoOldestTs).sort((a,b)=>a.unreadRicoOldestTs-b.unreadRicoOldestTs);
-  const restCoachees = filtered.filter(c=>!c.unreadDianaOldestTs && !c.unreadRicoOldestTs);
+  // NEU (18.11.2026): Kontakte nach Nachname, dann Vorname sortiert (wie Coachees-Seite).
+  const restCoachees = filtered.filter(c=>!c.unreadDianaOldestTs && !c.unreadRicoOldestTs).sort(byLastName(c=>c.name));
   const active = coachees.find(c=>c.id===activeId);
   const filterCount = filterCat&&filterCat!=="Alle" ? coachees.filter(c=>{const cats=[...(Array.isArray(c.coaching)?c.coaching:(c.coaching?[c.coaching]:[])), ...(Array.isArray(c.gender)?c.gender:(c.gender?[c.gender]:[])), ...(c.categories||[])]; return catMatches(cats, filterCat);}).length : coachees.length;
   const getCatCoachees = cat => !cat ? coachees : coachees.filter(c=>{const cats=[...(Array.isArray(c.coaching)?c.coaching:(c.coaching?[c.coaching]:[])), ...(Array.isArray(c.gender)?c.gender:(c.gender?[c.gender]:[])), ...(c.categories||[])]; return catMatches(cats, cat);});
@@ -3179,7 +3180,7 @@ function ChatPage({coachees,setCoachees,openId,clearOpenId,presetSender,clearPre
                       style=${{background:"#e0f5ee",borderRadius:9,padding:"12px 14px",display:"flex",
                         justifyContent:"space-between",alignItems:"center",cursor:"pointer"}}
                       onClick=${()=>{setSender("Diana");selectCoachee(c.id,"Diana");}}>
-                      <span style=${{fontWeight:700,fontSize:".92rem"}}>${c.name}</span>
+                      <span style=${{fontWeight:700,fontSize:".92rem"}}>${nameLastFirst(c.name)}</span>
                       <span style=${{fontSize:".8rem",color:"#1d5a8f",fontWeight:700}}>${new Date(c.unreadDianaOldestTs).toLocaleTimeString('de-CH',{hour:'2-digit',minute:'2-digit'})}</span>
                     </div>`)}
                   </div>
@@ -3191,7 +3192,7 @@ function ChatPage({coachees,setCoachees,openId,clearOpenId,presetSender,clearPre
                       style=${{background:"#e9f3dd",borderRadius:9,padding:"12px 14px",display:"flex",
                         justifyContent:"space-between",alignItems:"center",cursor:"pointer"}}
                       onClick=${()=>{setSender("Rico");selectCoachee(c.id,"Rico");}}>
-                      <span style=${{fontWeight:700,fontSize:".92rem"}}>${c.name}</span>
+                      <span style=${{fontWeight:700,fontSize:".92rem"}}>${nameLastFirst(c.name)}</span>
                       <span style=${{fontSize:".8rem",color:"#3b6d11",fontWeight:700}}>${new Date(c.unreadRicoOldestTs).toLocaleTimeString('de-CH',{hour:'2-digit',minute:'2-digit'})}</span>
                     </div>`)}
                   </div>
@@ -3207,7 +3208,7 @@ function ChatPage({coachees,setCoachees,openId,clearOpenId,presetSender,clearPre
                   style=${activeId===c.id?{background:"var(--surface2)"}:{}}
                   onClick=${()=>selectCoachee(c.id)}>
                   <div class="conv-info">
-                    <div class="conv-name">${c.name}</div>
+                    <div class="conv-name">${nameLastFirst(c.name)}</div>
                     <div class="conv-preview">${c.topic}</div>
                   </div>
                 </div>`;
