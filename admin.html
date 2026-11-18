@@ -1,4 +1,4 @@
-<!-- Version: 2026-11-17 22:30 admin -->
+<!-- Version: 2026-11-18 10:33 admin -->
 <!DOCTYPE html>
 <!-- Version: 2026-08-12 17:47 admin -->
 <head>
@@ -2517,7 +2517,7 @@ function DashboardPage({coachees,library,doodles,setPage,user,openSenderFilter,o
       </div>
       <div style=${{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginTop:14,paddingTop:10,paddingBottom:16,borderTop:"1px solid var(--border2)",borderBottom:"1px solid var(--border2)",marginBottom:16,gap:10}}>
         <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.7,lineHeight:1.5}}>
-          <div>App v2026-11-17 22:30 · Doku v3.255</div>
+          <div>App v2026-11-18 10:33 · Doku v3.255</div>
           <div>2026-09-10 13:12</div>
         </div>
         <div style=${{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
@@ -3653,6 +3653,35 @@ function ChatWindow({coachee,sender,setSender,onSend,onSendImg,onSendVideo,onSen
 }
 
 
+// NEU (18.11.2026, Rico-Wunsch): Coachees- und Impulse-Phasen-Liste nach Nachname
+// sortiert und als "Nachname Vorname" angezeigt — so stehen Paare/Familien mit gleichem
+// Nachnamen direkt untereinander. Gespeichert bleibt c.name weiterhin als "Vorname Nachname";
+// Nachname = alles nach dem ersten Wort (Doppelnamen wie "Huber-Keller" bleiben ganz).
+const nameParts = n => (n||"").trim().split(/\s+/).filter(Boolean);
+const nameLast  = n => { const p=nameParts(n); return p.length>1 ? p.slice(1).join(" ") : (p[0]||""); };
+const nameFirst = n => { const p=nameParts(n); return p.length>1 ? p[0] : ""; };
+const nameLastFirst = n => [nameLast(n), nameFirst(n)].filter(Boolean).join(" ");
+const byLastName = getName => (a,b) => {
+  const na=getName(a)||"", nb=getName(b)||"";
+  return nameLast(na).localeCompare(nameLast(nb),"de") || nameFirst(na).localeCompare(nameFirst(nb),"de");
+};
+// Suche: Teiltreffer in Vor- ODER Nachname, beide Reihenfolgen, ohne Gross-/Kleinschreibung.
+const nameMatches = (n, q) => {
+  const qq=(q||"").trim().toLowerCase(); if(!qq) return true;
+  const nn=(n||"").toLowerCase();
+  return nn.includes(qq) || nameLastFirst(n).toLowerCase().includes(qq);
+};
+// Suchfeld (gleiche Optik wie Chat-Panel .search-wrap) mit ✕ zum Leeren und Trefferzähler.
+const NameSearch = ({value,onChange,shown,total}) => h("div",{style:{marginBottom:14}},
+  h("div",{className:"search-wrap"},
+    h("span",{className:"search-icon"},h(Ic,{name:"search",size:14})),
+    h("input",{className:"search-input",value,onInput:e=>onChange(e.target.value),placeholder:"Nach- oder Vorname suchen…",style:{paddingRight:34}}),
+    value ? h("button",{onClick:()=>onChange(""),title:"Suche leeren",style:{position:"absolute",right:6,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",color:"var(--muted)",display:"flex",padding:6}},h(Ic,{name:"x",size:14})) : null
+  ),
+  h("div",{style:{fontSize:".74rem",color:"var(--muted)",marginTop:6,marginLeft:2}},
+    value.trim() ? (shown+" von "+total+" Coachees") : (total+" Coachees · sortiert nach Nachname"))
+);
+
 function CoacheesPage({coachees,setCoachees,setPage,pending,setPending,deleted,setDeleted}) {
   const [showAdd,setShowAdd]         = useState(false);
   const [form,setForm]               = useState({firstname:"",lastname:"",email:"",notes:"",modell:"",coaching:[],kids:false,gender:[]});
@@ -3667,6 +3696,7 @@ function CoacheesPage({coachees,setCoachees,setPage,pending,setPending,deleted,s
   const [editPendingForm,setEditPendingForm]     = useState({firstname:"",lastname:"",email:"",notes:"",modell:"",coaching:[],gender:[],kids:false});
   const [savingPendingEdit,setSavingPendingEdit] = useState(false);
   const [deletePendingConfirm,setDeletePendingConfirm] = useState(false);
+  const [search,setSearch]           = useState("");
 
   // Fix (03.08.2026, Fund "leere Kreise in der Coachees-Liste"): coaching/gender sind
   // Arrays — ein leeres Array [] ist in JS truthy, daher rendert `c.gender && html...`
@@ -3728,13 +3758,13 @@ function CoacheesPage({coachees,setCoachees,setPage,pending,setPending,deleted,s
     // Zusätzlich: Name-Zeile nur anzeigen, wenn sie sich von der E-Mail unterscheidet —
     // bei Test-Coachees ohne gesetztem displayName war name===email, wodurch dieselbe
     // Adresse optisch doppelt untereinander erschien.
-    deleted.map(d => h("div", {key:d.docId, style:{background:"var(--danger-pale)",border:"0.5px solid var(--danger-border)",borderRadius:14,padding:"14px 16px",marginBottom:10}},
+    [...deleted].filter(d=>nameMatches(d.name||d.email,search)).sort(byLastName(d=>d.name||d.email)).map(d => h("div", {key:d.docId, style:{background:"var(--danger-pale)",border:"0.5px solid var(--danger-border)",borderRadius:14,padding:"14px 16px",marginBottom:10}},
       h("div", {style:{display:"flex",alignItems:"flex-start",gap:12,marginBottom:12}},
         h("div", {style:{width:36,height:36,borderRadius:"50%",background:"var(--danger-border)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}},
           h("span", {style:{fontWeight:700,color:"var(--danger)",fontSize:".85rem"}}, (d.name||d.email||"?").split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase())
         ),
         h("div", {style:{flex:1,minWidth:0}},
-          h("div", {style:{fontWeight:700,color:"var(--text)",fontSize:".9rem"}}, (d.name && d.name.trim() && d.name !== d.email) ? d.name : "Kein Name hinterlegt"),
+          h("div", {style:{fontWeight:700,color:"var(--text)",fontSize:".9rem"}}, (d.name && d.name.trim() && d.name !== d.email) ? nameLastFirst(d.name) : "Kein Name hinterlegt"),
           h("div", {style:{color:"var(--muted)",fontSize:".8rem",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}, d.email||""),
           h("div", {style:{color:"var(--danger)",fontSize:".75rem",marginTop:2}}, "Gelöscht: " + fmtDateTime(d.deletedAt))
         )
@@ -3828,13 +3858,13 @@ function CoacheesPage({coachees,setCoachees,setPage,pending,setPending,deleted,s
       "Noch nicht registriert"
     ),
     h("p", {style:{fontSize:".78rem",color:"var(--muted)",marginBottom:10,marginTop:-4}}, "Diese Coachees haben die Willkommens-E-Mail erhalten, sich aber noch nicht selbst registriert. Sobald sie das tun, werden sie automatisch freigeschaltet."),
-    pending.map(p => h("div", {key:p.docId, onClick:()=>openEditPending(p), style:{background:"var(--surface)",border:"0.5px solid var(--border)",borderRadius:14,padding:"14px 16px",marginBottom:10,cursor:"pointer"}},
+    [...pending].filter(p=>nameMatches(p.name||p.email,search)).sort(byLastName(p=>p.name)).map(p => h("div", {key:p.docId, onClick:()=>openEditPending(p), style:{background:"var(--surface)",border:"0.5px solid var(--border)",borderRadius:14,padding:"14px 16px",marginBottom:10,cursor:"pointer"}},
       h("div", {style:{display:"flex",alignItems:"center",gap:10}},
         h("div", {style:{width:36,height:36,borderRadius:"50%",background:"var(--accent-pale)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}},
           h("span", {style:{fontWeight:700,color:"var(--teal)",fontSize:".85rem"}}, (p.name||"?").split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase())
         ),
         h("div", {style:{flex:1,minWidth:0}},
-          h("div", {style:{fontWeight:700,color:"var(--text)",fontSize:".92rem"}}, p.name||"–"),
+          h("div", {style:{fontWeight:700,color:"var(--text)",fontSize:".92rem"}}, p.name ? nameLastFirst(p.name) : "–"),
           h("div", {style:{color:"var(--muted)",fontSize:".78rem",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}, p.email||"")
         ),
         h(Ic, {name:"edit", size:14, style:{color:"var(--muted)",flexShrink:0}})
@@ -4045,16 +4075,20 @@ function CoacheesPage({coachees,setCoachees,setPage,pending,setPending,deleted,s
         </button>
       </div>
 
+      ${h(NameSearch,{value:search,onChange:setSearch,
+        shown:coachees.filter(c=>nameMatches(c.name,search)).length+(pending||[]).filter(p=>nameMatches(p.name||p.email,search)).length+(deleted||[]).filter(d=>nameMatches(d.name||d.email,search)).length,
+        total:coachees.length+(pending||[]).length+(deleted||[]).length})}
+
       ${deletedSection}
 
       ${pendingSection}
 
       <div class="coachee-grid">
-        ${[...coachees].sort((a,b)=>a.name.localeCompare(b.name,"de")).map(c=>html`
+        ${[...coachees].filter(c=>nameMatches(c.name,search)).sort(byLastName(c=>c.name)).map(c=>html`
           <div key=${c.id} class="coachee-card">
             <div class="coachee-header">
               <div style=${{flex:1,minWidth:0}}>
-                <div class="coachee-name">${c.name}</div>
+                <div class="coachee-name">${nameLastFirst(c.name)}</div>
                 <div class="coachee-topic">${c.topic}</div>
                 ${c.lastSeen&&h("div",{style:{fontSize:".72rem",color:"var(--muted2)",marginTop:1}}, "Aktiv: "+fmtDate(c.lastSeen))}
                 <div class="coachee-meta">
@@ -4070,6 +4104,7 @@ function CoacheesPage({coachees,setCoachees,setPage,pending,setPending,deleted,s
             </div>
           </div>`)}
       </div>
+      ${search.trim() && !coachees.some(c=>nameMatches(c.name,search)) && !(pending||[]).some(p=>nameMatches(p.name||p.email,search)) && !(deleted||[]).some(d=>nameMatches(d.name||d.email,search)) ? h("div",{style:{fontSize:".85rem",color:"var(--muted)",padding:"8px 2px"}},"Keine Coachees gefunden.") : null}
 
       ${showAdd&&html`
         <div class="overlay" onClick=${e=>{if(e.target===e.currentTarget)setShowAdd(false);}}>
@@ -4953,6 +4988,7 @@ function ImpulsBibliothekTab() {
 
 function ImpulsPhasenTab() {
   const [coachees, setCoachees] = useState([]);
+  const [search, setSearch]     = useState("");
   const [loading, setLoading]   = useState(true);
   const [saving, setSaving]     = useState({});
   const [saved, setSaved]       = useState({});
@@ -5325,6 +5361,9 @@ function ImpulsPhasenTab() {
   // gedacht (Stunden-Coachees haben keinen Phasenwechsel-Bedarf) — daher hier gefiltert auf
   // Coachees, die beim Erfassen mit Modell "Package" angelegt wurden.
   const packageCoachees = coachees.filter(c => (c.modell || "").toLowerCase() === "package");
+  // NEU (18.11.2026): Sortierung nach Nachname + Suche (siehe nameLastFirst/byLastName).
+  const getPName = c => c.name || c.email || c.uid;
+  const visibleCoachees = packageCoachees.filter(c => nameMatches(getPName(c), search)).sort(byLastName(getPName));
 
   if (!packageCoachees.length) return html`
     <div class="card" style=${{marginTop:16}}>
@@ -5334,7 +5373,9 @@ function ImpulsPhasenTab() {
   return html`
     <div>
       <p style=${{color:"var(--muted)",fontSize:".9rem",marginBottom:24}}>Wähle Package-Typ und aktive Phase pro Coachee. Nur Package-Coachees werden hier angezeigt.</p>
-      ${packageCoachees.map(c => {
+      ${h(NameSearch,{value:search,onChange:setSearch,shown:visibleCoachees.length,total:packageCoachees.length})}
+      ${search.trim() && !visibleCoachees.length ? h("div",{style:{fontSize:".85rem",color:"var(--muted)",padding:"8px 2px"}},"Keine Coachees gefunden.") : null}
+      ${visibleCoachees.map(c => {
         const phase = c.activePhase || null;
         const baseType = deriveBaseType(c);
         const pkg = c.packageType || baseType;
@@ -5344,7 +5385,7 @@ function ImpulsPhasenTab() {
         const coachingLabel = coachingRaw || "—";
         const isSaving = saving[c.uid];
         const isSaved = saved[c.uid];
-        const name = c.name || c.email || c.uid.slice(0,8);
+        const name = c.name ? nameLastFirst(c.name) : (c.email || c.uid.slice(0,8));
         const interval = INTERVALS[pkg];
         const isStarting = starting[c.uid];
         return html`
