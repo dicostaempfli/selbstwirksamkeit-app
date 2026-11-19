@@ -1,4 +1,4 @@
-<!-- Version: 2026-11-18 16:41 admin -->
+<!-- Version: 2026-11-19 10:58 admin -->
 <!DOCTYPE html>
 <!-- Version: 2026-08-12 17:47 admin -->
 <head>
@@ -1654,6 +1654,14 @@ const docTypeLabel = u => {
   catch(e){ return 'Dokument'; }
 };
 
+// Video-Lücke (19.11.2026): Videos stehen nur als imgSrc (Storage-Adresse) in der Nachricht,
+// ohne file.storagePath — der Speicherpfad wird deshalb aus der Adresse abgelesen.
+const storagePathFromUrl = u => {
+  const m = String(u||"").match(/^https:\/\/firebasestorage\.googleapis\.com\/v0\/b\/[^/]+\/o\/([^?#]+)/);
+  try { return m ? decodeURIComponent(m[1]) : null; } catch(e){ return null; }
+};
+const chatFilePath = data => (data.file && data.file.storagePath) || (data.isVideo ? storagePathFromUrl(data.imgSrc) : null);
+
 const linkifyChat = text => {
   if(!text) return text;
   const out = []; let last = 0; let m;
@@ -2515,7 +2523,7 @@ function DashboardPage({coachees,library,doodles,setPage,user,openSenderFilter,o
       </div>
       <div style=${{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginTop:14,paddingTop:10,paddingBottom:16,borderTop:"1px solid var(--border2)",borderBottom:"1px solid var(--border2)",marginBottom:16,gap:10}}>
         <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.7,lineHeight:1.5}}>
-          <div>App v2026-11-18 16:41 · Doku v3.255</div>
+          <div>App v2026-11-19 10:58 · Doku v3.255</div>
           <div>2026-09-10 13:12</div>
         </div>
         <div style=${{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
@@ -3970,8 +3978,11 @@ function CoacheesPage({coachees,setCoachees,setPage,pending,setPending,deleted,s
       const jobs = [];
       msgsSnap.forEach(d => {
         const data = d.data();
-        if(data.file?.storagePath && fbStorage) {
-          jobs.push(fbStorage.ref(data.file.storagePath).delete().catch(()=>{}));
+        // Nur persönliche Dateien (chats/…) löschen, inkl. Videos; gemeinsame Broadcast-Dateien
+        // (library/broadcast_…) bleiben für die anderen Empfänger erhalten.
+        const fp = chatFilePath(data);
+        if(fp && fp.startsWith("chats/") && fbStorage) {
+          jobs.push(fbStorage.ref(fp).delete().catch(()=>{}));
         }
         jobs.push(d.ref.delete().catch(()=>{}));
       });
