@@ -1,4 +1,4 @@
-<!-- Version: 2026-11-18 12:11 admin -->
+<!-- Version: 2026-11-18 16:41 admin -->
 <!DOCTYPE html>
 <!-- Version: 2026-08-12 17:47 admin -->
 <head>
@@ -1920,9 +1920,7 @@ function LoginPage() {
         </button>
 
         <div style=${{display:"flex",justifyContent:"space-between",marginTop:12,fontSize:".78rem"}}>
-          <button onClick=${()=>{setMode(mode==="login"?"register":"login");setError("");}} style=${{background:"none",border:"none",cursor:"pointer",color:"var(--teal-dark)",fontWeight:700,fontFamily:"'Exo 2',sans-serif",fontSize:".78rem"}}>
-            ${mode==="login"?"Konto erstellen":"Anmelden"}
-          </button>
+          <span></span>
           ${mode==="login"&&html`<button onClick=${doReset} style=${{background:"none",border:"none",cursor:"pointer",color:"var(--muted)",fontFamily:"'Exo 2',sans-serif",fontSize:".78rem",textDecoration:"underline"}}>Passwort vergessen?</button>`}
         </div>
       </div>
@@ -2517,7 +2515,7 @@ function DashboardPage({coachees,library,doodles,setPage,user,openSenderFilter,o
       </div>
       <div style=${{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginTop:14,paddingTop:10,paddingBottom:16,borderTop:"1px solid var(--border2)",borderBottom:"1px solid var(--border2)",marginBottom:16,gap:10}}>
         <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.7,lineHeight:1.5}}>
-          <div>App v2026-11-18 12:11 · Doku v3.255</div>
+          <div>App v2026-11-18 16:41 · Doku v3.255</div>
           <div>2026-09-10 13:12</div>
         </div>
         <div style=${{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
@@ -6068,6 +6066,28 @@ function DoodlePage({doodles,setDoodles,coachees,adminUid}) {
 // Datum-Hilfsfunktionen — cross-browser sicher
 const dateKeyFromTs = ts => { const d=new Date(ts); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); };
 const formatDateKey = key => { try { const p=key.split('-'); const d=new Date(parseInt(p[0]),parseInt(p[1])-1,parseInt(p[2])); const months=['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember']; return d.getDate()+'. '+months[d.getMonth()]+' '+d.getFullYear(); } catch(e){return key;} };
+const ADMIN_UIDS = ["OIRtrOnDYOeAErr60Hfn3VkIujo2","NK9hddh7yMS5xPWaqARDuE3E1CB3"];
+const NoAdminAccess = ({user}) => {
+  const doLogout = () => {
+    const fbAuth = window._fb?.auth||window.firebase?.auth();
+    if(!fbAuth){ window.location.reload(); return; }
+    fbAuth.signOut().catch(()=>{}).finally(()=>window.location.reload());
+  };
+  const btn = {padding:"10px 18px",borderRadius:9,fontFamily:"'Exo 2',sans-serif",fontWeight:700,fontSize:".84rem",cursor:"pointer",textDecoration:"none"};
+  return h("div",{style:{minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",background:"var(--bg)",padding:24}},
+    h("div",{style:{maxWidth:360,width:"100%",display:"flex",flexDirection:"column",alignItems:"center",gap:14,textAlign:"center"}},
+      h(Wordmark,{dark:true,height:48}),
+      h("div",{style:{width:52,height:52,borderRadius:"50%",background:"var(--surface)",display:"flex",alignItems:"center",justifyContent:"center",marginTop:10}},
+        h("svg",{width:24,height:24,viewBox:"0 0 24 24",fill:"none",stroke:"var(--teal)","stroke-width":"1.8","stroke-linecap":"round","stroke-linejoin":"round"},
+          h("rect",{x:4,y:11,width:16,height:10,rx:2}),h("path",{d:"M8 11V7a4 4 0 018 0v4"}))),
+      h("div",{style:{fontFamily:"'Manuale',serif",fontSize:"1.2rem",fontWeight:700,color:"var(--text)"}},"Kein Zugang zum Admin-Portal"),
+      h("div",{style:{fontSize:".88rem",color:"var(--muted)",lineHeight:1.5}},"Dieses Konto ist kein Coach-Konto. Coachees nutzen bitte die normale App."),
+      h("div",{style:{fontSize:".78rem",color:"var(--muted)"}},"Angemeldet als "+(user.email||"unbekannt")),
+      h("div",{style:{display:"flex",gap:8,marginTop:8,flexWrap:"wrap",justifyContent:"center"}},
+        h("button",{onClick:doLogout,style:{...btn,background:"var(--teal)",color:"white",border:"none"}},"Abmelden"),
+        h("a",{href:"./",style:{...btn,background:"none",color:"var(--teal-dark)",border:"0.5px solid var(--border)"}},"Zur Coachee-App"))));
+};
+
 function Root() {
   const [user,setUser]     = useState(null);
   const [ready,setReady]   = useState(false);
@@ -6121,6 +6141,11 @@ function Root() {
     </div>`;
 
   if(!user) return html`<${LoginPage}/>`;
+
+  // NEU 18.11.2026: Nur die zwei Coach-Konten (gleiche UIDs wie isCoach() in den Firestore-Regeln)
+  // sehen das Portal. Andere Konten bekommen einen klaren Hinweis statt leerer Listen.
+  // Reiner Bedienkomfort — die eigentliche Sicherheit liegt weiterhin in den Regeln.
+  if(!ADMIN_UIDS.includes(user.uid)) return h(NoAdminAccess,{user});
 
   return html`<${AdminApp} user=${user}/>`;
 }
