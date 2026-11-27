@@ -1,4 +1,4 @@
-<!-- Version: 2026-11-27 11:56 admin -->
+<!-- Version: 2026-11-27 12:10 admin -->
 <!DOCTYPE html>
 <!-- Version: 2026-08-12 17:47 admin -->
 <head>
@@ -2014,7 +2014,7 @@ const advaFilled = d => !!(d && ((d.title || "").trim() || (d.text || "").trim()
 function AdventPreview({ n, title, text, media, links }) {
   // Spiegelt das geöffnete Türchen in index.html (Variante B, Petrol-Sternenhimmel, zentriert)
   return h("div", { class:"adva-prev-card" },
-    h("div", { class:"adva-prev-glitz" }, "✦"),
+    h("div", { class:"adva-prev-glitz" }, "★"),
     h("div", { class:"adva-prev-num" }, String(n)),
     h("div", { class:"adva-prev-meta" }, n + ". Dezember"),
     h("div", { class:"adva-prev-title" }, title || "Titel"),
@@ -2823,7 +2823,7 @@ function DashboardPage({coachees,library,doodles,setPage,user,openSenderFilter,o
       </div>
       <div style=${{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginTop:14,paddingTop:10,paddingBottom:16,borderTop:"1px solid var(--border2)",borderBottom:"1px solid var(--border2)",marginBottom:16,gap:10}}>
         <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.7,lineHeight:1.5}}>
-          <div>App v2026-11-27 11:56 · Doku v3.256</div>
+          <div>App v2026-11-27 12:10 · Doku v3.256</div>
           <div>2026-09-10 13:12</div>
         </div>
         <div style=${{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
