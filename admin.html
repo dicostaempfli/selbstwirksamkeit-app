@@ -1,4 +1,4 @@
-<!-- Version: 2026-11-19 10:58 admin -->
+<!-- Version: 2026-11-27 08:20 admin -->
 <!DOCTYPE html>
 <!-- Version: 2026-08-12 17:47 admin -->
 <head>
@@ -12,7 +12,7 @@
   <meta http-equiv="Expires" content="0">
 <meta charset="UTF-8"/>
 <!-- Content-Security-Policy (Sicherheitsbericht Befund 2, 17.11.2026): erlaubte Quellen fest vorgegeben. Neue externe Quelle = hier ergänzen. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://firebasestorage.googleapis.com https://www.google.com https://*.gstatic.com https://*.googleusercontent.com; media-src 'self' data: blob: https://firebasestorage.googleapis.com; connect-src 'self' data: blob: https://firestore.googleapis.com https://firebasestorage.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src 'self' blob:; worker-src 'self'; manifest-src 'self' data: blob:; object-src 'none'; base-uri 'self'; form-action 'self'"/>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://firebasestorage.googleapis.com https://www.google.com https://*.gstatic.com https://*.googleusercontent.com https://i.ytimg.com; media-src 'self' data: blob: https://firebasestorage.googleapis.com; connect-src 'self' data: blob: https://firestore.googleapis.com https://firebasestorage.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; frame-src 'self' blob:; worker-src 'self'; manifest-src 'self' data: blob:; object-src 'none'; base-uri 'self'; form-action 'self'"/>
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
 <meta http-equiv="Pragma" content="no-cache"/>
 <meta http-equiv="Expires" content="0"/>
@@ -745,6 +745,57 @@ window.addEventListener('orientationchange', ()=>setTimeout(setVH,150));
   .sub-tab:hover:not(.active){border-color:var(--teal);color:var(--forest)}
   /* toast */
   .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--forest);color:white;padding:12px 20px;border-radius:10px;font-size:.85rem;font-weight:600;z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,.2);transition:opacity .3s;pointer-events:none}
+
+  /* ── Adventskalender Coachees — Pflege (NEU 27.11.2026) ── */
+  .adva-sub { font-size:.82rem; color:var(--muted); margin:0 0 16px; }
+  .adva-layout { display:grid; grid-template-columns:1fr; gap:16px; align-items:start; }
+  .adva-col { margin-bottom:0; min-width:0; }
+  .adva-lb { font-size:.69rem; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.6px; margin:14px 0 6px; }
+  .adva-hint { font-size:.74rem; color:var(--muted); margin-top:6px; }
+  .adva-err { font-size:.76rem; color:#993C1D; margin-top:6px; }
+  .adva-doors { display:grid; grid-template-columns:repeat(6,1fr); gap:6px; }
+  .adva-door { border:1px solid var(--border2); background:var(--surface); border-radius:8px; padding:6px 2px; font-family:'Exo 2'; font-size:.68rem; color:var(--muted); cursor:pointer; text-align:center; }
+  .adva-door b { display:block; font-family:'Manuale',serif; font-size:1rem; color:var(--text); }
+  .adva-door-ok { background:#e6f1ee; border-color:var(--teal); }
+  .adva-door-ok b { color:var(--teal); }
+  .adva-door-sel { outline:2px solid #e3c27a; outline-offset:1px; }
+  .adva-dhead { font-family:'Manuale',serif; font-size:1.05rem; font-weight:700; color:var(--text); }
+  .adva-in { width:100%; box-sizing:border-box; font-family:'Exo 2'; }
+  textarea.adva-in { resize:vertical; line-height:1.5; }
+  .adva-media { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+  .adva-thumb { position:relative; width:84px; height:62px; border-radius:8px; overflow:visible; background:#8fb0aa; }
+  .adva-thumb img, .adva-thumb video { width:100%; height:100%; object-fit:cover; border-radius:8px; display:block; }
+  .adva-x { position:absolute; top:-7px; right:-7px; width:20px; height:20px; border-radius:50%; border:1px solid var(--border2); background:var(--surface); color:var(--text); font-size:.8rem; line-height:1; cursor:pointer; padding:0; }
+  .adva-add { width:auto; }
+  .adva-linkrow { display:flex; gap:10px; align-items:center; padding:8px 0; border-bottom:1px solid var(--border); }
+  .adva-linkcov { width:64px; height:40px; border-radius:6px; background:#0f4f4f; color:#e3c27a; flex-shrink:0; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+  .adva-linkcov img { width:100%; height:100%; object-fit:cover; display:block; }
+  .adva-linktxt { flex:1; min-width:0; font-size:.8rem; }
+  .adva-linktxt a { color:var(--teal); display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .adva-linkbtns { display:flex; gap:4px; flex-shrink:0; flex-wrap:wrap; justify-content:flex-end; }
+  .adva-linkadd { display:flex; gap:8px; margin-top:8px; }
+  .adva-linkadd .btn { flex-shrink:0; }
+  .adva-actions { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:18px; }
+  .adva-danger { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; margin-top:16px; }
+  .adva-prev-card { background:#0f4f4f; border-radius:16px; padding:14px; color:#f3ead2; font-family:'Exo 2'; text-align:center; }
+  .adva-prev-glitz { color:#e3c27a; font-size:13px; line-height:1; }
+  .adva-prev-num { width:44px; height:44px; margin:6px auto 8px; border-radius:9px; background:#e3c27a; color:#0f4f4f; font-family:'Manuale',serif; font-size:1.3rem; display:flex; align-items:center; justify-content:center; box-shadow:0 0 14px 4px rgba(227,194,122,.55), 0 0 30px 8px rgba(227,194,122,.22); }
+  .adva-prev-meta { font-size:.7rem; color:#bcd8d3; }
+  .adva-prev-title { font-family:'Manuale',serif; font-size:1.1rem; color:#e3c27a; margin:2px 0 10px; }
+  .adva-prev-media { position:relative; margin-bottom:10px; }
+  .adva-prev-media img, .adva-prev-media video { display:block; width:100%; border-radius:10px; background:#145c5c; border:1px solid rgba(227,194,122,.6); box-sizing:border-box; }
+  .adva-prev-cover { position:relative; aspect-ratio:16/9; border-radius:10px; overflow:hidden; background:#145c5c; border:1px solid rgba(227,194,122,.6); }
+  .adva-prev-cover img { width:100%; height:100%; object-fit:cover; border-radius:0; border:none; }
+  .adva-page .btn:disabled { opacity:.5; cursor:default; }
+  .adva-prev-play { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); width:42px; height:42px; border-radius:50%; background:rgba(15,79,79,.85); border:1.5px solid #e3c27a; color:#e3c27a; display:flex; align-items:center; justify-content:center; font-size:14px; }
+  .adva-prev-link { height:110px; border-radius:10px; background:rgba(255,255,255,.05); border:1px solid rgba(227,194,122,.45); color:#e3c27a; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; font-family:'Manuale',serif; font-size:.95rem; }
+  .adva-prev-src { font-size:.68rem; color:#bcd8d3; margin-top:4px; }
+  .adva-prev-text { font-size:.84rem; line-height:1.5; white-space:pre-wrap; }
+  .adva-prev-btn { display:inline-block; border:1px solid rgba(227,194,122,.45); color:#e3c27a; border-radius:20px; padding:6px 16px; margin-top:12px; font-size:.78rem; }
+  @media (min-width: 1100px) {
+    .adva-layout { grid-template-columns:260px minmax(0,1fr) 280px; }
+    .adva-doors { grid-template-columns:repeat(4,1fr); }
+  }
 
 
   /* ── CRISP POSITION FIX (mobile) ── */
@@ -1812,6 +1863,7 @@ const IC = {
   camera:["M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z","M12 17A4 4 0 1012 9a4 4 0 000 8z"],
   upload:["M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4","M17 8l-5-5-5 5","M12 3v12"],
   play:["M5 3l14 9-14 9V3z"],
+  star:["M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"],
   headphones:["M3 18v-6a9 9 0 0118 0v6","M21 19a2 2 0 01-2 2h-1a2 2 0 01-2-2v-3a2 2 0 012-2h3zM3 19a2 2 0 002 2h1a2 2 0 002-2v-3a2 2 0 00-2-2H3z"],
   video:["M23 7l-7 5 7 5V7z","M1 5h15a2 2 0 012 2v10a2 2 0 01-2 2H1a2 2 0 01-2-2V7a2 2 0 012-2z"],
   file:["M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z","M14 2v6h6","M16 13H8","M16 17H8","M10 9H8"],
@@ -1936,7 +1988,244 @@ function LoginPage() {
 }
 
 // ── MAIN APP ──
-const ADMIN_HASH_TO_PAGE = { chat: "chat", doodle: "doodle", library: "library", impuls: "impuls", coachees: "coachees" };
+// ── ADVENTSKALENDER COACHEES — Pflege (NEU 27.11.2026) ──
+// 24 Türchen in advent_coachees/{1..24}: title, text, media[{type,url,storagePath}],
+// links[{url,ytId?,coverUrl?,coverPath?}], openAt (Timestamp 06:00 Zürich, automatisch),
+// updatedAt. Medien in Storage advent_coachees/{n}/… (Rules: nur Coaches).
+// Fotos/Videos/Cover werden beim Hochladen sofort ins Dokument geschrieben (kein verwaistes
+// Storage-Objekt bei vergessenem «Speichern»); Titel/Text erst mit «Speichern».
+// Coachee-App (index.html) zeigt ein Türchen erst ab openAt (Firestore-Rule, Serverzeit).
+// Automatisches Löschen am 26.12. 00:05 per Cloud Function cleanupAdventCoachees.
+// Nur mit h() gebaut (htm-Pitfall).
+const ADVA_MAX_IMG = 25 * 1024 * 1024, ADVA_MAX_VID = 100 * 1024 * 1024;
+const ADVA_WD = ["So","Mo","Di","Mi","Do","Fr","Sa"];
+const advaYear = () => +new Intl.DateTimeFormat("en-CA", { timeZone:"Europe/Zurich", year:"numeric" }).format(new Date());
+const advaOpenMs = (y, n) => Date.UTC(y, 11, n, 5, 0, 0); // 06:00 Zürich (MEZ) = 05:00 UTC
+const advaYtId = u => { const m = /(?:youtube\.com\/(?:watch\?(?:[^#]*&)?v=|shorts\/|embed\/|live\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/.exec(u || ""); return m ? m[1] : null; };
+const advaHost = u => { try { return new URL(u).hostname.replace(/^www\./, ""); } catch(e) { return ""; } };
+const advaSafeName = n => (n || "Datei").replace(/[^a-zA-Z0-9._-]/g, "_").slice(-80);
+const advaFilled = d => !!(d && ((d.title || "").trim() || (d.text || "").trim() || (d.media || []).length || (d.links || []).length));
+
+function AdventPreview({ n, title, text, media, links }) {
+  // Spiegelt das geöffnete Türchen in index.html (Variante B, Petrol-Sternenhimmel, zentriert)
+  return h("div", { class:"adva-prev-card" },
+    h("div", { class:"adva-prev-glitz" }, "✦"),
+    h("div", { class:"adva-prev-num" }, String(n)),
+    h("div", { class:"adva-prev-meta" }, n + ". Dezember"),
+    h("div", { class:"adva-prev-title" }, title || "Titel"),
+    media.map((m, i) => h("div", { key:"m"+i, class:"adva-prev-media" },
+      m.type === "video" ? h("video", { src:m.url, controls:true, playsInline:true, preload:"metadata" }) : h("img", { src:m.url, alt:"" }))),
+    links.map((l, i) => {
+      const cover = l.coverUrl || (l.ytId ? "https://i.ytimg.com/vi/" + l.ytId + "/hqdefault.jpg" : null);
+      return h("div", { key:"l"+i, class:"adva-prev-media" },
+        cover ? h("div", { class:"adva-prev-cover" }, h("img", { src:cover, alt:"" }), l.ytId && h("span", { class:"adva-prev-play" }, "▶"))
+              : h("div", { class:"adva-prev-link" }, h(Ic, { name:"link", size:22 }), h("span", null, advaHost(l.url))),
+        h("div", { class:"adva-prev-src" }, advaHost(l.url) + (l.ytId ? " · öffnet in YouTube" : " · Tippen öffnet den Link")));
+    }),
+    h("div", { class:"adva-prev-text" }, text || "Text des Türchens"),
+    h("div", { class:"adva-prev-btn" }, "★ Schliessen ★"));
+}
+
+function AdventAdminPage() {
+  const year = advaYear();
+  const [docs, setDocs] = useState({});
+  const [loaded, setLoaded] = useState(false);
+  const [sel, setSel] = useState(1);
+  const [title, setTitle] = useState("");
+  const [text, setText] = useState("");
+  const [dirty, setDirty] = useState(false);
+  const [busy, setBusy] = useState("");
+  const [linkUrl, setLinkUrl] = useState("");
+  const [linkErr, setLinkErr] = useState("");
+  const fileRef = useRef(null);
+  const coverRef = useRef(null);
+  const coverIdx = useRef(-1);
+
+  useEffect(() => {
+    const fs = db(); if (!fs) return;
+    return fs.collection("advent_coachees").onSnapshot(snap => {
+      const m = {}; snap.docs.forEach(d => { m[d.id] = d.data(); });
+      setDocs(m); setLoaded(true);
+    }, err => { setLoaded(true); showToast("✗ Adventskalender konnte nicht geladen werden: " + (err.code || err.message)); });
+  }, []);
+
+  const cur = docs[String(sel)] || {};
+  const media = cur.media || [];
+  const links = cur.links || [];
+  // Formular beim Wechsel des Türchens bzw. nach dem ersten Laden neu befüllen
+  useEffect(() => { setTitle(cur.title || ""); setText(cur.text || ""); setDirty(false); setLinkUrl(""); setLinkErr(""); }, [sel, loaded]);
+
+  const base = n => ({ door:n, openAt:window.firebase.firestore.Timestamp.fromMillis(advaOpenMs(year, n)), updatedAt:Date.now() });
+  const write = (patch) => db().collection("advent_coachees").doc(String(sel)).set({ ...base(sel), ...patch }, { merge:true });
+  const delFile = p => p ? window._fb.storage.ref(p).delete().catch(e => { if (e.code !== "storage/object-not-found") throw e; }) : Promise.resolve();
+
+  const choose = n => {
+    if (n === sel) return;
+    if (dirty && !window.confirm("Titel/Text von Türchen " + sel + " sind noch nicht gespeichert. Verwerfen?")) return;
+    setSel(n);
+  };
+  const save = async () => {
+    setBusy("Speichere…");
+    try { await write({ title:title.trim(), text:text.trim() }); setDirty(false); showToast("✓ Türchen " + sel + " gespeichert"); }
+    catch(e) { showToast("✗ Speichern fehlgeschlagen: " + (e.code || e.message)); }
+    setBusy("");
+  };
+  const upload = async (file, prefix) => {
+    const isVid = /^video\//.test(file.type), isImg = /^image\//.test(file.type);
+    if (!isVid && !isImg) throw new Error("Nur Fotos oder Videos");
+    if (file.size > (isVid ? ADVA_MAX_VID : ADVA_MAX_IMG)) throw new Error(isVid ? "Video grösser als 100 MB" : "Foto grösser als 25 MB");
+    const path = "advent_coachees/" + sel + "/" + prefix + Date.now() + "_" + advaSafeName(file.name);
+    const ref = window._fb.storage.ref(path);
+    await ref.put(file, { contentType:file.type });
+    return { type:isVid ? "video" : "image", url:await ref.getDownloadURL(), storagePath:path };
+  };
+  const addMedia = async e => {
+    const files = Array.from(e.target.files || []); e.target.value = "";
+    if (!files.length) return;
+    const next = media.slice();
+    for (let i = 0; i < files.length; i++) {
+      setBusy("Lade hoch " + (i + 1) + "/" + files.length + "…");
+      try { next.push(await upload(files[i], "")); await write({ media:next }); }
+      catch(err) { showToast("✗ " + files[i].name + ": " + (err.code || err.message)); }
+    }
+    setBusy("");
+  };
+  const removeMedia = async i => {
+    if (!window.confirm("Diese Datei aus Türchen " + sel + " entfernen?")) return;
+    setBusy("Entferne…");
+    try { await delFile(media[i].storagePath); await write({ media:media.filter((_, k) => k !== i) }); }
+    catch(e) { showToast("✗ Entfernen fehlgeschlagen: " + (e.code || e.message)); }
+    setBusy("");
+  };
+  const addLink = async () => {
+    const u = linkUrl.trim();
+    if (!/^https:\/\/[^\s]+\.[^\s]+$/i.test(u)) { setLinkErr("Bitte eine vollständige Adresse mit https:// einfügen"); return; }
+    const l = { url:u }; const yt = advaYtId(u); if (yt) l.ytId = yt;
+    setBusy("Speichere Link…");
+    try { await write({ links:links.concat([l]) }); setLinkUrl(""); setLinkErr(""); }
+    catch(e) { showToast("✗ Link konnte nicht gespeichert werden: " + (e.code || e.message)); }
+    setBusy("");
+  };
+  const removeLink = async i => {
+    if (!window.confirm("Diesen Link aus Türchen " + sel + " entfernen?")) return;
+    setBusy("Entferne…");
+    try { await delFile(links[i].coverPath); await write({ links:links.filter((_, k) => k !== i) }); }
+    catch(e) { showToast("✗ Entfernen fehlgeschlagen: " + (e.code || e.message)); }
+    setBusy("");
+  };
+  const pickCover = i => { coverIdx.current = i; coverRef.current && coverRef.current.click(); };
+  const setCover = async e => {
+    const f = (e.target.files || [])[0]; e.target.value = ""; const i = coverIdx.current;
+    if (!f || i < 0 || !links[i]) return;
+    if (!/^image\//.test(f.type)) { showToast("✗ Cover muss ein Foto sein"); return; }
+    setBusy("Lade Cover hoch…");
+    try {
+      const up = await upload(f, "cover_");
+      const old = links[i].coverPath;
+      await write({ links:links.map((l, k) => k === i ? { ...l, coverUrl:up.url, coverPath:up.storagePath } : l) });
+      await delFile(old);
+    } catch(err) { showToast("✗ Cover: " + (err.code || err.message)); }
+    setBusy("");
+  };
+  const removeCover = async i => {
+    setBusy("Entferne Cover…");
+    try {
+      await delFile(links[i].coverPath);
+      await write({ links:links.map((l, k) => { if (k !== i) return l; const c = { ...l }; delete c.coverUrl; delete c.coverPath; return c; }) });
+    } catch(e) { showToast("✗ " + (e.code || e.message)); }
+    setBusy("");
+  };
+  const clearDoor = async () => {
+    if (!window.confirm("Türchen " + sel + " komplett leeren (Titel, Text, Fotos, Videos, Links)?")) return;
+    setBusy("Leere Türchen…");
+    try {
+      await Promise.all(media.map(m => delFile(m.storagePath)).concat(links.map(l => delFile(l.coverPath))));
+      await db().collection("advent_coachees").doc(String(sel)).delete();
+      setTitle(""); setText(""); setDirty(false); showToast("✓ Türchen " + sel + " geleert");
+    } catch(e) { showToast("✗ Leeren fehlgeschlagen: " + (e.code || e.message)); }
+    setBusy("");
+  };
+  const deleteAll = async () => {
+    if (!window.confirm("ALLE Inhalte des Adventskalenders löschen (24 Türchen, alle Fotos, Videos und Links)? Das kann nicht rückgängig gemacht werden.")) return;
+    if (!window.confirm("Wirklich alles löschen?")) return;
+    setBusy("Lösche alles…");
+    try {
+      // Dateien über die gespeicherten Pfade löschen (Storage-Rules erlauben kein Auflisten),
+      // danach alle Dokumente. Allfällige Reste räumt cleanupAdventCoachees (26.12.) per Prefix weg.
+      const snap = await db().collection("advent_coachees").get();
+      const paths = [];
+      snap.docs.forEach(d => { const x = d.data(); (x.media || []).forEach(m => paths.push(m.storagePath)); (x.links || []).forEach(l => paths.push(l.coverPath)); });
+      await Promise.all(paths.filter(Boolean).map(delFile));
+      const batch = db().batch(); snap.docs.forEach(d => batch.delete(d.ref)); await batch.commit();
+      setTitle(""); setText(""); setDirty(false); showToast("✓ Alle Inhalte des Adventskalenders gelöscht");
+    } catch(e) { showToast("✗ Löschen fehlgeschlagen: " + (e.code || e.message)); }
+    setBusy("");
+  };
+
+  const filledCount = Object.keys(docs).filter(k => advaFilled(docs[k])).length;
+  const wd = ADVA_WD[new Date(Date.UTC(year, 11, sel, 12)).getUTCDay()];
+  const isBusy = !!busy;
+
+  return h("div", { class:"adva-page" },
+    h("h1", { class:"page-title", style:{ marginBottom:4 } }, "Adventskalender " + year),
+    h("div", { class:"adva-sub" }, "Für alle Coachees sichtbar vom 1. bis 25.12. · Türchen öffnen um 06:00 · " + filledCount + " von 24 gefüllt"),
+    h("div", { class:"adva-layout" },
+      h("div", { class:"card adva-col" },
+        h("div", { class:"adva-lb", style:{ marginTop:0 } }, "Türchen"),
+        h("div", { class:"adva-doors" },
+          Array.from({ length:24 }, (_, k) => k + 1).map(n => h("button", {
+            key:n, type:"button",
+            class:"adva-door" + (advaFilled(docs[String(n)]) ? " adva-door-ok" : "") + (n === sel ? " adva-door-sel" : ""),
+            onClick:() => choose(n)
+          }, h("b", null, n), n + ".12."))),
+        h("div", { class:"adva-hint" }, "Grün = gefüllt")),
+      h("div", { class:"card adva-col" },
+        h("div", { class:"adva-dhead" }, "Türchen " + sel + " · " + wd + ", " + sel + ". Dezember"),
+        h("div", { class:"adva-hint", style:{ marginTop:0 } }, "Öffnet am " + sel + ".12. um 06:00"),
+        h("div", { class:"adva-lb" }, "Titel"),
+        h("input", { class:"input-box adva-in", value:title, maxLength:120, placeholder:"z. B. Innehalten", onInput:e => { setTitle(e.target.value); setDirty(true); } }),
+        h("div", { class:"adva-lb" }, "Text"),
+        h("textarea", { class:"input-box adva-in", rows:6, value:text, maxLength:4000, placeholder:"Was erwartet die Coachees hinter diesem Türchen?", onInput:e => { setText(e.target.value); setDirty(true); } }),
+        h("div", { class:"adva-lb" }, "Fotos / Videos (optional)"),
+        h("div", { class:"adva-media" },
+          media.map((m, i) => h("div", { key:i, class:"adva-thumb" },
+            m.type === "video" ? h("video", { src:m.url, muted:true, playsInline:true, preload:"metadata" }) : h("img", { src:m.url, alt:"" }),
+            h("button", { type:"button", class:"adva-x", title:"Entfernen", disabled:isBusy, onClick:() => removeMedia(i) }, "×"))),
+          h("button", { type:"button", class:"btn btn-ghost btn-sm adva-add", disabled:isBusy, onClick:() => fileRef.current && fileRef.current.click() }, h(Ic, { name:"upload", size:14 }), "Foto / Video"),
+          h("input", { ref:fileRef, type:"file", accept:"image/*,video/*", multiple:true, style:{ display:"none" }, onChange:addMedia })),
+        h("div", { class:"adva-hint" }, "Fotos bis 25 MB, Videos bis 100 MB. Werden sofort gespeichert."),
+        h("div", { class:"adva-lb" }, "Links (optional, z. B. YouTube)"),
+        links.map((l, i) => h("div", { key:i, class:"adva-linkrow" },
+          h("div", { class:"adva-linkcov" },
+            (l.coverUrl || l.ytId) ? h("img", { src:l.coverUrl || ("https://i.ytimg.com/vi/" + l.ytId + "/hqdefault.jpg"), alt:"" }) : h(Ic, { name:"link", size:18 })),
+          h("div", { class:"adva-linktxt" },
+            h("a", { href:l.url, target:"_blank", rel:"noopener noreferrer" }, l.url),
+            h("div", { class:"adva-hint", style:{ marginTop:2 } }, l.coverUrl ? "Eigenes Cover" : l.ytId ? "YouTube-Cover automatisch" : "Ohne Cover (Linkkarte)")),
+          h("div", { class:"adva-linkbtns" },
+            h("button", { type:"button", class:"btn btn-ghost btn-sm", disabled:isBusy, onClick:() => pickCover(i) }, l.coverUrl ? "Cover ändern" : "Eigenes Cover"),
+            l.coverUrl && h("button", { type:"button", class:"btn btn-ghost btn-sm", disabled:isBusy, onClick:() => removeCover(i) }, "Cover weg"),
+            h("button", { type:"button", class:"btn btn-ghost btn-sm", disabled:isBusy, onClick:() => removeLink(i) }, h(Ic, { name:"trash", size:13 }))))),
+        h("input", { ref:coverRef, type:"file", accept:"image/*", style:{ display:"none" }, onChange:setCover }),
+        h("div", { class:"adva-linkadd" },
+          h("input", { class:"input-box adva-in", type:"url", inputMode:"url", value:linkUrl, placeholder:"https://www.youtube.com/watch?v=…", onInput:e => { setLinkUrl(e.target.value); setLinkErr(""); }, onKeyDown:e => { if (e.key === "Enter") { e.preventDefault(); addLink(); } } }),
+          h("button", { type:"button", class:"btn btn-ghost btn-sm", disabled:isBusy || !linkUrl.trim(), onClick:addLink }, h(Ic, { name:"plus", size:14 }), "Link")),
+        linkErr && h("div", { class:"adva-err" }, linkErr),
+        h("div", { class:"adva-actions" },
+          h("button", { type:"button", class:"btn btn-primary", disabled:isBusy || !dirty, onClick:save }, h(Ic, { name:"check", size:14 }), "Speichern"),
+          h("button", { type:"button", class:"btn btn-ghost", disabled:isBusy || !advaFilled(cur), onClick:clearDoor }, "Türchen leeren"),
+          busy && h("span", { class:"adva-hint", style:{ margin:0 } }, busy),
+          !busy && dirty && h("span", { class:"adva-hint", style:{ margin:0, color:"#993C1D" } }, "Nicht gespeichert"))),
+      h("div", { class:"adva-col" },
+        h("div", { class:"adva-lb", style:{ marginTop:0 } }, "Vorschau"),
+        h(AdventPreview, { n:sel, title:title.trim(), text:text.trim(), media, links }))),
+    h("div", { class:"card adva-danger" },
+      h("div", null,
+        h("div", { style:{ fontWeight:700 } }, "Inhalte löschen"),
+        h("div", { class:"adva-hint", style:{ marginTop:2 } }, "Automatisch am 26.12. um 00:05. Hier sofort, mit Bestätigung.")),
+      h("button", { type:"button", class:"btn btn-danger", disabled:isBusy, onClick:deleteAll }, h(Ic, { name:"trash", size:14 }), "Alle Inhalte jetzt löschen")));
+}
+
+const ADMIN_HASH_TO_PAGE = { chat: "chat", doodle: "doodle", library: "library", impuls: "impuls", coachees: "coachees", advent: "advent" };
 
 function AdminApp({user}) {
   const [page,setPage] = useState("dashboard");
@@ -2320,6 +2609,8 @@ function AdminApp({user}) {
     {id:"coachees",icon:"users",label:"Coachees",badge:pending.length+deleted.length},
     {id:"library",icon:"library",label:"Mediathek"},
     {id:"impuls",icon:"impuls",label:"Impulse"},
+    // NEU 27.11.2026: Adventskalender — nur Oktober bis Dezember in der Navigation (saisonal)
+    ...(new Date().getMonth()>=9 ? [{id:"advent",icon:"star",label:"Advent"}] : []),
     {id:"doodle",icon:"calendar",label:"Termine",badge:doodleUnread},
     {id:"errors",icon:"alert",label:"Fehler-Log",badge:openErrorCount},
   ];
@@ -2456,6 +2747,7 @@ function AdminApp({user}) {
         ${page==="coachees"&&html`<${CoacheesPage} coachees=${coachees} setCoachees=${setCoachees} setPage=${setPage} pending=${pending} setPending=${setPending} deleted=${deleted} setDeleted=${setDeleted}/>`}
         ${page==="library"&&html`<${LibraryPage} library=${library} setLibrary=${setLibrary}/>`}
         ${page==="impuls"&&html`<${ImpulsAdminPage}/>`}
+        ${page==="advent"&&h(AdventAdminPage, null)}
         ${page==="doodle"&&html`<${DoodlePage} doodles=${doodles} setDoodles=${setDoodles} coachees=${coachees} adminUid=${user?.uid}/>`}
         ${page==="errors"&&html`<${ErrorLogPage} errorLogs=${errorLogs}/>`}
       </div>
@@ -2523,7 +2815,7 @@ function DashboardPage({coachees,library,doodles,setPage,user,openSenderFilter,o
       </div>
       <div style=${{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginTop:14,paddingTop:10,paddingBottom:16,borderTop:"1px solid var(--border2)",borderBottom:"1px solid var(--border2)",marginBottom:16,gap:10}}>
         <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.7,lineHeight:1.5}}>
-          <div>App v2026-11-19 10:58 · Doku v3.255</div>
+          <div>App v2026-11-27 08:20 · Doku v3.255</div>
           <div>2026-09-10 13:12</div>
         </div>
         <div style=${{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
