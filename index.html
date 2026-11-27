@@ -1,4 +1,4 @@
-<!-- Version: 2026-11-19 10:58 coachee -->
+<!-- Version: 2026-11-27 07:56 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <!DOCTYPE html>
@@ -739,6 +739,47 @@
   .quote-block::before { content:''; }
   .quote-text { font-family:'Manuale',serif; font-size:1.15rem; font-style:italic; line-height:1.65; color:#fff; text-align:center; }
   .quote-author { font-size:.74rem; color:rgba(255,255,255,.85); margin-top:8px; font-weight:700; text-align:center; }
+
+  /* ── Adventskalender Coachees (NEU 27.11.2026) — sichtbar 1.–25.12. anstelle des Zitats ── */
+  .adv-card { background:#0f4f4f; border-radius:var(--radius); padding:14px 12px 16px; margin-bottom:18px; position:relative; overflow:hidden; text-align:center; cursor:pointer; -webkit-tap-highlight-color:transparent; font-family:'Exo 2',sans-serif; }
+  .adv-sky { position:absolute; inset:0; pointer-events:none; overflow:hidden; }
+  .adv-tw { position:absolute; color:#e3c27a; animation:adv-tw 2.6s ease-in-out infinite; }
+  .adv-tw svg { display:block; width:1em; height:1em; }
+  @keyframes adv-tw { 0%,100% { opacity:.25; transform:scale(.8); } 50% { opacity:.95; transform:scale(1.15); } }
+  .adv-sn { position:absolute; top:-6px; width:3px; height:3px; border-radius:50%; background:#f3ead2; opacity:.5; animation:adv-fall-s linear infinite; }
+  .adv-ov .adv-sn { animation-name:adv-fall-l; }
+  @keyframes adv-fall-s { to { transform:translateY(280px); } }
+  @keyframes adv-fall-l { to { transform:translateY(110vh); } }
+  .adv-rel { position:relative; }
+  .adv-glitz { color:#e3c27a; display:flex; justify-content:center; position:relative; }
+  .adv-title { font-family:'Manuale',serif; font-weight:500; color:#e3c27a; font-size:1.1rem; position:relative; margin-top:2px; }
+  .adv-sub { color:#bcd8d3; font-size:.74rem; position:relative; margin-top:1px; }
+  .adv-pill { display:inline-flex; align-items:center; gap:5px; border:1px solid rgba(227,194,122,.45); color:#e3c27a; border-radius:20px; padding:4px 11px; font-size:.74rem; position:relative; }
+  .adv-door { border-radius:10px; display:flex; align-items:center; justify-content:center; font-family:'Manuale',serif; position:relative; box-sizing:border-box; }
+  .adv-door-today { background:#e3c27a; color:#0f4f4f; box-shadow:0 0 14px 4px rgba(227,194,122,.55), 0 0 30px 8px rgba(227,194,122,.22); }
+  .adv-door-open { border:1px solid rgba(227,194,122,.6); color:#e3c27a; background:rgba(255,255,255,.05); }
+  .adv-door-next { border:1px solid rgba(227,194,122,.2); color:rgba(243,234,210,.4); }
+  .adv-door-big { width:68px; height:68px; margin:12px auto; font-size:1.65rem; }
+  .adv-door-ico { position:absolute; display:flex; }
+  .adv-ov { position:fixed; inset:0; z-index:9999; background:#0f4f4f; overflow-y:auto; -webkit-overflow-scrolling:touch; overscroll-behavior:contain; font-family:'Exo 2',sans-serif; color:#f3ead2; }
+  .adv-ov-inner { position:relative; max-width:440px; margin:0 auto; padding:calc(env(safe-area-inset-top) + 22px) 16px calc(env(safe-area-inset-bottom) + 28px); text-align:center; }
+  .adv-close { position:absolute; top:calc(env(safe-area-inset-top) + 12px); right:12px; width:40px; height:40px; border-radius:50%; border:1px solid rgba(227,194,122,.35); background:rgba(15,79,79,.6); color:#e3c27a; display:flex; align-items:center; justify-content:center; cursor:pointer; z-index:2; padding:0; }
+  .adv-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; position:relative; margin-top:16px; }
+  .adv-grid .adv-door { aspect-ratio:1/1; font-size:1.05rem; border-radius:10px; }
+  .adv-door-btn { cursor:pointer; -webkit-tap-highlight-color:transparent; }
+  .adv-dov { position:fixed; inset:0; z-index:10000; background:rgba(8,40,40,.72); display:flex; align-items:center; justify-content:center; padding:calc(env(safe-area-inset-top) + 16px) 16px calc(env(safe-area-inset-bottom) + 16px); }
+  .adv-dcard { background:#f5ecd9; border-radius:16px; padding:14px; width:100%; max-width:380px; max-height:100%; overflow-y:auto; -webkit-overflow-scrolling:touch; overscroll-behavior:contain; color:#1d3a3a; font-family:'Exo 2',sans-serif; text-align:left; position:relative; }
+  .adv-media { position:relative; margin-bottom:10px; }
+  .adv-media img, .adv-media video { display:block; width:100%; border-radius:10px; background:#8fb0aa; }
+  .adv-media-star { position:absolute; top:-8px; right:-6px; color:#e3c27a; display:flex; }
+  .adv-dmeta { font-size:.72rem; color:#9a8656; }
+  .adv-dtitle { font-family:'Manuale',serif; font-size:1.15rem; font-weight:600; color:#0f4f4f; margin:2px 0 6px; }
+  .adv-dtext { font-size:.9rem; line-height:1.55; white-space:pre-wrap; }
+  .adv-dbtn { display:block; width:100%; margin-top:14px; background:#0f4f4f; color:#e3c27a; border:none; border-radius:10px; padding:11px; font-family:'Exo 2',sans-serif; font-size:.9rem; font-weight:600; cursor:pointer; }
+  @media (prefers-reduced-motion: reduce) {
+    .adv-tw { animation:none; opacity:.6; }
+    .adv-sn { display:none; }
+  }
 
   /* Section label */
   .section-label { font-size:.69rem; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.7px; margin-bottom:8px; margin-top:2px; display:flex; align-items:center; gap:7px; }
@@ -3765,6 +3806,9 @@ function DashboardPage({coachees,library,reminders,remindersReady,libraryReady,l
   // Zitat), bis das eigentlich konfigurierte Zitat aus settings/quote geladen war. Start
   // jetzt mit null, Render-Stelle unten zeigt "…" statt eines falschen Zitats.
   const [quote,setQuote] = useState(null);
+  // NEU 27.11.2026: Adventskalender ersetzt vom 1.–25.12. das Zitat (siehe ADVENTSKALENDER oben)
+  const advent = useAdventState();
+  const [adventOpen,setAdventOpen] = useState(false);
   useEffect(()=>{
     const fbDb=window._fb?.db;
     if(!fbDb) { setQuote(QUOTES[0]); return; }
@@ -3803,10 +3847,12 @@ function DashboardPage({coachees,library,reminders,remindersReady,libraryReady,l
         <div onClick=${onLogoTap} style=${{cursor:"pointer"}}><${Wordmark} dark=${true} height=${64}/></div>
         <div style=${{fontFamily:"'Manuale',serif",fontSize:"1.4rem",fontWeight:600,color:"var(--text)",marginTop:14}}>${greeting}, ${(userDoc?.name||user?.displayName||user?.email||"").split(" ")[0].split("@")[0]}</div>
       </div>
-      <div class="quote-block">
-        <p class="quote-text">${quote ? quote.text : "…"}</p>
-        <p class="quote-author">${quote ? quote.author : ""}</p>
-      </div>
+      ${advent
+        ? h(AdventKarte, { st:advent, onOpen:()=>setAdventOpen(true) })
+        : h("div", { class:"quote-block" },
+            h("p", { class:"quote-text" }, quote ? quote.text : "…"),
+            h("p", { class:"quote-author" }, quote ? quote.author : ""))}
+      ${adventOpen && advent && h(Portal, null, h(AdventOverlay, { st:advent, onClose:()=>setAdventOpen(false) }))}
       ${activeImpuls && h("div", {
         class:"impuls-anker", style:{marginBottom:14},
         // Fix (25.08.2026, siehe Kapitel-169.1-Nachtrag): skipAutoQueue=true, damit
@@ -3944,6 +3990,190 @@ function Portal({ children }) {
   });
 
   return null;
+}
+
+// ── ADVENTSKALENDER COACHEES (NEU 27.11.2026) ──
+// Sichtbar vom 1.12. bis und mit 25.12. (Zürich-Zeit) auf Home anstelle des Zitats.
+// Ab 06:00 Zürich öffnet täglich ein Türchen; am 25.12. sind alle 24 zum Nachlesen offen.
+// Ab 26.12. 00:00 verschwindet der Kalender, das Zitat erscheint automatisch wieder.
+// Sicherheit: Firestore-Rule liefert advent_coachees/{n} erst ab openAt (Serverzeit). Die
+// Abfrage muss daher .where("openAt","<=",X) mit X <= Serverzeit enthalten, sonst
+// PERMISSION_DENIED. X ist bewusst der letzte erreichte 06:00-Zeitpunkt, nicht "jetzt" —
+// geht die Handy-Uhr leicht vor, wird automatisch mit dem Vortag erneut versucht.
+// Test: localStorage "rsw_advent_test" = "2026-12-05T07:00" simuliert Datum/Uhrzeit (nur
+// Darstellung — die Inhalte schützt weiterhin die Serverzeit in der Rule).
+// Komplett mit h() gebaut (htm-Pitfall), Overlays über <Portal> (Pitfall position:fixed).
+const ADV_MONTHS = "Dezember";
+function adventNowParts() {
+  try {
+    const t = localStorage.getItem("rsw_advent_test");
+    const m = t && /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/.exec(t);
+    if (m) return { y:+m[1], m:+m[2], d:+m[3], h:+m[4] };
+  } catch(e) {}
+  const parts = new Intl.DateTimeFormat("en-CA", { timeZone:"Europe/Zurich", year:"numeric", month:"2-digit", day:"2-digit", hour:"2-digit", hourCycle:"h23" }).formatToParts(new Date());
+  const g = k => +((parts.find(p => p.type === k) || {}).value || 0);
+  return { y:g("year"), m:g("month"), d:g("day"), h:g("hour") % 24 };
+}
+function adventStateFrom(p) {
+  if (p.m !== 12 || p.d < 1 || p.d > 25) return null;
+  const xmas = p.d === 25;
+  const current = xmas ? 24 : (p.h >= 6 ? p.d : p.d - 1); // letztes geöffnetes Türchen (0 = noch keins)
+  return { y:p.y, day:p.d, current, xmas, key:p.y + "-" + p.d + "-" + current };
+}
+function useAdventState() {
+  const [st, setSt] = useState(() => adventStateFrom(adventNowParts()));
+  useEffect(() => {
+    const tick = () => {
+      const next = adventStateFrom(adventNowParts());
+      setSt(prev => ((prev && prev.key) === (next && next.key)) ? prev : next);
+    };
+    const iv = setInterval(tick, 30000);
+    const onVis = () => { if (document.visibilityState === "visible") tick(); };
+    document.addEventListener("visibilitychange", onVis);
+    return () => { clearInterval(iv); document.removeEventListener("visibilitychange", onVis); };
+  }, []);
+  return st;
+}
+// 06:00 Zürich im Dezember = 05:00 UTC (MEZ, keine Sommerzeit im Dezember)
+const adventOpenMs = (y, n) => Date.UTC(y, 11, n, 5, 0, 0);
+
+const ADV_STARS = [[6,6,9],[90,4,11],[18,20,7],[80,22,8],[4,44,10],[94,40,7],[12,64,8],[88,62,10],[40,3,7],[62,9,6],[26,84,6],[74,86,8],[50,95,6]];
+const advSvg = (size, children, filled) => h("svg", { width:size, height:size, viewBox:"0 0 24 24", fill:filled ? "currentColor" : "none", stroke:filled ? "none" : "currentColor", strokeWidth:2, strokeLinecap:"round", strokeLinejoin:"round", "aria-hidden":"true" }, children);
+const AdvStar = ({ size, outline }) => advSvg(size, h("polygon", { points:"12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" }), !outline);
+const AdvSparkle = ({ size }) => advSvg(size, [
+  h("path", { key:"a", d:"M10 2 L11.6 8.4 L18 10 L11.6 11.6 L10 18 L8.4 11.6 L2 10 L8.4 8.4 Z" }),
+  h("path", { key:"b", d:"M19 14 L19.8 17.2 L23 18 L19.8 18.8 L19 22 L18.2 18.8 L15 18 L18.2 17.2 Z" })
+], true);
+const AdvMoon = ({ size }) => advSvg(size, h("path", { d:"M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" }));
+const AdvHeart = ({ size }) => advSvg(size, h("path", { d:"M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" }));
+const AdvFlake = ({ size }) => advSvg(size, h("path", { d:"M12 2v20M3.3 7l17.4 10M3.3 17l17.4-10M9.5 3.5 12 6l2.5-2.5M9.5 20.5 12 18l2.5 2.5" }));
+const ADV_ICONS = [AdvStar, AdvMoon, AdvFlake, AdvHeart];
+
+function AdventSky({ snow }) {
+  return h("div", { class:"adv-sky", "aria-hidden":"true" },
+    ADV_STARS.map((p, i) => h("span", { key:"s"+i, class:"adv-tw", style:{ left:p[0]+"%", top:p[1]+"%", fontSize:p[2]+"px", animationDelay:((i*0.37)%2.6).toFixed(2)+"s" } }, h(AdvStar, { size:p[2] }))),
+    Array.from({ length:snow }, (_, k) => h("span", { key:"n"+k, class:"adv-sn", style:{ left:((k*8.3)%100)+"%", animationDuration:(9 + (k%5)*2)+"s", animationDelay:(-k*1.3)+"s" } }))
+  );
+}
+
+function AdventKarte({ st, onOpen }) {
+  const pillText = st.xmas ? "Tippe zum Nachlesen" : (st.current === 0 ? "Dein erstes Türchen öffnet um 6 Uhr" : "Tippe auf dein Türchen");
+  const door = st.xmas
+    ? h("div", { class:"adv-door adv-door-today adv-door-big" }, h(AdvStar, { size:30 }))
+    : st.current === 0
+      ? h("div", { class:"adv-door adv-door-next adv-door-big" }, "1")
+      : h("div", { class:"adv-door adv-door-today adv-door-big" }, String(st.current),
+          h("span", { class:"adv-door-ico", style:{ top:"4px", right:"5px" } }, h(AdvSparkle, { size:12 })));
+  return h("div", { class:"adv-card", role:"button", tabIndex:0, "aria-label":"Adventskalender öffnen", onClick:onOpen, onKeyDown:e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onOpen(); } } },
+    h(AdventSky, { snow:10 }),
+    h("div", { class:"adv-glitz" }, h(AdvSparkle, { size:16 })),
+    h("div", { class:"adv-title" }, st.xmas ? "Frohe Weihnachten" : ("Dein Advent " + st.y)),
+    h("div", { class:"adv-sub" }, st.xmas ? "Alle 24 Türchen sind offen" : ("Heute ist der " + st.day + ". " + ADV_MONTHS)),
+    door,
+    h("div", { class:"adv-pill" }, h(AdvStar, { size:9 }), pillText, h(AdvStar, { size:9 }))
+  );
+}
+
+function AdventDoorCard({ n, doc, loadError, onClose }) {
+  useEffect(() => {
+    const onKey = e => { if (e.key === "Escape") { e.stopPropagation(); onClose(); } };
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
+  }, []);
+  const media = (doc && Array.isArray(doc.media)) ? doc.media.filter(m => m && m.url) : [];
+  const title = doc && doc.title ? doc.title : (loadError ? "Gerade nicht erreichbar" : "Bald gefüllt");
+  const text = doc && doc.text ? doc.text : (loadError ? "Das Türchen konnte nicht geladen werden. Bitte versuche es in einem Moment noch einmal." : "Dieses Türchen wird gerade noch liebevoll gefüllt. Schau später nochmals vorbei.");
+  return h("div", { class:"adv-dov", onClick:e => { if (e.target === e.currentTarget) onClose(); } },
+    h("div", { class:"adv-dcard", role:"dialog", "aria-modal":"true", "aria-label":"Türchen " + n },
+      media.map((m, i) => h("div", { key:"m"+i, class:"adv-media" },
+        m.type === "video"
+          ? h("video", { src:m.url, controls:true, playsInline:true, preload:"metadata" })
+          : h("img", { src:m.url, alt:"", loading:"lazy" }),
+        i === 0 && h("span", { class:"adv-media-star" }, h(AdvStar, { size:18 }))
+      )),
+      h("div", { class:"adv-dmeta" }, "Türchen " + n + " · " + n + ". " + ADV_MONTHS),
+      h("div", { class:"adv-dtitle" }, title),
+      h("div", { class:"adv-dtext" }, text),
+      h("button", { class:"adv-dbtn", onClick:onClose }, "Schliessen")
+    )
+  );
+}
+
+function AdventOverlay({ st, onClose }) {
+  const [docs, setDocs] = useState({});
+  const [loadError, setLoadError] = useState(false);
+  const [openDoor, setOpenDoor] = useState(null);
+  const openDoorRef = useRef(null);
+  openDoorRef.current = openDoor;
+
+  useEffect(() => {
+    const db = window._fb?.db;
+    const TS = window.firebase?.firestore?.Timestamp;
+    if (!db || !TS || st.current < 1) return;
+    let cancelled = false;
+    const load = (n, retry) => {
+      db.collection("advent_coachees").where("openAt", "<=", TS.fromMillis(adventOpenMs(st.y, n))).get()
+        .then(snap => {
+          if (cancelled) return;
+          const map = {};
+          snap.docs.forEach(d => { map[d.id] = d.data(); });
+          setDocs(map); setLoadError(false);
+        })
+        .catch(err => {
+          if (cancelled) return;
+          // Handy-Uhr leicht vor der Serverzeit (kurz nach 06:00) → mit Vortag versuchen
+          if (err && err.code === "permission-denied" && retry && n > 1) { load(n - 1, false); return; }
+          if (err && err.code === "permission-denied" && retry && n === 1) return; // 1.12. kurz vor 06:00 Serverzeit
+          setLoadError(true);
+          _logClientError("advent_load", (err && (err.code || err.message)) || "unbekannt", "Adventskalender");
+        });
+    };
+    load(st.current, true);
+    return () => { cancelled = true; };
+  }, [st.key]);
+
+  useEffect(() => {
+    const onKey = e => { if (e.key === "Escape" && openDoorRef.current === null) onClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  const doors = [];
+  for (let i = 1; i <= 24; i++) {
+    const opened = i <= st.current;
+    const isToday = !st.xmas && i === st.current;
+    const cls = "adv-door " + (isToday ? "adv-door-today" : opened ? "adv-door-open" : "adv-door-next") + (opened ? " adv-door-btn" : "");
+    const Ico = ADV_ICONS[i % 4];
+    doors.push(h("div", {
+      key:i, class:cls,
+      style:(i === 24 && !opened) ? { borderColor:"rgba(227,194,122,.5)" } : null,
+      role:opened ? "button" : null, tabIndex:opened ? 0 : null,
+      "aria-label":"Türchen " + i + (opened ? "" : " (noch zu)"),
+      onClick:opened ? () => setOpenDoor(i) : null,
+      onKeyDown:opened ? (e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setOpenDoor(i); } }) : null
+    },
+      i === 24 && h("span", { class:"adv-door-ico", style:{ color:isToday ? "rgba(15,79,79,.18)" : "rgba(227,194,122,.18)" } }, h(AdvStar, { size:30 })),
+      h("span", { class:"adv-rel" }, String(i)),
+      isToday && h("span", { class:"adv-door-ico", style:{ top:"3px", right:"4px" } }, h(AdvSparkle, { size:11 })),
+      opened && !isToday && h("span", { class:"adv-door-ico", style:{ bottom:"3px", right:"4px" } }, h(Ico, { size:9 }))
+    ));
+  }
+
+  const pill = st.xmas ? "Tippe auf ein Türchen zum Nachlesen" : (st.current === 0 ? "Dein erstes Türchen öffnet um 6 Uhr" : "Tippe auf das leuchtende Türchen");
+  return h("div", { class:"adv-ov", role:"dialog", "aria-modal":"true", "aria-label":"Adventskalender" },
+    h(AdventSky, { snow:14 }),
+    h("button", { class:"adv-close", onClick:onClose, "aria-label":"Kalender schliessen" },
+      h("svg", { width:18, height:18, viewBox:"0 0 24 24", fill:"none", stroke:"currentColor", strokeWidth:2, strokeLinecap:"round" },
+        h("line", { x1:18, y1:6, x2:6, y2:18 }), h("line", { x1:6, y1:6, x2:18, y2:18 }))),
+    h("div", { class:"adv-ov-inner" },
+      h("div", { class:"adv-glitz" }, h(AdvSparkle, { size:22 })),
+      h("div", { class:"adv-title", style:{ fontSize:"1.45rem" } }, st.xmas ? "Frohe Weihnachten" : ("Dein Advent " + st.y)),
+      h("div", { class:"adv-sub", style:{ margin:"2px 0 12px" } }, st.xmas ? "Alle 24 Türchen sind offen" : ("Heute ist der " + st.day + ". " + ADV_MONTHS)),
+      h("div", { class:"adv-pill" }, h(AdvStar, { size:9 }), pill, h(AdvStar, { size:9 })),
+      h("div", { class:"adv-grid" }, doors)
+    ),
+    openDoor !== null && h(AdventDoorCard, { n:openDoor, doc:docs[String(openDoor)], loadError, onClose:() => setOpenDoor(null) })
+  );
 }
 
 // ── GOALS PAGE ──
