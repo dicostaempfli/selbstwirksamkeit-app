@@ -1,4 +1,4 @@
-<!-- Version: 2026-11-27 08:20 admin -->
+<!-- Version: 2026-11-27 10:53 admin -->
 <!DOCTYPE html>
 <!-- Version: 2026-08-12 17:47 admin -->
 <head>
@@ -787,6 +787,11 @@ window.addEventListener('orientationchange', ()=>setTimeout(setVH,150));
   .adva-prev-cover { position:relative; aspect-ratio:16/9; border-radius:10px; overflow:hidden; background:#145c5c; border:1px solid rgba(227,194,122,.6); }
   .adva-prev-cover img { width:100%; height:100%; object-fit:cover; border-radius:0; border:none; }
   .adva-page .btn:disabled { opacity:.5; cursor:default; }
+  .adva-editor { scroll-margin-top:12px; }
+  /* Fix 27.11.2026: beim Tippen im Advent-Bereich (Handy) die untere Navigation ausblenden,
+     damit sie über der iOS-Tastatur nicht den Editor verdeckt. Nur aktiv, solange ein Feld
+     im Advent-Bereich fokussiert ist — andere Bereiche unverändert. */
+  .app-layout:has(.adva-page input:focus, .adva-page textarea:focus) .bottom-nav { display:none !important; }
   .adva-prev-play { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); width:42px; height:42px; border-radius:50%; background:rgba(15,79,79,.85); border:1.5px solid #e3c27a; color:#e3c27a; display:flex; align-items:center; justify-content:center; font-size:14px; }
   .adva-prev-link { height:110px; border-radius:10px; background:rgba(255,255,255,.05); border:1px solid rgba(227,194,122,.45); color:#e3c27a; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; font-family:'Manuale',serif; font-size:.95rem; }
   .adva-prev-src { font-size:.68rem; color:#bcd8d3; margin-top:4px; }
@@ -2040,6 +2045,7 @@ function AdventAdminPage() {
   const fileRef = useRef(null);
   const coverRef = useRef(null);
   const coverIdx = useRef(-1);
+  const editorRef = useRef(null);
 
   useEffect(() => {
     const fs = db(); if (!fs) return;
@@ -2060,9 +2066,11 @@ function AdventAdminPage() {
   const delFile = p => p ? window._fb.storage.ref(p).delete().catch(e => { if (e.code !== "storage/object-not-found") throw e; }) : Promise.resolve();
 
   const choose = n => {
-    if (n === sel) return;
+    // Handy (Editor unter der Türchen-Liste): direkt zum Editor springen (Fix 27.11.2026)
+    const jump = () => { if (window.innerWidth < 1100 && editorRef.current) setTimeout(() => editorRef.current && editorRef.current.scrollIntoView({ behavior:"smooth", block:"start" }), 50); };
+    if (n === sel) { jump(); return; }
     if (dirty && !window.confirm("Titel/Text von Türchen " + sel + " sind noch nicht gespeichert. Verwerfen?")) return;
-    setSel(n);
+    setSel(n); jump();
   };
   const save = async () => {
     setBusy("Speichere…");
@@ -2166,7 +2174,7 @@ function AdventAdminPage() {
   const wd = ADVA_WD[new Date(Date.UTC(year, 11, sel, 12)).getUTCDay()];
   const isBusy = !!busy;
 
-  return h("div", { class:"adva-page" },
+  return h("div", { class:"page adva-page" },
     h("h1", { class:"page-title", style:{ marginBottom:4 } }, "Adventskalender " + year),
     h("div", { class:"adva-sub" }, "Für alle Coachees sichtbar vom 1. bis 25.12. · Türchen öffnen um 06:00 · " + filledCount + " von 24 gefüllt"),
     h("div", { class:"adva-layout" },
@@ -2179,7 +2187,7 @@ function AdventAdminPage() {
             onClick:() => choose(n)
           }, h("b", null, n), n + ".12."))),
         h("div", { class:"adva-hint" }, "Grün = gefüllt")),
-      h("div", { class:"card adva-col" },
+      h("div", { class:"card adva-col adva-editor", ref:editorRef },
         h("div", { class:"adva-dhead" }, "Türchen " + sel + " · " + wd + ", " + sel + ". Dezember"),
         h("div", { class:"adva-hint", style:{ marginTop:0 } }, "Öffnet am " + sel + ".12. um 06:00"),
         h("div", { class:"adva-lb" }, "Titel"),
@@ -2815,7 +2823,7 @@ function DashboardPage({coachees,library,doodles,setPage,user,openSenderFilter,o
       </div>
       <div style=${{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginTop:14,paddingTop:10,paddingBottom:16,borderTop:"1px solid var(--border2)",borderBottom:"1px solid var(--border2)",marginBottom:16,gap:10}}>
         <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.7,lineHeight:1.5}}>
-          <div>App v2026-11-27 08:20 · Doku v3.255</div>
+          <div>App v2026-11-27 10:53 · Doku v3.255</div>
           <div>2026-09-10 13:12</div>
         </div>
         <div style=${{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
