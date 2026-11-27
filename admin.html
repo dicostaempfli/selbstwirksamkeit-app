@@ -1,4 +1,4 @@
-<!-- Version: 2026-11-27 12:10 admin -->
+<!-- Version: 2026-11-27 12:43 admin -->
 <!DOCTYPE html>
 <!-- Version: 2026-08-12 17:47 admin -->
 <head>
@@ -2069,12 +2069,21 @@ function AdventAdminPage() {
     // Handy (Editor unter der Türchen-Liste): direkt zum Editor springen (Fix 27.11.2026)
     const jump = () => { if (window.innerWidth < 1100 && editorRef.current) setTimeout(() => editorRef.current && editorRef.current.scrollIntoView({ behavior:"smooth", block:"start" }), 50); };
     if (n === sel) { jump(); return; }
-    if (dirty && !window.confirm("Titel/Text von Türchen " + sel + " sind noch nicht gespeichert. Verwerfen?")) return;
+    if ((dirty || linkUrl.trim()) && !window.confirm("Änderungen an Türchen " + sel + " (Titel, Text oder Link) sind noch nicht gespeichert. Verwerfen?")) return;
     setSel(n); jump();
   };
+  // Fix 27.11.2026: «Speichern» übernimmt auch einen noch nicht hinzugefügten Link im Feld
+  // (vorher ging ein eingefügter Link verloren, wenn nur «Speichern» getippt wurde).
   const save = async () => {
+    const pending = linkUrl.trim();
+    let patch = { title:title.trim(), text:text.trim() };
+    if (pending) {
+      if (!/^https:\/\/[^\s]+\.[^\s]+$/i.test(pending)) { setLinkErr("Bitte eine vollständige Adresse mit https:// einfügen"); return; }
+      const l = { url:pending }; const yt = advaYtId(pending); if (yt) l.ytId = yt;
+      patch.links = links.concat([l]);
+    }
     setBusy("Speichere…");
-    try { await write({ title:title.trim(), text:text.trim() }); setDirty(false); showToast("✓ Türchen " + sel + " gespeichert"); }
+    try { await write(patch); setDirty(false); if (pending) { setLinkUrl(""); setLinkErr(""); } showToast("✓ Türchen " + sel + " gespeichert"); }
     catch(e) { showToast("✗ Speichern fehlgeschlagen: " + (e.code || e.message)); }
     setBusy("");
   };
@@ -2219,10 +2228,10 @@ function AdventAdminPage() {
           h("button", { type:"button", class:"btn btn-ghost btn-sm", disabled:isBusy || !linkUrl.trim(), onClick:addLink }, h(Ic, { name:"plus", size:14 }), "Link")),
         linkErr && h("div", { class:"adva-err" }, linkErr),
         h("div", { class:"adva-actions" },
-          h("button", { type:"button", class:"btn btn-primary", disabled:isBusy || !dirty, onClick:save }, h(Ic, { name:"check", size:14 }), "Speichern"),
+          h("button", { type:"button", class:"btn btn-primary", disabled:isBusy || !(dirty || linkUrl.trim()), onClick:save }, h(Ic, { name:"check", size:14 }), "Speichern"),
           h("button", { type:"button", class:"btn btn-ghost", disabled:isBusy || !advaFilled(cur), onClick:clearDoor }, "Türchen leeren"),
           busy && h("span", { class:"adva-hint", style:{ margin:0 } }, busy),
-          !busy && dirty && h("span", { class:"adva-hint", style:{ margin:0, color:"#993C1D" } }, "Nicht gespeichert"))),
+          !busy && (dirty || linkUrl.trim()) && h("span", { class:"adva-hint", style:{ margin:0, color:"#993C1D" } }, "Nicht gespeichert"))),
       h("div", { class:"adva-col" },
         h("div", { class:"adva-lb", style:{ marginTop:0 } }, "Vorschau"),
         h(AdventPreview, { n:sel, title:title.trim(), text:text.trim(), media, links }))),
@@ -2823,7 +2832,7 @@ function DashboardPage({coachees,library,doodles,setPage,user,openSenderFilter,o
       </div>
       <div style=${{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginTop:14,paddingTop:10,paddingBottom:16,borderTop:"1px solid var(--border2)",borderBottom:"1px solid var(--border2)",marginBottom:16,gap:10}}>
         <div style=${{fontSize:".75rem",color:"var(--muted)",opacity:.7,lineHeight:1.5}}>
-          <div>App v2026-11-27 12:10 · Doku v3.256</div>
+          <div>App v2026-11-27 12:43 · Doku v3.256</div>
           <div>2026-09-10 13:12</div>
         </div>
         <div style=${{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
