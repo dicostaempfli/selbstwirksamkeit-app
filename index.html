@@ -1,4 +1,4 @@
-<!-- Version: 2026-11-27 08:24 coachee -->
+<!-- Version: 2026-11-27 11:02 coachee -->
 <!-- v20260611 cache-bust: v1781186486 -->
 <!-- v202605211300 cache-bust: v1779397200 -->
 <!DOCTYPE html>
@@ -767,6 +767,15 @@
   .adv-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; position:relative; margin-top:16px; }
   .adv-grid .adv-door { aspect-ratio:1/1; font-size:1.05rem; border-radius:10px; }
   .adv-door-btn { cursor:pointer; -webkit-tap-highlight-color:transparent; }
+  .adv-push { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:18px; padding:11px 14px; border:1px solid rgba(227,194,122,.3); border-radius:14px; text-align:left; position:relative; background:rgba(15,79,79,.6); }
+  .adv-push-txt { min-width:0; }
+  .adv-push-title { display:flex; align-items:center; gap:6px; font-size:.84rem; color:#f3ead2; }
+  .adv-push-title svg { color:#e3c27a; }
+  .adv-push-sub { font-size:.72rem; color:#bcd8d3; margin-top:2px; }
+  .adv-sw { width:44px; height:26px; border-radius:13px; position:relative; flex-shrink:0; border:1px solid rgba(227,194,122,.5); background:transparent; padding:0; cursor:pointer; -webkit-tap-highlight-color:transparent; transition:background .2s; }
+  .adv-sw-knob { position:absolute; top:2px; left:2px; width:20px; height:20px; border-radius:50%; background:rgba(243,234,210,.5); transition:left .2s, background .2s; }
+  .adv-sw-on { background:#e3c27a; border-color:#e3c27a; }
+  .adv-sw-on .adv-sw-knob { left:20px; background:#0f4f4f; }
   .adv-dov { position:fixed; inset:0; z-index:10000; background:rgba(8,40,40,.72); display:flex; align-items:center; justify-content:center; padding:calc(env(safe-area-inset-top) + 16px) 16px calc(env(safe-area-inset-bottom) + 16px); }
   .adv-dcard { background:#0f4f4f; border-radius:16px; width:100%; max-width:380px; max-height:100%; position:relative; overflow:hidden; display:flex; flex-direction:column; color:#f3ead2; font-family:'Exo 2',sans-serif; text-align:center; box-shadow:0 12px 40px rgba(0,0,0,.35); }
   .adv-dscroll { position:relative; overflow-y:auto; -webkit-overflow-scrolling:touch; overscroll-behavior:contain; padding:16px 16px 18px; }
@@ -3859,7 +3868,7 @@ function DashboardPage({coachees,library,reminders,remindersReady,libraryReady,l
         : h("div", { class:"quote-block" },
             h("p", { class:"quote-text" }, quote ? quote.text : "…"),
             h("p", { class:"quote-author" }, quote ? quote.author : ""))}
-      ${adventOpen && advent && h(Portal, null, h(AdventOverlay, { st:advent, onClose:()=>setAdventOpen(false) }))}
+      ${adventOpen && advent && h(Portal, null, h(AdventOverlay, { st:advent, uid:user?.uid, onClose:()=>setAdventOpen(false) }))}
       ${activeImpuls && h("div", {
         class:"impuls-anker", style:{marginBottom:14},
         // Fix (25.08.2026, siehe Kapitel-169.1-Nachtrag): skipAutoQueue=true, damit
@@ -4129,7 +4138,34 @@ function AdventDoorCard({ n, doc, loadError, onClose }) {
   );
 }
 
-function AdventOverlay({ st, onClose }) {
+// Schalter «Adventsgruss um 6 Uhr» (NEU 27.11.2026): schreibt users/{uid}.adventPushOff.
+// adventDailyPush (functions) überspringt Coachees mit adventPushOff === true. Betrifft NUR
+// die Advent-Push; Chat/Tages-Impuls/Meine Impulse bleiben unverändert. Firestore-Rule:
+// 'adventPushOff' ist in der hasOnly-Liste der Coachee-eigenen users-Updates.
+function AdventPushSwitch({ uid }) {
+  const [off, setOff] = useState(null); // null = lädt
+  const [err, setErr] = useState(false);
+  useEffect(() => {
+    const db = window._fb?.db; if (!db || !uid) return;
+    db.collection("users").doc(uid).get()
+      .then(d => setOff(!!(d.exists && d.data().adventPushOff)))
+      .catch(() => setOff(false));
+  }, [uid]);
+  if (!uid || off === null) return null;
+  const toggle = () => {
+    const next = !off; setOff(next); setErr(false);
+    window._fb.db.collection("users").doc(uid).update({ adventPushOff:next })
+      .catch(e => { setOff(!next); setErr(true); _logClientError("advent_push_toggle", (e && (e.code || e.message)) || "unbekannt", "Adventskalender"); });
+  };
+  return h("div", { class:"adv-push" },
+    h("div", { class:"adv-push-txt" },
+      h("div", { class:"adv-push-title" }, h(AdvStar, { size:10 }), "Adventsgruss um 6 Uhr"),
+      h("div", { class:"adv-push-sub" }, err ? "Konnte nicht gespeichert werden. Bitte nochmals versuchen." : off ? "Aus – der Kalender bleibt auf der Startseite" : "Push, wenn dein Türchen aufgeht")),
+    h("button", { type:"button", role:"switch", "aria-checked":off ? "false" : "true", "aria-label":"Adventsgruss um 6 Uhr", class:"adv-sw" + (off ? "" : " adv-sw-on"), onClick:toggle },
+      h("span", { class:"adv-sw-knob" })));
+}
+
+function AdventOverlay({ st, uid, onClose }) {
   const [docs, setDocs] = useState({});
   const [loadError, setLoadError] = useState(false);
   const [openDoor, setOpenDoor] = useState(null);
@@ -4200,7 +4236,8 @@ function AdventOverlay({ st, onClose }) {
       h("div", { class:"adv-title", style:{ fontSize:"1.45rem" } }, st.xmas ? "Frohe Weihnachten" : ("Dein Advent " + st.y)),
       h("div", { class:"adv-sub", style:{ margin:"2px 0 12px" } }, st.xmas ? "Alle 24 Türchen sind offen" : ("Heute ist der " + st.day + ". " + ADV_MONTHS)),
       h("div", { class:"adv-pill" }, h(AdvStar, { size:9 }), pill, h(AdvStar, { size:9 })),
-      h("div", { class:"adv-grid" }, doors)
+      h("div", { class:"adv-grid" }, doors),
+      !st.xmas && h(AdventPushSwitch, { uid })
     ),
     openDoor !== null && h(AdventDoorCard, { n:openDoor, doc:docs[String(openDoor)], loadError, onClose:() => setOpenDoor(null) })
   );
